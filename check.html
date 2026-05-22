@@ -620,6 +620,35 @@
     <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
     <span class="progress-label" id="progressLabel">0%</span>
   </div>
+  <!-- เพิ่มในส่วนข้อมูลพื้นฐาน -->
+<div class="field-group" id="fg-destination">
+  <label>สถานที่ปลายทาง <span class="req">*</span></label>
+  <input type="text" id="destination" name="destination" 
+         list="destinations" 
+         placeholder="พิมพ์หรือเลือกสถานที่..." 
+         required
+         oninput="filterDestinations()">
+  <datalist id="destinations">
+    <option value="สสอ.สันทราย">
+    <option value="สสจ.เชียงใหม่">
+    <option value="รพ.สันทราย">
+    <option value="รพ.แม่แตง">
+    <option value="รพ.พร้าว">
+    <option value="รพ.ดอยสะเก็ด">
+    <option value="รพ.สันกำแพง">
+    <option value="รพ.สารภี">
+    <option value="รพ.หางดง">
+    <option value="รพ.สันป่าตอง">
+    <option value="สำนักงานสาธารณสุขจังหวัดเชียงใหม่">
+    <option value="สำนักงานสาธารณสุขอำเภอสันทราย">
+    <option value="ศาลากลางจังหวัดเชียงใหม่">
+    <option value="ที่ว่าการอำเภอสันทราย">
+    <option value="เทศบาลตำบลสันทรายหลวง">
+    <option value="เทศบาลตำบลสันทรายกลาง">
+    <option value="อื่นๆ (ระบุในหมายเหตุ)">
+  </datalist>
+  <span class="error-msg">กรุณาระบุสถานที่ปลายทาง</span>
+</div>
 
   <form id="inspectionForm" novalidate>
 
@@ -900,13 +929,12 @@ checkItems.forEach(item => {
   tbody.appendChild(row);
 });
 
-// ============================================================
-// SET DEFAULT DATE/TIME
-// ============================================================
+// แทนที่ส่วน SET DEFAULT DATE/TIME:
 const now = new Date();
-document.getElementById('inspDate').value = now.toISOString().split('T')[0];
-document.getElementById('inspTime').value = now.toTimeString().slice(0, 5);
-
+// ใช้ timezone Asia/Bangkok สำหรับค่าเริ่มต้น
+const thaiDate = new Date(now.toLocaleString('en-US', {timeZone: 'Asia/Bangkok'}));
+document.getElementById('inspDate').value = thaiDate.toISOString().split('T')[0];
+document.getElementById('inspTime').value = thaiDate.toTimeString().slice(0,5);
 // ============================================================
 // PROGRESS TRACKING
 // ============================================================
