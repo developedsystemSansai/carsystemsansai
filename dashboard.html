@@ -941,9 +941,9 @@ function renderRecentRecords(data) {
     const hasPhoto = r.photoLinks && r.photoLinks.toString().trim().length > 0;
     return `<tr onclick="openDetailModal(${allData.indexOf(r)})" style="cursor:pointer;">
       <td style="white-space:nowrap;font-size:0.76rem;">
-        ${r.inspDate||'—'}<br>
-        <span style="color:var(--text-light)">${r.inspTime||'—'}</span>
-      </td>
+  ${formatThaiDate(r.inspDate)}<br>
+  <span style="color:var(--text-light)">${formatTimeShort(r.inspTime)}</span>
+</td>
       <td><span class="plate-badge" style="font-size:0.7rem;">${extractPlate(r.carType)||'—'}</span></td>
       <td style="font-size:0.78rem;">${(r.driverName||'—').replace('นาย ','').replace('นายก','กัมพล').substring(0,14)}</td>
       <td style="font-family:'Space Grotesk',monospace;font-weight:600;font-size:0.82rem;">${r.odometer ? (+r.odometer).toLocaleString() : '—'}</td>
@@ -957,6 +957,26 @@ function renderRecentRecords(data) {
       </td>
     </tr>`;
   }).join('');
+}
+  // เพิ่มฟังก์ชัน helper ใน <script>:
+function formatThaiDate(dateStr) {
+  if (!dateStr) return '—';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return dateStr;
+  const dd = String(d.getDate()).padStart(2,'0');
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const yyyy = d.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function formatTimeShort(timeStr) {
+  if (!timeStr) return '—';
+  // Handle both "HH:mm" and ISO time
+  if (timeStr.includes(':')) {
+    const parts = timeStr.split('T').pop().split('.').shift();
+    return parts.length >= 5 ? parts.slice(0,5) : timeStr;
+  }
+  return timeStr;
 }
 
 // ── DETAIL MODAL ──
