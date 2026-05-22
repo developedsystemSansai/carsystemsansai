@@ -515,6 +515,31 @@
       <span class="last-updated" id="lastUpdated">—</span>
     </div>
   </div>
+  <!-- เพิ่ม Card แสดงสถานะรถใน dashboard -->
+<div class="card" style="margin-bottom:16px;">
+  <div class="card-header">
+    <span class="icon">🚦</span>
+    <h2>สถานะรถวันนี้</h2>
+    <span class="badge" id="statusDate">—</span>
+  </div>
+  <div class="card-body">
+    <div class="tab-row">
+      <button class="tab-btn active" onclick="switchStatusTab('ready',this)">✅ พร้อมใช้งาน (<span id="countReady">0</span>)</button>
+      <button class="tab-btn" onclick="switchStatusTab('inuse',this)">🚗 กำลังใช้งาน (<span id="countInUse">0</span>)</button>
+      <button class="tab-btn" onclick="switchStatusTab('pending',this)">⏳ ยังไม่ตรวจ (<span id="countPending">0</span>)</button>
+    </div>
+    
+    <div id="statusReady" class="status-tab-content active">
+      <div id="readyList" class="status-list"></div>
+    </div>
+    <div id="statusInUse" class="status-tab-content" style="display:none;">
+      <div id="inUseList" class="status-list"></div>
+    </div>
+    <div id="statusPending" class="status-tab-content" style="display:none;">
+      <div id="pendingList" class="status-list"></div>
+    </div>
+  </div>
+</div>
 
   <!-- KPI -->
   <div class="kpi-grid" id="kpiGrid">
@@ -777,6 +802,71 @@ function hasNoIssues(r) {
 function extractPlate(carType) {
   return (carType||'').split(' ')[0];
 }
+  // JavaScript: โหลดและแสดงสถานะรถ
+async function loadVehicleStatus() {
+  try {
+    const res = await fetch(GAS_URL + '?action=getStatusSummary');
+    const json = await res.json();
+    
+    if (json.status !== 'ok') return;
+    
+    document.getElementById('statusDate').textContent = json.today;
+    document.getElementById('countReady').textContent = json.counts.ready;
+    document.getElementById('countInUse').textContent = json.counts.inUse;
+    document.getElementById('countPending').textContent = json.counts.notChecked;
+    
+    renderStatusList('readyList', json.ready, 'ready');
+    renderStatusList('inUseList', json.inUse, 'inuse');
+    renderStatusList('pendingList', json.notChecked, 'pending');
+    
+  } catch (e) {
+    console.error('Load status error:', e);
+  }
+}
+
+function renderStatusList(containerId, items, type) {
+  const container = document.getElementById(containerId);
+  if (!items || !items.length) {
+    container.innerHTML = '<div class="empty-state"><div class="em">📭</div>ไม่มีรายการ</div>';
+    return;
+  }
+  
+  container.innerHTML = items.map(item => {
+    if (type === 'ready') {
+      return `<div class="status-item">
+        <span class="plate-badge">${extractPlate(item.carType)}</span>
+        <span style="font-size:0.75rem;color:var(--text-light);margin-left:8px;">${item.carType?.split(' ').slice(1).join(' ')||''}</span>
+        <span style="margin-left:auto;font-size:0.75rem;">ตรวจ: ${item.time||'—'}</span>
+      </div>`;
+    } else if (type === 'inuse') {
+      return `<div class="status-item">
+        <span class="plate-badge">${extractPlate(item.carType)}</span>
+        <span style="font-size:0.75rem;color:var(--text-light);margin-left:8px;">→ ${item.destination||'—'}</span>
+        <span style="margin-left:auto;font-size:0.75rem;">ออก: ${item.startTime||'—'}</span>
+      </div>`;
+    } else {
+      return `<div class="status-item">
+        <span class="plate-badge">${item.plate||'—'}</span>
+        <span style="font-size:0.75rem;color:var(--text-light);margin-left:8px;">${item.type||''}</span>
+        <span class="issue-badge" style="margin-left:auto;">รอตรวจ</span>
+      </div>`;
+    }
+  }).join('');
+}
+
+function switchStatusTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.status-tab-content').forEach(el => el.style.display = 'none');
+  document.getElementById('status' + (tab==='inuse'?'InUse':tab==='pending'?'Pending':'Ready')).style.display = 'block';
+}
+
+// เรียกโหลดเมื่อหน้าโหลดเสร็จ
+document.addEventListener('DOMContentLoaded', () => {
+  loadVehicleStatus();
+  // รีเฟรชทุก 5 นาที
+  setInterval(loadVehicleStatus, 300000);
+});
 
 function renderOdometer(data) {
   const latest = {};
