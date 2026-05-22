@@ -1152,6 +1152,16 @@ function resetForm() {
   document.getElementById('inspTime').value = now.toTimeString().slice(0, 5);
   updateProgress();
 }
+  function filterDestinations() {
+  const input = document.getElementById('destination').value.toLowerCase();
+  const datalist = document.getElementById('destinations');
+  const options = datalist.getElementsByTagName('option');
+  
+  for (let opt of options) {
+    const val = opt.value.toLowerCase();
+    opt.style.display = val.includes(input) ? '' : 'none';
+  }
+}
 
 // ============================================================
 // MODAL & TOAST
