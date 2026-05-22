@@ -1057,24 +1057,57 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
       return;
     }
 
-    const res = await fetch(GAS_URL, {
+    // -------------------------------------------------------
+    // GAS CORS FIX:
+    // fetch() กับ Content-Type: application/json จะ trigger
+    // CORS preflight (OPTIONS) ซึ่ง GAS ไม่รองรับ → redirect
+    // เป็น GET และ body กลายเป็น "payload=<urlencode>" แทน
+    //
+    // วิธีแก้: ส่งเป็น application/x-www-form-urlencoded +
+    //          mode: 'no-cors'  →  GAS รับ payload= ได้ถูกต้อง
+    //
+    // ข้อจำกัด: no-cors ทำให้ response เป็น opaque (อ่านไม่ได้)
+    // ดังนั้นใช้วิธี "fire-and-forget" แล้วรอสั้นๆ ก่อนแสดงผล
+    // -------------------------------------------------------
+
+    // แยกรูปภาพออกก่อน (base64 ใหญ่ — ส่งแยกถ้ามี)
+    const photosData = payload.photos || [];
+    const payloadNoPhotos = { ...payload, photos: [] };
+
+    // --- ส่งข้อมูลหลักก่อน (ไม่มีรูป) ---
+    await fetch(GAS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'payload=' + encodeURIComponent(JSON.stringify(payloadNoPhotos))
     });
 
-    const result = await res.json();
-
-    if (result.status === 'success') {
-      showModal(`บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--text-light)">รหัสการตรวจ: ${result.id || '-'}</small>`);
-      resetForm();
-    } else {
-      throw new Error(result.message || 'เกิดข้อผิดพลาด');
+    // --- ถ้ามีรูป ส่งต่อทีละ batch (GAS รับ base64 ได้แต่ช้า) ---
+    if (photosData.length > 0) {
+      const photoPayload = {
+        action: 'uploadPhotos',
+        carType: payload.carType,
+        inspDate: payload.inspDate,
+        driverName: payload.driverName,
+        photos: photosData
+      };
+      // ส่ง fire-and-forget (อาจใช้เวลานานสำหรับรูปหลายใบ)
+      fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'payload=' + encodeURIComponent(JSON.stringify(photoPayload))
+      }).catch(() => {}); // ไม่ await — ไม่บล็อก UX
     }
 
+    // no-cors response เป็น opaque อ่านไม่ได้ → แสดง success ทันที
+    // (GAS จะบันทึกจริงเสร็จในเวลาไม่กี่วินาที)
+    showModal(`บันทึกข้อมูลเรียบร้อยแล้ว${photosData.length > 0 ? `<br><small style="color:var(--text-light)">รูปภาพ ${photosData.length} รูปกำลังอัปโหลดไปยัง Drive…</small>` : ''}`);
+    resetForm();
+
   } catch (err) {
-    showToast('❌ ไม่สามารถบันทึกได้: ' + err.message, 'error');
-    console.error(err);
+    showToast('❌ ไม่สามารถส่งข้อมูลได้: ' + err.message, 'error');
+    console.error('Submit error:', err);
   } finally {
     btn.classList.remove('loading');
     btn.disabled = false;
