@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — ตรวจสภาพรถยนต์</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a2540;
+    --navy-mid: #163860;
+    --blue: #1a73e8;
+    --teal: #00897b;
+    --accent: #ff6b35;
+    --gold: #f9a825;
+    --bg: #f0f4f8;
+    --card: #ffffff;
+    --border: #dde3eb;
+    --text: #1a2332;
+    --text-mid: #4a5568;
+    --text-light: #8898aa;
+    --success: #00c853;
+    --warning: #ffab00;
+    --danger: #f44336;
+    --radius: 14px;
+    --shadow: 0 4px 24px rgba(10,37,64,0.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sarabun', 'IBM Plex Sans Thai', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .site-header {
+    background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 60%, #1a5276 100%);
+    padding: 0;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.25);
+  }
+  .header-inner {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 18px 24px;
+    display: flex; align-items: center; gap: 16px;
+  }
+  .header-icon {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, var(--teal), var(--blue));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    box-shadow: 0 4px 12px rgba(0,137,123,0.4);
+    flex-shrink: 0;
+  }
+  .header-text h1 { font-size: 1.25rem; font-weight: 700; color: #fff; }
+  .header-text p { font-size: 0.8rem; color: rgba(255,255,255,0.65); margin-top: 2px; }
+  .header-nav { margin-left: auto; display: flex; gap: 8px; }
+  .nav-btn {
+    padding: 8px 16px; border-radius: 8px;
+    border: 1.5px solid rgba(255,255,255,0.25);
+    background: transparent; color: rgba(255,255,255,0.85);
+    font-family: inherit; font-size: 0.82rem; cursor: pointer;
+    transition: all 0.2s; text-decoration: none;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .nav-btn:hover, .nav-btn.active {
+    background: rgba(255,255,255,0.15);
+    color: #fff; border-color: rgba(255,255,255,0.5);
+  }
+
+  /* DASHBOARD LAYOUT */
+  .dash-wrapper {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+  }
+
+  /* FILTER BAR */
+  .filter-bar {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    display: flex; flex-wrap: wrap; gap: 12px; align-items: center;
+    border: 1px solid var(--border);
+  }
+  .filter-bar label { font-size: 0.82rem; font-weight: 600; color: var(--text-mid); }
+  .filter-bar select, .filter-bar input {
+    padding: 8px 12px; border-radius: 8px;
+    border: 1.5px solid var(--border);
+    font-family: inherit; font-size: 0.85rem; color: var(--text);
+    background: #fafbfc; outline: none; transition: all 0.2s;
+  }
+  .filter-bar select:focus, .filter-bar input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(26,115,232,0.1);
+  }
+  .filter-bar select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%234a5568' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    padding-right: 30px; appearance: none; cursor: pointer;
+  }
+  .refresh-btn {
+    margin-left: auto; padding: 8px 18px;
+    border-radius: 8px; border: none;
+    background: linear-gradient(135deg, var(--teal), var(--blue));
+    color: #fff; font-family: inherit; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+  }
+  .refresh-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .last-updated { font-size: 0.75rem; color: var(--text-light); }
+
+  /* KPI GRID */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  @media(max-width:900px) { .kpi-grid { grid-template-columns: repeat(2,1fr); } }
+  @media(max-width:500px) { .kpi-grid { grid-template-columns: 1fr 1fr; } }
+
+  .kpi-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    position: relative; overflow: hidden;
+    animation: fadeInUp 0.4s ease both;
+  }
+  .kpi-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 3px;
+  }
+  .kpi-card.blue::before { background: var(--blue); }
+  .kpi-card.teal::before { background: var(--teal); }
+  .kpi-card.gold::before { background: var(--gold); }
+  .kpi-card.danger::before { background: var(--danger); }
+
+  .kpi-label { font-size: 0.78rem; font-weight: 600; color: var(--text-light); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-value { font-size: 2.2rem; font-weight: 700; color: var(--navy); line-height: 1; margin-bottom: 4px; }
+  .kpi-sub { font-size: 0.78rem; color: var(--text-mid); }
+  .kpi-icon { position: absolute; top: 16px; right: 16px; font-size: 1.8rem; opacity: 0.15; }
+
+  /* MAIN GRID */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  @media(max-width:768px) { .main-grid { grid-template-columns: 1fr; } }
+
+  .main-grid.wide { grid-template-columns: 2fr 1fr; }
+  @media(max-width:900px) { .main-grid.wide { grid-template-columns: 1fr; } }
+
+  /* CARD */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    overflow: hidden;
+    animation: fadeInUp 0.4s ease both;
+  }
+  .card-header {
+    padding: 14px 18px;
+    background: linear-gradient(90deg, var(--navy) 0%, var(--navy-mid) 100%);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .card-header .icon { font-size: 16px; }
+  .card-header h2 { font-size: 0.95rem; font-weight: 600; color: #fff; }
+  .card-header .badge {
+    margin-left: auto; background: rgba(255,255,255,0.15);
+    color: #fff; font-size: 0.7rem; padding: 3px 8px;
+    border-radius: 99px;
+  }
+  .card-body { padding: 18px; }
+
+  /* ODOMETER TABLE */
+  .odo-table {
+    width: 100%; border-collapse: collapse; font-size: 0.85rem;
+  }
+  .odo-table thead th {
+    background: #f0f4f8; padding: 9px 12px;
+    font-size: 0.78rem; font-weight: 700; color: var(--text-mid);
+    text-align: left; border-bottom: 2px solid var(--border);
+  }
+  .odo-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  .odo-table tbody tr:hover { background: #f7f9fc; }
+  .odo-table tbody tr:last-child { border-bottom: none; }
+  .odo-table td { padding: 10px 12px; }
+  .plate-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 6px;
+    font-weight: 700; font-size: 0.8rem; letter-spacing: 0.3px;
+    background: var(--navy); color: #fff;
+  }
+  .mileage { font-weight: 600; font-family: monospace; font-size: 0.95rem; color: var(--navy); }
+  .mileage-bar {
+    height: 5px; background: var(--border); border-radius: 99px;
+    margin-top: 4px; overflow: hidden;
+  }
+  .mileage-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--blue)); border-radius: 99px; }
+
+  /* STATUS SUMMARY */
+  .status-list { display: flex; flex-direction: column; gap: 0; }
+  .status-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0; border-bottom: 1px solid var(--border);
+  }
+  .status-item:last-child { border-bottom: none; }
+  .status-name { flex: 1; font-size: 0.85rem; font-weight: 500; }
+  .status-pct {
+    font-size: 0.8rem; font-weight: 700;
+    padding: 3px 8px; border-radius: 6px;
+  }
+  .status-pct.ok { background: rgba(0,200,83,0.12); color: var(--success); }
+  .status-pct.warn { background: rgba(255,171,0,0.12); color: var(--warning); }
+  .status-pct.bad { background: rgba(244,67,54,0.12); color: var(--danger); }
+  .mini-bar {
+    width: 80px; height: 5px;
+    background: var(--border); border-radius: 99px; overflow: hidden;
+  }
+  .mini-fill { height: 100%; border-radius: 99px; }
+  .mini-fill.ok { background: var(--success); }
+  .mini-fill.warn { background: var(--warning); }
+  .mini-fill.bad { background: var(--danger); }
+
+  /* RECENT RECORDS TABLE */
+  .records-table {
+    width: 100%; border-collapse: collapse; font-size: 0.82rem;
+  }
+  .records-table thead th {
+    background: #f0f4f8; padding: 9px 12px;
+    font-size: 0.75rem; font-weight: 700; color: var(--text-mid);
+    border-bottom: 2px solid var(--border); text-align: left;
+    white-space: nowrap;
+  }
+  .records-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
+  .records-table tbody tr:hover { background: #f7f9fc; }
+  .records-table tbody tr:last-child { border-bottom: none; }
+  .records-table td { padding: 9px 12px; }
+  .tag {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 4px; font-size: 0.72rem; font-weight: 700;
+  }
+  .tag.ok { background: rgba(0,200,83,0.12); color: var(--success); }
+  .tag.warn { background: rgba(255,171,0,0.12); color: var(--warning); }
+  .tag.bad { background: rgba(244,67,54,0.12); color: var(--danger); }
+  .tag.skip { background: #f0f4f8; color: var(--text-light); }
+
+  /* CHART BAR */
+  .bar-chart { display: flex; flex-direction: column; gap: 10px; }
+  .bar-row { display: flex; align-items: center; gap: 10px; }
+  .bar-label { width: 160px; font-size: 0.78rem; font-weight: 500; color: var(--text-mid); flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; height: 18px; background: #f0f4f8; border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--teal), var(--blue)); transition: width 0.8s ease; }
+  .bar-value { font-size: 0.78rem; font-weight: 700; color: var(--navy); width: 50px; text-align: right; flex-shrink: 0; }
+
+  /* FUEL DONUT placeholder */
+  .donut-wrap {
+    display: flex; justify-content: center; align-items: center;
+    padding: 20px 0; flex-direction: column; gap: 12px;
+  }
+  .donut-svg { transform: rotate(-90deg); }
+  .donut-legend {
+    display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 0.78rem; color: var(--text-mid); font-weight: 500;
+  }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  /* LOADING */
+  .loading-state {
+    text-align: center; padding: 40px 20px;
+    color: var(--text-light); font-size: 0.9rem;
+  }
+  .spinner-sm {
+    display: inline-block; width: 24px; height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin-bottom: 10px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .empty-state {
+    text-align: center; padding: 40px 20px;
+    color: var(--text-light); font-size: 0.88rem;
+  }
+  .empty-state .em { font-size: 2.5rem; margin-bottom: 10px; }
+
+  /* SCROLL TABLE */
+  .table-scroll { overflow-x: auto; }
+
+  /* TABS */
+  .tab-row {
+    display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 16px;
+  }
+  .tab-btn {
+    padding: 8px 16px; border: none; background: none;
+    font-family: inherit; font-size: 0.82rem; font-weight: 600;
+    color: var(--text-light); cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -2px; transition: all 0.2s;
+  }
+  .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="header-icon">📊</div>
+    <div class="header-text">
+      <h1>Dashboard — ตรวจสภาพรถยนต์</h1>
+      <p>ภาพรวมสำหรับผู้บริหาร · Vehicle Fleet Management</p>
+    </div>
+    <div class="header-nav">
+      <a href="index.html" class="nav-btn">📋 แบบฟอร์ม</a>
+      <a href="dashboard.html" class="nav-btn active">📊 Dashboard</a>
+    </div>
+  </div>
+</header>
+
+<div class="dash-wrapper">
+
+  <!-- FILTER BAR -->
+  <div class="filter-bar">
+    <label>🚗 รถ:</label>
+    <select id="filterCar" onchange="applyFilters()">
+      <option value="">ทั้งหมด</option>
+      <option value="ขค.9662">ขค.9662</option>
+      <option value="กล.9438">กล.9438</option>
+      <option value="ขธ.9302">ขธ.9302</option>
+      <option value="นง.86">นง.86</option>
+      <option value="นจ.4919">นจ.4919</option>
+      <option value="นง.8781">นง.8781</option>
+      <option value="จย.1379">จย.1379</option>
+      <option value="งบ.5466">งบ.5466</option>
+      <option value="ขษ.4361">ขษ.4361</option>
+      <option value="ขร.501">ขร.501</option>
+      <option value="ขฉ.8407">ขฉ.8407</option>
+    </select>
+    <label>📅 เดือน:</label>
+    <input type="month" id="filterMonth" onchange="applyFilters()">
+    <button class="refresh-btn" onclick="loadData()">🔄 รีเฟรช</button>
+    <span class="last-updated" id="lastUpdated">—</span>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi-card blue">
+      <div class="kpi-label">การตรวจทั้งหมด</div>
+      <div class="kpi-value" id="kpi-total">—</div>
+      <div class="kpi-sub" id="kpi-total-sub">เดือนนี้</div>
+      <div class="kpi-icon">📋</div>
+    </div>
+    <div class="kpi-card teal">
+      <div class="kpi-label">ระบบปกติ</div>
+      <div class="kpi-value" id="kpi-ok">—</div>
+      <div class="kpi-sub" id="kpi-ok-sub">ไม่มีความผิดปกติ</div>
+      <div class="kpi-icon">✅</div>
+    </div>
+    <div class="kpi-card gold">
+      <div class="kpi-label">รถที่ใช้งาน</div>
+      <div class="kpi-value" id="kpi-vehicles">—</div>
+      <div class="kpi-sub">คันที่มีการบันทึก</div>
+      <div class="kpi-icon">🚗</div>
+    </div>
+    <div class="kpi-card danger">
+      <div class="kpi-label">พบความผิดปกติ</div>
+      <div class="kpi-value" id="kpi-issues">—</div>
+      <div class="kpi-sub">รายการที่ต้องติดตาม</div>
+      <div class="kpi-icon">⚠️</div>
+    </div>
+  </div>
+
+  <!-- ODOMETER + STATUS ROW -->
+  <div class="main-grid wide">
+
+    <!-- ODOMETER TRACKING -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">🛣️</span>
+        <h2>ติดตามเลขไมล์รถ</h2>
+        <span class="badge" id="odoUpdate">—</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-scroll">
+          <table class="odo-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>ทะเบียน / ประเภท</th>
+                <th>ไมล์ล่าสุด</th>
+                <th>ตรวจครั้งล่าสุด</th>
+              </tr>
+            </thead>
+            <tbody id="odoTableBody">
+              <tr><td colspan="4" class="loading-state"><div class="spinner-sm"></div><br>กำลังโหลด...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SYSTEM STATUS SUMMARY -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">🔍</span>
+        <h2>สรุปสภาพระบบ</h2>
+      </div>
+      <div class="card-body">
+        <div class="status-list" id="statusSummary">
+          <div class="loading-state"><div class="spinner-sm"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="main-grid">
+
+    <!-- INSPECTION BY CAR BAR CHART -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">📊</span>
+        <h2>จำนวนการตรวจสอบแต่ละคัน</h2>
+      </div>
+      <div class="card-body">
+        <div class="bar-chart" id="barChart">
+          <div class="loading-state"><div class="spinner-sm"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FUEL LEVEL DISTRIBUTION -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">⛽</span>
+        <h2>การเติมน้ำมัน</h2>
+      </div>
+      <div class="card-body">
+        <div class="donut-wrap" id="fuelChart">
+          <div class="loading-state"><div class="spinner-sm"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EQUIPMENT CHANGES -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-header">
+      <span class="icon">🔧</span>
+      <h2>การเปลี่ยนอุปกรณ์</h2>
+    </div>
+    <div class="card-body">
+      <div class="tab-row">
+        <button class="tab-btn active" onclick="switchTab('oil',this)">🛢️ น้ำมันเครื่อง</button>
+        <button class="tab-btn" onclick="switchTab('battery',this)">🔋 แบตเตอรี่</button>
+        <button class="tab-btn" onclick="switchTab('tire',this)">🔄 ยาง</button>
+      </div>
+      <div id="equip-chart" class="bar-chart">
+        <div class="loading-state"><div class="spinner-sm"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECENT RECORDS -->
+  <div class="card">
+    <div class="card-header">
+      <span class="icon">📝</span>
+      <h2>บันทึกการตรวจล่าสุด</h2>
+      <span class="badge" id="recordCount">0 รายการ</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-scroll">
+        <table class="records-table">
+          <thead>
+            <tr>
+              <th>วันที่/เวลา</th>
+              <th>ทะเบียนรถ</th>
+              <th>ผู้ตรวจ</th>
+              <th>ไมล์</th>
+              <th>เบรค</th>
+              <th>ไฟหน้า</th>
+              <th>ยาง</th>
+              <th>เครื่องยนต์</th>
+              <th>น้ำมัน</th>
+              <th>หมายเหตุ</th>
+            </tr>
+          </thead>
+          <tbody id="recentRecords">
+            <tr><td colspan="10" class="loading-state"><div class="spinner-sm"></div><br>กำลังโหลด...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// CONFIG
+// ============================================================
+const GAS_URL = 'YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+// All fleet vehicles for odometer tracking
+const ALL_VEHICLES = [
+  { plate: 'นจ.4919', type: 'รถตู้ฮุนได' },
+  { plate: 'นง.8781', type: 'รถตู้ฮุนได' },
+  { plate: 'นง.86',   type: 'รถตู้' },
+  { plate: 'จย.1379', type: 'รถ Refer' },
+  { plate: 'งบ.5466', type: 'รถ Refer' },
+  { plate: 'ขษ.4361', type: 'รถ Refer' },
+  { plate: 'ขร.501',  type: 'รถ Refer' },
+  { plate: 'ขธ.9302', type: 'รถปิ๊กอัพ 4 ประตู' },
+  { plate: 'ขฉ.8407', type: 'รถ Refer' },
+  { plate: 'ขค.9662', type: 'รถปิ๊กอัพ 4 ประตู' },
+  { plate: 'กล.9438', type: 'รถปิ๊กอัพ 4 ประตู' },
+];
+
+const STATUS_KEYS = [
+  { key: 'brake',       label: '🛑 ระบบเบรค' },
+  { key: 'mirror',      label: '🪞 กระจกมองข้าง' },
+  { key: 'coolant',     label: '💧 น้ำในหม้อน้ำ' },
+  { key: 'oilLevel',    label: '🛢️ ระดับน้ำมันเครื่อง' },
+  { key: 'tirePressure',label: '🔄 ลมยาง' },
+  { key: 'headlight',   label: '💡 ไฟหน้า' },
+  { key: 'taillight',   label: '🔴 ไฟท้าย' },
+  { key: 'horn',        label: '📯 เสียงแตร' },
+  { key: 'wiper',       label: '🌧️ ที่ปัดน้ำฝน' },
+  { key: 'aircon',      label: '❄️ แอร์' },
+];
+
+let allData = [];
+let currentTab = 'oil';
+
+// ============================================================
+// LOAD DATA FROM GAS
+// ============================================================
+async function loadData() {
+  document.getElementById('lastUpdated').textContent = 'กำลังโหลด...';
+
+  if (!GAS_URL || GAS_URL.includes('YOUR_GOOGLE')) {
+    allData = generateDemoData();
+    renderDashboard(allData);
+    document.getElementById('lastUpdated').textContent = '(Demo) ' + new Date().toLocaleTimeString('th-TH');
+    return;
+  }
+
+  try {
+    const res = await fetch(GAS_URL + '?action=getData');
+    const json = await res.json();
+    allData = json.data || [];
+    renderDashboard(allData);
+    document.getElementById('lastUpdated').textContent = 'อัปเดต: ' + new Date().toLocaleTimeString('th-TH');
+  } catch (e) {
+    console.error(e);
+    allData = generateDemoData();
+    renderDashboard(allData);
+    document.getElementById('lastUpdated').textContent = '⚠️ Demo mode';
+  }
+}
+
+function applyFilters() {
+  let data = [...allData];
+  const carFilter = document.getElementById('filterCar').value;
+  const monthFilter = document.getElementById('filterMonth').value;
+
+  if (carFilter) data = data.filter(r => (r.carType || '').includes(carFilter));
+  if (monthFilter) {
+    data = data.filter(r => {
+      const d = r.inspDate || '';
+      return d.startsWith(monthFilter);
+    });
+  }
+  renderDashboard(data);
+}
+
+// ============================================================
+// RENDER DASHBOARD
+// ============================================================
+function renderDashboard(data) {
+  renderKPIs(data);
+  renderOdometer(data);
+  renderStatusSummary(data);
+  renderBarChart(data);
+  renderFuelChart(data);
+  renderEquipChart(data, currentTab);
+  renderRecentRecords(data);
+}
+
+// KPI
+function renderKPIs(data) {
+  const total = data.length;
+  const okCount = data.filter(r => hasNoIssues(r)).length;
+  const uniqueVehicles = new Set(data.map(r => extractPlate(r.carType))).size;
+  const issues = data.filter(r => !hasNoIssues(r)).length;
+
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-ok').textContent = total ? Math.round(okCount/total*100)+'%' : '—';
+  document.getElementById('kpi-ok-sub').textContent = `${okCount} จาก ${total} รายการ`;
+  document.getElementById('kpi-vehicles').textContent = uniqueVehicles;
+  document.getElementById('kpi-issues').textContent = issues;
+}
+
+function hasNoIssues(r) {
+  return STATUS_KEYS.every(sk => (r['chk_'+sk.key] || '') !== 'ผิดปกติ');
+}
+
+function extractPlate(carType) {
+  return (carType || '').split(' ')[0];
+}
+
+// ODOMETER
+function renderOdometer(data) {
+  const latestByPlate = {};
+  data.forEach(r => {
+    const plate = extractPlate(r.carType);
+    if (!plate) return;
+    if (!latestByPlate[plate] || r.odometer > latestByPlate[plate].odometer) {
+      latestByPlate[plate] = r;
+    }
+  });
+
+  const maxMile = Math.max(...Object.values(latestByPlate).map(r => +r.odometer || 0), 1);
+  const tbody = document.getElementById('odoTableBody');
+
+  const rows = ALL_VEHICLES.map((v, i) => {
+    const r = latestByPlate[v.plate];
+    const mile = r ? (+r.odometer || 0) : null;
+    const pct = mile ? Math.round(mile / maxMile * 100) : 0;
+    const dateStr = r ? r.inspDate : '—';
+
+    return `<tr>
+      <td style="color:var(--text-light);font-size:0.75rem;">${i+1}</td>
+      <td>
+        <span class="plate-badge">${v.plate}</span>
+        <div style="font-size:0.72rem;color:var(--text-light);margin-top:3px;">${v.type}</div>
+      </td>
+      <td>
+        ${mile !== null ? `
+          <span class="mileage">${mile.toLocaleString()} กม.</span>
+          <div class="mileage-bar"><div class="mileage-fill" style="width:${pct}%"></div></div>
+        ` : '<span style="color:var(--text-light)">ยังไม่มีข้อมูล</span>'}
+      </td>
+      <td style="font-size:0.8rem;color:var(--text-mid);">${dateStr}</td>
+    </tr>`;
+  }).join('');
+
+  tbody.innerHTML = rows || '<tr><td colspan="4" class="empty-state"><div class="em">📭</div>ยังไม่มีข้อมูล</td></tr>';
+  document.getElementById('odoUpdate').textContent = `${Object.keys(latestByPlate).length} คัน`;
+}
+
+// STATUS SUMMARY
+function renderStatusSummary(data) {
+  if (!data.length) {
+    document.getElementById('statusSummary').innerHTML = '<div class="empty-state"><div class="em">📭</div>ยังไม่มีข้อมูล</div>';
+    return;
+  }
+
+  const html = STATUS_KEYS.map(sk => {
+    const total = data.filter(r => r['chk_'+sk.key] && r['chk_'+sk.key] !== 'ไม่ตรวจ').length;
+    const ok = data.filter(r => r['chk_'+sk.key] === 'ปกติ').length;
+    const bad = data.filter(r => r['chk_'+sk.key] === 'ผิดปกติ').length;
+    const pct = total ? Math.round(ok/total*100) : 0;
+    const cls = pct >= 90 ? 'ok' : pct >= 70 ? 'warn' : 'bad';
+
+    return `<div class="status-item">
+      <span class="status-name">${sk.label}</span>
+      <div class="mini-bar"><div class="mini-fill ${cls}" style="width:${pct}%"></div></div>
+      <span class="status-pct ${cls}">${pct}%</span>
+      ${bad > 0 ? `<span style="font-size:0.72rem;color:var(--danger);font-weight:700;">⚠️ ${bad}</span>` : ''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('statusSummary').innerHTML = html;
+}
+
+// BAR CHART - inspections per vehicle
+function renderBarChart(data) {
+  const counts = {};
+  data.forEach(r => {
+    const plate = extractPlate(r.carType);
+    if (plate) counts[plate] = (counts[plate] || 0) + 1;
+  });
+
+  const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
+  const max = sorted[0]?.[1] || 1;
+
+  if (!sorted.length) {
+    document.getElementById('barChart').innerHTML = '<div class="empty-state"><div class="em">📊</div>ยังไม่มีข้อมูล</div>';
+    return;
+  }
+
+  document.getElementById('barChart').innerHTML = sorted.map(([plate, cnt]) => `
+    <div class="bar-row">
+      <div class="bar-label">${plate}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${Math.round(cnt/max*100)}%"></div>
+      </div>
+      <div class="bar-value">${cnt} ครั้ง</div>
+    </div>
+  `).join('');
+}
+
+// FUEL CHART - simple donut using SVG
+function renderFuelChart(data) {
+  const fillCnt = data.filter(r => r.fuelFill === 'เติม').length;
+  const noFillCnt = data.filter(r => r.fuelFill === 'ไม่เติม').length;
+  const total = fillCnt + noFillCnt;
+
+  if (!total) {
+    document.getElementById('fuelChart').innerHTML = '<div class="empty-state"><div class="em">⛽</div>ยังไม่มีข้อมูล</div>';
+    return;
+  }
+
+  const fillPct = fillCnt / total;
+  const r = 36, cx = 50, cy = 50;
+  const circ = 2 * Math.PI * r;
+  const fillArc = circ * fillPct;
+  const noFillArc = circ * (1 - fillPct);
+
+  // Fuel level distribution
+  const fuelLevels = {'0%':0,'25%':0,'50%':0,'75%':0,'100%':0};
+  data.forEach(d => { if (d.fuelLevel && fuelLevels[d.fuelLevel] !== undefined) fuelLevels[d.fuelLevel]++; });
+  const maxFL = Math.max(...Object.values(fuelLevels), 1);
+  const fuelColors = {'0%':'#f44336','25%':'#ff9800','50%':'#ffeb3b','75%':'#8bc34a','100%':'#4caf50'};
+
+  document.getElementById('fuelChart').innerHTML = `
+    <svg class="donut-svg" width="100" height="100" viewBox="0 0 100 100">
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e0e7ef" stroke-width="14"/>
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--blue)" stroke-width="14"
+        stroke-dasharray="${fillArc} ${circ}" stroke-linecap="round"/>
+    </svg>
+    <div style="text-align:center;margin-top:-8px;">
+      <div style="font-size:1.5rem;font-weight:700;color:var(--navy);">${Math.round(fillPct*100)}%</div>
+      <div style="font-size:0.75rem;color:var(--text-light);">เติมน้ำมัน</div>
+    </div>
+    <div class="donut-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>เติม (${fillCnt})</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e0e7ef"></div>ไม่เติม (${noFillCnt})</div>
+    </div>
+    <div style="width:100%;margin-top:12px;">
+      <div style="font-size:0.75rem;font-weight:700;color:var(--text-mid);margin-bottom:8px;">ปริมาณน้ำมัน ณ เวลาตรวจ</div>
+      <div class="bar-chart">
+        ${Object.entries(fuelLevels).map(([lvl,cnt]) => `
+          <div class="bar-row">
+            <div class="bar-label" style="width:40px;">${lvl}</div>
+            <div class="bar-track"><div class="bar-fill" style="width:${Math.round(cnt/maxFL*100)}%;background:${fuelColors[lvl]};"></div></div>
+            <div class="bar-value">${cnt}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+// EQUIPMENT CHART
+function switchTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderEquipChart(allData.filter(r => {
+    const carFilter = document.getElementById('filterCar').value;
+    const monthFilter = document.getElementById('filterMonth').value;
+    if (carFilter && !(r.carType||'').includes(carFilter)) return false;
+    if (monthFilter && !(r.inspDate||'').startsWith(monthFilter)) return false;
+    return true;
+  }), tab);
+}
+
+function renderEquipChart(data, tab) {
+  const keyMap = { oil: 'eq_oil', battery: 'eq_battery', tire: 'eq_tire' };
+  const key = keyMap[tab];
+  const plates = [...new Set(data.map(r => extractPlate(r.carType)).filter(Boolean))].sort();
+
+  if (!plates.length) {
+    document.getElementById('equip-chart').innerHTML = '<div class="empty-state"><div class="em">🔧</div>ยังไม่มีข้อมูล</div>';
+    return;
+  }
+
+  const rows = plates.map(plate => {
+    const recs = data.filter(r => extractPlate(r.carType) === plate);
+    const changed = recs.filter(r => r[key] === 'เปลี่ยน').length;
+    const total = recs.length;
+    const pct = total ? Math.round(changed/total*100) : 0;
+    return { plate, changed, total, pct };
+  }).sort((a,b) => b.changed - a.changed);
+
+  const maxVal = rows[0]?.changed || 1;
+
+  document.getElementById('equip-chart').innerHTML = rows.map(row => `
+    <div class="bar-row">
+      <div class="bar-label">${row.plate}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${Math.round(row.changed/maxVal*100)}%;background:${row.changed>0?'var(--warning)':'var(--border)'};"></div>
+      </div>
+      <div class="bar-value">${row.changed} ครั้ง</div>
+    </div>
+  `).join('');
+}
+
+// RECENT RECORDS
+function renderRecentRecords(data) {
+  const sorted = [...data].sort((a,b) => {
+    const da = new Date(a.inspDate + 'T' + (a.inspTime||'00:00'));
+    const db = new Date(b.inspDate + 'T' + (b.inspTime||'00:00'));
+    return db - da;
+  }).slice(0, 50);
+
+  document.getElementById('recordCount').textContent = data.length + ' รายการ';
+
+  if (!sorted.length) {
+    document.getElementById('recentRecords').innerHTML = `<tr><td colspan="10" class="empty-state"><div class="em">📭</div>ยังไม่มีข้อมูล</td></tr>`;
+    return;
+  }
+
+  const statusTag = val => {
+    if (val === 'ปกติ') return '<span class="tag ok">ปกติ</span>';
+    if (val === 'ผิดปกติ') return '<span class="tag bad">⚠️ผิดปกติ</span>';
+    return '<span class="tag skip">ไม่ตรวจ</span>';
+  };
+
+  document.getElementById('recentRecords').innerHTML = sorted.map(r => `
+    <tr>
+      <td style="white-space:nowrap;font-size:0.78rem;">
+        ${r.inspDate || '—'}<br>
+        <span style="color:var(--text-light)">${r.inspTime || '—'}</span>
+      </td>
+      <td><span class="plate-badge" style="font-size:0.72rem;">${extractPlate(r.carType) || '—'}</span></td>
+      <td style="font-size:0.8rem;">${(r.driverName||'—').replace('นาย ','')}</td>
+      <td style="font-family:monospace;font-weight:600;">${r.odometer ? (+r.odometer).toLocaleString() : '—'}</td>
+      <td>${statusTag(r.chk_brake)}</td>
+      <td>${statusTag(r.chk_headlight)}</td>
+      <td>${statusTag(r.chk_tirePressure)}</td>
+      <td>${statusTag(r.chk_oilLevel)}</td>
+      <td style="font-size:0.8rem;">${r.fuelLevel || '—'}</td>
+      <td style="font-size:0.78rem;color:var(--text-mid);max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.remarks || '—'}</td>
+    </tr>
+  `).join('');
+}
+
+// ============================================================
+// DEMO DATA GENERATOR
+// ============================================================
+function generateDemoData() {
+  const plates = ALL_VEHICLES.map(v => v.plate + ' ชม.' + v.type.replace('ชม.',''));
+  const carTypes = [
+    'ขค.9662 ชม.รถปิ๊กอัพ4ประตู','กล.9438 ชม.รถปิ๊กอัพ4ประตู',
+    'ขธ.9302 ชม.รถปิ๊กอัพ4ประตู','นง.86 ชม.รถตู้',
+    'นจ.4919 ชม.รถตู้ฮุนได','นง.8781 ชม.รถตู้ฮุนได'
+  ];
+  const drivers = ['นาย ชัยพร มอญแสง','นาย กิตติพงศ์ เขื่อนแก้ว','นาย กานต์นิธิ ทองอร','นาย เฉลิมชนม์ นันติแก้ว','นาย นพดล คำปินคำ'];
+  const statuses = ['ปกติ','ปกติ','ปกติ','ปกติ','ผิดปกติ','ไม่ตรวจ'];
+  const fuels = ['0%','25%','50%','75%','100%'];
+  const checkKeys = ['brake','mirror','coolant','oilLevel','tirePressure','headlight','taillight','horn','wiper','aircon','exteriorClean','interiorClean','suspension','reverseLight'];
+
+  const data = [];
+  const now = new Date();
+  for (let i = 0; i < 80; i++) {
+    const d = new Date(now);
+    d.setDate(d.getDate() - Math.floor(Math.random() * 60));
+    const r = {
+      inspDate: d.toISOString().split('T')[0],
+      inspTime: `0${6+Math.floor(Math.random()*3)}:${String(Math.floor(Math.random()*60)).padStart(2,'0')}`,
+      carType: carTypes[Math.floor(Math.random()*carTypes.length)],
+      driverName: drivers[Math.floor(Math.random()*drivers.length)],
+      odometer: (100000 + Math.floor(Math.random()*80000)).toString(),
+      eq_oil: Math.random() > 0.8 ? 'เปลี่ยน' : 'ไม่เปลี่ยน',
+      eq_battery: Math.random() > 0.9 ? 'เปลี่ยน' : 'ไม่เปลี่ยน',
+      eq_tire: Math.random() > 0.85 ? 'เปลี่ยน' : 'ไม่เปลี่ยน',
+      fuelLevel: fuels[Math.floor(Math.random()*fuels.length)],
+      fuelFill: Math.random() > 0.4 ? 'เติม' : 'ไม่เติม',
+      remarks: Math.random() > 0.8 ? 'พบเสียงดังช่วงล่าง — ส่งซ่อมแล้ว' : '',
+    };
+    checkKeys.forEach(k => {
+      r['chk_'+k] = statuses[Math.floor(Math.random()*statuses.length)];
+    });
+    data.push(r);
+  }
+  return data;
+}
+
+// Set current month as default filter
+const now = new Date();
+document.getElementById('filterMonth').value = now.toISOString().slice(0,7);
+
+// Init
+loadData();
+</script>
+</body>
+</html>
