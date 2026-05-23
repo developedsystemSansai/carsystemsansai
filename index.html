@@ -378,28 +378,40 @@
 <!-- MAIN -->
 <main class="main-wrap">
 
-  <!-- Quick Status -->
-  <div class="status-bar">
-    <div class="status-bar-label">สถานะระบบวันนี้</div>
+  <!-- Quick Status (live) -->
+  <div class="status-bar" id="statusBar">
+    <div class="status-bar-label">
+      สถานะระบบวันนี้
+      <span id="statusUpdateTime" style="font-weight:400;font-size:10px;color:var(--text-light);margin-left:8px;letter-spacing:0;text-transform:none;">กำลังโหลด...</span>
+    </div>
     <div class="status-item">
       <span class="status-dot green"></span>
-      ระบบ <strong>ปกติ</strong>
+      ระบบ <strong>ออนไลน์</strong>
     </div>
     <div class="status-divider"></div>
-    <div class="status-item">
+    <div class="status-item" id="si-notchecked">
       <span class="status-dot yellow"></span>
-      รอตรวจเช็ครถ <strong>— รายการ</strong>
+      รอตรวจสภาพรถ <strong id="sv-notchecked">—</strong> คัน
     </div>
     <div class="status-divider"></div>
-    <div class="status-item">
+    <div class="status-item" id="si-ready">
       <span class="status-dot green"></span>
-      รถพร้อมใช้งาน <strong>— คัน</strong>
+      รถพร้อมใช้งาน <strong id="sv-ready">—</strong> คัน
     </div>
     <div class="status-divider"></div>
-    <div class="status-item">
+    <div class="status-item" id="si-inuse">
       <span class="status-dot red"></span>
-      รถกำลังใช้งาน <strong>— คัน</strong>
+      กำลังใช้งาน <strong id="sv-inuse">—</strong> คัน
     </div>
+  </div>
+
+  <!-- Vehicle status cards (live) -->
+  <div id="vehicleStatusWrap" style="display:none;margin-bottom:20px;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-light);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+      สถานะรถแต่ละคัน — อัปเดตล่าสุด
+      <span style="flex:1;height:1px;background:var(--border);display:block;"></span>
+    </div>
+    <div id="vehicleCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;"></div>
   </div>
 
   <!-- Notice -->
@@ -584,5 +596,127 @@
   Frontend: GitHub Pages &nbsp;|&nbsp; Backend: Google Apps Script &nbsp;|&nbsp; Database: Google Sheets
 </footer>
 
+<script>
+// ─── CONFIG ───────────────────────────────────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
+
+// รถทั้งหมด (fallback ถ้า API ไม่ตอบ)
+const ALL_VEHICLES = [
+  { plate:'นง.86 ชม.',   type:'รถตู้' },
+  { plate:'จย.1379 ชม.', type:'รถ Refer' },
+  { plate:'งบ.5466 ชม.', type:'รถ Refer' },
+  { plate:'ขษ.4361 ชม.', type:'รถ Refer' },
+  { plate:'ขร.501 ชม.',  type:'รถ Refer' },
+  { plate:'ขธ.9302 ชม.', type:'รถปิ๊กอัพ 4 ประตู' },
+  { plate:'ขฉ.8407 ชม.', type:'รถ Refer' },
+  { plate:'ขค.9662 ชม.', type:'รถปิ๊กอัพ 4 ประตู' },
+  { plate:'กล.9438 ชม.', type:'รถปิ๊กอัพ 4 ประตู' },
+];
+
+function fmtNow() {
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+async function loadStatus() {
+  try {
+    const res  = await fetch(GAS_URL + '?action=getStatusSummary');
+    const json = await res.json();
+    if (json.status !== 'ok') throw new Error('api error');
+
+    // อัปเดตตัวเลขสรุป
+    document.getElementById('sv-notchecked').textContent = json.notCheckedCount ?? '—';
+    document.getElementById('sv-ready').textContent      = json.readyCount       ?? '—';
+    document.getElementById('sv-inuse').textContent      = json.inUseCount       ?? '—';
+    document.getElementById('statusUpdateTime').textContent = 'อัปเดต ' + fmtNow();
+
+    // ปรับสีจุด
+    const nc = json.notCheckedCount || 0;
+    document.querySelector('#si-notchecked .status-dot').className =
+      'status-dot ' + (nc === 0 ? 'green' : nc <= 3 ? 'yellow' : 'red');
+
+    // สร้าง vehicle cards
+    renderVehicleCards(json);
+
+  } catch (_) {
+    document.getElementById('statusUpdateTime').textContent = '(ไม่สามารถโหลดได้ — ลองใหม่)';
+    // fallback: แสดงรถทั้งหมดเป็น unknown
+    renderVehicleCardsOffline();
+  }
+}
+
+function renderVehicleCards(json) {
+  const inUseMap   = {};
+  const readyMap   = {};
+  const checkedMap = {};
+
+  (json.inUse||[]).forEach(x => { inUseMap[x.carType] = x; });
+  (json.ready||[]).forEach(x => { readyMap[x.carType] = x; });
+  (json.todayChecked||[]).forEach(x => { checkedMap[x.carType] = x; });
+
+  // รวม plates จาก response + รายการจริง
+  const plates = ALL_VEHICLES.map(v => v.plate);
+
+  const cards = plates.map(plate => {
+    // match โดย plate prefix
+    const inUseKey  = Object.keys(inUseMap).find(k => k.includes(plate) || plate.includes(k.split(' ')[0]));
+    const readyKey  = Object.keys(readyMap).find(k => k.includes(plate) || plate.includes(k.split(' ')[0]));
+    const chkKey    = Object.keys(checkedMap).find(k => k.includes(plate) || plate.includes(k.split(' ')[0]));
+
+    const isInUse   = !!inUseKey;
+    const isChecked = !!chkKey || !!readyKey;
+    const vType     = ALL_VEHICLES.find(v=>v.plate===plate)?.type || '';
+
+    let statusLabel, statusColor, bgColor, borderColor;
+    if (isInUse) {
+      const x = inUseMap[inUseKey];
+      statusLabel  = `🟡 กำลังใช้งาน${x?.destination ? ' → '+x.destination : ''}`;
+      statusColor  = '#b45309'; bgColor = '#fef3c7'; borderColor = '#fde68a';
+    } else if (isChecked) {
+      statusLabel  = '🟢 พร้อมใช้งาน';
+      statusColor  = '#065f46'; bgColor = '#d1fae5'; borderColor = '#a7f3d0';
+    } else {
+      statusLabel  = '⚪ รอตรวจสภาพ';
+      statusColor  = '#64748b'; bgColor = '#f1f5f9'; borderColor = '#e2e8f0';
+    }
+
+    const chkInfo = chkKey ? checkedMap[chkKey] : null;
+    const chkSub  = chkInfo
+      ? `ตรวจ ${chkInfo.inspTime||''} · ${chkInfo.driverName||''}`
+      : isInUse && inUseKey
+        ? `พขร. ${inUseMap[inUseKey]?.driver||''}`
+        : 'ยังไม่ได้ตรวจสภาพวันนี้';
+
+    return `<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:12px;padding:12px 14px;">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:2px;">${plate}</div>
+      <div style="font-size:10px;color:var(--text-light);margin-bottom:6px;">${vType}</div>
+      <div style="font-size:12px;font-weight:600;color:${statusColor};">${statusLabel}</div>
+      <div style="font-size:10px;color:var(--text-light);margin-top:3px;">${chkSub}</div>
+    </div>`;
+  });
+
+  const wrap = document.getElementById('vehicleStatusWrap');
+  document.getElementById('vehicleCards').innerHTML = cards.join('');
+  wrap.style.display = 'block';
+}
+
+function renderVehicleCardsOffline() {
+  const cards = ALL_VEHICLES.map(v =>
+    `<div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);">${v.plate}</div>
+      <div style="font-size:10px;color:var(--text-light);margin-bottom:6px;">${v.type}</div>
+      <div style="font-size:11px;color:#64748b;">— ไม่สามารถโหลดสถานะได้ —</div>
+    </div>`
+  );
+  document.getElementById('vehicleCards').innerHTML = cards.join('');
+  document.getElementById('vehicleStatusWrap').style.display = 'block';
+}
+
+// โหลดทันทีและ refresh ทุก 2 นาที
+document.addEventListener('DOMContentLoaded', () => {
+  loadStatus();
+  setInterval(loadStatus, 120000);
+});
+</script>
 </body>
 </html>
