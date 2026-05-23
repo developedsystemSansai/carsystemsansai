@@ -2247,8 +2247,7 @@ function openLiveVehicleDetail(plate) {
 
       // รูปบิลน้ำมัน — ดึงจาก driveLinks / photoLinks
       const rawLinks = (rec.driveLinks || rec.photoLinks || '').toString();
-      const fuelLinks = rawLinks.split(/[
-,]+/).map(l => l.trim()).filter(l => l.length > 0);
+      const fuelLinks = rawLinks.split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
       let fuelLinkHtml = '';
       if (fuelLinks.length > 0) {
         const thumbs = fuelLinks.map((url, i) => {
