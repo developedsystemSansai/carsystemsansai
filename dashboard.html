@@ -463,6 +463,72 @@
     .modal-status-row { flex-wrap: wrap; }
     .modal-status-item { min-width: 50%; }
   }
+
+  /* ── LIVE VEHICLE DETAIL MODAL ── */
+  #liveVehModal {
+    position: fixed; inset: 0;
+    background: rgba(5,20,50,0.65);
+    backdrop-filter: blur(6px);
+    z-index: 1500; display: flex; align-items: flex-start; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    padding: 20px; overflow-y: auto;
+  }
+  #liveVehModal.show { opacity: 1; pointer-events: all; }
+  #liveVehModal .lvm-box {
+    background: var(--card); border-radius: 20px;
+    max-width: 520px; width: 100%; margin: auto;
+    box-shadow: var(--shadow-xl);
+    transform: scale(0.94) translateY(24px);
+    transition: transform 0.3s cubic-bezier(0.34,1.3,0.64,1);
+    overflow: hidden;
+  }
+  #liveVehModal.show .lvm-box { transform: scale(1) translateY(0); }
+  .lvm-header {
+    padding: 20px 22px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .lvm-plate-badge {
+    padding: 7px 14px; border-radius: 9px;
+    font-size: 1.1rem; font-weight: 800; color: #fff;
+    font-family: 'Space Grotesk', sans-serif; letter-spacing: 0.5px;
+    flex-shrink: 0; align-self: flex-start;
+  }
+  .lvm-title { flex: 1; }
+  .lvm-title h3 { font-size: 0.9rem; font-weight: 700; color: #fff; }
+  .lvm-title p  { font-size: 0.75rem; color: rgba(255,255,255,0.65); margin-top: 3px; }
+  .lvm-close {
+    background: rgba(255,255,255,0.14); border: none; border-radius: 8px;
+    width: 32px; height: 32px; cursor: pointer; color: rgba(255,255,255,0.85);
+    font-size: 1rem; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s; flex-shrink: 0;
+  }
+  .lvm-close:hover { background: rgba(255,255,255,0.25); color: #fff; }
+  .lvm-body { padding: 18px 22px 22px; }
+  .lvm-stat-row {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 8px; margin-bottom: 16px;
+  }
+  .lvm-stat {
+    background: var(--bg); border-radius: 10px; padding: 10px 12px; text-align: center;
+    border: 1px solid var(--border);
+  }
+  .lvm-stat .ls-label { font-size: 0.65rem; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 4px; }
+  .lvm-stat .ls-val   { font-size: 0.92rem; font-weight: 700; color: var(--navy); }
+  .lvm-issue-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+  .lvm-issue-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 8px; font-size: 0.82rem;
+  }
+  .lvm-issue-item.ok  { background: var(--success-soft); color: #065f46; }
+  .lvm-issue-item.bad { background: var(--danger-soft); color: #991b1b; }
+  .lvm-issue-item.skip{ background: #f0f4f8; color: var(--text-light); }
+  .lvm-sec-title {
+    font-size: 0.68rem; font-weight: 700; color: var(--text-light);
+    text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+  }
+  .lvm-sec-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
 </style>
 </head>
 <body>
@@ -857,6 +923,7 @@ function parseDate(str) {
 }
 
 function renderDashboard(data) {
+  window.allData = data; // store globally for vehicle detail popup
   renderKPIs(data);
   renderOdometer(data);
   renderStatusSummary(data);
@@ -1280,6 +1347,9 @@ function renderLiveVehicleGrid(json) {
     { plate:'กล.9438', type:'รถปิ๊กอัพ 4 ประตู' },
   ];
 
+  // liveVehicleDetailMap เก็บข้อมูลแต่ละคัน สำหรับ popup
+  window.liveVehicleDetailMap = {};
+
   const cards = ALL_VEH.map(v => {
     const inUseKey  = Object.keys(inUseMap).find(k => k.includes(v.plate) || v.plate.includes(k.split(' ')[0]));
     const readyKey  = Object.keys(readyMap).find(k => k.includes(v.plate) || v.plate.includes(k.split(' ')[0]));
@@ -1289,54 +1359,92 @@ function renderLiveVehicleGrid(json) {
     const isReady   = !!readyKey;
     const isChecked = !!chkKey || isReady;
 
-    let icon, statusLabel, statusSub, bgGrad, borderColor, textColor;
+    // ดึงข้อมูลจาก allData เพื่อตรวจหาปัญหา
+    const latestRecord = (window.allData||[]).filter(r => {
+      const p = (r.carType||'').split(' ')[0];
+      return p === v.plate;
+    }).sort((a,b) => String(b.inspDate||'').localeCompare(String(a.inspDate||'')))[0];
+
+    const hasIssue = latestRecord && Object.keys(latestRecord).some(k => k.startsWith('chk_') && latestRecord[k] === 'ผิดปกติ');
+
+    // เก็บ detail สำหรับ popup
+    window.liveVehicleDetailMap[v.plate] = {
+      plate: v.plate, type: v.type,
+      isInUse, isReady, isChecked,
+      inUseData: inUseKey ? inUseMap[inUseKey] : null,
+      readyData: readyKey ? readyMap[readyKey] : null,
+      chkData: chkKey ? checkedMap[chkKey] : null,
+      latestRecord,
+      hasIssue
+    };
+
+    let icon, statusLabel, statusSub, bgGrad, borderColor, textColor, badgeBg, badgeColor;
 
     if (isInUse) {
       const x = inUseMap[inUseKey];
-      icon = '';
+      icon = '🚗';
       statusLabel = 'กำลังใช้งาน';
       statusSub = x?.destination ? '→ ' + x.destination : '';
       bgGrad = 'linear-gradient(135deg,#fffbeb,#fef3c7)';
       borderColor = '#f59e0b';
       textColor = '#92400e';
+      badgeBg = '#f59e0b'; badgeColor = '#fff';
+    } else if (hasIssue) {
+      icon = '⚠️';
+      statusLabel = 'พบปัญหา';
+      statusSub = 'ตรวจสภาพแล้ว — มีจุดผิดปกติ';
+      bgGrad = 'linear-gradient(135deg,#fff5f5,#fee2e2)';
+      borderColor = '#ef4444';
+      textColor = '#991b1b';
+      badgeBg = '#ef4444'; badgeColor = '#fff';
     } else if (isChecked) {
-      icon = '';
+      icon = '✅';
       statusLabel = 'พร้อมใช้งาน';
       const chkInfo = chkKey ? checkedMap[chkKey] : null;
       statusSub = chkInfo?.driverName ? 'ตรวจโดย ' + chkInfo.driverName : 'ตรวจสภาพแล้ว';
       bgGrad = 'linear-gradient(135deg,#f0fdf4,#dcfce7)';
       borderColor = '#22c55e';
       textColor = '#14532d';
+      badgeBg = '#22c55e'; badgeColor = '#fff';
     } else {
-      icon = '';
+      icon = '⏳';
       statusLabel = 'รอตรวจสภาพ';
       statusSub = 'ยังไม่ได้ตรวจวันนี้';
       bgGrad = 'linear-gradient(135deg,#f8fafc,#f1f5f9)';
       borderColor = '#cbd5e1';
       textColor = '#64748b';
+      badgeBg = '#94a3b8'; badgeColor = '#fff';
     }
 
     return `<div style="
       background:${bgGrad};
       border:2px solid ${borderColor};
       border-radius:16px;
-      padding:18px 20px;
+      padding:16px 18px 14px;
       position:relative;
       box-shadow:0 2px 12px rgba(0,0,0,0.06);
       transition:transform 0.15s, box-shadow 0.15s;
-    " onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.12)'"
+      cursor:pointer;
+    " onclick="openLiveVehicleDetail('${v.plate}')"
+       onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 28px rgba(0,0,0,0.14)'"
        onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
-      <div style="margin-bottom:12px;">
-          <div style="font-size:1rem;font-weight:800;color:#0a2540;letter-spacing:0.3px;font-family:'Space Grotesk',sans-serif;">${v.plate}</div>
-          <div style="font-size:0.72rem;color:#8898aa;margin-top:1px;font-weight:500;">${v.type}</div>
+      <div style="position:absolute;top:10px;right:10px;background:${badgeBg};color:${badgeColor};font-size:0.62rem;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:0.4px;">${statusLabel}</div>
+      <div style="margin-bottom:10px;padding-right:72px;">
+        <div style="font-size:1rem;font-weight:800;color:#0a2540;letter-spacing:0.3px;font-family:'Space Grotesk',sans-serif;">${v.plate}</div>
+        <div style="font-size:0.72rem;color:#8898aa;margin-top:1px;font-weight:500;">${v.type}</div>
       </div>
-      <div style="font-size:1.05rem;font-weight:700;color:${textColor};margin-bottom:4px;">${statusLabel}</div>
-      <div style="font-size:0.78rem;color:${textColor};opacity:0.75;">${statusSub}</div>
+      <div style="font-size:1.6rem;margin-bottom:6px;">${icon}</div>
+      <div style="font-size:0.82rem;color:${textColor};opacity:0.85;margin-bottom:10px;">${statusSub||'—'}</div>
+      <div style="display:flex;align-items:center;gap:5px;font-size:0.68rem;color:${textColor};opacity:0.7;border-top:1px solid ${borderColor}33;padding-top:8px;margin-top:4px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        แตะเพื่อดูรายละเอียด
+      </div>
     </div>`;
   });
 
   document.getElementById('liveVehicleGrid').innerHTML = cards.join('');
 }
+
 
 function renderLiveVehicleGridOffline() {
   const ALL_VEH = [
@@ -1574,6 +1682,117 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+
+// ══════ LIVE VEHICLE DETAIL POPUP ══════
+const STATUS_KEYS_MAP = [
+  { key: 'engine', label: 'เครื่องยนต์' },
+  { key: 'brake', label: 'ระบบเบรก' },
+  { key: 'light', label: 'ไฟ/แสงสว่าง' },
+  { key: 'tire', label: 'ยางรถยนต์' },
+  { key: 'oil', label: 'น้ำมันเครื่อง' },
+  { key: 'coolant', label: 'น้ำหล่อเย็น' },
+  { key: 'battery', label: 'แบตเตอรี่' },
+  { key: 'wipers', label: 'ที่ปัดน้ำฝน' },
+  { key: 'horn', label: 'แตร' },
+  { key: 'ac', label: 'แอร์' },
+  { key: 'door', label: 'ประตู/กุญแจ' },
+  { key: 'body', label: 'ตัวถัง/กระจก' },
+];
+
+function openLiveVehicleDetail(plate) {
+  const d = (window.liveVehicleDetailMap||{})[plate];
+  if (!d) return;
+
+  // Header color based on status
+  let headerBg, statusLine;
+  if (d.isInUse) {
+    headerBg = 'linear-gradient(135deg,#b45309,#f59e0b)';
+    statusLine = '🚗 กำลังออกปฏิบัติงาน' + (d.inUseData?.destination ? ' → ' + d.inUseData.destination : '');
+  } else if (d.hasIssue) {
+    headerBg = 'linear-gradient(135deg,#991b1b,#ef4444)';
+    statusLine = '⚠️ ตรวจสภาพแล้ว — พบจุดผิดปกติ';
+  } else if (d.isChecked) {
+    headerBg = 'linear-gradient(135deg,#065f46,#22c55e)';
+    statusLine = '✅ ตรวจสภาพแล้ว — พร้อมใช้งาน';
+  } else {
+    headerBg = 'linear-gradient(135deg,#475569,#94a3b8)';
+    statusLine = '⏳ ยังไม่ได้ตรวจสภาพวันนี้';
+  }
+
+  document.getElementById('lvmHeader').style.background = headerBg;
+  document.getElementById('lvmPlate').textContent = plate;
+  document.getElementById('lvmType').textContent = d.type;
+  document.getElementById('lvmStatusLine').textContent = statusLine;
+
+  // Stats
+  const rec = d.latestRecord;
+  const odo = rec?.odometer ? Number(rec.odometer).toLocaleString() + ' กม.' : '—';
+  const inspDate = rec?.inspDate || '—';
+  const inspector = rec?.driverName || d.chkData?.driverName || '—';
+  document.getElementById('lvmStatRow').innerHTML = `
+    <div class="lvm-stat"><div class="ls-label">ไมล์ล่าสุด</div><div class="ls-val">${odo}</div></div>
+    <div class="lvm-stat"><div class="ls-label">ตรวจล่าสุด</div><div class="ls-val" style="font-size:0.78rem;">${inspDate}</div></div>
+    <div class="lvm-stat"><div class="ls-label">ผู้ตรวจ</div><div class="ls-val" style="font-size:0.72rem;">${inspector}</div></div>
+  `;
+
+  // Issue list
+  if (rec) {
+    const issueHtml = STATUS_KEYS_MAP.map(sk => {
+      const val = rec['chk_'+sk.key] || '';
+      if (!val || val === 'ไม่ตรวจ') return `<div class="lvm-issue-item skip"><span style="font-size:0.85rem;">➖</span> ${sk.label} <span style="margin-left:auto;font-size:0.72rem;">ไม่ตรวจ</span></div>`;
+      if (val === 'ผิดปกติ') return `<div class="lvm-issue-item bad"><span style="font-size:0.85rem;">❌</span> <strong>${sk.label}</strong> <span style="margin-left:auto;font-size:0.72rem;font-weight:700;">ผิดปกติ</span></div>`;
+      return `<div class="lvm-issue-item ok"><span style="font-size:0.85rem;">✓</span> ${sk.label} <span style="margin-left:auto;font-size:0.72rem;">ปกติ</span></div>`;
+    }).join('');
+    document.getElementById('lvmIssueList').innerHTML = issueHtml;
+  } else {
+    document.getElementById('lvmIssueList').innerHTML = '<div style="text-align:center;color:var(--text-light);padding:20px;font-size:0.85rem;">ยังไม่มีข้อมูลการตรวจสภาพ</div>';
+  }
+
+  // Remarks
+  const remarks = rec?.remarks || '';
+  if (remarks) {
+    document.getElementById('lvmRemarksWrap').style.display = 'block';
+    document.getElementById('lvmRemarks').textContent = remarks;
+  } else {
+    document.getElementById('lvmRemarksWrap').style.display = 'none';
+  }
+
+  document.getElementById('liveVehModal').classList.add('show');
+}
+
+function closeLiveVehModal(e) {
+  if (e.target === document.getElementById('liveVehModal')) {
+    document.getElementById('liveVehModal').classList.remove('show');
+  }
+}
+
+// Store allData globally for vehicle detail popup
+const _origRenderDash = typeof renderDashboard !== 'undefined' ? renderDashboard : null;
+
 </script>
+
+<!-- LIVE VEHICLE DETAIL MODAL -->
+<div id="liveVehModal" onclick="closeLiveVehModal(event)">
+  <div class="lvm-box">
+    <div class="lvm-header" id="lvmHeader">
+      <div class="lvm-plate-badge" id="lvmPlate">—</div>
+      <div class="lvm-title">
+        <h3 id="lvmType">—</h3>
+        <p id="lvmStatusLine">—</p>
+      </div>
+      <button class="lvm-close" onclick="document.getElementById('liveVehModal').classList.remove('show')">✕</button>
+    </div>
+    <div class="lvm-body">
+      <div class="lvm-stat-row" id="lvmStatRow"></div>
+      <div class="lvm-sec-title">ผลการตรวจสอบระบบ</div>
+      <div class="lvm-issue-list" id="lvmIssueList"></div>
+      <div id="lvmRemarksWrap" style="margin-top:14px;display:none;">
+        <div class="lvm-sec-title">หมายเหตุ</div>
+        <div class="remarks-box" id="lvmRemarks"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
