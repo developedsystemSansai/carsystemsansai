@@ -912,8 +912,11 @@ async function loadData() {
     const res = await fetch(GAS_URL + '?action=getData');
     const json = await res.json();
     allData = json.data || [];
+    window.allData = allData; // sync กับ liveVehicleGrid
     console.log('[Dashboard] getData:', allData.length, 'records', allData.length > 0 ? allData[0] : '(empty)');
     applyFilters();
+    // refresh live grid เพื่อให้ latestRecord อัปเดต
+    if (typeof loadLiveVehicleStatus === 'function') loadLiveVehicleStatus();
     document.getElementById('lastUpdated').textContent = 'อัปเดต: ' + fmtDateTime(new Date()) + ' (' + allData.length + ' รายการ)';
   } catch (e) {
     console.error('[Dashboard] loadData error:', e);
@@ -995,11 +998,27 @@ function renderKPIs(data) {
   const okCount = data.filter(r => hasNoIssues(r)).length;
   const uniqueVehicles = new Set(data.map(r => extractPlate(r.carType))).size;
   const issues = total - okCount;
+
+  // นับรถที่เติมน้ำมันวันนี้จาก allData (ถ้ายังไม่มีจาก liveStatus)
+  const todayStr = new Date().toISOString().slice(0,10);
+  const fueledToday = new Set(
+    data.filter(r => {
+      const nd = normalizeInspDate(r.inspDate || r.timestamp || '');
+      return nd === todayStr && r.fuelFill === 'เติม';
+    }).map(r => extractPlate(r.carType))
+  ).size;
+
   document.getElementById('kpi-total').textContent = total;
   document.getElementById('kpi-ok').textContent = total ? Math.round(okCount/total*100)+'%' : '—';
   document.getElementById('kpi-ok-sub').textContent = `${okCount} จาก ${total} รายการ`;
   document.getElementById('kpi-vehicles').textContent = uniqueVehicles;
   document.getElementById('kpi-issues').textContent = issues;
+
+  // อัปเดต fueled เฉพาะถ้า liveStatus ยังไม่ได้เซ็ต
+  const fueledEl = document.getElementById('kpi-fueled');
+  if (!fueledEl.dataset.fromLive) {
+    fueledEl.textContent = fueledToday + ' คัน';
+  }
 }
 
 function hasNoIssues(r) {
@@ -1165,35 +1184,59 @@ function renderRecentRecords(data) {
 
   const issueCount = r => STATUS_KEYS.filter(sk => (r['chk_'+sk.key]||'') === 'ผิดปกติ').length;
 
-  document.getElementById('recentRecords').innerHTML = sorted.map((r,i) => {
+  // ใช้ unique key แทน index เพื่อแก้ปัญหา filteredData vs allData
+  // สร้าง recordMap ใน window สำหรับ openDetailModal
+  window._recordMap = {};
+  sorted.forEach((r, i) => {
+    const key = `rec_${i}`;
+    window._recordMap[key] = r;
+  });
+
+  document.getElementById('recentRecords').innerHTML = sorted.map((r, i) => {
+    const key = `rec_${i}`;
     const issues = issueCount(r);
     const statusTag = issues === 0
       ? '<span class="tag ok">ปกติ</span>'
       : `<span class="tag bad">พบปัญหา ${issues} จุด</span>`;
-    const hasPhoto = r.photoLinks && r.photoLinks.toString().trim().length > 0;
-    return `<tr onclick="openDetailModal(${allData.indexOf(r)})" style="cursor:pointer;">
+    const hasPhoto = (r.driveLinks||r.photoLinks||'').toString().trim().length > 0;
+    const fuelFilled = r.fuelFill === 'เติม';
+    const fuelPhotoIcon = hasPhoto && fuelFilled
+      ? `<span title="มีรูปบิลน้ำมัน" style="color:#0ea5e9;font-size:0.72rem;margin-left:4px;cursor:pointer;"
+           onclick="event.stopPropagation();openDetailByKey('${key}')">📎</span>` : '';
+    return `<tr onclick="openDetailByKey('${key}')" style="cursor:pointer;">
       <td style="white-space:nowrap;font-size:0.76rem;">
         ${fmtDateTime(r.timestamp||r.inspDate||'')}
       </td>
       <td><span class="plate-badge" style="font-size:0.7rem;">${extractPlate(r.carType)||'—'}</span></td>
-      <td style="font-size:0.78rem;">${(r.driverName||'—').replace('นาย ','').replace('นายก','กัมพล').substring(0,14)}</td>
+      <td style="font-size:0.78rem;">${(r.driverName||'—').substring(0,16)}</td>
       <td style="font-family:'Space Grotesk',monospace;font-weight:600;font-size:0.82rem;">${r.odometer ? (+r.odometer).toLocaleString() : '—'}</td>
       <td>${statusTag}</td>
-      <td style="font-size:0.8rem;">${r.fuelLevel||'—'} ${r.fuelFill === 'เติม' ? '<span style="color:var(--blue);font-size:0.68rem;font-weight:700;">เติม</span>' : ''}</td>
+      <td style="font-size:0.8rem;">${r.fuelLevel||'—'} ${fuelFilled ? '<span style="color:var(--blue);font-size:0.68rem;font-weight:700;">เติม</span>'+fuelPhotoIcon : ''}</td>
       <td style="font-size:0.75rem;color:var(--text-mid);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.remarks||'—'}</td>
       <td>
-        <button class="view-btn" onclick="event.stopPropagation();openDetailModal(${allData.indexOf(r)})">
-          ดูรายละเอียด
+        <button class="view-btn" onclick="event.stopPropagation();openDetailByKey('${key}')">
+          ${hasPhoto ? '📎 ' : ''}ดูรายละเอียด
         </button>
       </td>
     </tr>`;
   }).join('');
 }
 
-// ── DETAIL MODAL ──
+// ── DETAIL MODAL — by key (ใหม่ แก้ปัญหา index mismatch) ──
+function openDetailByKey(key) {
+  const r = (window._recordMap || {})[key];
+  if (!r) return;
+  _openDetailForRecord(r);
+}
+
+// ── DETAIL MODAL — by index (เก่า ยังคงไว้ compatibility) ──
 function openDetailModal(idx) {
   const r = allData[idx];
   if (!r) return;
+  _openDetailForRecord(r);
+}
+
+function _openDetailForRecord(r) {
 
   const issues = STATUS_KEYS.filter(sk => (r['chk_'+sk.key]||'') === 'ผิดปกติ');
   const plate = extractPlate(r.carType);
@@ -1246,8 +1289,12 @@ function openDetailModal(idx) {
     remarksSection.style.display = 'none';
   }
 
-  // Photos
-  renderModalPhotos(r.photoLinks);
+  // Photos — API ส่งมาเป็น driveLinks, fallback photoLinks
+  const driveLinksVal = r.driveLinks || r.photoLinks || '';
+  renderModalPhotos(driveLinksVal);
+
+  // Fuel Photo section
+  renderFuelPhotoSection(r);
 
   document.getElementById('detailModal').classList.add('show');
   document.body.style.overflow = 'hidden';
@@ -1260,7 +1307,6 @@ function renderModalPhotos(photoLinks) {
     return;
   }
 
-  // Parse links - could be newline or comma separated Google Drive URLs
   const links = photoLinks.toString().split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
 
   if (!links.length) {
@@ -1269,7 +1315,6 @@ function renderModalPhotos(photoLinks) {
   }
 
   const gallery = links.map((url, i) => {
-    // Convert Google Drive share URL to direct image URL for thumbnail
     let thumbUrl = '';
     let viewUrl = url;
     const driveMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
@@ -1279,15 +1324,148 @@ function renderModalPhotos(photoLinks) {
       viewUrl = `https://drive.google.com/file/d/${fileId}/view`;
     }
 
-    return thumbUrl
-      ? `<div class="photo-thumb-modal" onclick="openLightbox('${thumbUrl.replace('w200','w1200')}','${viewUrl}')">
-          <img src="${thumbUrl}" alt="รูปที่ ${i+1}" onerror="this.parentElement.innerHTML='<div class=\\'photo-no-img\\'><span style=\\'font-size:0.75rem\\'>รูปภาพ</span><span>รูปที่ ${i+1}</span></div>'; this.parentElement.onclick=function(){window.open('${viewUrl}','_blank');}">
-        </div>`
-      : `<a href="${viewUrl}" target="_blank" class="photo-open-link">เปิดรูปที่ ${i+1}</a>`;
+    const linkBtn = `<a href="${viewUrl}" target="_blank" rel="noopener"
+        style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;
+               padding:3px 9px;background:#1a73e8;color:#fff;border-radius:6px;
+               font-size:0.65rem;font-weight:700;text-decoration:none;">
+        🔗 เปิดใน Drive
+      </a>`;
+
+    if (thumbUrl) {
+      return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+        <div class="photo-thumb-modal"
+             onclick="openLightbox('${thumbUrl.replace('w200','w1200')}','${viewUrl}')">
+          <img src="${thumbUrl}" alt="รูปที่ ${i+1}"
+               onerror="this.parentElement.querySelector('img').style.display='none';
+                        this.parentElement.querySelector('.no-img-fb').style.display='flex';">
+          <div class="photo-no-img no-img-fb" style="display:none;">
+            <span style="font-size:0.75rem">รูปที่ ${i+1}</span>
+          </div>
+        </div>
+        ${linkBtn}
+      </div>`;
+    }
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+      <div style="width:100px;height:100px;background:#f0f4f8;border-radius:10px;
+                  display:flex;align-items:center;justify-content:center;
+                  font-size:2rem;">📄</div>
+      ${linkBtn}
+    </div>`;
   });
 
-  container.innerHTML = `<div class="photo-gallery">${gallery.join('')}</div>`;
+  // ปุ่มเปิดทั้งหมดพร้อมกัน
+  const openAllBtn = links.length > 1
+    ? `<div style="margin-top:10px;padding:8px 12px;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe;">
+         <div style="font-size:0.68rem;font-weight:700;color:#1e40af;margin-bottom:6px;">
+           🔗 เปิดทุกรูป
+         </div>
+         <div style="display:flex;flex-wrap:wrap;gap:5px;">
+           ${links.map((url, i) => {
+             const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+             const v = m ? `https://drive.google.com/file/d/${m[1]}/view` : url;
+             return `<a href="${v}" target="_blank" rel="noopener"
+               style="display:inline-flex;align-items:center;gap:4px;
+                      padding:4px 11px;background:#2563eb;color:#fff;
+                      border-radius:8px;font-size:0.72rem;font-weight:700;
+                      text-decoration:none;">
+               📎 รูปที่ ${i+1}
+             </a>`;
+           }).join('')}
+         </div>
+       </div>`
+    : '';
+
+  container.innerHTML = `<div class="photo-gallery">${gallery.join('')}</div>${openAllBtn}`;
 }
+
+// ── FUEL PHOTO SECTION ──
+function renderFuelPhotoSection(r) {
+  const existing = document.getElementById('m-fuel-photos-section');
+  if (existing) existing.remove();
+
+  if (r.fuelFill !== 'เติม') return;
+
+  const links = (r.driveLinks || r.photoLinks || '').toString().split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
+
+  const photosSection = document.getElementById('m-photos').parentElement;
+  const wrap = document.createElement('div');
+  wrap.id = 'm-fuel-photos-section';
+
+  if (!links.length) {
+    wrap.innerHTML = `
+      <div class="modal-section-title">⛽ บิลน้ำมัน / รูปถ่าย</div>
+      <div style="padding:12px 14px;background:#eff6ff;border-radius:10px;border:1px solid #bfdbfe;font-size:0.82rem;color:#1e40af;">
+        ✅ บันทึกว่าเติมน้ำมัน แต่ยังไม่มีรูปบิลที่อัปโหลด
+      </div>`;
+  } else {
+    const thumbsHtml = links.map((url, i) => {
+      const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (m) {
+        const fid = m[1];
+        const thumb = `https://drive.google.com/thumbnail?id=${fid}&sz=w200`;
+        const view  = `https://drive.google.com/file/d/${fid}/view`;
+        return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+          <div style="position:relative;border-radius:10px;overflow:hidden;
+                      border:2px solid #3b82f6;cursor:pointer;width:100px;height:90px;"
+               onclick="openLightbox('${thumb.replace('w200','w1200')}','${view}')">
+            <img src="${thumb}" alt="บิลที่ ${i+1}"
+                 style="width:100%;height:100%;object-fit:cover;"
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <div style="display:none;align-items:center;justify-content:center;
+                        width:100%;height:100%;background:#eff6ff;font-size:1.2rem;">📄</div>
+            <div style="position:absolute;bottom:0;left:0;right:0;
+                        background:rgba(30,64,175,0.8);color:#fff;font-size:0.62rem;
+                        font-weight:700;text-align:center;padding:3px;">
+              กดขยาย
+            </div>
+          </div>
+          <a href="${view}" target="_blank" rel="noopener"
+             style="display:inline-flex;align-items:center;gap:3px;
+                    padding:3px 9px;background:#2563eb;color:#fff;
+                    border-radius:6px;font-size:0.65rem;font-weight:700;
+                    text-decoration:none;">
+            🔗 เปิดบิลที่ ${i+1}
+          </a>
+        </div>`;
+      }
+      return `<a href="${url}" target="_blank" rel="noopener"
+        style="display:flex;align-items:center;justify-content:center;
+               height:90px;width:100px;background:#eff6ff;border:2px solid #3b82f6;
+               border-radius:10px;color:#1e40af;font-size:0.75rem;
+               font-weight:700;text-decoration:none;">
+        📄 เปิดบิลที่ ${i+1}
+      </a>`;
+    }).join('');
+
+    const allLinksHtml = links.map((url, i) => {
+      const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      const v = m ? `https://drive.google.com/file/d/${m[1]}/view` : url;
+      return `<a href="${v}" target="_blank" rel="noopener"
+        style="display:inline-flex;align-items:center;gap:5px;
+               padding:5px 12px;background:#2563eb;color:#fff;
+               border-radius:8px;font-size:0.75rem;font-weight:700;
+               text-decoration:none;margin:3px;">
+        📄 บิลที่ ${i+1}
+      </a>`;
+    }).join('');
+
+    wrap.innerHTML = `
+      <div class="modal-section-title">⛽ บิลน้ำมัน / รูปถ่าย (${links.length} รูป)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+        ${thumbsHtml}
+      </div>
+      <div style="background:#eff6ff;border-radius:8px;padding:8px 12px;border:1px solid #bfdbfe;">
+        <div style="font-size:0.68rem;font-weight:700;color:#1e40af;margin-bottom:6px;
+                    text-transform:uppercase;letter-spacing:0.5px;">
+          🔗 ลิงก์เปิดตรง (กดเพื่อเปิดใน Google Drive)
+        </div>
+        ${allLinksHtml}
+      </div>`;
+  }
+
+  photosSection.after(wrap);
+}
+
 
 function openLightbox(imgUrl, fallbackUrl) {
   const lb = document.getElementById('lightbox');
@@ -1438,6 +1616,7 @@ async function loadLiveVehicleStatus() {
     renderFuelTracker(json);
     // อัปเดต KPI เติมน้ำมัน
     document.getElementById('kpi-fueled').textContent = (json.fueledCount || (json.todayFueled||[]).length) + ' คัน';
+    document.getElementById('kpi-fueled').dataset.fromLive = '1';
     timeEl.textContent = 'อัปเดต ' + fmtNow24();
   } catch(_) {
     timeEl.textContent = 'โหลดไม่สำเร็จ';
@@ -1578,11 +1757,17 @@ function renderLiveVehicleGrid(json) {
     const isFueled  = !!Object.keys(fueledMap).find(k => k === v.plate || v.plate.includes(k) || k.includes(v.plate));
     const fuelData  = fueledMap[v.plate] || Object.values(fueledMap).find(f => (f.carType||'').includes(v.plate) || v.plate.includes((f.carType||'').split(' ')[0]));
 
-    // ดึงข้อมูลจาก allData เพื่อตรวจหาปัญหา
+    // ดึงข้อมูลจาก allData เพื่อตรวจหาปัญหา — match ทั้ง "นง.86" และ "นง.86 ชม."
     const latestRecord = (window.allData||[]).filter(r => {
-      const p = (r.carType||'').split(' ')[0];
-      return p === v.plate;
-    }).sort((a,b) => String(b.inspDate||'').localeCompare(String(a.inspDate||'')))[0];
+      const ct = (r.carType||'');
+      // ตรวจว่า plate ปรากฏใน carType ไม่ว่ารูปแบบใด
+      return ct.includes(v.plate) || v.plate.includes(ct.split(' ')[0]);
+    }).sort((a,b) => {
+      // sort by inspDate desc, inspTime desc
+      const da = (a.inspDate||'') + (a.inspTime||'');
+      const db = (b.inspDate||'') + (b.inspTime||'');
+      return db.localeCompare(da);
+    })[0];
 
     const hasIssue = latestRecord && Object.keys(latestRecord).some(k => k.startsWith('chk_') && latestRecord[k] === 'ผิดปกติ');
 
@@ -1906,6 +2091,10 @@ function showMockToast(msg) {
 // ── เพิ่มปุ่ม Mockup เข้า filter bar ──
 document.addEventListener('DOMContentLoaded', () => {
   loadVehicleMaster(); // โหลดรายการรถจาก Google Sheets
+
+  // ตรวจสอบ Drive authorization status
+  checkDriveAuth();
+
   const filterActions = document.querySelector('.filter-actions');
   if (filterActions) {
     const btn = document.createElement('button');
@@ -1915,6 +2104,15 @@ document.addEventListener('DOMContentLoaded', () => {
     btn.textContent = 'โหมดสาธิต';
     btn.onclick = activateMockup;
     filterActions.appendChild(btn);
+
+    // Drive Auth Button
+    const driveBtn = document.createElement('button');
+    driveBtn.id = 'driveAuthBtn';
+    driveBtn.className = 'refresh-btn';
+    driveBtn.style.cssText = 'background:linear-gradient(135deg,#0f9d58,#34a853);margin-left:4px;font-size:0.72rem;';
+    driveBtn.innerHTML = '📁 ตรวจสอบ Drive';
+    driveBtn.onclick = () => checkDriveAuth(true);
+    filterActions.appendChild(driveBtn);
   }
 });
 
@@ -2046,6 +2244,32 @@ function openLiveVehicleDetail(plate) {
         inspector !== '—' ? inspector : '',
         lastInspDate !== '—' ? lastInspDate : ''
       ].filter(Boolean).join(' · ');
+
+      // รูปบิลน้ำมัน — ดึงจาก driveLinks / photoLinks
+      const rawLinks = (rec.driveLinks || rec.photoLinks || '').toString();
+      const fuelLinks = rawLinks.split(/[
+,]+/).map(l => l.trim()).filter(l => l.length > 0);
+      let fuelLinkHtml = '';
+      if (fuelLinks.length > 0) {
+        const thumbs = fuelLinks.map((url, i) => {
+          const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+          if (m) {
+            const fid = m[1];
+            return `<a href="https://drive.google.com/file/d/${fid}/view" target="_blank"
+                       style="display:inline-flex;align-items:center;gap:4px;background:#2563eb;color:#fff;
+                              padding:4px 11px;border-radius:8px;font-size:0.68rem;font-weight:700;text-decoration:none;margin:2px;">
+                      📎 บิลที่ ${i+1}
+                    </a>`;
+          }
+          return `<a href="${url}" target="_blank"
+                     style="display:inline-flex;align-items:center;gap:4px;background:#2563eb;color:#fff;
+                            padding:4px 11px;border-radius:8px;font-size:0.68rem;font-weight:700;text-decoration:none;margin:2px;">
+                    📎 บิลที่ ${i+1}
+                  </a>`;
+        }).join('');
+        fuelLinkHtml = `<div style="margin-top:6px;">${thumbs}</div>`;
+      }
+
       fuelTodayHtml = `
         <div style="margin:10px 0 4px;font-size:0.72rem;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.5px;">
           ⛽ การเติมน้ำมันวันนี้
@@ -2053,6 +2277,7 @@ function openLiveVehicleDetail(plate) {
         <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 12px;">
           <div style="font-size:0.78rem;color:#1e40af;font-weight:600;">✅ เติมน้ำมันแล้ว</div>
           ${fuelMeta ? `<div style="font-size:0.7rem;color:#3b82f6;margin-top:4px;">👤 ${fuelMeta}</div>` : ''}
+          ${fuelLinkHtml || '<div style="font-size:0.68rem;color:#94a3b8;margin-top:4px;">— ยังไม่มีรูปบิลที่อัปโหลด —</div>'}
         </div>`;
     }
 
@@ -2126,6 +2351,64 @@ function closeLiveVehModal(e) {
 
 // Store allData globally for vehicle detail popup
 const _origRenderDash = typeof renderDashboard !== 'undefined' ? renderDashboard : null;
+
+// ══════════════════════════════════════════════════════════════
+//  DRIVE AUTHORIZATION
+// ══════════════════════════════════════════════════════════════
+
+async function checkDriveAuth(showAlert = false) {
+  const btn = document.getElementById('driveAuthBtn');
+  if (btn) btn.innerHTML = '⏳ กำลังตรวจสอบ...';
+  try {
+    const res  = await fetch(GAS_URL + '?action=authorizeUpload');
+    const json = await res.json();
+    if (json.status === 'ok' && json.authorized) {
+      window._driveFolderId = json.folderId;
+      if (btn) {
+        btn.innerHTML = '✅ Drive พร้อม';
+        btn.style.background = 'linear-gradient(135deg,#0f9d58,#34a853)';
+        btn.title = `Folder ID: ${json.folderId}`;
+      }
+      if (showAlert) showMockToast('✅ Drive พร้อมรับไฟล์ · ' + (json.message || ''));
+    } else {
+      if (btn) {
+        btn.innerHTML = '⚠️ Drive ไม่พร้อม';
+        btn.style.background = 'linear-gradient(135deg,#f59e0b,#d97706)';
+      }
+      if (showAlert) showMockToast('⚠️ Drive ไม่พร้อม: ' + (json.message || ''));
+    }
+  } catch (_) {
+    if (btn) {
+      btn.innerHTML = '❌ Drive Error';
+      btn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
+    }
+  }
+}
+
+/**
+ * uploadPhotosToDrive — เรียกจาก check.html / หน้าอื่น
+ * photos: Array of { data: base64DataURL, type: mimeType, name: filename }
+ */
+async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
+  if (!photos || !photos.length) return { status: 'ok', links: [] };
+  try {
+    const body = JSON.stringify({
+      action     : 'uploadPhotos',
+      photos     : photos,
+      carType    : carType,
+      inspDate   : inspDate,
+      driverName : driverName
+    });
+    const res  = await fetch(GAS_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body   : body
+    });
+    return await res.json();
+  } catch (err) {
+    return { status: 'error', message: err.message };
+  }
+}
 
 </script>
 
