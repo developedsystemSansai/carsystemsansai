@@ -586,8 +586,8 @@ textarea { resize: vertical; min-height: 80px; }
       <p>Vehicle Inspection Report — Hospital Fleet</p>
     </div>
     <div class="header-nav">
-      <a href="?page=check" class="nav-btn active">แบบฟอร์ม</a>
-      <a href="?page=index" class="nav-btn">กลับหน้าหลัก</a>
+      <a href="?page=check" class="nav-btn active">📋 แบบฟอร์ม</a>
+      <a href="?page=index" class="nav-btn">← กลับหน้าหลัก</a>
     </div>
   </div>
 </header>
@@ -869,47 +869,90 @@ const DEFAULT_DRIVERS = [
   'นาย ภาณุพงศ์ กางสำโรง','นาย เฉลิมพล เลาแก้ว','นายชัยพร ชัยศร','นายกัมพล โพธิ์พัด'
 ];
 
+// ── loadMasterData: โหลด vehicles + drivers + today-checked ──────────
 async function loadMasterData() {
   try {
-    const [vRes, dRes] = await Promise.all([
+    const [vRes, dRes, chkRes] = await Promise.all([
       fetch(GAS_URL + '?action=getVehicles'),
-      fetch(GAS_URL + '?action=getDrivers')
+      fetch(GAS_URL + '?action=getDrivers'),
+      fetch(GAS_URL + '?action=getTodayCheckedPlates')
     ]);
-    const vJson = await vRes.json();
-    const dJson = await dRes.json();
-    const vehicles = (vJson.data && vJson.data.length) ? vJson.data : DEFAULT_VEHICLES;
-    const drivers  = (dJson.drivers && dJson.drivers.length) ? dJson.drivers : DEFAULT_DRIVERS;
-    populateVehicleSelect(vehicles);
+    const vJson   = await vRes.json();
+    const dJson   = await dRes.json();
+    const chkJson = await chkRes.json();
+    const vehicles     = (vJson.data    && vJson.data.length)    ? vJson.data    : DEFAULT_VEHICLES;
+    const drivers      = (dJson.drivers && dJson.drivers.length) ? dJson.drivers : DEFAULT_DRIVERS;
+    const todayChecked = chkJson.checked || [];
+    populateVehicleSelect(vehicles, todayChecked);
     populateDriverSelect(drivers);
   } catch (_) {
-    populateVehicleSelect(DEFAULT_VEHICLES);
+    populateVehicleSelect(DEFAULT_VEHICLES, []);
     populateDriverSelect(DEFAULT_DRIVERS);
   }
 }
 
-function populateVehicleSelect(vehicles) {
+// ── populateVehicleSelect: แสดง "(ตรวจแล้ว)" สำหรับรถที่ตรวจไปแล้ว ──
+function populateVehicleSelect(vehicles, todayChecked) {
   const sel = document.getElementById('carType');
   sel.innerHTML = '<option value="">-- เลือกรถ --</option>';
-  // จัดกลุ่มตาม ประเภท
-  const groups = {};
+
+  // helper: หาข้อมูลการตรวจ ถ้าตรงกับทะเบียนนี้
+  function isCheckedToday(plate) {
+    return todayChecked.find(c => {
+      const p = plate.trim().split(' ')[0];   // "ขค.9662"
+      return c.carType.includes(p) || p.includes(c.carType.split(' ')[0]);
+    });
+  }
+
+  // แยก: ยังไม่ตรวจ vs ตรวจแล้ว
+  const uncheckedGroups = {};   // { ประเภท: [v, ...] }
+  const checkedList     = [];   // [{ v, checkInfo }]
+
   vehicles.forEach(v => {
-    const g = v['ประเภท'] || 'อื่นๆ';
-    if (!groups[g]) groups[g] = [];
-    groups[g].push(v);
+    const plate     = v['ทะเบียน'] || '';
+    const checkInfo = isCheckedToday(plate);
+    if (checkInfo) {
+      checkedList.push({ v, checkInfo });
+    } else {
+      const g = v['ประเภท'] || 'อื่นๆ';
+      if (!uncheckedGroups[g]) uncheckedGroups[g] = [];
+      uncheckedGroups[g].push(v);
+    }
   });
-  Object.entries(groups).forEach(([grpName, vehs]) => {
+
+  // A: รถที่ยังไม่ตรวจ (เลือกได้ตามปกติ)
+  Object.entries(uncheckedGroups).forEach(([grpName, vehs]) => {
     const og = document.createElement('optgroup');
     og.label = grpName;
     vehs.forEach(v => {
       const plate = v['ทะเบียน'] || '';
       const type  = v['ประเภท']  || '';
       const opt   = document.createElement('option');
-      opt.value   = plate + type;          // ตรงกับ format เดิม
+      opt.value       = plate + type;
       opt.textContent = `${plate} — ${type}`;
       og.appendChild(opt);
     });
     sel.appendChild(og);
   });
+
+  // B: รถที่ตรวจแล้ววันนี้ (disabled + แสดงข้อมูลการตรวจ)
+  if (checkedList.length > 0) {
+    const og = document.createElement('optgroup');
+    og.label = '✅ ตรวจแล้ววันนี้ (เลือกไม่ได้)';
+    checkedList.forEach(({ v, checkInfo }) => {
+      const plate = v['ทะเบียน'] || '';
+      const type  = v['ประเภท']  || '';
+      const opt   = document.createElement('option');
+      opt.value = plate + type;
+      const timeLabel = checkInfo.inspTime ? ` · ${checkInfo.inspTime} น.` : '';
+      const whoLabel  = checkInfo.driverName ? ` โดย ${checkInfo.driverName}` : '';
+      opt.textContent = `${plate} — ${type}  ✓ ตรวจแล้ว${timeLabel}${whoLabel}`;
+      opt.disabled    = true;
+      opt.style.color = '#8898aa';
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  }
 }
 
 function populateDriverSelect(drivers) {
