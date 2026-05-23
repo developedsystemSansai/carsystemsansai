@@ -914,7 +914,11 @@ async function loadData() {
     const json = await res.json();
     allData = json.data || [];
     window.allData = allData; // sync กับ liveVehicleGrid
-    console.log('[Dashboard] getData:', allData.length, 'records', allData.length > 0 ? allData[0] : '(empty)');
+    console.log('[Dashboard] getData:', allData.length, 'records');
+    if (allData.length > 0) {
+      console.log('[Dashboard] sample record keys:', Object.keys(allData[0]));
+      console.log('[Dashboard] sample inspDate:', allData[0].inspDate, '| timestamp:', allData[0].timestamp);
+    }
     applyFilters();
     // refresh live grid เพื่อให้ latestRecord อัปเดต
     if (typeof loadLiveVehicleStatus === 'function') loadLiveVehicleStatus();
@@ -931,26 +935,32 @@ async function loadData() {
 function normalizeInspDate(val) {
   if (!val) return '';
   const s = String(val).trim();
+  if (!s || s === '—') return '';
   // dd/MM/yyyy หรือ dd/MM/yyyy HH:mm:ss
   const dmyMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
   if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
   // yyyy-MM-dd ✓ ส่งตรง
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  return s;
+  // ISO date string (2025-05-23T...)
+  if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
+  return '';
 }
 
 function applyFilters() {
   // normalize inspDate ทุก record ก่อน filter (copy กลับเป็น inspDate ด้วย เพื่อ sort/display)
   let data = allData.map(r => {
-    const nd = normalizeInspDate(r.inspDate || r.timestamp);
-    return { ...r, inspDate: nd || r.inspDate, _normDate: nd };
+    // ลอง inspDate ก่อน ถ้าว่างหรือ normalize ไม่ได้ ให้ fallback ไป timestamp
+    const nd = normalizeInspDate(r.inspDate) || normalizeInspDate(r.timestamp);
+    return { ...r, inspDate: nd || r.inspDate, _normDate: nd || '' };
   });
+
   const carF    = document.getElementById('filterCar').value;
   const monF    = document.getElementById('filterMonth').value;
   const searchF = document.getElementById('filterSearch').value.toLowerCase().trim();
 
   if (carF)    data = data.filter(r => (r.carType||'').includes(carF));
-  if (monF)    data = data.filter(r => r._normDate.startsWith(monF));
+  // กรองเดือนเฉพาะเมื่อมีค่า filterMonth
+  if (monF)    data = data.filter(r => r._normDate && r._normDate.startsWith(monF));
   if (searchF) data = data.filter(r =>
     (r.carType||'').toLowerCase().includes(searchF) ||
     (r.driverName||'').toLowerCase().includes(searchF) ||
@@ -958,6 +968,7 @@ function applyFilters() {
   );
 
   filteredData = data;
+  console.log('[applyFilters] allData:', allData.length, '→ filtered:', data.length, '| monF:', monF, '| carF:', carF);
   renderDashboard(data);
 }
 
@@ -1530,8 +1541,9 @@ function generateDemoData() {
 }
 
 // Init — data loaded after session check
-const now = new Date();
-document.getElementById('filterMonth').value = now.toISOString().slice(0,7);
+// ไม่ตั้ง filterMonth เริ่มต้น เพื่อให้แสดงข้อมูลทั้งหมดก่อน
+// const now = new Date();
+// document.getElementById('filterMonth').value = now.toISOString().slice(0,7);
 
 
 // ══════ LIVE VEHICLE STATUS ══════
@@ -1840,6 +1852,16 @@ function renderLiveVehicleGrid(json) {
       </div>
       <div style="font-size:1.6rem;margin-bottom:6px;">${icon}</div>
       <div style="font-size:0.82rem;color:${textColor};opacity:0.85;margin-bottom:8px;">${statusSub||'—'}</div>
+      ${latestRecord && latestRecord.odometer ? `
+      <div style="font-size:0.7rem;color:${textColor};opacity:0.75;margin-bottom:6px;display:flex;align-items:center;gap:4px;">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+        ไมล์: <strong>${Number(latestRecord.odometer).toLocaleString()} กม.</strong>
+        ${latestRecord.inspDate ? '· ' + (latestRecord.inspDate.slice(0,10) || '') : ''}
+      </div>` : (chkData && chkData.odometer ? `
+      <div style="font-size:0.7rem;color:${textColor};opacity:0.75;margin-bottom:6px;display:flex;align-items:center;gap:4px;">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+        ไมล์: <strong>${Number(chkData.odometer).toLocaleString()} กม.</strong>
+      </div>` : '')}
       <div style="margin-bottom:10px;">
         ${isFueled
           ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#0ea5e9;color:#fff;font-size:0.62rem;font-weight:700;padding:3px 9px;border-radius:99px;letter-spacing:0.3px;">
@@ -2163,9 +2185,11 @@ function openLiveVehicleDetail(plate) {
   document.getElementById('lvmStatusLine').textContent   = statusLine;
 
   // ── Stat row ──
-  const odo          = rec?.odometer ? Number(rec.odometer).toLocaleString('th-TH') + ' กม.' : '—';
+  const odo          = rec?.odometer ? Number(rec.odometer).toLocaleString('th-TH') + ' กม.' 
+                       : chkData?.odometer ? Number(chkData.odometer).toLocaleString('th-TH') + ' กม.' : '—';
   const inspector    = rec?.driverName || chkData?.driverName || '—';
-  const lastInspDate = rec?.inspDate ? formatThaiDate(rec.inspDate) : '—';
+  const lastInspDate = rec?.inspDate ? formatThaiDate(rec.inspDate) 
+                       : chkData?.inspTime ? '(วันนี้)' : '—';
   const lastInspTime = rec?.inspTime ? formatThaiTime(rec.inspTime)
                        : chkData?.inspTime ? formatThaiTime(chkData.inspTime) : '—';
 
@@ -2323,6 +2347,15 @@ function openLiveVehicleDetail(plate) {
       + fuelTodayHtml
       + `<div style="margin:12px 0 4px;font-size:0.72rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:0.5px;">ผลการตรวจสอบระบบ</div>`
       + checkRows;
+  } else if (chkData) {
+    // มีข้อมูลจาก getStatusSummary แต่ยังไม่โหลด CheckLog
+    const updateHtml = `<div style="font-size:0.7rem;color:var(--text-light);padding:6px 14px;border-top:1px solid #e8edf5;margin-top:8px;">
+           🕐 ตรวจสภาพเวลา: ${chkData.inspTime || '—'} น. | ไมล์: ${chkData.odometer ? Number(chkData.odometer).toLocaleString() + ' กม.' : '—'}
+         </div>`;
+    issueHtml = updateHtml + `<div style="text-align:center;color:var(--text-mid);padding:20px;font-size:0.82rem;background:#f0fdf4;border-radius:8px;margin:8px 0;">
+      ✅ ตรวจสภาพรถแล้ววันนี้<br>
+      <span style="font-size:0.72rem;color:var(--text-light);">กรุณารอให้ Dashboard โหลดข้อมูลครบ หรือกด "รีเฟรช" เพื่อดูรายละเอียดผลการตรวจ</span>
+    </div>`;
   } else {
     issueHtml = `<div style="text-align:center;color:var(--text-light);padding:28px 20px;font-size:0.85rem;">
       ยังไม่มีข้อมูลการตรวจสภาพในระบบ
