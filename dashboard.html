@@ -597,13 +597,14 @@ function checkPw() {
   }
 }
 
-// Check session on load
-if (checkSession()) {
-  document.getElementById('pwOverlay').style.display = 'none';
-  // โหลดข้อมูลทันทีถ้า session ผ่าน
-  if (typeof loadData === 'function') loadData();
-  if (typeof loadLiveVehicleStatus === 'function') loadLiveVehicleStatus();
-}
+// Check session on load — รอให้ script ทั้งหมดโหลดก่อนผ่าน DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+  if (checkSession()) {
+    document.getElementById('pwOverlay').style.display = 'none';
+    loadData();
+    loadLiveVehicleStatus();
+  }
+});
 </script>
 
 
