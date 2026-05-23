@@ -600,6 +600,9 @@ function checkPw() {
 // Check session on load
 if (checkSession()) {
   document.getElementById('pwOverlay').style.display = 'none';
+  // โหลดข้อมูลทันทีถ้า session ผ่าน
+  if (typeof loadData === 'function') loadData();
+  if (typeof loadLiveVehicleStatus === 'function') loadLiveVehicleStatus();
 }
 </script>
 
@@ -612,7 +615,7 @@ if (checkSession()) {
       <p>ภาพรวมสำหรับผู้บริหาร · Vehicle Fleet Management</p>
     </div>
     <div class="header-nav">
-      <a href="?page=index" class="nav-btn">← กลับหน้าหลัก</a>
+      <a href="index.html" class="nav-btn">← กลับหน้าหลัก</a>
     </div>
   </div>
 </header>
@@ -1180,7 +1183,7 @@ function renderRecentRecords(data) {
       <td style="font-size:0.75rem;color:var(--text-mid);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.remarks||'—'}</td>
       <td>
         <button class="view-btn" onclick="event.stopPropagation();openDetailModal(${allData.indexOf(r)})">
-          ดูรายละเอียด'' : ''}
+          ดูรายละเอียด
         </button>
       </td>
     </tr>`;
@@ -1852,10 +1855,14 @@ function activateMockup() {
   document.getElementById('vehicleLiveTime').textContent = 'โหมดสาธิต';
 
   // อัปเดต KPI bar summary
-  document.getElementById('sv-notchecked').textContent = mockLive.notCheckedCount;
-  document.getElementById('sv-ready').textContent      = mockLive.readyCount;
-  document.getElementById('sv-inuse').textContent      = mockLive.inUseCount;
-  document.getElementById('statusUpdateTime').textContent = 'โหมดสาธิต';
+  const _snc = document.getElementById('sv-notchecked');
+  const _sr  = document.getElementById('sv-ready');
+  const _siu = document.getElementById('sv-inuse');
+  const _sut = document.getElementById('statusUpdateTime');
+  if (_snc) _snc.textContent = mockLive.notCheckedCount;
+  if (_sr)  _sr.textContent  = mockLive.readyCount;
+  if (_siu) _siu.textContent = mockLive.inUseCount;
+  if (_sut) _sut.textContent = 'โหมดสาธิต';
 
   // หยุด auto-refresh จริง
   clearInterval(_mockInterval);
@@ -2109,9 +2116,6 @@ function openLiveVehicleDetail(plate) {
   }
 
   document.getElementById('liveVehModal').classList.add('show');
-}
-
-function closeLiveVehModal'liveVehModal').classList.add('show');
 }
 
 function closeLiveVehModal(e) {
