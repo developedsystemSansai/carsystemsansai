@@ -566,6 +566,14 @@ textarea { resize: vertical; min-height: 80px; }
   display: none;
 }
 .field-error .error-msg { display: block; }
+
+  .quick-time-btn {
+    padding: 4px 10px; border-radius: 6px;
+    border: 1.5px solid var(--blue); background: transparent;
+    color: var(--blue); font-family: inherit; font-size: 0.78rem;
+    font-weight: 600; cursor: pointer; transition: all 0.15s;
+  }
+  .quick-time-btn:hover { background: var(--blue); color: #fff; }
 </style>
 </head>
 <body>
@@ -656,7 +664,27 @@ textarea { resize: vertical; min-height: 80px; }
           </div>
           <div class="field-group" id="fg-inspTime">
             <label>เวลาที่ตรวจ (ระบบ 00.00-24.00 น.) <span class="req">*</span></label>
-            <input type="time" id="inspTime" name="inspTime" required>
+            <div style="position:relative;">
+              <input type="text" id="inspTime" name="inspTime" required
+                placeholder="08:30"
+                maxlength="5"
+                pattern="[0-2][0-9]:[0-5][0-9]"
+                autocomplete="off"
+                style="letter-spacing:2px;font-weight:600;font-size:1rem;"
+                oninput="formatTimeInput(this)"
+                onblur="validateTimeInput(this)">
+              <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.78rem;color:#8898aa;font-weight:600;pointer-events:none;">น.</span>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;" id="quickTimeBtns">
+              <span style="font-size:0.72rem;color:#8898aa;font-weight:600;align-self:center;">เลือกเร็ว:</span>
+              <button type="button" class="quick-time-btn" onclick="setQuickTime('06:00')">06:00</button>
+              <button type="button" class="quick-time-btn" onclick="setQuickTime('07:00')">07:00</button>
+              <button type="button" class="quick-time-btn" onclick="setQuickTime('08:00')">08:00</button>
+              <button type="button" class="quick-time-btn" onclick="setQuickTime('09:00')">09:00</button>
+              <button type="button" class="quick-time-btn" onclick="setQuickTime('12:00')">12:00</button>
+              <button type="button" class="quick-time-btn" onclick="setQuickTime('13:00')">13:00</button>
+              <button type="button" class="quick-time-btn" onclick="setQuickTime('16:00')">16:00</button>
+            </div>
             <span class="error-msg">กรุณาระบุเวลา</span>
           </div>
           <div class="field-group" id="fg-odometer">
@@ -897,7 +925,7 @@ function setThaiDateTime() {
   // ใช้ timezone Asia/Bangkok สำหรับค่าเริ่มต้น
   const thaiDate = new Date(now.toLocaleString('en-US', {timeZone: 'Asia/Bangkok'}));
   document.getElementById('inspDate').value = thaiDate.toISOString().split('T')[0];
-  document.getElementById('inspTime').value = thaiDate.toTimeString().slice(0,5);
+  document.getElementById('inspTime').value = thaiDate.toTimeString().slice(0,5); // HH:MM 24H
 }
 setThaiDateTime();
 
@@ -1211,6 +1239,48 @@ function removeFuelPhoto(i) {
 ['fuelPhotoInput','fuelCamInput','fuelGalleryInput'].forEach(id => {
   document.getElementById(id)?.addEventListener('change', e => handleFuelFiles(e.target.files));
 });
+
+
+// ══════ 24H TIME INPUT HELPERS ══════
+function formatTimeInput(el) {
+  let v = el.value.replace(/[^0-9]/g, '');
+  if (v.length >= 3) {
+    v = v.slice(0,2) + ':' + v.slice(2,4);
+  }
+  el.value = v;
+  // auto-validate color
+  if (v.length === 5) {
+    const [h,m] = v.split(':').map(Number);
+    if (h >= 0 && h <= 23 && m >= 0 && m <= 59) {
+      el.style.borderColor = 'var(--success)';
+    } else {
+      el.style.borderColor = 'var(--danger)';
+    }
+  } else {
+    el.style.borderColor = '';
+  }
+}
+
+function validateTimeInput(el) {
+  const v = el.value;
+  if (!v) return;
+  const match = v.match(/^([0-1]?[0-9]|2[0-3]):([0-5][0-9])$/);
+  if (!match) {
+    el.style.borderColor = 'var(--danger)';
+    el.value = '';
+    el.placeholder = 'เช่น 08:30';
+  }
+}
+
+function setQuickTime(t) {
+  const el = document.getElementById('inspTime');
+  el.value = t;
+  el.style.borderColor = 'var(--success)';
+  updateProgress();
+}
+
+// Override setThaiDateTime to use text format
+const _origSetThaiDateTime = setThaiDateTime;
 
 // Init
 updateProgress();
