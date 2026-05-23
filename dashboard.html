@@ -1362,6 +1362,65 @@ function fmt24(dateObj) {
   return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} เวลา ${p(d.getHours())}.${p(d.getMinutes())} น.`;
 }
 
+
+// ════════════════════════════════════════════════════════════
+//  Thai DateTime Helpers (ใช้ร่วมกันทั้งหน้า)
+// ════════════════════════════════════════════════════════════
+const TH_MONTHS = [
+  'มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน',
+  'กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'
+];
+const TH_DAYS = [
+  'วันอาทิตย์','วันจันทร์','วันอังคาร','วันพุธ',
+  'วันพฤหัสบดี','วันศุกร์','วันเสาร์'
+];
+
+/**
+ * formatThaiDateTime — แปลง Date/string เป็นภาษาไทยสากล
+ * รองรับ: Date obj | "dd/MM/yyyy HH:mm:ss" | "yyyy-MM-dd" | ISO string
+ * ตัวอย่าง: "วันเสาร์ 30 ธันวาคม 2569 เวลา 10:47 น."
+ */
+function formatThaiDateTime(val, showDay = true, showTime = true) {
+  if (!val) return '—';
+  let d;
+  if (val instanceof Date) {
+    d = val;
+  } else {
+    const s = String(val).trim();
+    const dmyMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2})(?::(\d{2}))?)?/);
+    if (dmyMatch) {
+      const [, dd, mm, yyyy, hh = '00', min = '00'] = dmyMatch;
+      d = new Date(+yyyy, +mm - 1, +dd, +hh, +min);
+    } else {
+      d = new Date(s);
+    }
+  }
+  if (!d || isNaN(d.getTime())) return String(val);
+  const year    = d.getFullYear() + 543;
+  const month   = TH_MONTHS[d.getMonth()];
+  const day     = String(d.getDate()).padStart(2, '0');
+  const dayName = TH_DAYS[d.getDay()];
+  const hh      = String(d.getHours()).padStart(2, '0');
+  const mm2     = String(d.getMinutes()).padStart(2, '0');
+  let result = '';
+  if (showDay)  result += dayName + ' ';
+  result += `${day} ${month} ${year}`;
+  if (showTime) result += ` เวลา ${hh}:${mm2} น.`;
+  return result;
+}
+
+/** formatThaiDate — วันที่อย่างเดียว ไม่มีชื่อวัน ไม่มีเวลา */
+function formatThaiDate(val) { return formatThaiDateTime(val, false, false); }
+
+/** formatThaiTime — เวลาอย่างเดียว "HH:MM น." */
+function formatThaiTime(val) {
+  if (!val) return '—';
+  if (typeof val === 'string' && /^\d{2}:\d{2}/.test(val)) return val.slice(0, 5) + ' น.';
+  const d = val instanceof Date ? val : new Date(val);
+  if (isNaN(d)) return String(val);
+  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} น.`;
+}
+
 function fmtNow24() {
   return fmt24(new Date());
 }
@@ -1870,57 +1929,179 @@ const STATUS_KEYS_MAP = [
 ];
 
 function openLiveVehicleDetail(plate) {
-  const d = (window.liveVehicleDetailMap||{})[plate];
+  const d = (window.liveVehicleDetailMap || {})[plate];
   if (!d) return;
 
-  // Header color based on status
+  const rec      = d.latestRecord;
+  const chkData  = d.chkData;
+
+  // ── Header gradient ──
   let headerBg, statusLine;
   if (d.isInUse) {
-    headerBg = 'linear-gradient(135deg,#b45309,#f59e0b)';
+    headerBg   = 'linear-gradient(135deg,#b45309,#f59e0b)';
     statusLine = '🚗 กำลังออกปฏิบัติงาน' + (d.inUseData?.destination ? ' → ' + d.inUseData.destination : '');
   } else if (d.hasIssue) {
-    headerBg = 'linear-gradient(135deg,#991b1b,#ef4444)';
+    headerBg   = 'linear-gradient(135deg,#991b1b,#ef4444)';
     statusLine = '⚠️ ตรวจสภาพแล้ว — พบจุดผิดปกติ';
   } else if (d.isChecked) {
-    headerBg = 'linear-gradient(135deg,#065f46,#22c55e)';
+    headerBg   = 'linear-gradient(135deg,#065f46,#22c55e)';
     statusLine = '✅ ตรวจสภาพแล้ว — พร้อมใช้งาน';
   } else {
-    headerBg = 'linear-gradient(135deg,#475569,#94a3b8)';
+    headerBg   = 'linear-gradient(135deg,#475569,#94a3b8)';
     statusLine = '⏳ ยังไม่ได้ตรวจสภาพวันนี้';
   }
 
   document.getElementById('lvmHeader').style.background = headerBg;
-  document.getElementById('lvmPlate').textContent = plate;
-  document.getElementById('lvmType').textContent = d.type;
-  document.getElementById('lvmStatusLine').textContent = statusLine;
+  document.getElementById('lvmPlate').textContent        = plate;
+  document.getElementById('lvmType').textContent         = d.type;
+  document.getElementById('lvmStatusLine').textContent   = statusLine;
 
-  // Stats
-  const rec = d.latestRecord;
-  const odo = rec?.odometer ? Number(rec.odometer).toLocaleString() + ' กม.' : '—';
-  const inspDate = rec?.inspDate || '—';
-  const inspector = rec?.driverName || d.chkData?.driverName || '—';
-  document.getElementById('lvmStatRow').innerHTML = `
-    <div class="lvm-stat"><div class="ls-label">ไมล์ล่าสุด</div><div class="ls-val">${odo}</div></div>
-    <div class="lvm-stat"><div class="ls-label">ตรวจล่าสุด</div><div class="ls-val" style="font-size:0.78rem;">${inspDate}</div></div>
-    <div class="lvm-stat"><div class="ls-label">ผู้ตรวจ</div><div class="ls-val" style="font-size:0.72rem;">${inspector}</div></div>
-  `;
+  // ── Stat row ──
+  const odo          = rec?.odometer ? Number(rec.odometer).toLocaleString('th-TH') + ' กม.' : '—';
+  const inspector    = rec?.driverName || chkData?.driverName || '—';
+  const lastInspDate = rec?.inspDate ? formatThaiDate(rec.inspDate) : '—';
+  const lastInspTime = rec?.inspTime ? formatThaiTime(rec.inspTime)
+                       : chkData?.inspTime ? formatThaiTime(chkData.inspTime) : '—';
 
-  // Issue list
-  if (rec) {
-    const issueHtml = STATUS_KEYS_MAP.map(sk => {
-      const val = rec['chk_'+sk.key] || '';
-      if (!val || val === 'ไม่ตรวจ') return `<div class="lvm-issue-item skip"><span style="font-size:0.85rem;">➖</span> ${sk.label} <span style="margin-left:auto;font-size:0.72rem;">ไม่ตรวจ</span></div>`;
-      if (val === 'ผิดปกติ') return `<div class="lvm-issue-item bad"><span style="font-size:0.85rem;">❌</span> <strong>${sk.label}</strong> <span style="margin-left:auto;font-size:0.72rem;font-weight:700;">ผิดปกติ</span></div>`;
-      return `<div class="lvm-issue-item ok"><span style="font-size:0.85rem;">✓</span> ${sk.label} <span style="margin-left:auto;font-size:0.72rem;">ปกติ</span></div>`;
-    }).join('');
-    document.getElementById('lvmIssueList').innerHTML = issueHtml;
-  } else {
-    document.getElementById('lvmIssueList').innerHTML = '<div style="text-align:center;color:var(--text-light);padding:20px;font-size:0.85rem;">ยังไม่มีข้อมูลการตรวจสภาพ</div>';
+  // timestamp อัปเดตล่าสุด
+  let lastUpdate = '—';
+  if (rec?.timestamp) {
+    lastUpdate = formatThaiDateTime(rec.timestamp, true, true);
+  } else if (rec?.inspDate) {
+    lastUpdate = formatThaiDateTime(
+      rec.inspDate + (rec.inspTime ? ' ' + rec.inspTime : ''), false, !!rec.inspTime
+    );
   }
 
-  // Remarks
+  document.getElementById('lvmStatRow').innerHTML = `
+    <div class="lvm-stat">
+      <div class="ls-label">ไมล์ล่าสุด</div>
+      <div class="ls-val">${odo}</div>
+    </div>
+    <div class="lvm-stat">
+      <div class="ls-label">ตรวจล่าสุด</div>
+      <div class="ls-val" style="font-size:0.75rem;line-height:1.4;">${lastInspDate}</div>
+      <div style="font-size:0.68rem;color:var(--text-light);margin-top:2px;">${lastInspTime}</div>
+    </div>
+    <div class="lvm-stat">
+      <div class="ls-label">ผู้ตรวจ</div>
+      <div class="ls-val" style="font-size:0.7rem;line-height:1.4;">${inspector}</div>
+    </div>
+  `;
+
+  // ── ผลการตรวจสอบระบบ ──
+  const CHECK_ITEMS_LVM = [
+    { key:'mirror',        label:'กระจกมองข้าง' },
+    { key:'brake',         label:'ระบบเบรค' },
+    { key:'coolant',       label:'น้ำในหม้อน้ำ' },
+    { key:'suspension',    label:'ช่วงล่าง' },
+    { key:'oilLevel',      label:'ระดับน้ำมันเครื่อง' },
+    { key:'tirePressure',  label:'ลมยาง' },
+    { key:'headlight',     label:'ไฟหน้า' },
+    { key:'taillight',     label:'ไฟท้าย/ไฟเบรค' },
+    { key:'reverseLight',  label:'ไฟถอย' },
+    { key:'horn',          label:'เสียงแตร' },
+    { key:'wiper',         label:'ที่ปัดน้ำฝน' },
+    { key:'aircon',        label:'เครื่องปรับอากาศ' },
+    { key:'exteriorClean', label:'ความสะอาดภายนอก' },
+    { key:'interiorClean', label:'ความสะอาดภายใน' },
+  ];
+
+  let issueHtml = '';
+  if (rec) {
+    // ── อุปกรณ์ที่เปลี่ยน ──
+    const EQUIP = [
+      { key:'eq_oil',     label:'น้ำมันเครื่อง' },
+      { key:'eq_battery', label:'แบตเตอรี่' },
+      { key:'eq_tire',    label:'ยางรถยนต์' },
+    ];
+    const equipHtml = EQUIP.map(eq => {
+      const val = rec[eq.key] || '—';
+      const cls = val === 'เปลี่ยน'
+        ? 'background:#f59e0b;color:#fff;'
+        : 'background:#e2e8f0;color:#64748b;';
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;">
+        <span style="flex:1;font-size:0.8rem;">${eq.label}</span>
+        <span style="font-size:0.72rem;font-weight:700;padding:2px 9px;border-radius:99px;${cls}">${val}</span>
+      </div>`;
+    }).join('');
+
+    // ── น้ำมันเชื้อเพลิง ──
+    const fuelLevel = rec.fuelLevel || '—';
+    const fuelFill  = rec.fuelFill  || '—';
+    const fuelFillColor = fuelFill === 'เติม'
+      ? 'background:#0ea5e9;color:#fff;'
+      : 'background:#e2e8f0;color:#94a3b8;';
+
+    let fuelTodayHtml = '';
+    if (fuelFill === 'เติม') {
+      const fuelMeta = [
+        inspector !== '—' ? inspector : '',
+        lastInspDate !== '—' ? lastInspDate : ''
+      ].filter(Boolean).join(' · ');
+      fuelTodayHtml = `
+        <div style="margin:10px 0 4px;font-size:0.72rem;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.5px;">
+          ⛽ การเติมน้ำมันวันนี้
+        </div>
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:9px 12px;">
+          <div style="font-size:0.78rem;color:#1e40af;font-weight:600;">✅ เติมน้ำมันแล้ว</div>
+          ${fuelMeta ? `<div style="font-size:0.7rem;color:#3b82f6;margin-top:4px;">👤 ${fuelMeta}</div>` : ''}
+        </div>`;
+    }
+
+    // ── ผลตรวจระบบ ──
+    const checkRows = CHECK_ITEMS_LVM.map(sk => {
+      const val = rec['chk_' + sk.key] || '';
+      if (!val || val === 'ไม่ตรวจ') {
+        return `<div class="lvm-issue-item skip">
+          <span style="font-size:0.85rem;">➖</span> ${sk.label}
+          <span style="margin-left:auto;font-size:0.72rem;color:var(--text-light);">ไม่ตรวจ</span>
+        </div>`;
+      }
+      if (val === 'ผิดปกติ') {
+        return `<div class="lvm-issue-item bad">
+          <span style="font-size:0.85rem;">❌</span> <strong>${sk.label}</strong>
+          <span style="margin-left:auto;font-size:0.72rem;font-weight:700;color:#ef4444;">ผิดปกติ</span>
+        </div>`;
+      }
+      return `<div class="lvm-issue-item ok">
+        <span style="font-size:0.85rem;">✓</span> ${sk.label}
+        <span style="margin-left:auto;font-size:0.72rem;color:#22c55e;">ปกติ</span>
+      </div>`;
+    }).join('');
+
+    // ── อัปเดตล่าสุด ──
+    const updateHtml = lastUpdate !== '—'
+      ? `<div style="font-size:0.7rem;color:var(--text-light);padding:6px 14px;border-top:1px solid #e8edf5;margin-top:8px;">
+           🕐 อัปเดตล่าสุด: ${lastUpdate}
+         </div>` : '';
+
+    issueHtml = updateHtml
+      + `<div style="margin:10px 0 4px;font-size:0.72rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:0.5px;">การเปลี่ยนอุปกรณ์</div>`
+      + equipHtml
+      + `<div style="margin:12px 0 4px;font-size:0.72rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:0.5px;">น้ำมันเชื้อเพลิง</div>`
+      + `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;">
+           <span style="flex:1;font-size:0.8rem;">ปริมาณน้ำมัน</span>
+           <span style="font-size:0.82rem;font-weight:700;">${fuelLevel}</span>
+         </div>`
+      + `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;">
+           <span style="flex:1;font-size:0.8rem;">การเติมน้ำมัน</span>
+           <span style="font-size:0.72rem;font-weight:700;padding:2px 9px;border-radius:99px;${fuelFillColor}">${fuelFill}</span>
+         </div>`
+      + fuelTodayHtml
+      + `<div style="margin:12px 0 4px;font-size:0.72rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:0.5px;">ผลการตรวจสอบระบบ</div>`
+      + checkRows;
+  } else {
+    issueHtml = `<div style="text-align:center;color:var(--text-light);padding:28px 20px;font-size:0.85rem;">
+      ยังไม่มีข้อมูลการตรวจสภาพในระบบ
+    </div>`;
+  }
+
+  document.getElementById('lvmIssueList').innerHTML = issueHtml;
+
+  // ── Remarks ──
   const remarks = rec?.remarks || '';
-  if (remarks) {
+  if (remarks.trim()) {
     document.getElementById('lvmRemarksWrap').style.display = 'block';
     document.getElementById('lvmRemarks').textContent = remarks;
   } else {
@@ -1928,6 +2109,9 @@ function openLiveVehicleDetail(plate) {
   }
 
   document.getElementById('liveVehModal').classList.add('show');
+}
+
+function closeLiveVehModal'liveVehModal').classList.add('show');
 }
 
 function closeLiveVehModal(e) {
