@@ -1242,7 +1242,7 @@ function renderActiveTripsBanner() {
     var startOdo = r['\u0e40\u0e25\u0e02\u0e44\u0e21\u0e25\u0e4c\u0e15\u0e49\u0e19'] ? Number(r['\u0e40\u0e25\u0e02\u0e44\u0e21\u0e25\u0e4c\u0e15\u0e49\u0e19']).toLocaleString() : '\u2014';
     var tripDate = r['\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48'] ? String(r['\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48']).slice(0,10) : '\u2014';
     var tripTime = r['\u0e40\u0e27\u0e25\u0e32\u0e2d\u0e2d\u0e01'] ? String(r['\u0e40\u0e27\u0e25\u0e32\u0e2d\u0e2d\u0e01']).slice(0,5) : '\u2014';
-    var safeCarAttr = car.replace(/'/g, '').replace(/"/g, '');
+    var safeCarAttr = car.replace(/['"]/g, '');
     return '<div style="background:#fff;border:1.5px solid #f59e0b;border-radius:10px;padding:11px 13px;cursor:pointer;" onclick="selectActiveTrip(\'' + safeCarAttr + '\')">'
       + '<div style="font-size:14px;font-weight:800;color:#0a2540;">' + plate + '</div>'
       + '<div style="font-size:11px;color:#64748b;margin-top:1px;">' + car.replace(plate,'').trim() + '</div>'
