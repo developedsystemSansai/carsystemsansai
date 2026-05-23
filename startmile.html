@@ -1016,12 +1016,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function setDateTimeDefaults() {
-  const now   = new Date();
-  const ymd   = now.toISOString().slice(0,10);
-  const hm    = now.toTimeString().slice(0,5);
-  document.getElementById('s_tripDate').value  = ymd;
-  document.getElementById('s_tripTime').value  = hm;
-  document.getElementById('e_returnTime').value = hm;
+  const now = new Date();
+  // ใช้ Bangkok timezone โดยตรง (ไม่แปลง UTC)
+  const bkkDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok',
+    year:'numeric', month:'2-digit', day:'2-digit' }).format(now);
+  const bkkTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Bangkok',
+    hour:'2-digit', minute:'2-digit', hour12:false }).format(now);
+  document.getElementById('s_tripDate').value   = bkkDate;
+  document.getElementById('s_tripTime').value   = bkkTime;
+  document.getElementById('e_returnTime').value = bkkTime;
 }
 
 // ─────────────────────────────────────────────
