@@ -526,7 +526,7 @@ textarea { resize: vertical; min-height: 80px; }
       <div class="main-title">บันทึกการใช้รถ / เลขไมล์</div>
       <div class="sub-title">โรงพยาบาลสันทราย · Fleet Mile Recording</div>
     </div>
-    <a href="index.html" class="back-btn">
+    <a href="?page=index" class="back-btn">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       หน้าหลัก
     </a>
@@ -1257,7 +1257,7 @@ function showCarBlockedNote(plate) {
   }
   note.innerHTML = `<span style="font-size:1.1rem;flex-shrink:0;">🚫</span>
     <span><strong>${plate}</strong> ยังไม่ผ่านการตรวจสภาพรถประจำวันนี้<br>
-    กรุณาไปที่ <a href="check.html" style="color:#dc2626;font-weight:700;">ตรวจสภาพรถประจำวัน</a> แล้วบันทึกให้เรียบร้อยก่อน</span>`;
+    กรุณาไปที่ <a href="?page=check" style="color:#dc2626;font-weight:700;">ตรวจสภาพรถประจำวัน</a> แล้วบันทึกให้เรียบร้อยก่อน</span>`;
   note.style.display = 'flex';
 }
 
