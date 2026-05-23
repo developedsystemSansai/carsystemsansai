@@ -600,24 +600,40 @@
 // ─── CONFIG ───────────────────────────────────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxL1ZYuJr_jtZtGB9oRS5HSO9lArCeqduleQOEli9Ctpv4tZGIiHrTXg-OqMGFvfQ/exec';
 
-// รถทั้งหมด (fallback ถ้า API ไม่ตอบ)
-const ALL_VEHICLES = [
-  { plate:'นจ.4919 ชม.', type:'รถตู้ฮุนได' },
-  { plate:'นง.8781 ชม.', type:'รถตู้ฮุนได' },
-  { plate:'นง.86 ชม.',   type:'รถตู้' },
-  { plate:'จย.1379 ชม.', type:'รถ Refer' },
-  { plate:'งบ.5466 ชม.', type:'รถ Refer' },
-  { plate:'ขษ.4361 ชม.', type:'รถ Refer' },
-  { plate:'ขร.501 ชม.',  type:'รถ Refer' },
-  { plate:'ขธ.9302 ชม.', type:'รถปิ๊กอัพ 4 ประตู' },
-  { plate:'ขฉ.8407 ชม.', type:'รถ Refer' },
-  { plate:'ขค.9662 ชม.', type:'รถปิ๊กอัพ 4 ประตู' },
-  { plate:'กล.9438 ชม.', type:'รถปิ๊กอัพ 4 ประตู' },
+// รถทั้งหมด — โหลดจาก API, fallback ถ้าออฟไลน์
+let ALL_VEHICLES = [
+  { plate:'นจ.4919 ชม.', type:'รถตู้ฮุนได',         sys:'ทั่วไป' },
+  { plate:'นง.8781 ชม.', type:'รถตู้ฮุนได',         sys:'ทั่วไป' },
+  { plate:'นง.86 ชม.',   type:'รถตู้',              sys:'ทั่วไป' },
+  { plate:'จย.1379 ชม.', type:'รถ Refer',           sys:'EMS' },
+  { plate:'งบ.5466 ชม.', type:'รถ Refer',           sys:'EMS' },
+  { plate:'ขษ.4361 ชม.', type:'รถ Refer',           sys:'EMS' },
+  { plate:'ขร.501 ชม.',  type:'รถ Refer',           sys:'EMS' },
+  { plate:'ขธ.9302 ชม.', type:'รถปิ๊กอัพ 4 ประตู', sys:'ทั่วไป' },
+  { plate:'ขฉ.8407 ชม.', type:'รถ Refer',           sys:'EMS' },
+  { plate:'ขค.9662 ชม.', type:'รถปิ๊กอัพ 4 ประตู', sys:'ทั่วไป' },
+  { plate:'กล.9438 ชม.', type:'รถปิ๊กอัพ 4 ประตู', sys:'ทั่วไป' },
 ];
 
 function fmtNow() {
   const d=new Date(), p=n=>String(n).padStart(2,'0');
   return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+// โหลด master vehicles จาก Sheets แล้วค่อย loadStatus
+async function initIndex() {
+  try {
+    const res  = await fetch(GAS_URL + '?action=getVehicles');
+    const json = await res.json();
+    if (json.data && json.data.length) {
+      ALL_VEHICLES = json.data.map(v => ({
+        plate: String(v['ทะเบียน'] || '').trim(),
+        type : v['ประเภท']       || '',
+        sys  : v['ประเภทระบบ']  || 'ทั่วไป'
+      }));
+    }
+  } catch (_) {}
+  loadStatus();
 }
 
 async function loadStatus() {
@@ -642,7 +658,6 @@ async function loadStatus() {
 
   } catch (_) {
     document.getElementById('statusUpdateTime').textContent = 'โหลดไม่สำเร็จ';
-    // fallback: แสดงรถทั้งหมดเป็น unknown
     renderVehicleCardsOffline();
   }
 }
@@ -656,18 +671,16 @@ function renderVehicleCards(json) {
   (json.ready||[]).forEach(x => { readyMap[x.carType] = x; });
   (json.todayChecked||[]).forEach(x => { checkedMap[x.carType] = x; });
 
-  // รวม plates จาก response + รายการจริง
-  const plates = ALL_VEHICLES.map(v => v.plate);
-
-  const cards = plates.map(plate => {
-    // match โดย plate prefix
-    const inUseKey  = Object.keys(inUseMap).find(k => k.includes(plate) || plate.includes(k.split(' ')[0]));
-    const readyKey  = Object.keys(readyMap).find(k => k.includes(plate) || plate.includes(k.split(' ')[0]));
-    const chkKey    = Object.keys(checkedMap).find(k => k.includes(plate) || plate.includes(k.split(' ')[0]));
+  const cards = ALL_VEHICLES.map(v => {
+    const plate = v.plate;
+    // match โดย plate prefix (ทั้ง "นจ.4919 ชม." และ "นจ.4919")
+    const plateKey = plate.replace(/ ชม\.?.*/, '').trim();
+    const inUseKey  = Object.keys(inUseMap).find(k  => k.includes(plateKey));
+    const readyKey  = Object.keys(readyMap).find(k  => k.includes(plateKey));
+    const chkKey    = Object.keys(checkedMap).find(k => k.includes(plateKey));
 
     const isInUse   = !!inUseKey;
     const isChecked = !!chkKey || !!readyKey;
-    const vType     = ALL_VEHICLES.find(v=>v.plate===plate)?.type || '';
 
     let statusLabel, statusColor, bgColor, borderColor;
     if (isInUse) {
@@ -689,9 +702,14 @@ function renderVehicleCards(json) {
         ? `พขร. ${inUseMap[inUseKey]?.driver||''}`
         : 'ยังไม่ได้ตรวจสภาพวันนี้';
 
+    // Badge EMS
+    const emsBadge = v.sys === 'EMS'
+      ? `<span style="font-size:9px;background:#fee2e2;color:#b91c1c;border-radius:4px;padding:1px 5px;margin-left:4px;">EMS</span>`
+      : '';
+
     return `<div style="background:${bgColor};border:1px solid ${borderColor};border-radius:12px;padding:12px 14px;">
-      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:2px;">${plate}</div>
-      <div style="font-size:10px;color:var(--text-light);margin-bottom:6px;">${vType}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:2px;">${plateKey}${emsBadge}</div>
+      <div style="font-size:10px;color:var(--text-light);margin-bottom:6px;">${v.type}</div>
       <div style="font-size:12px;font-weight:600;color:${statusColor};">${statusLabel}</div>
       <div style="font-size:10px;color:var(--text-light);margin-top:3px;">${chkSub}</div>
     </div>`;
@@ -705,7 +723,7 @@ function renderVehicleCards(json) {
 function renderVehicleCardsOffline() {
   const cards = ALL_VEHICLES.map(v =>
     `<div style="background:#f1f5f9;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;">
-      <div style="font-size:12px;font-weight:700;color:var(--navy);">${v.plate}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--navy);">${v.plate.replace(/ ชม\.?.*/, '')}</div>
       <div style="font-size:10px;color:var(--text-light);margin-bottom:6px;">${v.type}</div>
       <div style="font-size:11px;color:#64748b;">— ไม่สามารถโหลดสถานะได้ —</div>
     </div>`
@@ -716,7 +734,7 @@ function renderVehicleCardsOffline() {
 
 // โหลดทันทีและ refresh ทุก 2 นาที
 document.addEventListener('DOMContentLoaded', () => {
-  loadStatus();
+  initIndex();
   setInterval(loadStatus, 120000);
 });
 </script>
