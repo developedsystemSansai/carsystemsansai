@@ -527,12 +527,58 @@ textarea { resize: vertical; min-height: 80px; }
 
             <div class="form-group">
               <label>พนักงานขับรถ <span class="req">*</span></label>
-              <input type="text" id="s_driverName" placeholder="ชื่อ-นามสกุล" required>
+              <select id="s_driverName" required>
+                <option value="">-- เลือกชื่อ --</option>
+                <option value="นาย ชัยพร มอญแสง">นาย ชัยพร มอญแสง</option>
+                <option value="นาย กิตติพงศ์ เขื่อนแก้ว">นาย กิตติพงศ์ เขื่อนแก้ว</option>
+                <option value="นาย กานต์นิธิ ทองอร">นาย กานต์นิธิ ทองอร</option>
+                <option value="นาย เฉลิมชนม์ นันติแก้ว">นาย เฉลิมชนม์ นันติแก้ว</option>
+                <option value="นาย นพดล คำปินคำ">นาย นพดล คำปินคำ</option>
+                <option value="นาย เก้า พิจิตร">นาย เก้า พิจิตร</option>
+                <option value="นาย ภาณุพงศ์ กางสำโรง">นาย ภาณุพงศ์ กางสำโรง</option>
+                <option value="นาย เฉลิมพล เลาแก้ว">นาย เฉลิมพล เลาแก้ว</option>
+                <option value="นายชัยพร ชัยศร">นายชัยพร ชัยศร</option>
+                <option value="นายกัมพล โพธิ์พัด">นายกัมพล โพธิ์พัด</option>
+              </select>
             </div>
 
             <div class="form-group span2">
               <label>สถานที่ปลายทาง <span class="req">*</span></label>
-              <input type="text" id="s_destination" placeholder="เช่น อ.สันป่าตอง, รพ.นครพิงค์, ตลาดสันทราย" required>
+              <select id="s_destinationSelect" onchange="onDestChange()" style="margin-bottom:6px;">
+                <option value="">-- เลือกสถานที่ --</option>
+                <optgroup label="🏥 โรงพยาบาล">
+                  <option value="รพ.นครพิงค์">รพ.นครพิงค์</option>
+                  <option value="รพ.มหาราชนครเชียงใหม่ (สวนดอก)">รพ.มหาราชนครเชียงใหม่ (สวนดอก)</option>
+                  <option value="รพ.สันทราย">รพ.สันทราย</option>
+                  <option value="รพ.แม่โจ้">รพ.แม่โจ้</option>
+                  <option value="รพ.สันป่าตอง">รพ.สันป่าตอง</option>
+                  <option value="รพ.จอมทอง">รพ.จอมทอง</option>
+                  <option value="รพ.ดอยสะเก็ด">รพ.ดอยสะเก็ด</option>
+                  <option value="รพ.แม่ริม">รพ.แม่ริม</option>
+                  <option value="รพ.สะเมิง">รพ.สะเมิง</option>
+                  <option value="รพ.แม่แตง">รพ.แม่แตง</option>
+                  <option value="รพ.เชียงดาว">รพ.เชียงดาว</option>
+                </optgroup>
+                <optgroup label="🏛️ หน่วยงานราชการ">
+                  <option value="สสจ.เชียงใหม่">สสจ.เชียงใหม่</option>
+                  <option value="สำนักงานประกันสังคมเชียงใหม่">สำนักงานประกันสังคมเชียงใหม่</option>
+                  <option value="ศาลากลางจังหวัดเชียงใหม่">ศาลากลางจังหวัดเชียงใหม่</option>
+                  <option value="สำนักงานสาธารณสุขอำเภอสันทราย">สำนักงานสาธารณสุขอำเภอสันทราย</option>
+                  <option value="สถานีตำรวจภูธรสันทราย">สถานีตำรวจภูธรสันทราย</option>
+                  <option value="อำเภอสันทราย">อำเภอสันทราย</option>
+                  <option value="อำเภอแม่ริม">อำเภอแม่ริม</option>
+                  <option value="อำเภอดอยสะเก็ด">อำเภอดอยสะเก็ด</option>
+                  <option value="อำเภอสันป่าตอง">อำเภอสันป่าตอง</option>
+                </optgroup>
+                <optgroup label="📍 สถานที่อื่น ๆ ในพื้นที่">
+                  <option value="ตลาดสันทราย">ตลาดสันทราย</option>
+                  <option value="มหาวิทยาลัยแม่โจ้">มหาวิทยาลัยแม่โจ้</option>
+                  <option value="สนามบินเชียงใหม่">สนามบินเชียงใหม่</option>
+                  <option value="ห้างเซ็นทรัลเชียงใหม่">ห้างเซ็นทรัลเชียงใหม่</option>
+                </optgroup>
+                <option value="__other__">✏️ ระบุเอง...</option>
+              </select>
+              <input type="text" id="s_destination" placeholder="พิมพ์สถานที่ปลายทาง" required style="display:none;">
             </div>
 
             <div class="form-group">
@@ -1355,6 +1401,22 @@ function val24Input(el) {
 function setT(id, t) {
   const el = document.getElementById(id);
   if (el) { el.value = t; el.style.borderColor = 'var(--success)'; }
+}
+
+
+// ══════ DESTINATION SELECT ══════
+function onDestChange() {
+  const sel = document.getElementById('s_destinationSelect');
+  const inp = document.getElementById('s_destination');
+  if (sel.value === '__other__') {
+    inp.style.display = 'block';
+    inp.required = true;
+    inp.focus();
+  } else {
+    inp.style.display = 'none';
+    inp.required = false;
+    inp.value = sel.value;
+  }
 }
 
 </script>
