@@ -466,6 +466,52 @@
 </style>
 </head>
 <body>
+<!-- ══════ PASSWORD OVERLAY ══════ -->
+<div id="pwOverlay" style="
+  position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#0a2540 0%,#163860 60%,#1a5276 100%);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+">
+  <div style="background:#fff;border-radius:20px;padding:40px 36px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.4);">
+    <div style="font-size:3rem;margin-bottom:12px;">🔒</div>
+    <div style="font-size:1.3rem;font-weight:700;color:#0a2540;margin-bottom:6px;">Dashboard ผู้บริหาร</div>
+    <div style="font-size:0.85rem;color:#8898aa;margin-bottom:24px;">กรุณาใส่รหัสผ่านเพื่อเข้าใช้งาน</div>
+    <input id="pwInput" type="password" placeholder="รหัสผ่าน..." 
+      style="width:100%;padding:12px 16px;border:2px solid #dde3eb;border-radius:10px;
+             font-size:1rem;font-family:inherit;outline:none;margin-bottom:12px;
+             transition:border-color 0.2s;"
+      onkeydown="if(event.key==='Enter')checkPw()"
+      onfocus="this.style.borderColor='#1a73e8'"
+      onblur="this.style.borderColor='#dde3eb'"
+    >
+    <div id="pwError" style="color:#f44336;font-size:0.82rem;min-height:20px;margin-bottom:8px;display:none;">รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่</div>
+    <button onclick="checkPw()" style="
+      width:100%;padding:13px;border:none;border-radius:10px;
+      background:linear-gradient(135deg,#1a73e8,#00897b);
+      color:#fff;font-size:1rem;font-weight:700;font-family:inherit;
+      cursor:pointer;transition:opacity 0.2s;
+    " onmouseover="this.style.opacity=0.88" onmouseout="this.style.opacity=1">
+      เข้าสู่ระบบ
+    </button>
+  </div>
+</div>
+<script>
+function checkPw(){
+  const v=document.getElementById('pwInput').value;
+  if(v==='sansai2569'){
+    document.getElementById('pwOverlay').style.display='none';
+  } else {
+    document.getElementById('pwError').style.display='block';
+    document.getElementById('pwInput').value='';
+    document.getElementById('pwInput').style.borderColor='#f44336';
+    setTimeout(()=>{
+      document.getElementById('pwInput').style.borderColor='#dde3eb';
+    },1500);
+  }
+}
+</script>
+
 
 <header class="site-header">
   <div class="header-inner">
@@ -475,8 +521,7 @@
       <p>ภาพรวมสำหรับผู้บริหาร · Vehicle Fleet Management</p>
     </div>
     <div class="header-nav">
-      <a href="index.html" class="nav-btn">กลับหน้าหลัก</a>
-      <a href="dashboard.html" class="nav-btn active">📊 Dashboard</a>
+      <a href="index.html" class="nav-btn">← กลับหน้าหลัก</a>
     </div>
   </div>
 </header>
@@ -522,6 +567,23 @@
     <div class="kpi-card teal"><div class="kpi-label">ระบบปกติ</div><div class="kpi-value" id="kpi-ok">—</div><div class="kpi-sub" id="kpi-ok-sub">ไม่พบความผิดปกติ</div><div class="kpi-icon">✅</div></div>
     <div class="kpi-card gold"><div class="kpi-label">รถที่ใช้งาน</div><div class="kpi-value" id="kpi-vehicles">—</div><div class="kpi-sub">คันที่มีการบันทึก</div><div class="kpi-icon">🚗</div></div>
     <div class="kpi-card danger"><div class="kpi-label">พบความผิดปกติ</div><div class="kpi-value" id="kpi-issues">—</div><div class="kpi-sub">รายการที่ต้องติดตาม</div><div class="kpi-icon">⚠️</div></div>
+  </div>
+
+
+  <!-- ══════ สถานะรถแต่ละคัน (LIVE) ══════ -->
+  <div class="card" id="liveVehicleCard" style="margin-bottom:16px;">
+    <div class="card-header" style="background:linear-gradient(90deg,#0a2540,#00897b);">
+      <span class="icon">🚗</span>
+      <h2>สถานะรถแต่ละคัน — อัปเดตล่าสุด</h2>
+      <span class="badge" id="vehicleLiveTime">กำลังโหลด...</span>
+    </div>
+    <div class="card-body" style="padding:20px;">
+      <div id="liveVehicleGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;">
+        <div style="text-align:center;padding:30px;color:var(--text-light);grid-column:1/-1;">
+          <div style="font-size:2rem;margin-bottom:8px;">⏳</div>กำลังโหลดสถานะรถ...
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- ODOMETER + STATUS -->
@@ -1143,6 +1205,144 @@ function generateDemoData() {
 const now = new Date();
 document.getElementById('filterMonth').value = now.toISOString().slice(0,7)  /* yyyy-MM */;
 loadData();
+
+
+// ══════ LIVE VEHICLE STATUS ══════
+const GAS_STATUS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
+
+function fmt24(dateObj) {
+  const d = dateObj instanceof Date ? dateObj : new Date(dateObj);
+  if (isNaN(d)) return '—';
+  const p = n => String(n).padStart(2,'0');
+  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} เวลา ${p(d.getHours())}.${p(d.getMinutes())} น.`;
+}
+
+function fmtNow24() {
+  return fmt24(new Date());
+}
+
+async function loadLiveVehicleStatus() {
+  const grid = document.getElementById('liveVehicleGrid');
+  const timeEl = document.getElementById('vehicleLiveTime');
+  try {
+    const res = await fetch(GAS_STATUS_URL + '?action=getStatusSummary');
+    const json = await res.json();
+    if (json.status !== 'ok') throw new Error('api error');
+    renderLiveVehicleGrid(json);
+    timeEl.textContent = 'อัปเดต ' + fmtNow24();
+  } catch(_) {
+    timeEl.textContent = '⚠️ ไม่สามารถโหลดได้';
+    renderLiveVehicleGridOffline();
+  }
+}
+
+function renderLiveVehicleGrid(json) {
+  const inUseMap={}, readyMap={}, checkedMap={};
+  (json.inUse||[]).forEach(x => { inUseMap[x.carType]=x; });
+  (json.ready||[]).forEach(x => { readyMap[x.carType]=x; });
+  (json.todayChecked||[]).forEach(x => { checkedMap[x.carType]=x; });
+
+  const ALL_VEH = [
+    { plate:'นจ.4919', type:'รถตู้ฮุนได' },
+    { plate:'นง.8781', type:'รถตู้ฮุนได' },
+    { plate:'นง.86',   type:'รถตู้' },
+    { plate:'จย.1379', type:'รถ Refer' },
+    { plate:'งบ.5466', type:'รถ Refer' },
+    { plate:'ขษ.4361', type:'รถ Refer' },
+    { plate:'ขร.501',  type:'รถ Refer' },
+    { plate:'ขธ.9302', type:'รถปิ๊กอัพ 4 ประตู' },
+    { plate:'ขฉ.8407', type:'รถ Refer' },
+    { plate:'ขค.9662', type:'รถปิ๊กอัพ 4 ประตู' },
+    { plate:'กล.9438', type:'รถปิ๊กอัพ 4 ประตู' },
+  ];
+
+  const cards = ALL_VEH.map(v => {
+    const inUseKey  = Object.keys(inUseMap).find(k => k.includes(v.plate) || v.plate.includes(k.split(' ')[0]));
+    const readyKey  = Object.keys(readyMap).find(k => k.includes(v.plate) || v.plate.includes(k.split(' ')[0]));
+    const chkKey    = Object.keys(checkedMap).find(k => k.includes(v.plate) || v.plate.includes(k.split(' ')[0]));
+
+    const isInUse   = !!inUseKey;
+    const isReady   = !!readyKey;
+    const isChecked = !!chkKey || isReady;
+
+    let icon, statusLabel, statusSub, bgGrad, borderColor, textColor;
+
+    if (isInUse) {
+      const x = inUseMap[inUseKey];
+      icon = '🟡';
+      statusLabel = 'กำลังใช้งาน';
+      statusSub = x?.destination ? '→ ' + x.destination : '';
+      bgGrad = 'linear-gradient(135deg,#fffbeb,#fef3c7)';
+      borderColor = '#f59e0b';
+      textColor = '#92400e';
+    } else if (isChecked) {
+      icon = '🟢';
+      statusLabel = 'พร้อมใช้งาน';
+      const chkInfo = chkKey ? checkedMap[chkKey] : null;
+      statusSub = chkInfo?.driverName ? 'ตรวจโดย ' + chkInfo.driverName : 'ตรวจสภาพแล้ว';
+      bgGrad = 'linear-gradient(135deg,#f0fdf4,#dcfce7)';
+      borderColor = '#22c55e';
+      textColor = '#14532d';
+    } else {
+      icon = '⚪';
+      statusLabel = 'รอตรวจสภาพ';
+      statusSub = 'ยังไม่ได้ตรวจวันนี้';
+      bgGrad = 'linear-gradient(135deg,#f8fafc,#f1f5f9)';
+      borderColor = '#cbd5e1';
+      textColor = '#64748b';
+    }
+
+    return `<div style="
+      background:${bgGrad};
+      border:2px solid ${borderColor};
+      border-radius:16px;
+      padding:18px 20px;
+      position:relative;
+      box-shadow:0 2px 12px rgba(0,0,0,0.06);
+      transition:transform 0.15s, box-shadow 0.15s;
+    " onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.12)'"
+       onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">
+        <div style="font-size:1.8rem;line-height:1;">${icon}</div>
+        <div style="flex:1;">
+          <div style="font-size:1rem;font-weight:800;color:#0a2540;letter-spacing:0.3px;font-family:'Space Grotesk',sans-serif;">${v.plate}</div>
+          <div style="font-size:0.72rem;color:#8898aa;margin-top:1px;font-weight:500;">${v.type}</div>
+        </div>
+      </div>
+      <div style="font-size:1.05rem;font-weight:700;color:${textColor};margin-bottom:4px;">${statusLabel}</div>
+      <div style="font-size:0.78rem;color:${textColor};opacity:0.75;">${statusSub}</div>
+    </div>`;
+  });
+
+  document.getElementById('liveVehicleGrid').innerHTML = cards.join('');
+}
+
+function renderLiveVehicleGridOffline() {
+  const ALL_VEH = [
+    { plate:'นจ.4919', type:'รถตู้ฮุนได' },
+    { plate:'นง.8781', type:'รถตู้ฮุนได' },
+    { plate:'นง.86',   type:'รถตู้' },
+    { plate:'จย.1379', type:'รถ Refer' },
+    { plate:'งบ.5466', type:'รถ Refer' },
+    { plate:'ขษ.4361', type:'รถ Refer' },
+    { plate:'ขร.501',  type:'รถ Refer' },
+    { plate:'ขธ.9302', type:'รถปิ๊กอัพ 4 ประตู' },
+    { plate:'ขฉ.8407', type:'รถ Refer' },
+    { plate:'ขค.9662', type:'รถปิ๊กอัพ 4 ประตู' },
+    { plate:'กล.9438', type:'รถปิ๊กอัพ 4 ประตู' },
+  ];
+  const cards = ALL_VEH.map(v => `<div style="background:#f1f5f9;border:2px solid #e2e8f0;border-radius:16px;padding:18px 20px;">
+    <div style="font-size:1rem;font-weight:800;color:#0a2540;font-family:'Space Grotesk',sans-serif;">${v.plate}</div>
+    <div style="font-size:0.72rem;color:#8898aa;margin-bottom:10px;">${v.type}</div>
+    <div style="font-size:0.85rem;color:#94a3b8;">— ไม่สามารถโหลดสถานะได้ —</div>
+  </div>`);
+  document.getElementById('liveVehicleGrid').innerHTML = cards.join('');
+}
+
+// โหลดสถานะรถทันทีและ refresh ทุก 2 นาที
+loadLiveVehicleStatus();
+setInterval(loadLiveVehicleStatus, 120000);
+
 </script>
 </body>
 </html>
