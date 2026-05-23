@@ -1100,7 +1100,7 @@ function populateCarSelects() {
   });
   if (sCur) sEl.value = sCur;
 
-  // ── e_carType (กลับ รพ.): แสดงเฉพาะรถที่มีสถานะ "กำลังใช้งาน"
+  // ── e_carType (กลับ รพ.): แสดงรถที่กำลังออกรถ + ถ้าไม่มีให้แสดงทุกคัน
   const eEl = document.getElementById('e_carType');
   const eCur = eEl.value;
   while (eEl.options.length > 1) eEl.remove(1);
@@ -1110,11 +1110,21 @@ function populateCarSelects() {
     return Object.keys(startOdoMap).some(k => k.includes(plate) || plate.includes(k.split(' ')[0]));
   });
   if (activeVehicles.length === 0) {
-    const opt = document.createElement('option');
-    opt.value = '';
-    opt.text  = '— ยังไม่มีรถออกปฏิบัติงาน —';
-    opt.disabled = true;
-    eEl.appendChild(opt);
+    // แสดงรถทุกคันพร้อม hint ว่าอาจยังไม่ได้ออกรถ
+    const hintOpt = document.createElement('option');
+    hintOpt.value = '';
+    hintOpt.text  = '— ยังไม่พบรถที่กำลังออกปฏิบัติงาน (เลือกรถที่ต้องการ) —';
+    hintOpt.disabled = true;
+    eEl.appendChild(hintOpt);
+    vehicles.forEach(v => {
+      const plate = v['ทะเบียน'];
+      const label = `${plate} — ${v['ประเภท']}`;
+      const opt   = document.createElement('option');
+      opt.value   = label;
+      opt.text    = label;
+      opt.style.color = '#374151';
+      eEl.appendChild(opt);
+    });
   } else {
     activeVehicles.forEach(v => {
       const plate = v['ทะเบียน'];
@@ -1124,6 +1134,23 @@ function populateCarSelects() {
       opt.text    = `🟡 ${label}  [กำลังออกรถ]`;
       eEl.appendChild(opt);
     });
+    // เพิ่มรถที่เหลือ (ไม่ได้กำลังใช้งาน) ด้วย แต่แยก optgroup
+    const otherVehicles = vehicles.filter(v => !activeVehicles.includes(v));
+    if (otherVehicles.length > 0) {
+      const sep = document.createElement('option');
+      sep.disabled = true;
+      sep.text = '── รถที่ไม่ได้กำลังออกรถ ──';
+      eEl.appendChild(sep);
+      otherVehicles.forEach(v => {
+        const plate = v['ทะเบียน'];
+        const label = `${plate} — ${v['ประเภท']}`;
+        const opt   = document.createElement('option');
+        opt.value   = label;
+        opt.text    = label;
+        opt.style.color = '#94a3b8';
+        eEl.appendChild(opt);
+      });
+    }
   }
   if (eCur) eEl.value = eCur;
 
@@ -1203,6 +1230,14 @@ function switchTab(tab) {
       .classList.toggle('active', t === tab);
   });
   if (tab === 'history') renderHistory();
+  // เมื่อสลับไป tab กลับ รพ. ให้โหลด active trips ใหม่
+  if (tab === 'end') {
+    loadMileHistory().then(() => {
+      // ถ้ามีรถที่เลือกอยู่แล้ว ให้ trigger onEndCarChange
+      const selCar = document.getElementById('e_carType').value;
+      if (selCar) onEndCarChange();
+    });
+  }
 }
 
 // ─────────────────────────────────────────────
@@ -1273,9 +1308,56 @@ function hideCarBlockedNote() {
 async function onEndCarChange() {
   const carType = document.getElementById('e_carType').value;
   if (!carType) return;
-  // หา odometerStart จาก active trip
-  const odo = startOdoMap[carType];
-  document.getElementById('e_startDisplay').textContent = odo ? odo.toLocaleString() : '—';
+  
+  // หา odometerStart จาก active trip ใน map ก่อน
+  let odo = null;
+  let tripId = '';
+  
+  // ค้นหาใน startOdoMap ด้วย fuzzy match
+  const matchKey = Object.keys(startOdoMap).find(k => 
+    carType.includes(k.split(' ')[0]) || k.includes(carType.split(' ')[0])
+  );
+  if (matchKey) {
+    odo = startOdoMap[matchKey];
+    // หา tripId ด้วย
+    const activeTrip = mileHistory.find(r => {
+      const car = String(r['ทะเบียน/รถ'] || '');
+      return String(r['สถานะ']) === 'กำลังใช้งาน' && 
+             (car.includes(carType.split(' ')[0]) || carType.includes(car.split(' ')[0]));
+    });
+    if (activeTrip) tripId = String(activeTrip['TripID'] || '');
+  }
+  
+  // ถ้ายังไม่มี ให้ fetch จาก API (รองรับกรณี page refresh ก่อน loadMileHistory)
+  if (!odo) {
+    try {
+      const res  = await fetch(GAS_URL + '?action=getMileData');
+      const json = await res.json();
+      const rows = json.data || [];
+      const activeRow = rows.slice().reverse().find(r => {
+        const car = String(r['ทะเบียน/รถ'] || '');
+        return String(r['สถานะ']) === 'กำลังใช้งาน' &&
+               (car.includes(carType.split(' ')[0]) || carType.includes(car.split(' ')[0]));
+      });
+      if (activeRow) {
+        odo = activeRow['เลขไมล์ต้น'];
+        tripId = String(activeRow['TripID'] || '');
+        // อัปเดต startOdoMap และ mileHistory ด้วย
+        startOdoMap[carType] = odo;
+        mileHistory = rows;
+      }
+    } catch (_) {}
+  }
+  
+  document.getElementById('e_startDisplay').textContent = odo ? Number(odo).toLocaleString() : '—';
+  
+  // อัปเดต tripId field
+  const tripIdEl = document.getElementById('e_tripId');
+  if (tripIdEl && tripId && !tripIdEl.value) {
+    tripIdEl.value = tripId;
+    tripIdEl.style.color = '#0a2540';
+  }
+  
   calcDistance();
 }
 
@@ -1332,10 +1414,14 @@ function validateStartOdo() {
 }
 
 function calcDistance() {
-  const startEl = document.getElementById('e_startDisplay');
   const endVal  = Number(document.getElementById('e_odometerEnd').value) || 0;
   const carType = document.getElementById('e_carType').value;
-  const startVal= startOdoMap[carType] || 0;
+  
+  // fuzzy match startOdoMap
+  const matchKey = Object.keys(startOdoMap).find(k => 
+    carType.includes(k.split(' ')[0]) || k.includes(carType.split(' ')[0])
+  );
+  const startVal = matchKey ? (startOdoMap[matchKey] || 0) : (startOdoMap[carType] || 0);
 
   document.getElementById('e_endDisplay').textContent = endVal ? endVal.toLocaleString() : '—';
 
@@ -1423,7 +1509,10 @@ function showConfirmModal(type, data) {
       `สถานะรถจะอัปเดตเป็น <span style="color:#b45309;font-weight:700;">กำลังใช้งาน</span>`;
     confirmBtn.className = 'modal-btn primary';
   } else {
-    const start = startOdoMap[data.carType] || 0;
+    const matchKey2 = Object.keys(startOdoMap).find(k => 
+      data.carType.includes(k.split(' ')[0]) || k.includes(data.carType.split(' ')[0])
+    );
+    const start = matchKey2 ? (startOdoMap[matchKey2] || 0) : (startOdoMap[data.carType] || 0);
     const dist  = Number(data.odometerEnd) - start;
     document.getElementById('modalIcon').textContent = '🏥';
     document.getElementById('modalTitle').textContent = 'ยืนยันการกลับถึงโรงพยาบาล';
@@ -1467,7 +1556,12 @@ async function confirmSubmit() {
       setDateTimeDefaults();
     } else {
       showToast('บันทึกกลับสำเร็จ — สถานะ: พร้อมใช้งาน', 'success');
-      delete startOdoMap[data.carType];
+      // ลบ key จาก startOdoMap ด้วย fuzzy match
+      const delKey = Object.keys(startOdoMap).find(k => 
+        data.carType.includes(k.split(' ')[0]) || k.includes(data.carType.split(' ')[0])
+      );
+      if (delKey) delete startOdoMap[delKey];
+      else delete startOdoMap[data.carType];
       document.getElementById('endForm').reset();
       setDateTimeDefaults();
     }
