@@ -394,15 +394,14 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
         <div class="form-group">
           <label>รถ EMS <span class="req">*</span></label>
           <select id="carId" required>
-            <option value="">— เลือกรถ —</option>
-            <option>EMS-01 รถ ALS</option>
-            <option>EMS-02 รถ BLS</option>
-            <option>EMS-03 รถ FR</option>
+            <option value="">— กำลังโหลดรายการรถ... —</option>
           </select>
         </div>
         <div class="form-group">
           <label>ผู้ตรวจสอบ <span class="req">*</span></label>
-          <input type="text" id="checkerName" placeholder="ชื่อ-นามสกุล" required>
+          <select id="checkerName" required>
+            <option value="">— กำลังโหลดรายชื่อ... —</option>
+          </select>
         </div>
         <div class="form-group">
           <label>ตำแหน่ง</label>
@@ -1027,7 +1026,72 @@ document.addEventListener('DOMContentLoaded', () => {
   buildCategories();
   document.getElementById('progressTotal').textContent =
     EMS_CATEGORIES.reduce((s, c) => s + c.items.length, 0);
+
+  loadEMSMasterData(); // โหลดรถ EMS + ผู้ตรวจจาก Google Sheets
 });
+
+// ─────────────────────────────────────────────
+//  LOAD MASTER DATA FROM GOOGLE SHEETS
+// ─────────────────────────────────────────────
+const EMS_DEFAULT_VEHICLES = [
+  { ทะเบียน:'จย.1379 ชม.', ประเภท:'รถ Refer' },
+  { ทะเบียน:'งบ.5466 ชม.', ประเภท:'รถ Refer' },
+  { ทะเบียน:'ขษ.4361 ชม.', ประเภท:'รถ Refer' },
+  { ทะเบียน:'ขร.501 ชม.',  ประเภท:'รถ Refer' },
+  { ทะเบียน:'ขฉ.8407 ชม.', ประเภท:'รถ Refer' },
+];
+const EMS_DEFAULT_DRIVERS = [
+  'นาย ชัยพร มอญแสง','นาย กิตติพงศ์ เขื่อนแก้ว','นาย กานต์นิธิ ทองอร',
+  'นาย เฉลิมชนม์ นันติแก้ว','นาย นพดล คำปินคำ','นาย เก้า พิจิตร',
+  'นาย ภาณุพงศ์ กางสำโรง','นาย เฉลิมพล เลาแก้ว','นายชัยพร ชัยศร','นายกัมพล โพธิ์พัด'
+];
+
+async function loadEMSMasterData() {
+  try {
+    const [vRes, dRes] = await Promise.all([
+      fetch(GAS_URL + '?action=getVehicles'),
+      fetch(GAS_URL + '?action=getDrivers')
+    ]);
+    const vJson = await vRes.json();
+    const dJson = await dRes.json();
+    // กรองเฉพาะรถ EMS (ประเภทระบบ = 'EMS' หรือ ประเภท contains 'Refer')
+    const allVehicles = (vJson.data && vJson.data.length) ? vJson.data : EMS_DEFAULT_VEHICLES;
+    const emsVehicles = allVehicles.filter(v =>
+      (v['ประเภทระบบ'] === 'EMS') ||
+      (String(v['ประเภท'] || '').includes('Refer')) ||
+      (String(v['ประเภท'] || '').includes('EMS'))
+    );
+    populateEMSCarSelect(emsVehicles.length ? emsVehicles : EMS_DEFAULT_VEHICLES);
+    const drivers = (dJson.drivers && dJson.drivers.length) ? dJson.drivers : EMS_DEFAULT_DRIVERS;
+    populateEMSCheckerSelect(drivers);
+  } catch (_) {
+    populateEMSCarSelect(EMS_DEFAULT_VEHICLES);
+    populateEMSCheckerSelect(EMS_DEFAULT_DRIVERS);
+  }
+}
+
+function populateEMSCarSelect(vehicles) {
+  const sel = document.getElementById('carId');
+  sel.innerHTML = '<option value="">— เลือกรถ EMS —</option>';
+  vehicles.forEach(v => {
+    const plate = v['ทะเบียน'] || '';
+    const type  = v['ประเภท']  || '';
+    const opt   = document.createElement('option');
+    opt.value   = plate + ' ' + type;
+    opt.textContent = `${plate} — ${type}`;
+    sel.appendChild(opt);
+  });
+}
+
+function populateEMSCheckerSelect(drivers) {
+  const sel = document.getElementById('checkerName');
+  sel.innerHTML = '<option value="">— เลือกผู้ตรวจสอบ —</option>';
+  drivers.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = name;
+    sel.appendChild(opt);
+  });
+}
 </script>
 
 </body>
