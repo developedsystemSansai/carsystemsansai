@@ -614,43 +614,14 @@ textarea { resize: vertical; min-height: 80px; }
           <div class="field-group" id="fg-carType">
             <label>ประเภทรถ <span class="req">*</span></label>
             <select id="carType" name="carType" required>
-              <option value="">-- เลือกรถ --</option>
-              <optgroup label="รถตู้ฮุนได">
-                <option value="นจ.4919 ชม.รถตู้ฮุนได">นจ.4919 ชม. — รถตู้ฮุนได</option>
-                <option value="นง.8781 ชม.รถตู้ฮุนได">นง.8781 ชม. — รถตู้ฮุนได</option>
-              </optgroup>
-              <optgroup label="รถตู้">
-                <option value="นง.86 ชม.รถตู้">นง.86 ชม. — รถตู้</option>
-              </optgroup>
-              <optgroup label="รถ Refer">
-                <option value="จย.1379 ชม.รถRefer">จย.1379 ชม. — รถ Refer</option>
-                <option value="งบ.5466 ชม.รถRefer">งบ.5466 ชม. — รถ Refer</option>
-                <option value="ขษ.4361 ชม.รถRefer">ขษ.4361 ชม. — รถ Refer</option>
-                <option value="ขร.501 ชม.รถRefer">ขร.501 ชม. — รถ Refer</option>
-                <option value="ขฉ.8407 ชม.รถRefer">ขฉ.8407 ชม. — รถ Refer</option>
-              </optgroup>
-              <optgroup label="รถปิ๊กอัพ 4 ประตู">
-                <option value="ขธ.9302 ชม.รถปิ๊กอัพ4ประตู">ขธ.9302 ชม. — รถปิ๊กอัพ 4 ประตู</option>
-                <option value="ขค.9662 ชม.รถปิ๊กอัพ4ประตู">ขค.9662 ชม. — รถปิ๊กอัพ 4 ประตู</option>
-                <option value="กล.9438 ชม.รถปิ๊กอัพ4ประตู">กล.9438 ชม. — รถปิ๊กอัพ 4 ประตู</option>
-              </optgroup>
+              <option value="">-- กำลังโหลดรายการรถ... --</option>
             </select>
             <span class="error-msg">กรุณาเลือกประเภทรถ</span>
           </div>
           <div class="field-group" id="fg-driverName">
             <label>ชื่อ-สกุล <span class="req">*</span></label>
             <select id="driverName" name="driverName" required>
-              <option value="">-- เลือกชื่อ --</option>
-              <option value="นาย ชัยพร มอญแสง">นาย ชัยพร มอญแสง</option>
-              <option value="นาย กิตติพงศ์ เขื่อนแก้ว">นาย กิตติพงศ์ เขื่อนแก้ว</option>
-              <option value="นาย กานต์นิธิ ทองอร">นาย กานต์นิธิ ทองอร</option>
-              <option value="นาย เฉลิมชนม์ นันติแก้ว">นาย เฉลิมชนม์ นันติแก้ว</option>
-              <option value="นาย นพดล คำปินคำ">นาย นพดล คำปินคำ</option>
-              <option value="นาย เก้า พิจิตร">นาย เก้า พิจิตร</option>
-              <option value="นาย ภาณุพงศ์ กางสำโรง">นาย ภาณุพงศ์ กางสำโรง</option>
-              <option value="นาย เฉลิมพล เลาแก้ว">นาย เฉลิมพล เลาแก้ว</option>
-              <option value="นายชัยพร ชัยศร">นายชัยพร ชัยศร</option>
-              <option value="นายกัมพล โพธิ์พัด">นายกัมพล โพธิ์พัด</option>
+              <option value="">-- กำลังโหลดรายชื่อ... --</option>
             </select>
             <span class="error-msg">กรุณาเลือกชื่อผู้ตรวจ</span>
           </div>
@@ -877,6 +848,81 @@ textarea { resize: vertical; min-height: 80px; }
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxL1ZYuJr_jtZtGB9oRS5HSO9lArCeqduleQOEli9Ctpv4tZGIiHrTXg-OqMGFvfQ/exec';
 
 // ============================================================
+// LOAD MASTER DATA FROM GOOGLE SHEETS (Vehicles + Drivers)
+// ============================================================
+const DEFAULT_VEHICLES = [
+  { ทะเบียน:'นจ.4919 ชม.', ประเภท:'รถตู้ฮุนได', ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'นง.8781 ชม.', ประเภท:'รถตู้ฮุนได', ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'นง.86 ชม.',   ประเภท:'รถตู้',       ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'จย.1379 ชม.', ประเภท:'รถ Refer',    ประเภทระบบ:'EMS' },
+  { ทะเบียน:'งบ.5466 ชม.', ประเภท:'รถ Refer',    ประเภทระบบ:'EMS' },
+  { ทะเบียน:'ขษ.4361 ชม.', ประเภท:'รถ Refer',    ประเภทระบบ:'EMS' },
+  { ทะเบียน:'ขร.501 ชม.',  ประเภท:'รถ Refer',    ประเภทระบบ:'EMS' },
+  { ทะเบียน:'ขธ.9302 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'ขฉ.8407 ชม.', ประเภท:'รถ Refer',    ประเภทระบบ:'EMS' },
+  { ทะเบียน:'ขค.9662 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'กล.9438 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ประเภทระบบ:'ทั่วไป' },
+];
+const DEFAULT_DRIVERS = [
+  'นาย ชัยพร มอญแสง','นาย กิตติพงศ์ เขื่อนแก้ว','นาย กานต์นิธิ ทองอร',
+  'นาย เฉลิมชนม์ นันติแก้ว','นาย นพดล คำปินคำ','นาย เก้า พิจิตร',
+  'นาย ภาณุพงศ์ กางสำโรง','นาย เฉลิมพล เลาแก้ว','นายชัยพร ชัยศร','นายกัมพล โพธิ์พัด'
+];
+
+async function loadMasterData() {
+  try {
+    const [vRes, dRes] = await Promise.all([
+      fetch(GAS_URL + '?action=getVehicles'),
+      fetch(GAS_URL + '?action=getDrivers')
+    ]);
+    const vJson = await vRes.json();
+    const dJson = await dRes.json();
+    const vehicles = (vJson.data && vJson.data.length) ? vJson.data : DEFAULT_VEHICLES;
+    const drivers  = (dJson.drivers && dJson.drivers.length) ? dJson.drivers : DEFAULT_DRIVERS;
+    populateVehicleSelect(vehicles);
+    populateDriverSelect(drivers);
+  } catch (_) {
+    populateVehicleSelect(DEFAULT_VEHICLES);
+    populateDriverSelect(DEFAULT_DRIVERS);
+  }
+}
+
+function populateVehicleSelect(vehicles) {
+  const sel = document.getElementById('carType');
+  sel.innerHTML = '<option value="">-- เลือกรถ --</option>';
+  // จัดกลุ่มตาม ประเภท
+  const groups = {};
+  vehicles.forEach(v => {
+    const g = v['ประเภท'] || 'อื่นๆ';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(v);
+  });
+  Object.entries(groups).forEach(([grpName, vehs]) => {
+    const og = document.createElement('optgroup');
+    og.label = grpName;
+    vehs.forEach(v => {
+      const plate = v['ทะเบียน'] || '';
+      const type  = v['ประเภท']  || '';
+      const opt   = document.createElement('option');
+      opt.value   = plate + type;          // ตรงกับ format เดิม
+      opt.textContent = `${plate} — ${type}`;
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  });
+}
+
+function populateDriverSelect(drivers) {
+  const sel = document.getElementById('driverName');
+  sel.innerHTML = '<option value="">-- เลือกชื่อ --</option>';
+  drivers.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = name;
+    sel.appendChild(opt);
+  });
+}
+
+// ============================================================
 // CHECK TABLE DATA
 // ============================================================
 const checkItems = [
@@ -920,6 +966,7 @@ function setThaiDateTime() {
   document.getElementById('inspTime').value = thaiDate.toTimeString().slice(0,5); // HH:MM 24H
 }
 setThaiDateTime();
+loadMasterData(); // โหลดรายการรถ+พนักงานจาก Google Sheets
 
 // ============================================================
 // DESTINATION FILTER
