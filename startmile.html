@@ -1019,31 +1019,66 @@ function getDefaultVehicles() {
 }
 
 function populateCarSelects() {
-  const selects = ['s_carType','e_carType','histFilterCar'];
-  selects.forEach(id => {
-    const el = document.getElementById(id);
-    const cur = el.value;
-    while (el.options.length > 1) el.remove(1);
-    vehicles.forEach(v => {
+  // ── s_carType (ออกรถ): แสดงทุกคัน พร้อมป้ายตรวจสภาพ
+  const sEl = document.getElementById('s_carType');
+  const sCur = sEl.value;
+  while (sEl.options.length > 1) sEl.remove(1);
+  vehicles.forEach(v => {
+    const plate = v['ทะเบียน'];
+    const label = `${plate} — ${v['ประเภท']}`;
+    const opt   = document.createElement('option');
+    opt.value   = label;
+    if (checkGateLoaded) {
+      const checked = isCarCheckedToday(label);
+      opt.text = checked ? `✅ ${label}` : `🔴 ${label}  [ยังไม่ตรวจสภาพ]`;
+      if (!checked) opt.style.color = '#b91c1c';
+    } else {
+      opt.text = label;
+    }
+    sEl.appendChild(opt);
+  });
+  if (sCur) sEl.value = sCur;
+
+  // ── e_carType (กลับ รพ.): แสดงเฉพาะรถที่มีสถานะ "กำลังใช้งาน"
+  const eEl = document.getElementById('e_carType');
+  const eCur = eEl.value;
+  while (eEl.options.length > 1) eEl.remove(1);
+  const activeVehicles = vehicles.filter(v => {
+    const plate = v['ทะเบียน'];
+    // ตรวจว่ามีใน startOdoMap (กำลังใช้งาน)
+    return Object.keys(startOdoMap).some(k => k.includes(plate) || plate.includes(k.split(' ')[0]));
+  });
+  if (activeVehicles.length === 0) {
+    const opt = document.createElement('option');
+    opt.value = '';
+    opt.text  = '— ยังไม่มีรถออกปฏิบัติงาน —';
+    opt.disabled = true;
+    eEl.appendChild(opt);
+  } else {
+    activeVehicles.forEach(v => {
       const plate = v['ทะเบียน'];
       const label = `${plate} — ${v['ประเภท']}`;
       const opt   = document.createElement('option');
       opt.value   = label;
-      if (id === 'histFilterCar') {
-        opt.text  = label;
-        opt.value = plate;
-      } else if (id === 's_carType' && checkGateLoaded) {
-        // ใส่ป้ายบอกสถานะตรวจ
-        const checked = isCarCheckedToday(label);
-        opt.text = checked ? `✅ ${label}` : `🔴 ${label}  [ยังไม่ตรวจสภาพ]`;
-        if (!checked) opt.style.color = '#b91c1c';
-      } else {
-        opt.text = label;
-      }
-      el.appendChild(opt);
+      opt.text    = `🟡 ${label}  [กำลังออกรถ]`;
+      eEl.appendChild(opt);
     });
-    if (cur) el.value = cur;
+  }
+  if (eCur) eEl.value = eCur;
+
+  // ── histFilterCar: แสดงทุกคัน
+  const hEl = document.getElementById('histFilterCar');
+  const hCur = hEl.value;
+  while (hEl.options.length > 1) hEl.remove(1);
+  vehicles.forEach(v => {
+    const plate = v['ทะเบียน'];
+    const label = `${plate} — ${v['ประเภท']}`;
+    const opt   = document.createElement('option');
+    opt.value   = plate;
+    opt.text    = label;
+    hEl.appendChild(opt);
   });
+  if (hCur) hEl.value = hCur;
 }
 
 /** ตรวจว่า carType label นั้นอยู่ใน todayCheckedSet หรือไม่ */
@@ -1073,7 +1108,16 @@ async function loadMileHistory() {
     });
   } catch (_) {
     mileHistory = generateDemoHistory();
+    // สร้าง startOdoMap จาก demo ด้วย
+    mileHistory.forEach(row => {
+      const car = String(row['ทะเบียน/รถ'] || row['carType'] || '');
+      if (String(row['สถานะ']) === 'กำลังใช้งาน') {
+        startOdoMap[car] = row['เลขไมล์ต้น'] || 0;
+      }
+    });
   }
+  // รีเฟรช dropdown e_carType ให้แสดงเฉพาะรถที่กำลังออกรถ
+  populateCarSelects();
   if (document.getElementById('panelHistory').style.display !== 'none') {
     renderHistory();
   }
@@ -1594,7 +1638,10 @@ async function loadTodayCheckStatus() {
     const notCheckedCount= json.notCheckedCount || 0;
     const totalCars      = json.totalCars       || (checkedCount + notCheckedCount);
 
-    if (notCheckedCount === 0) {
+    if (totalCars === 0 || (checkedCount === 0 && notCheckedCount === 0)) {
+      // ยังไม่มีข้อมูลตรวจสภาพวันนี้เลย
+      updateCheckGateBanner('none', { totalCars });
+    } else if (notCheckedCount === 0) {
       updateCheckGateBanner('allpass', { checkedCount, totalCars });
     } else {
       updateCheckGateBanner('partial', { checkedCount, notCheckedCount, totalCars, notChecked: json.notCheckedToday || [] });
@@ -1652,6 +1699,19 @@ function updateCheckGateBanner(state, data = {}) {
       <em style="font-size:11px;opacity:.85;">เลือกรถในรายการด้านล่าง — รถที่ยังไม่ตรวจจะไม่สามารถบันทึกออกรถได้</em>`;
 
     // ปุ่มลิงก์ไปหน้าตรวจสภาพ
+    const btn = document.createElement('a');
+    btn.href = 'check.html';
+    btn.className = 'goto-check-btn';
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> ไปหน้าตรวจสภาพรถประจำวัน';
+    banner.querySelector('.check-gate-body').appendChild(btn);
+
+  } else if (state === 'none') {
+    banner.className = 'check-gate blocked';
+    icon.className = 'check-gate-icon red'; icon.textContent = '⚠️';
+    title.className = 'check-gate-title red';
+    title.textContent = 'ยังไม่มีการตรวจสภาพรถประจำวันนี้';
+    sub.className = 'check-gate-sub red';
+    sub.innerHTML = 'ยังไม่มีรถคันใดผ่านการตรวจสภาพวันนี้ — กรุณาตรวจสภาพรถก่อนบันทึกออกรถ';
     const btn = document.createElement('a');
     btn.href = 'check.html';
     btn.className = 'goto-check-btn';
