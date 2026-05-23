@@ -925,8 +925,10 @@ setThaiDateTime();
 // DESTINATION FILTER
 // ============================================================
 function filterDestinations() {
-  const input = document.getElementById('destination').value.toLowerCase();
+  const destEl = document.getElementById('destination');
   const datalist = document.getElementById('destinations');
+  if (!destEl || !datalist) return;
+  const input = destEl.value.toLowerCase();
   const options = datalist.getElementsByTagName('option');
   for (let opt of options) {
     const val = opt.value.toLowerCase();
@@ -937,12 +939,12 @@ function filterDestinations() {
 // ============================================================
 // PROGRESS TRACKING
 // ============================================================
-const requiredFields = ['carType','driverName','inspDate','inspTime','odometer','destination'];
+const requiredFields = ['carType','driverName','inspDate','inspTime','odometer'];
 const requiredRadios = ['eq_oil','eq_battery','eq_tire','fuelLevel','fuelFill'];
 
 function updateProgress() {
   let filled = 0;
-  const total = requiredFields.length + requiredRadios.length;
+  const total = requiredFields.length + requiredRadios.length; // อัตโนมัติตาม array
   
   requiredFields.forEach(id => {
     if (document.getElementById(id)?.value) filled++;
@@ -1042,7 +1044,6 @@ function collectData() {
     inspDate: get('inspDate'),
     inspTime: get('inspTime'),
     odometer: get('odometer'),
-    destination: get('destination'),
     eq_oil: getRadio('eq_oil'),
     eq_battery: getRadio('eq_battery'),
     eq_tire: getRadio('eq_tire'),
