@@ -447,6 +447,69 @@ textarea { resize: vertical; min-height: 80px; }
     border-radius: 99px; font-size: 0.82rem; font-weight: 600;
   }
 
+
+  /* ── CHECK-GATE BANNER ── */
+  .check-gate {
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    display: flex; align-items: flex-start; gap: 14px;
+    border: 2px solid var(--border);
+    background: var(--card);
+    box-shadow: var(--shadow);
+    transition: all .3s;
+  }
+  .check-gate.blocked {
+    background: #fff5f5; border-color: #fca5a5;
+    animation: pulse-red 2s ease-in-out infinite;
+  }
+  .check-gate.pass {
+    background: #f0fdf4; border-color: #86efac;
+  }
+  .check-gate.loading {
+    background: #f8fafc; border-color: #e2e8f0;
+  }
+  @keyframes pulse-red {
+    0%,100% { box-shadow: 0 2px 16px rgba(239,68,68,.1); }
+    50%      { box-shadow: 0 4px 24px rgba(239,68,68,.25); }
+  }
+  .check-gate-icon {
+    width: 46px; height: 46px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; font-size: 1.3rem;
+  }
+  .check-gate-icon.red  { background: #fee2e2; }
+  .check-gate-icon.green{ background: #dcfce7; }
+  .check-gate-icon.gray { background: #f1f5f9; }
+  .check-gate-body { flex: 1; }
+  .check-gate-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .check-gate-title.red  { color: #991b1b; }
+  .check-gate-title.green{ color: #14532d; }
+  .check-gate-title.gray { color: var(--text-mid); }
+  .check-gate-sub { font-size: 12px; line-height: 1.6; }
+  .check-gate-sub.red  { color: #ef4444; }
+  .check-gate-sub.green{ color: #16a34a; }
+  .check-gate-sub.gray { color: var(--text-light); }
+  .goto-check-btn {
+    margin-top: 12px;
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 18px; border-radius: 9px;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff; font-family: inherit; font-size: 13px; font-weight: 700;
+    text-decoration: none; border: none; cursor: pointer;
+    box-shadow: 0 3px 12px rgba(239,68,68,.35);
+    transition: all .2s;
+  }
+  .goto-check-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(239,68,68,.45); }
+
+  /* ── FORM DISABLED STATE ── */
+  .form-blocked { pointer-events: none; opacity: .38; user-select: none; filter: grayscale(.4); }
+  .submit-btn.blocked-btn {
+    background: linear-gradient(135deg,#94a3b8,#64748b) !important;
+    box-shadow: none !important; cursor: not-allowed !important;
+  }
+  .submit-btn.blocked-btn:hover { transform: none !important; }
+
 </style>
 </head>
 <body>
@@ -486,6 +549,15 @@ textarea { resize: vertical; min-height: 80px; }
     </div>
   </div>
 
+  <!-- CHECK-GATE BANNER -->
+  <div class="check-gate loading" id="checkGateBanner">
+    <div class="check-gate-icon gray" id="cgIcon">⏳</div>
+    <div class="check-gate-body">
+      <div class="check-gate-title gray" id="cgTitle">กำลังตรวจสอบสถานะการตรวจสภาพรถ...</div>
+      <div class="check-gate-sub gray" id="cgSub">โปรดรอสักครู่</div>
+    </div>
+  </div>
+
   <!-- TAB: ออกรถ / กลับถึงรพ. -->
   <div class="tab-row">
     <button class="tab-btn active" id="tabStart" onclick="switchTab('start')">
@@ -515,7 +587,7 @@ textarea { resize: vertical; min-height: 80px; }
         </div>
       </div>
       <div class="card-body">
-        <form id="startForm">
+        <form id="startForm"><div id="startFormBody">
           <div class="form-grid">
 
             <div class="form-group">
@@ -700,6 +772,7 @@ textarea { resize: vertical; min-height: 80px; }
               <span class="btn-text">บันทึกออกรถ — สถานะ "กำลังใช้งาน"</span>
             </button>
           </div>
+        </div><!-- /startFormBody -->
         </form>
       </div>
     </div>
@@ -885,6 +958,8 @@ textarea { resize: vertical; min-height: 80px; }
 //  CONFIG
 // ─────────────────────────────────────────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxL1ZYuJr_jtZtGB9oRS5HSO9lArCeqduleQOEli9Ctpv4tZGIiHrTXg-OqMGFvfQ/exec';
+// ใช้ endpoint เดียวกับ Dashboard สำหรับดึงสถานะตรวจสภาพ
+const GAS_STATUS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
 
 // ─────────────────────────────────────────────
 //  STATE
@@ -894,6 +969,11 @@ let mileHistory   = [];
 let pendingAction = null;   // { type: 'start'|'end', data: {} }
 let startOdoMap   = {};     // carType → lastOdometer จาก active trip
 
+// ── CHECK-GATE STATE ──
+let todayCheckedSet = new Set();   // carType strings ที่ผ่านตรวจวันนี้
+let checkGateLoaded = false;
+let checkGateError  = false;
+
 // ─────────────────────────────────────────────
 //  INIT
 // ─────────────────────────────────────────────
@@ -901,6 +981,9 @@ document.addEventListener('DOMContentLoaded', () => {
   setDateTimeDefaults();
   loadVehicles();
   loadMileHistory();
+  loadTodayCheckStatus();
+  // รีเฟรชสถานะตรวจสภาพทุก 2 นาที (ทันทีที่มีคนตรวจเพิ่ม)
+  setInterval(loadTodayCheckStatus, 120000);
 });
 
 function setDateTimeDefaults() {
@@ -942,15 +1025,35 @@ function populateCarSelects() {
     const cur = el.value;
     while (el.options.length > 1) el.remove(1);
     vehicles.forEach(v => {
-      const opt = document.createElement('option');
-      const label = `${v['ทะเบียน']} — ${v['ประเภท']}`;
-      opt.value = label;
-      opt.text  = id === 'histFilterCar' ? label : label;
-      if (id === 'histFilterCar') opt.value = v['ทะเบียน'];
+      const plate = v['ทะเบียน'];
+      const label = `${plate} — ${v['ประเภท']}`;
+      const opt   = document.createElement('option');
+      opt.value   = label;
+      if (id === 'histFilterCar') {
+        opt.text  = label;
+        opt.value = plate;
+      } else if (id === 's_carType' && checkGateLoaded) {
+        // ใส่ป้ายบอกสถานะตรวจ
+        const checked = isCarCheckedToday(label);
+        opt.text = checked ? `✅ ${label}` : `🔴 ${label}  [ยังไม่ตรวจสภาพ]`;
+        if (!checked) opt.style.color = '#b91c1c';
+      } else {
+        opt.text = label;
+      }
       el.appendChild(opt);
     });
     if (cur) el.value = cur;
   });
+}
+
+/** ตรวจว่า carType label นั้นอยู่ใน todayCheckedSet หรือไม่ */
+function isCarCheckedToday(carTypeLabel) {
+  if (!checkGateLoaded) return true; // ถ้าโหลดไม่ได้ ให้ผ่านไปก่อน (fail-open)
+  const plate = carTypeLabel.split(' ')[0];
+  for (const checked of todayCheckedSet) {
+    if (checked.includes(plate) || plate.includes(checked.split(' ')[0])) return true;
+  }
+  return false;
 }
 
 // ─────────────────────────────────────────────
@@ -1002,7 +1105,11 @@ function switchTab(tab) {
 // ─────────────────────────────────────────────
 async function onCarChange() {
   const carType = document.getElementById('s_carType').value;
-  if (!carType) { resetStatusBanner(); return; }
+  if (!carType) { resetStatusBanner(); applyCheckGateToForm(true); return; }
+
+  // ── ตรวจสอบก่อนว่าผ่านตรวจสภาพวันนี้หรือยัง ──
+  const passed = isCarCheckedToday(carType);
+  applyCheckGateToForm(passed);
 
   // ดึงเลขไมล์ล่าสุดจาก Check sheet
   try {
@@ -1015,6 +1122,47 @@ async function onCarChange() {
   } catch (_) {}
 
   updateStatusBanner(carType);
+}
+
+/** เปิด/ปิด form บันทึกออกรถ ตามผลการตรวจสภาพ */
+function applyCheckGateToForm(passed) {
+  const formBody   = document.getElementById('startFormBody');
+  const submitBtn  = document.getElementById('startSubmitBtn');
+  const carType    = document.getElementById('s_carType').value;
+  const plate      = carType ? carType.split(' ')[0] : '';
+
+  if (!passed && carType) {
+    formBody.classList.add('form-blocked');
+    submitBtn.classList.add('blocked-btn');
+    submitBtn.querySelector('.btn-text').textContent = '🔒 ต้องตรวจสภาพรถก่อนบันทึกออกรถ';
+    // แสดง inline warning ใต้ dropdown รถ
+    showCarBlockedNote(plate);
+  } else {
+    formBody.classList.remove('form-blocked');
+    submitBtn.classList.remove('blocked-btn');
+    submitBtn.querySelector('.btn-text').textContent = 'บันทึกออกรถ — สถานะ "กำลังใช้งาน"';
+    hideCarBlockedNote();
+  }
+}
+
+function showCarBlockedNote(plate) {
+  let note = document.getElementById('carBlockedNote');
+  if (!note) {
+    note = document.createElement('div');
+    note.id = 'carBlockedNote';
+    note.style.cssText = 'margin-top:8px;padding:10px 14px;background:#fff5f5;border:1.5px solid #fca5a5;border-radius:9px;font-size:12.5px;color:#991b1b;display:flex;gap:8px;align-items:flex-start;line-height:1.55;';
+    const carSelect = document.getElementById('s_carType');
+    carSelect.parentNode.appendChild(note);
+  }
+  note.innerHTML = \`<span style="font-size:1.1rem;flex-shrink:0;">🚫</span>
+    <span><strong>\${plate}</strong> ยังไม่ผ่านการตรวจสภาพรถประจำวันนี้<br>
+    กรุณาไปที่ <a href="check.html" style="color:#dc2626;font-weight:700;">ตรวจสภาพรถประจำวัน</a> แล้วบันทึกให้เรียบร้อยก่อน</span>\`;
+  note.style.display = 'flex';
+}
+
+function hideCarBlockedNote() {
+  const note = document.getElementById('carBlockedNote');
+  if (note) note.style.display = 'none';
 }
 
 async function onEndCarChange() {
@@ -1106,6 +1254,12 @@ function calcDistance() {
 // ─────────────────────────────────────────────
 document.getElementById('startForm').addEventListener('submit', (e) => {
   e.preventDefault();
+  // Double-check: ถ้า form ยังถูก block อยู่ ไม่ให้ submit ผ่าน
+  const carType = document.getElementById('s_carType').value;
+  if (carType && !isCarCheckedToday(carType)) {
+    showToast('🚫 ต้องตรวจสภาพรถประจำวันก่อน', 'error');
+    return;
+  }
   const data = {
     action        : 'startMile',
     carType       : document.getElementById('s_carType').value,
@@ -1416,6 +1570,100 @@ function onDestChange() {
     inp.style.display = 'none';
     inp.required = false;
     inp.value = sel.value;
+  }
+}
+
+
+// ══════════════════════════════════════════════════════
+//  CHECK-GATE: โหลดสถานะตรวจสภาพรถประจำวัน
+// ══════════════════════════════════════════════════════
+async function loadTodayCheckStatus() {
+  updateCheckGateBanner('loading');
+  try {
+    const res  = await fetch(GAS_STATUS_URL + '?action=getStatusSummary');
+    const json = await res.json();
+    if (json.status !== 'ok') throw new Error('api error');
+
+    checkGateLoaded = true;
+    checkGateError  = false;
+
+    // สร้าง Set จาก todayChecked
+    todayCheckedSet = new Set((json.todayChecked || []).map(x => x.carType));
+
+    const checkedCount   = json.checkedCount   || 0;
+    const notCheckedCount= json.notCheckedCount || 0;
+    const totalCars      = json.totalCars       || (checkedCount + notCheckedCount);
+
+    if (notCheckedCount === 0) {
+      updateCheckGateBanner('allpass', { checkedCount, totalCars });
+    } else {
+      updateCheckGateBanner('partial', { checkedCount, notCheckedCount, totalCars, notChecked: json.notCheckedToday || [] });
+    }
+
+    // รีเฟรช dropdown เพื่อแสดงป้าย ✅/🔴
+    populateCarSelects();
+
+    // ถ้าเลือกรถไว้แล้ว ให้ re-check gate
+    const selCar = document.getElementById('s_carType').value;
+    if (selCar) {
+      applyCheckGateToForm(isCarCheckedToday(selCar));
+      if (!isCarCheckedToday(selCar)) showCarBlockedNote(selCar.split(' ')[0]);
+    }
+
+  } catch(err) {
+    checkGateLoaded = false;
+    checkGateError  = true;
+    updateCheckGateBanner('error');
+  }
+}
+
+function updateCheckGateBanner(state, data = {}) {
+  const banner = document.getElementById('checkGateBanner');
+  const icon   = document.getElementById('cgIcon');
+  const title  = document.getElementById('cgTitle');
+  const sub    = document.getElementById('cgSub');
+
+  // ลบ button เก่า (ถ้ามี)
+  const oldBtn = banner.querySelector('.goto-check-btn');
+  if (oldBtn) oldBtn.remove();
+
+  if (state === 'loading') {
+    banner.className = 'check-gate loading';
+    icon.className = 'check-gate-icon gray'; icon.textContent = '⏳';
+    title.className = 'check-gate-title gray'; title.textContent = 'กำลังตรวจสอบสถานะการตรวจสภาพรถ...';
+    sub.className = 'check-gate-sub gray'; sub.textContent = 'โปรดรอสักครู่';
+
+  } else if (state === 'allpass') {
+    banner.className = 'check-gate pass';
+    icon.className = 'check-gate-icon green'; icon.textContent = '✅';
+    title.className = 'check-gate-title green';
+    title.textContent = `ตรวจสภาพรถครบทุกคันแล้ววันนี้ (${data.checkedCount}/${data.totalCars} คัน)`;
+    sub.className = 'check-gate-sub green';
+    sub.textContent = 'รถทุกคันผ่านการตรวจสภาพประจำวันแล้ว สามารถบันทึกออกรถได้ทันที';
+
+  } else if (state === 'partial') {
+    banner.className = 'check-gate blocked';
+    icon.className = 'check-gate-icon red'; icon.textContent = '🚫';
+    title.className = 'check-gate-title red';
+    title.textContent = `ยังมีรถที่ยังไม่ผ่านการตรวจสภาพวันนี้ ${data.notCheckedCount} คัน (ตรวจแล้ว ${data.checkedCount}/${data.totalCars} คัน)`;
+    sub.className = 'check-gate-sub red';
+    const plates = (data.notChecked || []).slice(0, 5).join(', ');
+    sub.innerHTML = `รถที่ยังไม่ตรวจ: <strong>${plates || '—'}</strong>${data.notChecked.length > 5 ? ` และอีก ${data.notChecked.length-5} คัน` : ''}<br>
+      <em style="font-size:11px;opacity:.85;">เลือกรถในรายการด้านล่าง — รถที่ยังไม่ตรวจจะไม่สามารถบันทึกออกรถได้</em>`;
+
+    // ปุ่มลิงก์ไปหน้าตรวจสภาพ
+    const btn = document.createElement('a');
+    btn.href = 'check.html';
+    btn.className = 'goto-check-btn';
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> ไปหน้าตรวจสภาพรถประจำวัน';
+    banner.querySelector('.check-gate-body').appendChild(btn);
+
+  } else if (state === 'error') {
+    banner.className = 'check-gate loading';
+    icon.className = 'check-gate-icon gray'; icon.textContent = '⚠️';
+    title.className = 'check-gate-title gray'; title.textContent = 'ไม่สามารถโหลดสถานะตรวจสภาพรถได้';
+    sub.className = 'check-gate-sub gray';
+    sub.innerHTML = 'ระบบจะอนุญาตให้บันทึกชั่วคราว — กรุณาตรวจสอบการเชื่อมต่อ <button onclick="loadTodayCheckStatus()" style="margin-left:6px;padding:2px 10px;border-radius:6px;border:1px solid #94a3b8;background:#f1f5f9;cursor:pointer;font-size:11px;">ลองใหม่</button>';
   }
 }
 
