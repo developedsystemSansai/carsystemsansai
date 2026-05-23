@@ -615,43 +615,73 @@ textarea { resize: vertical; min-height: 80px; }
             </div>
 
             <div class="form-group span2">
-              <label>สถานที่ปลายทาง <span class="req">*</span></label>
-              <select id="s_destinationSelect" onchange="onDestChange()" style="margin-bottom:6px;">
-                <option value="">-- เลือกสถานที่ --</option>
-                <optgroup label="🏥 โรงพยาบาล">
-                  <option value="รพ.นครพิงค์">รพ.นครพิงค์</option>
-                  <option value="รพ.มหาราชนครเชียงใหม่ (สวนดอก)">รพ.มหาราชนครเชียงใหม่ (สวนดอก)</option>
-                  <option value="รพ.สันทราย">รพ.สันทราย</option>
-                  <option value="รพ.แม่โจ้">รพ.แม่โจ้</option>
-                  <option value="รพ.สันป่าตอง">รพ.สันป่าตอง</option>
-                  <option value="รพ.จอมทอง">รพ.จอมทอง</option>
-                  <option value="รพ.ดอยสะเก็ด">รพ.ดอยสะเก็ด</option>
-                  <option value="รพ.แม่ริม">รพ.แม่ริม</option>
-                  <option value="รพ.สะเมิง">รพ.สะเมิง</option>
-                  <option value="รพ.แม่แตง">รพ.แม่แตง</option>
-                  <option value="รพ.เชียงดาว">รพ.เชียงดาว</option>
-                </optgroup>
-                <optgroup label="🏛️ หน่วยงานราชการ">
-                  <option value="สสจ.เชียงใหม่">สสจ.เชียงใหม่</option>
-                  <option value="สำนักงานประกันสังคมเชียงใหม่">สำนักงานประกันสังคมเชียงใหม่</option>
-                  <option value="ศาลากลางจังหวัดเชียงใหม่">ศาลากลางจังหวัดเชียงใหม่</option>
-                  <option value="สำนักงานสาธารณสุขอำเภอสันทราย">สำนักงานสาธารณสุขอำเภอสันทราย</option>
-                  <option value="สถานีตำรวจภูธรสันทราย">สถานีตำรวจภูธรสันทราย</option>
-                  <option value="อำเภอสันทราย">อำเภอสันทราย</option>
-                  <option value="อำเภอแม่ริม">อำเภอแม่ริม</option>
-                  <option value="อำเภอดอยสะเก็ด">อำเภอดอยสะเก็ด</option>
-                  <option value="อำเภอสันป่าตอง">อำเภอสันป่าตอง</option>
-                </optgroup>
-                <optgroup label="📍 สถานที่อื่น ๆ ในพื้นที่">
-                  <option value="ตลาดสันทราย">ตลาดสันทราย</option>
-                  <option value="มหาวิทยาลัยแม่โจ้">มหาวิทยาลัยแม่โจ้</option>
-                  <option value="สนามบินเชียงใหม่">สนามบินเชียงใหม่</option>
-                  <option value="ห้างเซ็นทรัลเชียงใหม่">ห้างเซ็นทรัลเชียงใหม่</option>
-                </optgroup>
-                <option value="__other__">✏️ ระบุเอง...</option>
-              </select>
-              <input type="text" id="s_destination" placeholder="พิมพ์สถานที่ปลายทาง" required style="display:none;">
-            </div>
+  <label>สถานที่ปลายทาง <span class="req">*</span></label>
+  <select id="s_destinationSelect" onchange="onDestChange()" style="margin-bottom:6px;">
+    <option value="">-- เลือกสถานที่ --</option>
+
+    <optgroup label="🏥 โรงพยาบาลศูนย์ / โรงพยาบาลทั่วไป (สธ.)">
+      <option value="รพ.นครพิงค์">รพ.นครพิงค์ (อ.เมือง)</option>
+      <option value="รพ.สันทราย">รพ.สันทราย (อ.สันทราย)</option>
+      <option value="รพ.สันป่าตอง">รพ.สันป่าตอง (อ.สันป่าตอง)</option>
+      <option value="รพ.จอมทอง">รพ.จอมทอง (อ.จอมทอง)</option>
+      <option value="รพ.ฝาง">รพ.ฝาง (อ.ฝาง)</option>
+    </optgroup>
+
+    <optgroup label="🏨 โรงพยาบาลชุมชน (สธ.) — รายอำเภอ">
+      <option value="รพ.สันกำแพง">รพ.สันกำแพง (อ.สันกำแพง)</option>
+      <option value="รพ.ดอยสะเก็ด">รพ.ดอยสะเก็ด (อ.ดอยสะเก็ด)</option>
+      <option value="รพ.แม่ริม">รพ.แม่ริม (อ.แม่ริม)</option>
+      <option value="รพ.แม่แตง">รพ.แม่แตง (อ.แม่แตง)</option>
+      <option value="รพ.เชียงดาว">รพ.เชียงดาว (อ.เชียงดาว)</option>
+      <option value="รพ.แม่อาย">รพ.แม่อาย (อ.แม่อาย)</option>
+      <option value="รพ.ไชยปราการ">รพ.ไชยปราการ (อ.ไชยปราการ)</option>
+      <option value="รพ.เวียงแหง">รพ.เวียงแหง (อ.เวียงแหง)</option>
+      <option value="รพ.พร้าว">รพ.พร้าว (อ.พร้าว)</option>
+      <option value="รพ.สะเมิง">รพ.สะเมิง (อ.สะเมิง)</option>
+      <option value="รพ.หางดง">รพ.หางดง (อ.หางดง)</option>
+      <option value="รพ.สารภี">รพ.สารภี (อ.สารภี)</option>
+      <option value="รพ.ฮอด">รพ.ฮอด (อ.ฮอด)</option>
+      <option value="รพ.ดอยเต่า">รพ.ดอยเต่า (อ.ดอยเต่า)</option>
+      <option value="รพ.อมก๋อย">รพ.อมก๋อย (อ.อมก๋อย)</option>
+      <option value="รพ.แม่วาง">รพ.แม่วาง (อ.แม่วาง)</option>
+      <option value="รพ.แม่ออน">รพ.แม่ออน (อ.แม่ออน)</option>
+      <option value="รพ.ดอยหล่อ">รพ.ดอยหล่อ (อ.ดอยหล่อ)</option>
+      <option value="รพ.แม่แจ่ม">รพ.เทพรัตนเวชชานุกูล แม่แจ่ม (อ.แม่แจ่ม)</option>
+      <option value="รพ.กัลยาณิวัฒนา">รพ.วัดจันทร์เฉลิมพระเกียรติฯ กัลยาณิวัฒนา (อ.กัลยาณิวัฒนา)</option>
+    </optgroup>
+
+    <optgroup label="🏛️ หน่วยงานราชการ / สาธารณสุข">
+      <option value="สสจ.เชียงใหม่">สสจ.เชียงใหม่</option>
+      <option value="สสอ.สันทราย">สสอ.สันทราย</option>
+      <option value="ศูนย์อนามัยที่ 1 เชียงใหม่">ศูนย์อนามัยที่ 1 เชียงใหม่</option>
+      <option value="สำนักงานประกันสังคมเชียงใหม่">สำนักงานประกันสังคมเชียงใหม่</option>
+      <option value="ศาลากลางจังหวัดเชียงใหม่">ศาลากลางจังหวัดเชียงใหม่</option>
+      <option value="สถานีตำรวจภูธรสันทราย">สถานีตำรวจภูธรสันทราย</option>
+      <option value="อำเภอสันทราย">อำเภอสันทราย</option>
+      <option value="อำเภอแม่ริม">อำเภอแม่ริม</option>
+    </optgroup>
+
+    <optgroup label="🏨 โรงแรม / สถานที่จัดประชุม (เชียงใหม่)">
+      <option value="โรงแรมดิเอ็มเพรส เชียงใหม่">โรงแรมดิเอ็มเพรส เชียงใหม่</option>
+      <option value="โรงแรมเชียงใหม่แกรนด์วิว">โรงแรมเชียงใหม่แกรนด์วิว</option>
+      <option value="โรงแรมอโมรา ท่าแพ เชียงใหม่">โรงแรมอโมรา ท่าแพ เชียงใหม่</option>
+      <option value="โรงแรมเชียงใหม่ออคิด">โรงแรมเชียงใหม่ออคิด</option>
+      <option value="โรงแรมโลตัส ปางสวนแก้ว เชียงใหม่">โรงแรมโลตัส ปางสวนแก้ว เชียงใหม่</option>
+      <option value="โรงแรมเลอ เมอริเดียน เชียงใหม่">โรงแรมเลอ เมอริเดียน เชียงใหม่</option>
+      <option value="โรงแรมแชงกรี-ลา เชียงใหม่">โรงแรมแชงกรี-ลา เชียงใหม่</option>
+      <option value="โรงแรมเชียงใหม่ แมริออท">โรงแรมเชียงใหม่ แมริออท</option>
+      <option value="โรงแรมฮอลิเดย์ อินน์ เชียงใหม่">โรงแรมฮอลิเดย์ อินน์ เชียงใหม่</option>
+      <option value="โรงแรมดวงตะวัน เชียงใหม่">โรงแรมดวงตะวัน เชียงใหม่</option>
+      <option value="ศูนย์ประชุมนานาชาติเชียงใหม่ (CMCC)">ศูนย์ประชุมนานาชาติเชียงใหม่ (CMCC)</option>
+    </optgroup>
+
+    <optgroup label="📍 สถานที่อื่น ๆ">
+      <option value="มหาวิทยาลัยแม่โจ้">มหาวิทยาลัยแม่โจ้</option>
+      <option value="มหาวิทยาลัยเชียงใหม่">มหาวิทยาลัยเชียงใหม่</option>
+      <option value="สนามบินเชียงใหม่">สนามบินเชียงใหม่</option>
+      <option value="PCU หนองหาร">PCU หนองหาร</option>
+    </optgroup>
+  </select>
 
             <div class="form-group">
               <label>วันที่ <span class="req">*</span></label>
