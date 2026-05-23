@@ -600,17 +600,7 @@ textarea { resize: vertical; min-height: 80px; }
             <div class="form-group">
               <label>พนักงานขับรถ <span class="req">*</span></label>
               <select id="s_driverName" required>
-                <option value="">-- เลือกชื่อ --</option>
-                <option value="นาย ชัยพร มอญแสง">นาย ชัยพร มอญแสง</option>
-                <option value="นาย กิตติพงศ์ เขื่อนแก้ว">นาย กิตติพงศ์ เขื่อนแก้ว</option>
-                <option value="นาย กานต์นิธิ ทองอร">นาย กานต์นิธิ ทองอร</option>
-                <option value="นาย เฉลิมชนม์ นันติแก้ว">นาย เฉลิมชนม์ นันติแก้ว</option>
-                <option value="นาย นพดล คำปินคำ">นาย นพดล คำปินคำ</option>
-                <option value="นาย เก้า พิจิตร">นาย เก้า พิจิตร</option>
-                <option value="นาย ภาณุพงศ์ กางสำโรง">นาย ภาณุพงศ์ กางสำโรง</option>
-                <option value="นาย เฉลิมพล เลาแก้ว">นาย เฉลิมพล เลาแก้ว</option>
-                <option value="นายชัยพร ชัยศร">นายชัยพร ชัยศร</option>
-                <option value="นายกัมพล โพธิ์พัด">นายกัมพล โพธิ์พัด</option>
+                <option value="">-- กำลังโหลดรายชื่อ... --</option>
               </select>
             </div>
 
@@ -1031,19 +1021,57 @@ async function loadVehicles() {
   try {
     const res  = await fetch(GAS_URL + '?action=getVehicles');
     const json = await res.json();
-    vehicles   = json.data || getDefaultVehicles();
+    vehicles   = (json.data && json.data.length) ? json.data : getDefaultVehicles();
   } catch (_) {
     vehicles = getDefaultVehicles();
   }
   populateCarSelects();
+  loadDrivers(); // โหลด drivers หลังจากมี vehicles แล้ว
+}
+
+async function loadDrivers() {
+  try {
+    const res  = await fetch(GAS_URL + '?action=getDrivers');
+    const json = await res.json();
+    const drivers = (json.drivers && json.drivers.length) ? json.drivers : DEFAULT_DRIVERS;
+    populateDriverSelect(drivers);
+  } catch (_) {
+    populateDriverSelect(DEFAULT_DRIVERS);
+  }
+}
+
+const DEFAULT_DRIVERS = [
+  'นาย ชัยพร มอญแสง','นาย กิตติพงศ์ เขื่อนแก้ว','นาย กานต์นิธิ ทองอร',
+  'นาย เฉลิมชนม์ นันติแก้ว','นาย นพดล คำปินคำ','นาย เก้า พิจิตร',
+  'นาย ภาณุพงศ์ กางสำโรง','นาย เฉลิมพล เลาแก้ว','นายชัยพร ชัยศร','นายกัมพล โพธิ์พัด'
+];
+
+function populateDriverSelect(drivers) {
+  const sel = document.getElementById('s_driverName');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">-- เลือกชื่อ --</option>';
+  drivers.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = name;
+    if (name === cur) opt.selected = true;
+    sel.appendChild(opt);
+  });
 }
 
 function getDefaultVehicles() {
   return [
-    { ทะเบียน:'กข-0001', ประเภท:'รถพยาบาล ALS', สถานะ:'พร้อมใช้งาน' },
-    { ทะเบียน:'กข-0002', ประเภท:'รถพยาบาล BLS', สถานะ:'พร้อมใช้งาน' },
-    { ทะเบียน:'กข-0003', ประเภท:'รถตู้รับส่งผู้ป่วย', สถานะ:'พร้อมใช้งาน' },
-    { ทะเบียน:'กข-0004', ประเภท:'รถกระบะ', สถานะ:'พร้อมใช้งาน' }
+    { ทะเบียน:'นจ.4919 ชม.', ประเภท:'รถตู้ฮุนได',         สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' },
+    { ทะเบียน:'นง.8781 ชม.', ประเภท:'รถตู้ฮุนได',         สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' },
+    { ทะเบียน:'นง.86 ชม.',   ประเภท:'รถตู้',              สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' },
+    { ทะเบียน:'จย.1379 ชม.', ประเภท:'รถ Refer',           สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
+    { ทะเบียน:'งบ.5466 ชม.', ประเภท:'รถ Refer',           สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
+    { ทะเบียน:'ขษ.4361 ชม.', ประเภท:'รถ Refer',           สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
+    { ทะเบียน:'ขร.501 ชม.',  ประเภท:'รถ Refer',           สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
+    { ทะเบียน:'ขธ.9302 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' },
+    { ทะเบียน:'ขฉ.8407 ชม.', ประเภท:'รถ Refer',           สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
+    { ทะเบียน:'ขค.9662 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' },
+    { ทะเบียน:'กล.9438 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' }
   ];
 }
 
