@@ -489,13 +489,13 @@ textarea { resize: vertical; min-height: 80px; }
   <!-- TAB: ออกรถ / กลับถึงรพ. -->
   <div class="tab-row">
     <button class="tab-btn active" id="tabStart" onclick="switchTab('start')">
-      🚗 บันทึกออกรถ
+      บันทึกออกรถ
     </button>
     <button class="tab-btn end" id="tabEnd" onclick="switchTab('end')">
       🏥 บันทึกกลับถึง รพ.
     </button>
     <button class="tab-btn" id="tabHistory" onclick="switchTab('history')">
-      📋 ประวัติการใช้รถ
+      ประวัติการใช้รถ
     </button>
   </div>
 
@@ -602,20 +602,20 @@ textarea { resize: vertical; min-height: 80px; }
               <div class="form-group span2" style="margin-top:16px;">
                 <label style="font-size:13px;font-weight:700;color:var(--text-mid);margin-bottom:6px;display:flex;align-items:center;gap:6px;">
                   <span style="background:var(--blue);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;">จำเป็น</span>
-                  📷 รูปบิลน้ำมัน / สลิปการเติม
+                  รูปบิลน้ำมัน / สลิปการเติม
                 </label>
 
                 <!-- Drop Zone -->
                 <div class="fuel-photo-zone" id="fuelDropZone" onclick="document.getElementById('startFuelPhotoInput').click()">
-                  <span class="fuel-photo-icon" id="fuelZoneIcon">🧾</span>
+                  <span class="fuel-photo-icon" id="fuelZoneIcon"></span>
                   <div class="fuel-photo-title" id="fuelZoneTitle">ถ่ายรูปหรืออัปโหลดบิลน้ำมัน</div>
                   <div class="fuel-photo-sub" id="fuelZoneSub">รองรับหลายรูป — แตะเพื่อเปิดกล้องหรือเลือกจากคลัง</div>
                   <div class="fuel-cam-btns">
                     <button type="button" class="fuel-cam-btn" onclick="event.stopPropagation();document.getElementById('startFuelCamInput').click()">
-                      📷 ถ่ายรูปทันที
+                      ถ่ายรูปทันที
                     </button>
                     <button type="button" class="fuel-cam-btn secondary" onclick="event.stopPropagation();document.getElementById('startFuelGalleryInput').click()">
-                      🖼️ เลือกจากคลัง
+                      เลือกจากคลัง
                     </button>
                   </div>
                   <!-- Hidden inputs -->
@@ -632,7 +632,7 @@ textarea { resize: vertical; min-height: 80px; }
 
                 <!-- Photo count badge (hidden until photos added) -->
                 <div id="fuelPhotoCountBadge" style="display:none;margin-top:8px;">
-                  <span class="fuel-photo-count" id="fuelPhotoCountText">✅ 0 รูป</span>
+                  <span class="fuel-photo-count" id="fuelPhotoCountText">0 รูป</span>
                 </div>
 
                 <!-- Photo grid preview -->
@@ -651,7 +651,7 @@ textarea { resize: vertical; min-height: 80px; }
           <div style="margin-top:22px;">
             <button type="submit" class="submit-btn" id="startSubmitBtn">
               <div class="spinner"></div>
-              <span class="btn-text">🚗 บันทึกออกรถ — สถานะ "กำลังใช้งาน"</span>
+              <span class="btn-text">บันทึกออกรถ — สถานะ "กำลังใช้งาน"</span>
             </button>
           </div>
         </form>
@@ -1024,7 +1024,7 @@ function validateStartOdo() {
   if (last && val < last) {
     hint.className = 'odo-hint err';
     document.getElementById('startAnomalyText').textContent =
-      `⚠️ เลขไมล์ที่กรอก (${val.toLocaleString()} กม.) น้อยกว่าเลขไมล์ล่าสุด (${last.toLocaleString()} กม.) — กรุณาตรวจสอบ`;
+      `เลขไมล์ที่กรอก (${val.toLocaleString()} กม.) น้อยกว่าเลขไมล์ล่าสุด (${last.toLocaleString()} กม.) — กรุณาตรวจสอบ`;
     document.getElementById('startAnomalyAlert').classList.add('show');
   } else {
     hint.className = 'odo-hint';
@@ -1046,8 +1046,8 @@ function calcDistance() {
     if (dist < 0 || dist > 500) {
       document.getElementById('endAnomalyText').textContent =
         dist < 0
-          ? `⚠️ เลขไมล์ปลาย น้อยกว่าเลขไมล์ต้น — ตรวจสอบด้วย`
-          : `⚠️ ระยะทาง ${dist.toLocaleString()} กม. สูงผิดปกติ — กรุณาตรวจสอบ`;
+          ? `เลขไมล์ปลาย น้อยกว่าเลขไมล์ต้น — ตรวจสอบด้วย`
+          : `ระยะทาง ${dist.toLocaleString()} กม. สูงผิดปกติ — กรุณาตรวจสอบ`;
       document.getElementById('endAnomalyAlert').classList.add('show');
     } else {
       document.getElementById('endAnomalyAlert').classList.remove('show');
@@ -1148,7 +1148,7 @@ async function confirmSubmit() {
     await new Promise(r => setTimeout(r, 800));
 
     if (type === 'start') {
-      showToast('✅ บันทึกออกรถสำเร็จ — สถานะ: กำลังใช้งาน', 'success');
+      showToast('บันทึกออกรถสำเร็จ — สถานะ: กำลังใช้งาน', 'success');
       startOdoMap[data.carType] = Number(data.odometerStart);
       document.getElementById('startForm').reset();
       startFuelPhotos = [];
@@ -1156,7 +1156,7 @@ async function confirmSubmit() {
       if(document.getElementById("fuelDropZone")) document.getElementById("fuelDropZone").classList.remove("has-photo");
       setDateTimeDefaults();
     } else {
-      showToast('✅ บันทึกกลับสำเร็จ — สถานะ: พร้อมใช้งาน', 'success');
+      showToast('บันทึกกลับสำเร็จ — สถานะ: พร้อมใช้งาน', 'success');
       delete startOdoMap[data.carType];
       document.getElementById('endForm').reset();
       setDateTimeDefaults();
@@ -1274,11 +1274,11 @@ function renderStartFuelPreviews() {
     zoneTitle.textContent = `มีรูปบิล ${n} รูปแล้ว`;
     zoneSub.textContent = 'แตะเพื่อเพิ่มรูปอีก';
     countBadge.style.display = 'block';
-    countText.textContent = `✅ แนบบิลแล้ว ${n} รูป`;
+    countText.textContent = `แนบบิลแล้ว ${n} รูป`;
     countText.style.background = 'var(--teal)';
   } else {
     zone.classList.remove('has-photo');
-    zoneIcon.textContent = '🧾';
+    zoneIcon.textContent = '';
     zoneTitle.textContent = 'ถ่ายรูปหรืออัปโหลดบิลน้ำมัน';
     zoneSub.textContent = 'รองรับหลายรูป — แตะเพื่อเปิดกล้องหรือเลือกจากคลัง';
     countBadge.style.display = 'none';
