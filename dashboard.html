@@ -924,6 +924,10 @@ async function loadData() {
     allData = json.data || [];
     window.allData = allData; // sync กับ liveVehicleGrid
     console.log('[Dashboard] getData:', allData.length, 'records');
+    // หลังโหลดข้อมูลแล้ว ให้ re-render vehicle grid ถ้ามีอยู่แล้ว
+    if (typeof renderLiveVehicleGrid === 'function' && window._lastStatusJson) {
+      renderLiveVehicleGrid(window._lastStatusJson);
+    }
     if (allData.length > 0) {
       console.log('[Dashboard] sample record keys:', Object.keys(allData[0]));
       console.log('[Dashboard] sample inspDate:', allData[0].inspDate, '| timestamp:', allData[0].timestamp);
@@ -1662,13 +1666,15 @@ async function loadLiveVehicleStatus() {
     const res = await fetch(GAS_STATUS_URL + '?action=getStatusSummary');
     const json = await res.json();
     if (json.status !== 'ok') throw new Error('api error');
+    window._lastStatusJson = json; // cache for re-render after allData loads
     renderLiveVehicleGrid(json);
     renderFuelTracker(json);
     // อัปเดต KPI เติมน้ำมัน
     document.getElementById('kpi-fueled').textContent = (json.fueledCount || (json.todayFueled||[]).length) + ' คัน';
     document.getElementById('kpi-fueled').dataset.fromLive = '1';
     timeEl.textContent = 'อัปเดต ' + fmtNow24();
-  } catch(_) {
+  } catch(err) {
+    console.error('[loadLiveVehicleStatus] Error:', err);
     timeEl.textContent = 'โหลดไม่สำเร็จ';
     renderLiveVehicleGridOffline();
     renderFuelTrackerOffline();
@@ -1810,15 +1816,15 @@ function renderLiveVehicleGrid(json) {
     // ดึงข้อมูลจาก allData เพื่อตรวจหาปัญหา — match ทั้ง "นง.86" และ "นง.86 ชม."
     const latestRecord = (window.allData||[]).filter(r => {
       const ct = (r.carType||'');
-      // ตรวจว่า plate ปรากฏใน carType ไม่ว่ารูปแบบใด
       return ct.includes(v.plate) || v.plate.includes(ct.split(' ')[0]);
     }).sort((a,b) => {
-      // sort by inspDate desc, inspTime desc
       const da = (a.inspDate||'') + (a.inspTime||'');
       const db = (b.inspDate||'') + (b.inspTime||'');
       return db.localeCompare(da);
     })[0];
 
+    // ใช้ข้อมูลจาก getStatusSummary ด้วย (todayChecked มี chk fields หรือไม่?)
+    const chkDataFull = chkKey ? checkedMap[chkKey] : null;
     const hasIssue = latestRecord && Object.keys(latestRecord).some(k => k.startsWith('chk_') && latestRecord[k] === 'ผิดปกติ');
 
     // เก็บ detail สำหรับ popup
