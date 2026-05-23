@@ -579,7 +579,7 @@ textarea { resize: vertical; min-height: 80px; }
     </div>
     <div class="header-nav">
       <a href="check.html" class="nav-btn active">📋 แบบฟอร์ม</a>
-      <a href="dashboard.html" class="nav-btn">📊 Dashboard</a>
+      <a href="index.html" class="nav-btn">← กลับหน้าหลัก</a>
     </div>
   </div>
 </header>
@@ -655,7 +655,7 @@ textarea { resize: vertical; min-height: 80px; }
             <span class="error-msg">กรุณาระบุวันที่</span>
           </div>
           <div class="field-group" id="fg-inspTime">
-            <label>เวลาที่ตรวจ <span class="req">*</span></label>
+            <label>เวลาที่ตรวจ (ระบบ 00.00-24.00 น.) <span class="req">*</span></label>
             <input type="time" id="inspTime" name="inspTime" required>
             <span class="error-msg">กรุณาระบุเวลา</span>
           </div>
@@ -761,6 +761,26 @@ textarea { resize: vertical; min-height: 80px; }
         <div class="radio-group">
           <label class="radio-opt fill"><input type="radio" name="fuelFill" value="เติม" required><span class="pill">⛽ เติม</span></label>
           <label class="radio-opt nofill"><input type="radio" name="fuelFill" value="ไม่เติม"><span class="pill">✖ ไม่เติม</span></label>
+        </div>
+        <div id="fuelPhotoSection" style="display:none;margin-top:20px;">
+          <div class="section-divider"><span>📷 แนบรูปบิลน้ำมัน</span></div>
+          <div class="camera-zone" id="fuelCameraZone" onclick="document.getElementById('fuelPhotoInput').click()" style="border-color:var(--blue);background:rgba(26,115,232,0.03);">
+            <div class="cam-icon">🧾</div>
+            <p style="color:var(--blue);font-weight:600;">แนบรูปบิลน้ำมัน / สลิปการเติม</p>
+            <input type="file" id="fuelPhotoInput" accept="image/*" multiple style="display:none">
+            <button type="button" class="cam-btn" onclick="event.stopPropagation();document.getElementById('fuelCamInput').click()">
+              📷 ถ่ายรูปบิล
+            </button>
+            <button type="button" class="cam-btn secondary" onclick="event.stopPropagation();document.getElementById('fuelGalleryInput').click()">
+              🖼️ เลือกจากคลัง
+            </button>
+            <input type="file" id="fuelCamInput" accept="image/*" capture="environment" style="display:none">
+            <input type="file" id="fuelGalleryInput" accept="image/*" multiple style="display:none">
+          </div>
+          <div class="photo-preview" id="fuelPhotoPreview"></div>
+          <div style="margin-top:8px;font-size:0.78rem;color:var(--blue);text-align:center;font-weight:500;">
+            ⚠️ กรุณาถ่ายรูปบิลน้ำมันทุกครั้งที่มีการเติม
+          </div>
         </div>
       </div>
     </div>
@@ -1009,7 +1029,8 @@ function collectData() {
     fuelLevel: getRadio('fuelLevel'),
     fuelFill: getRadio('fuelFill'),
     remarks: get('remarks'),
-    photos: photos.map(p => ({ name: p.name, data: p.data, type: p.type }))
+    photos: photos.map(p => ({ name: p.name, data: p.data, type: p.type })),
+    fuelPhotos: fuelPhotos.map(p => ({ name: p.name, data: p.data, type: p.type }))
   };
   
   checkItems.forEach(item => {
@@ -1074,7 +1095,26 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
       }).catch(() => {});
     }
     
-    showModal(`บันทึกข้อมูลเรียบร้อยแล้ว${photosData.length > 0 ? `<br><small style="color:var(--text-light)">รูปภาพ ${photosData.length} รูปกำลังอัปโหลดไปยัง Drive…</small>` : ''}`);
+    // อัปโหลดรูปบิลน้ำมัน
+    const fuelPhotosData = payload.fuelPhotos || [];
+    if (fuelPhotosData.length > 0) {
+      const fuelPhotoPayload = {
+        action: 'uploadFuelPhotos',
+        carType: payload.carType,
+        inspDate: payload.inspDate,
+        driverName: payload.driverName,
+        photos: fuelPhotosData
+      };
+      fetch(GAS_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'payload=' + encodeURIComponent(JSON.stringify(fuelPhotoPayload))
+      }).catch(() => {});
+    }
+    
+    const totalPics = photosData.length + fuelPhotosData.length;
+    showModal(`บันทึกข้อมูลเรียบร้อยแล้ว${totalPics > 0 ? `<br><small style="color:var(--text-light)">รูปภาพ ${totalPics} รูปกำลังอัปโหลดไปยัง Drive…</small>` : ''}`);
     resetForm();
     
   } catch (err) {
@@ -1089,7 +1129,10 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
 function resetForm() {
   document.getElementById('inspectionForm').reset();
   photos = [];
+  fuelPhotos = [];
   renderPreviews();
+  renderFuelPreviews();
+  document.getElementById('fuelPhotoSection').style.display = 'none';
   document.querySelectorAll('.field-valid').forEach(el => el.classList.remove('field-valid'));
   setThaiDateTime();
   updateProgress();
@@ -1115,6 +1158,59 @@ function showToast(msg, type = '') {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
 }
+
+
+// ══════ FUEL PHOTO SECTION TOGGLE ══════
+let fuelPhotos = [];
+
+document.querySelectorAll('input[name="fuelFill"]').forEach(radio => {
+  radio.addEventListener('change', function() {
+    const section = document.getElementById('fuelPhotoSection');
+    if (this.value === 'เติม') {
+      section.style.display = 'block';
+      section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+      section.style.display = 'none';
+      fuelPhotos = [];
+      renderFuelPreviews();
+    }
+  });
+});
+
+function handleFuelFiles(files) {
+  Array.from(files).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      fuelPhotos.push({ name: file.name, data: e.target.result, type: file.type });
+      renderFuelPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderFuelPreviews() {
+  const preview = document.getElementById('fuelPhotoPreview');
+  preview.innerHTML = '';
+  fuelPhotos.forEach((p, i) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'photo-thumb';
+    thumb.innerHTML = `
+      <img src="${p.data}" alt="บิลที่ ${i+1}">
+      <button type="button" class="remove-btn" onclick="removeFuelPhoto(${i})">✕</button>
+    `;
+    preview.appendChild(thumb);
+  });
+}
+
+function removeFuelPhoto(i) {
+  fuelPhotos.splice(i, 1);
+  renderFuelPreviews();
+}
+
+['fuelPhotoInput','fuelCamInput','fuelGalleryInput'].forEach(id => {
+  document.getElementById(id)?.addEventListener('change', e => handleFuelFiles(e.target.files));
+});
 
 // Init
 updateProgress();
