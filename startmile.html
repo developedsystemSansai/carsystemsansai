@@ -1154,9 +1154,9 @@ function showCarBlockedNote(plate) {
     const carSelect = document.getElementById('s_carType');
     carSelect.parentNode.appendChild(note);
   }
-  note.innerHTML = \`<span style="font-size:1.1rem;flex-shrink:0;">🚫</span>
-    <span><strong>\${plate}</strong> ยังไม่ผ่านการตรวจสภาพรถประจำวันนี้<br>
-    กรุณาไปที่ <a href="check.html" style="color:#dc2626;font-weight:700;">ตรวจสภาพรถประจำวัน</a> แล้วบันทึกให้เรียบร้อยก่อน</span>\`;
+  note.innerHTML = `<span style="font-size:1.1rem;flex-shrink:0;">🚫</span>
+    <span><strong>${plate}</strong> ยังไม่ผ่านการตรวจสภาพรถประจำวันนี้<br>
+    กรุณาไปที่ <a href="check.html" style="color:#dc2626;font-weight:700;">ตรวจสภาพรถประจำวัน</a> แล้วบันทึกให้เรียบร้อยก่อน</span>`;
   note.style.display = 'flex';
 }
 
