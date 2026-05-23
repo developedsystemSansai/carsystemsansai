@@ -456,6 +456,27 @@ textarea { resize: vertical; min-height: 80px; }
                   <input type="number" id="s_fuelPrice" step="0.01" min="0" placeholder="เช่น 850">
                 </div>
               </div>
+              <!-- รูปบิลน้ำมัน -->
+              <div class="form-group span2" style="margin-top:8px;">
+                <label>📷 แนบรูปบิลน้ำมัน</label>
+                <div style="border:2px dashed #1a73e8;border-radius:12px;padding:16px;text-align:center;background:rgba(26,115,232,0.03);cursor:pointer;" onclick="document.getElementById('startFuelPhotoInput').click()">
+                  <div style="font-size:1.5rem;margin-bottom:6px;">🧾</div>
+                  <div style="font-size:0.85rem;color:#1a73e8;font-weight:600;margin-bottom:10px;">ถ่ายรูปหรือเลือกบิลน้ำมัน</div>
+                  <input type="file" id="startFuelPhotoInput" accept="image/*" multiple style="display:none">
+                  <button type="button" onclick="event.stopPropagation();document.getElementById('startFuelCamInput').click()" 
+                    style="padding:8px 16px;background:#1a73e8;color:#fff;border:none;border-radius:8px;font-size:0.83rem;font-weight:600;cursor:pointer;margin-right:8px;">
+                    📷 ถ่ายรูปบิล
+                  </button>
+                  <button type="button" onclick="event.stopPropagation();document.getElementById('startFuelGalleryInput').click()"
+                    style="padding:8px 16px;background:transparent;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:8px;font-size:0.83rem;font-weight:600;cursor:pointer;">
+                    🖼️ เลือกจากคลัง
+                  </button>
+                  <input type="file" id="startFuelCamInput" accept="image/*" capture="environment" style="display:none">
+                  <input type="file" id="startFuelGalleryInput" accept="image/*" multiple style="display:none">
+                </div>
+                <div id="startFuelPhotoPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
+                <div style="font-size:0.75rem;color:#1a73e8;margin-top:4px;font-weight:500;">⚠️ กรุณาถ่ายรูปบิลทุกครั้งที่เติมน้ำมัน</div>
+              </div>
             </div>
           </div>
 
@@ -876,6 +897,9 @@ document.getElementById('startForm').addEventListener('submit', (e) => {
   if (document.getElementById('fuelCheck').checked) {
     data.fuelLiters = document.getElementById('s_fuelLiters').value;
     data.fuelPrice  = document.getElementById('s_fuelPrice').value;
+    if (startFuelPhotos.length > 0) {
+      data.fuelPhotos = startFuelPhotos.map(p => ({ name: p.name, data: p.data, type: p.type }));
+    }
   }
 
   pendingAction = { type: 'start', data };
@@ -951,6 +975,8 @@ async function confirmSubmit() {
       showToast('✅ บันทึกออกรถสำเร็จ — สถานะ: กำลังใช้งาน', 'success');
       startOdoMap[data.carType] = Number(data.odometerStart);
       document.getElementById('startForm').reset();
+      startFuelPhotos = [];
+      renderStartFuelPreviews();
       setDateTimeDefaults();
     } else {
       showToast('✅ บันทึกกลับสำเร็จ — สถานะ: พร้อมใช้งาน', 'success');
@@ -1033,6 +1059,46 @@ function showToast(msg, type = '') {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.classList.remove('show'); }, 3500);
 }
+
+
+// ══════ FUEL PHOTO (startmile) ══════
+let startFuelPhotos = [];
+
+function handleStartFuelFiles(files) {
+  Array.from(files).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      startFuelPhotos.push({ name: file.name, data: e.target.result, type: file.type });
+      renderStartFuelPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderStartFuelPreviews() {
+  const preview = document.getElementById('startFuelPhotoPreview');
+  if (!preview) return;
+  preview.innerHTML = '';
+  startFuelPhotos.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.style.cssText = 'position:relative;width:90px;height:90px;border-radius:8px;overflow:hidden;border:2px solid #dde3eb;';
+    div.innerHTML = `<img src="${p.data}" style="width:100%;height:100%;object-fit:cover;">
+      <button type="button" onclick="removeStartFuelPhoto(${i})" style="position:absolute;top:3px;right:3px;width:20px;height:20px;background:rgba(244,67,54,0.9);border:none;border-radius:50%;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;">✕</button>`;
+    preview.appendChild(div);
+  });
+}
+
+function removeStartFuelPhoto(i) {
+  startFuelPhotos.splice(i, 1);
+  renderStartFuelPreviews();
+}
+
+['startFuelPhotoInput','startFuelCamInput','startFuelGalleryInput'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', e => handleStartFuelFiles(e.target.files));
+});
+
 </script>
 
 </body>
