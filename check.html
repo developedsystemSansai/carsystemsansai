@@ -1002,11 +1002,22 @@ checkItems.forEach(item => {
 // SET DEFAULT DATE/TIME (Asia/Bangkok timezone)
 // ============================================================
 function setThaiDateTime() {
+  // ใช้ Intl.DateTimeFormat เพื่อดึงวันที่/เวลา Asia/Bangkok โดยตรง ไม่แปลง UTC
   const now = new Date();
-  // ใช้ timezone Asia/Bangkok สำหรับค่าเริ่มต้น
-  const thaiDate = new Date(now.toLocaleString('en-US', {timeZone: 'Asia/Bangkok'}));
-  document.getElementById('inspDate').value = thaiDate.toISOString().split('T')[0];
-  document.getElementById('inspTime').value = thaiDate.toTimeString().slice(0,5); // HH:MM 24H
+  const bkk = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok',
+    year: 'numeric', month: '2-digit', day: '2-digit'
+  });
+  const bkkTime = new Intl.DateTimeFormat('th-TH', {
+    timeZone: 'Asia/Bangkok',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  });
+  // en-CA format = yyyy-MM-dd
+  document.getElementById('inspDate').value = bkk.format(now);
+  // เวลา: "HH:mm" (อาจได้ "24:xx" → แก้เป็น "00:xx")
+  let timeStr = bkkTime.format(now).replace('น.','').trim();
+  if (timeStr.startsWith('24:')) timeStr = '00:' + timeStr.slice(3);
+  document.getElementById('inspTime').value = timeStr;
 }
 setThaiDateTime();
 loadMasterData(); // โหลดรายการรถ+พนักงานจาก Google Sheets
