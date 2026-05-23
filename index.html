@@ -369,8 +369,8 @@
     <p>ระบบติดตาม ตรวจสอบ และวิเคราะห์ยานพาหนะอย่างครบวงจร เพื่อความโปร่งใส ปลอดภัย และมีประสิทธิภาพ</p>
     <div class="hero-meta">
       <div class="hero-meta-item"><span class="dot"></span>ระบบออนไลน์</div>
-      <div class="hero-meta-item">🕐 อัปเดตแบบ Real-time</div>
-      <div class="hero-meta-item">📱 รองรับมือถือ</div>
+      <div class="hero-meta-item">อัปเดตแบบ Real-time</div>
+      <div class="hero-meta-item">รองรับมือถือ</div>
     </div>
   </div>
 </section>
@@ -639,7 +639,7 @@ async function loadStatus() {
     renderVehicleCards(json);
 
   } catch (_) {
-    document.getElementById('statusUpdateTime').textContent = '(ไม่สามารถโหลดได้ — ลองใหม่)';
+    document.getElementById('statusUpdateTime').textContent = 'โหลดไม่สำเร็จ';
     // fallback: แสดงรถทั้งหมดเป็น unknown
     renderVehicleCardsOffline();
   }
@@ -670,13 +670,13 @@ function renderVehicleCards(json) {
     let statusLabel, statusColor, bgColor, borderColor;
     if (isInUse) {
       const x = inUseMap[inUseKey];
-      statusLabel  = `🟡 กำลังใช้งาน${x?.destination ? ' → '+x.destination : ''}`;
+      statusLabel  = `กำลังใช้งาน${x?.destination ? ' → '+x.destination : ''}`;
       statusColor  = '#b45309'; bgColor = '#fef3c7'; borderColor = '#fde68a';
     } else if (isChecked) {
-      statusLabel  = '🟢 พร้อมใช้งาน';
+      statusLabel  = 'พร้อมใช้งาน';
       statusColor  = '#065f46'; bgColor = '#d1fae5'; borderColor = '#a7f3d0';
     } else {
-      statusLabel  = '⚪ รอตรวจสภาพ';
+      statusLabel  = 'รอตรวจสภาพ';
       statusColor  = '#64748b'; bgColor = '#f1f5f9'; borderColor = '#e2e8f0';
     }
 
