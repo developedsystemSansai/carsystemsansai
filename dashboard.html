@@ -843,6 +843,18 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 // ── CONFIG ──
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxL1ZYuJr_jtZtGB9oRS5HSO9lArCeqduleQOEli9Ctpv4tZGIiHrTXg-OqMGFvfQ/exec';
+// ── Bangkok Timezone Helpers ──────────────────────────────
+function bkkDateStr(d) {
+  // ส่งคืน 'yyyy-MM-dd' ใน timezone Asia/Bangkok
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Bangkok', year:'numeric', month:'2-digit', day:'2-digit'
+  }).format(d || new Date());
+}
+function bkkMonthStr(d) {
+  // ส่งคืน 'yyyy-MM' ใน timezone Asia/Bangkok
+  const s = bkkDateStr(d);
+  return s.slice(0, 7);
+}
 
 // fallback list (ใช้เมื่อ API ยังไม่โหลดเสร็จ)
 let ALL_VEHICLES = [
@@ -910,7 +922,7 @@ let currentTab = 'oil';
 // ── LOAD DATA ──
 function filterToday() {
   const now = new Date();
-  document.getElementById('filterMonth').value = now.toISOString().slice(0,7);
+  document.getElementById('filterMonth').value = bkkMonthStr(now);
   document.getElementById('filterCar').value = '';
   document.getElementById('filterSearch').value = '';
   applyFilters();
@@ -924,10 +936,6 @@ async function loadData() {
     allData = json.data || [];
     window.allData = allData; // sync กับ liveVehicleGrid
     console.log('[Dashboard] getData:', allData.length, 'records');
-    // หลังโหลดข้อมูลแล้ว ให้ re-render vehicle grid ถ้ามีอยู่แล้ว
-    if (typeof renderLiveVehicleGrid === 'function' && window._lastStatusJson) {
-      renderLiveVehicleGrid(window._lastStatusJson);
-    }
     if (allData.length > 0) {
       console.log('[Dashboard] sample record keys:', Object.keys(allData[0]));
       console.log('[Dashboard] sample inspDate:', allData[0].inspDate, '| timestamp:', allData[0].timestamp);
@@ -1050,7 +1058,7 @@ function renderKPIs(data) {
   const issues = total - okCount;
 
   // นับรถที่เติมน้ำมันวันนี้จาก allData (ถ้ายังไม่มีจาก liveStatus)
-  const todayStr = new Date().toISOString().slice(0,10);
+  const todayStr = bkkDateStr();
   const fueledToday = new Set(
     data.filter(r => {
       const nd = normalizeInspDate(r.inspDate || r.timestamp || '');
@@ -1559,7 +1567,7 @@ function generateDemoData() {
   for (let i = 0; i < 60; i++) {
     const d = new Date(now); d.setDate(d.getDate() - Math.floor(Math.random()*60));
     const r = {
-      inspDate: d.toISOString().split('T')[0],
+      inspDate: bkkDateStr(d),
       inspTime: `0${6+Math.floor(Math.random()*3)}:${String(Math.floor(Math.random()*60)).padStart(2,'0')}`,
       carType: carTypes[Math.floor(Math.random()*carTypes.length)],
       driverName: drivers[Math.floor(Math.random()*drivers.length)],
@@ -1583,7 +1591,7 @@ function generateDemoData() {
 (function() {
   const now = new Date();
   const monthEl = document.getElementById('filterMonth');
-  if (monthEl) monthEl.value = now.toISOString().slice(0,7);
+  if (monthEl) monthEl.value = bkkMonthStr(now);
 })();
 
 
@@ -1666,15 +1674,13 @@ async function loadLiveVehicleStatus() {
     const res = await fetch(GAS_STATUS_URL + '?action=getStatusSummary');
     const json = await res.json();
     if (json.status !== 'ok') throw new Error('api error');
-    window._lastStatusJson = json; // cache for re-render after allData loads
     renderLiveVehicleGrid(json);
     renderFuelTracker(json);
     // อัปเดต KPI เติมน้ำมัน
     document.getElementById('kpi-fueled').textContent = (json.fueledCount || (json.todayFueled||[]).length) + ' คัน';
     document.getElementById('kpi-fueled').dataset.fromLive = '1';
     timeEl.textContent = 'อัปเดต ' + fmtNow24();
-  } catch(err) {
-    console.error('[loadLiveVehicleStatus] Error:', err);
+  } catch(_) {
     timeEl.textContent = 'โหลดไม่สำเร็จ';
     renderLiveVehicleGridOffline();
     renderFuelTrackerOffline();
@@ -1816,15 +1822,15 @@ function renderLiveVehicleGrid(json) {
     // ดึงข้อมูลจาก allData เพื่อตรวจหาปัญหา — match ทั้ง "นง.86" และ "นง.86 ชม."
     const latestRecord = (window.allData||[]).filter(r => {
       const ct = (r.carType||'');
+      // ตรวจว่า plate ปรากฏใน carType ไม่ว่ารูปแบบใด
       return ct.includes(v.plate) || v.plate.includes(ct.split(' ')[0]);
     }).sort((a,b) => {
+      // sort by inspDate desc, inspTime desc
       const da = (a.inspDate||'') + (a.inspTime||'');
       const db = (b.inspDate||'') + (b.inspTime||'');
       return db.localeCompare(da);
     })[0];
 
-    // ใช้ข้อมูลจาก getStatusSummary ด้วย (todayChecked มี chk fields หรือไม่?)
-    const chkDataFull = chkKey ? checkedMap[chkKey] : null;
     const hasIssue = latestRecord && Object.keys(latestRecord).some(k => k.startsWith('chk_') && latestRecord[k] === 'ผิดปกติ');
 
     // เก็บ detail สำหรับ popup
@@ -2096,7 +2102,7 @@ function activateMockup() {
 
   // โหลดข้อมูลสาธิต
   allData = generateMockData(45);
-  document.getElementById('filterMonth').value = new Date().toISOString().slice(0,7);
+  document.getElementById('filterMonth').value = bkkMonthStr();
   applyFilters();
   document.getElementById('lastUpdated').textContent = 'โหมดสาธิต — ข้อมูลจำลอง 45 วัน';
 
