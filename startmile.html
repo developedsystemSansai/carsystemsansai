@@ -320,6 +320,133 @@ textarea { resize: vertical; min-height: 80px; }
   .card-header { padding: 14px 16px 12px; }
   .tab-btn { font-size: 12px; padding: 9px 8px; }
 }
+
+  .qtb {
+    padding: 4px 10px; border-radius: 6px;
+    border: 1.5px solid var(--blue); background: transparent;
+    color: var(--blue); font-family: inherit; font-size: 0.75rem;
+    font-weight: 600; cursor: pointer; transition: all 0.15s;
+  }
+  .qtb:hover { background: var(--blue); color: #fff; }
+
+  /* ── FUEL PHOTO ZONE ── */
+  .fuel-photo-zone {
+    border: 2.5px dashed #1a73e8;
+    border-radius: 14px;
+    padding: 20px 16px 16px;
+    text-align: center;
+    background: linear-gradient(135deg,rgba(26,115,232,0.04),rgba(0,137,123,0.04));
+    transition: border-color .2s, background .2s;
+    cursor: pointer;
+    margin-top: 4px;
+  }
+  .fuel-photo-zone:hover {
+    border-color: var(--teal);
+    background: linear-gradient(135deg,rgba(26,115,232,0.07),rgba(0,137,123,0.07));
+  }
+  .fuel-photo-zone.has-photo {
+    border-style: solid;
+    border-color: var(--teal);
+    background: linear-gradient(135deg,rgba(0,137,123,0.06),rgba(26,115,232,0.04));
+  }
+  .fuel-photo-icon { font-size: 2.2rem; margin-bottom: 6px; display: block; }
+  .fuel-photo-title {
+    font-size: 0.92rem; font-weight: 700; color: #1a73e8; margin-bottom: 4px;
+  }
+  .fuel-photo-sub {
+    font-size: 0.75rem; color: #8898aa; margin-bottom: 14px;
+  }
+  .fuel-cam-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+  .fuel-cam-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 18px; border-radius: 9px; border: none;
+    background: linear-gradient(135deg, #1a73e8, #00897b);
+    color: #fff; font-family: inherit; font-size: 0.85rem;
+    font-weight: 700; cursor: pointer; transition: all .2s;
+    box-shadow: 0 3px 10px rgba(26,115,232,0.3);
+  }
+  .fuel-cam-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(26,115,232,0.4); }
+  .fuel-cam-btn.secondary {
+    background: #fff;
+    color: #1a73e8;
+    border: 2px solid #1a73e8;
+    box-shadow: none;
+  }
+  .fuel-cam-btn.secondary:hover { background: #e8f1fd; box-shadow: none; }
+  .fuel-photo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .fuel-thumb {
+    position: relative; border-radius: 10px; overflow: hidden;
+    aspect-ratio: 1; border: 2.5px solid var(--teal);
+    box-shadow: 0 2px 10px rgba(0,137,123,0.2);
+    cursor: zoom-in;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .fuel-thumb:hover { transform: scale(1.04); box-shadow: 0 4px 18px rgba(0,137,123,0.35); }
+  .fuel-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .fuel-thumb-del {
+    position: absolute; top: 4px; right: 4px;
+    width: 22px; height: 22px;
+    background: rgba(244,67,54,0.9); border: none; border-radius: 50%;
+    color: #fff; font-size: 12px; font-weight: 700;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: background .15s; z-index: 2;
+  }
+  .fuel-thumb-del:hover { background: #c62828; }
+  .fuel-photo-count {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--teal); color: #fff;
+    font-size: 0.72rem; font-weight: 700;
+    padding: 3px 10px; border-radius: 99px; margin-top: 10px;
+  }
+  .fuel-warn-badge {
+    display: flex; align-items: center; gap: 6px;
+    background: #fff8e1; border: 1.5px solid #fde68a;
+    border-radius: 8px; padding: 8px 12px; margin-top: 10px;
+    font-size: 0.78rem; font-weight: 600; color: #92400e;
+  }
+  /* Lightbox for fuel photos */
+  .flightbox {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.92);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; pointer-events: none; transition: opacity .25s;
+  }
+  .flightbox.show { opacity: 1; pointer-events: all; }
+  .flightbox img {
+    max-width: 92vw; max-height: 88vh;
+    border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .flightbox-close {
+    position: absolute; top: 16px; right: 16px;
+    background: rgba(255,255,255,0.15); border: none; color: #fff;
+    border-radius: 50%; width: 42px; height: 42px;
+    font-size: 1.3rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s;
+  }
+  .flightbox-close:hover { background: rgba(255,255,255,0.28); }
+  .flightbox-nav {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    background: rgba(255,255,255,0.15); border: none; color: #fff;
+    border-radius: 50%; width: 44px; height: 44px;
+    font-size: 1.4rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s;
+  }
+  .flightbox-nav:hover { background: rgba(255,255,255,0.28); }
+  .flightbox-nav.prev { left: 16px; }
+  .flightbox-nav.next { right: 16px; }
+  .flightbox-counter {
+    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.5); color: #fff; padding: 4px 14px;
+    border-radius: 99px; font-size: 0.82rem; font-weight: 600;
+  }
+
 </style>
 </head>
 <body>
@@ -415,7 +542,22 @@ textarea { resize: vertical; min-height: 80px; }
 
             <div class="form-group">
               <label>เวลาออกรถ <span class="req">*</span></label>
-              <input type="time" id="s_tripTime" required>
+              <div style="position:relative;">
+              <input type="text" id="s_tripTime" required
+                placeholder="08:30" maxlength="5" autocomplete="off"
+                style="letter-spacing:2px;font-weight:600;"
+                oninput="fmt24Input(this)" onblur="val24Input(this)">
+              <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.75rem;color:#8898aa;font-weight:600;pointer-events:none;">น.</span>
+            </div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;">
+              <span style="font-size:0.7rem;color:#8898aa;font-weight:600;align-self:center;">เร็ว:</span>
+              <button type="button" class="qtb" onclick="setT('s_tripTime','06:00')">06:00</button>
+              <button type="button" class="qtb" onclick="setT('s_tripTime','07:00')">07:00</button>
+              <button type="button" class="qtb" onclick="setT('s_tripTime','08:00')">08:00</button>
+              <button type="button" class="qtb" onclick="setT('s_tripTime','09:00')">09:00</button>
+              <button type="button" class="qtb" onclick="setT('s_tripTime','13:00')">13:00</button>
+              <button type="button" class="qtb" onclick="setT('s_tripTime','16:00')">16:00</button>
+            </div>
             </div>
 
             <div class="form-group span2">
@@ -457,25 +599,44 @@ textarea { resize: vertical; min-height: 80px; }
                 </div>
               </div>
               <!-- รูปบิลน้ำมัน -->
-              <div class="form-group span2" style="margin-top:8px;">
-                <label>📷 แนบรูปบิลน้ำมัน</label>
-                <div style="border:2px dashed #1a73e8;border-radius:12px;padding:16px;text-align:center;background:rgba(26,115,232,0.03);cursor:pointer;" onclick="document.getElementById('startFuelPhotoInput').click()">
-                  <div style="font-size:1.5rem;margin-bottom:6px;">🧾</div>
-                  <div style="font-size:0.85rem;color:#1a73e8;font-weight:600;margin-bottom:10px;">ถ่ายรูปหรือเลือกบิลน้ำมัน</div>
+              <div class="form-group span2" style="margin-top:16px;">
+                <label style="font-size:13px;font-weight:700;color:var(--text-mid);margin-bottom:6px;display:flex;align-items:center;gap:6px;">
+                  <span style="background:var(--blue);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;">จำเป็น</span>
+                  📷 รูปบิลน้ำมัน / สลิปการเติม
+                </label>
+
+                <!-- Drop Zone -->
+                <div class="fuel-photo-zone" id="fuelDropZone" onclick="document.getElementById('startFuelPhotoInput').click()">
+                  <span class="fuel-photo-icon" id="fuelZoneIcon">🧾</span>
+                  <div class="fuel-photo-title" id="fuelZoneTitle">ถ่ายรูปหรืออัปโหลดบิลน้ำมัน</div>
+                  <div class="fuel-photo-sub" id="fuelZoneSub">รองรับหลายรูป — แตะเพื่อเปิดกล้องหรือเลือกจากคลัง</div>
+                  <div class="fuel-cam-btns">
+                    <button type="button" class="fuel-cam-btn" onclick="event.stopPropagation();document.getElementById('startFuelCamInput').click()">
+                      📷 ถ่ายรูปทันที
+                    </button>
+                    <button type="button" class="fuel-cam-btn secondary" onclick="event.stopPropagation();document.getElementById('startFuelGalleryInput').click()">
+                      🖼️ เลือกจากคลัง
+                    </button>
+                  </div>
+                  <!-- Hidden inputs -->
                   <input type="file" id="startFuelPhotoInput" accept="image/*" multiple style="display:none">
-                  <button type="button" onclick="event.stopPropagation();document.getElementById('startFuelCamInput').click()" 
-                    style="padding:8px 16px;background:#1a73e8;color:#fff;border:none;border-radius:8px;font-size:0.83rem;font-weight:600;cursor:pointer;margin-right:8px;">
-                    📷 ถ่ายรูปบิล
-                  </button>
-                  <button type="button" onclick="event.stopPropagation();document.getElementById('startFuelGalleryInput').click()"
-                    style="padding:8px 16px;background:transparent;color:#1a73e8;border:1.5px solid #1a73e8;border-radius:8px;font-size:0.83rem;font-weight:600;cursor:pointer;">
-                    🖼️ เลือกจากคลัง
-                  </button>
                   <input type="file" id="startFuelCamInput" accept="image/*" capture="environment" style="display:none">
                   <input type="file" id="startFuelGalleryInput" accept="image/*" multiple style="display:none">
                 </div>
-                <div id="startFuelPhotoPreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
-                <div style="font-size:0.75rem;color:#1a73e8;margin-top:4px;font-weight:500;">⚠️ กรุณาถ่ายรูปบิลทุกครั้งที่เติมน้ำมัน</div>
+
+                <!-- Warning badge -->
+                <div class="fuel-warn-badge">
+                  <span>⚠️</span>
+                  <span>กรุณาถ่ายรูปบิลน้ำมันทุกครั้ง เพื่อยืนยันการเติมและป้องกันความผิดพลาด</span>
+                </div>
+
+                <!-- Photo count badge (hidden until photos added) -->
+                <div id="fuelPhotoCountBadge" style="display:none;margin-top:8px;">
+                  <span class="fuel-photo-count" id="fuelPhotoCountText">✅ 0 รูป</span>
+                </div>
+
+                <!-- Photo grid preview -->
+                <div class="fuel-photo-grid" id="startFuelPhotoPreview"></div>
               </div>
             </div>
           </div>
@@ -532,7 +693,22 @@ textarea { resize: vertical; min-height: 80px; }
 
             <div class="form-group">
               <label>เวลากลับถึง รพ. <span class="req">*</span></label>
-              <input type="time" id="e_returnTime" required>
+              <div style="position:relative;">
+              <input type="text" id="e_returnTime" required
+                placeholder="16:30" maxlength="5" autocomplete="off"
+                style="letter-spacing:2px;font-weight:600;"
+                oninput="fmt24Input(this)" onblur="val24Input(this)">
+              <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.75rem;color:#8898aa;font-weight:600;pointer-events:none;">น.</span>
+            </div>
+            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;">
+              <span style="font-size:0.7rem;color:#8898aa;font-weight:600;align-self:center;">เร็ว:</span>
+              <button type="button" class="qtb" onclick="setT('e_returnTime','12:00')">12:00</button>
+              <button type="button" class="qtb" onclick="setT('e_returnTime','13:00')">13:00</button>
+              <button type="button" class="qtb" onclick="setT('e_returnTime','16:30')">16:30</button>
+              <button type="button" class="qtb" onclick="setT('e_returnTime','17:00')">17:00</button>
+              <button type="button" class="qtb" onclick="setT('e_returnTime','18:00')">18:00</button>
+              <button type="button" class="qtb" onclick="setT('e_returnTime','20:00')">20:00</button>
+            </div>
             </div>
 
             <div class="form-group">
@@ -977,6 +1153,7 @@ async function confirmSubmit() {
       document.getElementById('startForm').reset();
       startFuelPhotos = [];
       renderStartFuelPreviews();
+      if(document.getElementById("fuelDropZone")) document.getElementById("fuelDropZone").classList.remove("has-photo");
       setDateTimeDefaults();
     } else {
       showToast('✅ บันทึกกลับสำเร็จ — สถานะ: พร้อมใช้งาน', 'success');
@@ -1063,6 +1240,7 @@ function showToast(msg, type = '') {
 
 // ══════ FUEL PHOTO (startmile) ══════
 let startFuelPhotos = [];
+let fuelLightboxIdx = 0;
 
 function handleStartFuelFiles(files) {
   Array.from(files).forEach(file => {
@@ -1078,13 +1256,43 @@ function handleStartFuelFiles(files) {
 
 function renderStartFuelPreviews() {
   const preview = document.getElementById('startFuelPhotoPreview');
+  const countBadge = document.getElementById('fuelPhotoCountBadge');
+  const countText = document.getElementById('fuelPhotoCountText');
+  const zone = document.getElementById('fuelDropZone');
+  const zoneIcon = document.getElementById('fuelZoneIcon');
+  const zoneTitle = document.getElementById('fuelZoneTitle');
+  const zoneSub = document.getElementById('fuelZoneSub');
+
   if (!preview) return;
+
+  const n = startFuelPhotos.length;
+
+  // Update zone appearance
+  if (n > 0) {
+    zone.classList.add('has-photo');
+    zoneIcon.textContent = '✅';
+    zoneTitle.textContent = `มีรูปบิล ${n} รูปแล้ว`;
+    zoneSub.textContent = 'แตะเพื่อเพิ่มรูปอีก';
+    countBadge.style.display = 'block';
+    countText.textContent = `✅ แนบบิลแล้ว ${n} รูป`;
+    countText.style.background = 'var(--teal)';
+  } else {
+    zone.classList.remove('has-photo');
+    zoneIcon.textContent = '🧾';
+    zoneTitle.textContent = 'ถ่ายรูปหรืออัปโหลดบิลน้ำมัน';
+    zoneSub.textContent = 'รองรับหลายรูป — แตะเพื่อเปิดกล้องหรือเลือกจากคลัง';
+    countBadge.style.display = 'none';
+  }
+
+  // Render photo grid
   preview.innerHTML = '';
   startFuelPhotos.forEach((p, i) => {
     const div = document.createElement('div');
-    div.style.cssText = 'position:relative;width:90px;height:90px;border-radius:8px;overflow:hidden;border:2px solid #dde3eb;';
-    div.innerHTML = `<img src="${p.data}" style="width:100%;height:100%;object-fit:cover;">
-      <button type="button" onclick="removeStartFuelPhoto(${i})" style="position:absolute;top:3px;right:3px;width:20px;height:20px;background:rgba(244,67,54,0.9);border:none;border-radius:50%;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;">✕</button>`;
+    div.className = 'fuel-thumb';
+    div.innerHTML = `
+      <img src="${p.data}" alt="บิลที่ ${i+1}" onclick="event.stopPropagation();openFuelLightbox(${i})">
+      <button type="button" class="fuel-thumb-del" onclick="event.stopPropagation();removeStartFuelPhoto(${i})">✕</button>
+    `;
     preview.appendChild(div);
   });
 }
@@ -1094,12 +1302,72 @@ function removeStartFuelPhoto(i) {
   renderStartFuelPreviews();
 }
 
+// ── Lightbox ──
+function openFuelLightbox(idx) {
+  fuelLightboxIdx = idx;
+  const lb = document.getElementById('fuelLightbox');
+  document.getElementById('fuelLightboxImg').src = startFuelPhotos[idx].data;
+  document.getElementById('fuelLightboxCounter').textContent = `${idx+1} / ${startFuelPhotos.length}`;
+  lb.classList.add('show');
+}
+
+function closeFuelLightbox() {
+  document.getElementById('fuelLightbox').classList.remove('show');
+  document.getElementById('fuelLightboxImg').src = '';
+}
+
+function navFuelLightbox(dir) {
+  fuelLightboxIdx = (fuelLightboxIdx + dir + startFuelPhotos.length) % startFuelPhotos.length;
+  document.getElementById('fuelLightboxImg').src = startFuelPhotos[fuelLightboxIdx].data;
+  document.getElementById('fuelLightboxCounter').textContent = `${fuelLightboxIdx+1} / ${startFuelPhotos.length}`;
+}
+
+document.addEventListener('keydown', e => {
+  const lb = document.getElementById('fuelLightbox');
+  if (!lb.classList.contains('show')) return;
+  if (e.key === 'Escape') closeFuelLightbox();
+  if (e.key === 'ArrowLeft') navFuelLightbox(-1);
+  if (e.key === 'ArrowRight') navFuelLightbox(1);
+});
+
 ['startFuelPhotoInput','startFuelCamInput','startFuelGalleryInput'].forEach(id => {
   const el = document.getElementById(id);
   if (el) el.addEventListener('change', e => handleStartFuelFiles(e.target.files));
 });
 
+
+// ══════ 24H TIME INPUT ══════
+function fmt24Input(el) {
+  let v = el.value.replace(/[^0-9]/g, '');
+  if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2,4);
+  el.value = v;
+  if (v.length === 5) {
+    const [h,m] = v.split(':').map(Number);
+    el.style.borderColor = (h<=23 && m<=59) ? 'var(--success)' : 'var(--danger)';
+  } else { el.style.borderColor = ''; }
+}
+function val24Input(el) {
+  if (!el.value) return;
+  if (!/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(el.value)) {
+    el.style.borderColor = 'var(--danger)'; el.value = '';
+  }
+}
+function setT(id, t) {
+  const el = document.getElementById(id);
+  if (el) { el.value = t; el.style.borderColor = 'var(--success)'; }
+}
+
 </script>
+
+
+<!-- ── FUEL PHOTO LIGHTBOX ── -->
+<div class="flightbox" id="fuelLightbox" onclick="closeFuelLightbox()">
+  <button class="flightbox-close" onclick="closeFuelLightbox()">✕</button>
+  <button class="flightbox-nav prev" onclick="event.stopPropagation();navFuelLightbox(-1)">‹</button>
+  <img id="fuelLightboxImg" src="" alt="บิลน้ำมัน">
+  <button class="flightbox-nav next" onclick="event.stopPropagation();navFuelLightbox(1)">›</button>
+  <div class="flightbox-counter" id="fuelLightboxCounter">1 / 1</div>
+</div>
 
 </body>
 </html>
