@@ -641,6 +641,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <div class="filter-actions">
       <button class="refresh-btn" onclick="loadData()">รีเฟรช</button>
+      <button class="refresh-btn" style="background:linear-gradient(135deg,#00897b,#00695c);margin-left:0;" onclick="filterToday()">วันนี้</button>
       <span class="last-updated" id="lastUpdated">—</span>
     </div>
   </div>
@@ -907,6 +908,14 @@ let filteredData = [];
 let currentTab = 'oil';
 
 // ── LOAD DATA ──
+function filterToday() {
+  const now = new Date();
+  document.getElementById('filterMonth').value = now.toISOString().slice(0,7);
+  document.getElementById('filterCar').value = '';
+  document.getElementById('filterSearch').value = '';
+  applyFilters();
+}
+
 async function loadData() {
   document.getElementById('lastUpdated').textContent = 'กำลังโหลด...';
   try {
@@ -946,12 +955,37 @@ function normalizeInspDate(val) {
   return '';
 }
 
+
+// แปลง fuelLevel: decimal (0.25, 0.5 ฯลฯ) → "25%", "50%" ฯลฯ
+function normalizeFuelLevel(val) {
+  if (!val && val !== 0) return '—';
+  const s = String(val).trim();
+  if (['0%','25%','50%','75%','100%'].includes(s)) return s;
+  const n = parseFloat(s);
+  if (isNaN(n)) return s || '—';
+  // decimal 0-1
+  if (n >= 0 && n <= 1) {
+    const pct = Math.round(n * 100);
+    if (pct <= 5)  return '0%';
+    if (pct <= 37) return '25%';
+    if (pct <= 62) return '50%';
+    if (pct <= 87) return '75%';
+    return '100%';
+  }
+  // already 0-100
+  if (n <= 12)  return '0%';
+  if (n <= 37)  return '25%';
+  if (n <= 62)  return '50%';
+  if (n <= 87)  return '75%';
+  return '100%';
+}
+
 function applyFilters() {
   // normalize inspDate ทุก record ก่อน filter (copy กลับเป็น inspDate ด้วย เพื่อ sort/display)
   let data = allData.map(r => {
     // ลอง inspDate ก่อน ถ้าว่างหรือ normalize ไม่ได้ ให้ fallback ไป timestamp
     const nd = normalizeInspDate(r.inspDate) || normalizeInspDate(r.timestamp);
-    return { ...r, inspDate: nd || r.inspDate, _normDate: nd || '' };
+    return { ...r, inspDate: nd || r.inspDate, _normDate: nd || '', fuelLevel: normalizeFuelLevel(r.fuelLevel) };
   });
 
   const carF    = document.getElementById('filterCar').value;
@@ -1541,9 +1575,12 @@ function generateDemoData() {
 }
 
 // Init — data loaded after session check
-// ไม่ตั้ง filterMonth เริ่มต้น เพื่อให้แสดงข้อมูลทั้งหมดก่อน
-// const now = new Date();
-// document.getElementById('filterMonth').value = now.toISOString().slice(0,7);
+// ตั้ง filterMonth เป็นเดือนปัจจุบัน (วันนี้)
+(function() {
+  const now = new Date();
+  const monthEl = document.getElementById('filterMonth');
+  if (monthEl) monthEl.value = now.toISOString().slice(0,7);
+})();
 
 
 // ══════ LIVE VEHICLE STATUS ══════
