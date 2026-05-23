@@ -1364,6 +1364,216 @@ function renderLiveVehicleGridOffline() {
 loadLiveVehicleStatus();
 setInterval(loadLiveVehicleStatus, 120000);
 
+// ══════════════════════════════════════════════════════════════
+// TEST MOCKUP — แสดงข้อมูลสาธิตที่สมจริง
+// ══════════════════════════════════════════════════════════════
+
+const MOCK_DRIVERS = [
+  'นาย ชัยพร มอญแสง',
+  'นาย กิตติพงศ์ เขื่อนแก้ว',
+  'นาย กานต์นิธิ ทองอร',
+  'นาย เฉลิมพล เลาแก้ว',
+  'นายกัมพล โพธิ์พัด',
+  'นาย นพดล คำปินคำ',
+  'นาย ภาณุพงศ์ กางสำโรง',
+  'นายชัยพร ชัยศร',
+];
+
+const MOCK_CARS = [
+  { plate: 'ขค.9662', type: 'รถปิ๊กอัพ 4 ประตู', carType: 'ขค.9662 ชม.รถปิ๊กอัพ4ประตู', baseOdo: 379000 },
+  { plate: 'กล.9438', type: 'รถปิ๊กอัพ 4 ประตู', carType: 'กล.9438 ชม.รถปิ๊กอัพ4ประตู', baseOdo: 470000 },
+  { plate: 'ขธ.9302', type: 'รถปิ๊กอัพ 4 ประตู', carType: 'ขธ.9302 ชม.รถปิ๊กอัพ4ประตู', baseOdo: 330000 },
+  { plate: 'นง.86',   type: 'รถตู้',              carType: 'นง.86 ชม.รถตู้',               baseOdo: 293000 },
+  { plate: 'นง.8781', type: 'รถตู้ฮุนได',         carType: 'นง.8781 ชม.รถตู้ฮุนได',        baseOdo: 80000  },
+];
+
+const MOCK_REMARKS = [
+  'พบเสียงดังที่ช่วงล่างด้านหน้า — ส่งซ่อมเรียบร้อยแล้ว',
+  'ลมยางหน้าขวาต่ำกว่ามาตรฐาน — เติมลมแล้ว',
+  'สายพานหน้าเครื่องมีเสียง — นัดเข้าศูนย์วันอังคาร',
+  'กระจกมองข้างซ้ายมีรอยร้าวเล็กน้อย',
+  'ประตูหลังปิดไม่สนิท — ส่งซ่อมแล้ว',
+  'น้ำมันเครื่องต่ำกว่าระดับ — เติมน้ำมันเครื่องแล้ว',
+];
+
+const MOCK_STATUSES = ['ปกติ','ปกติ','ปกติ','ปกติ','ปกติ','ผิดปกติ','ไม่ตรวจ'];
+const MOCK_FUELS    = ['25%','50%','50%','75%','75%','100%'];
+
+let _mockInterval = null;
+let _isMockActive = false;
+
+function generateMockData(days = 30) {
+  const data = [];
+  const now = new Date();
+  const checkKeys = STATUS_KEYS.map(sk => sk.key);
+
+  MOCK_CARS.forEach(car => {
+    let odo = car.baseOdo;
+    for (let d = days - 1; d >= 0; d--) {
+      // ไม่ตรวจทุกวัน (บางวันหยุด/ไม่ใช้งาน)
+      if (Math.random() > 0.78) continue;
+
+      const date = new Date(now);
+      date.setDate(date.getDate() - d);
+      const dateStr = date.toISOString().split('T')[0];
+      const hour = 6 + Math.floor(Math.random() * 3);
+      const min  = Math.floor(Math.random() * 60);
+      const timeStr = `${String(hour).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+
+      const ts = new Date(date);
+      ts.setHours(hour, min, Math.floor(Math.random()*60));
+
+      // เพิ่มไมล์จริง
+      odo += 40 + Math.floor(Math.random() * 160);
+
+      const driver = MOCK_DRIVERS[Math.floor(Math.random() * MOCK_DRIVERS.length)];
+      const hasIssue = Math.random() > 0.82;
+      const issueKey = hasIssue ? checkKeys[Math.floor(Math.random() * checkKeys.length)] : null;
+
+      const row = {
+        timestamp:   `${String(ts.getDate()).padStart(2,'0')}/${String(ts.getMonth()+1).padStart(2,'0')}/${ts.getFullYear()} ${timeStr}:${String(Math.floor(Math.random()*60)).padStart(2,'0')}`,
+        inspDate:    dateStr,
+        inspTime:    timeStr,
+        carType:     car.carType,
+        driverName:  driver,
+        odometer:    String(odo),
+        eq_oil:      Math.random() > 0.85 ? 'เปลี่ยน' : 'ไม่เปลี่ยน',
+        eq_battery:  Math.random() > 0.93 ? 'เปลี่ยน' : 'ไม่เปลี่ยน',
+        eq_tire:     Math.random() > 0.88 ? 'เปลี่ยน' : 'ไม่เปลี่ยน',
+        fuelLevel:   MOCK_FUELS[Math.floor(Math.random() * MOCK_FUELS.length)],
+        fuelFill:    Math.random() > 0.45 ? 'เติม' : 'ไม่เติม',
+        remarks:     hasIssue ? MOCK_REMARKS[Math.floor(Math.random() * MOCK_REMARKS.length)] : '',
+        photoLinks:  '',
+      };
+
+      checkKeys.forEach(k => {
+        row['chk_' + k] = (k === issueKey) ? 'ผิดปกติ' : MOCK_STATUSES[Math.floor(Math.random() * (MOCK_STATUSES.length - 1))];
+      });
+
+      data.push(row);
+    }
+  });
+
+  // เรียงจากใหม่ไปเก่า
+  return data.sort((a, b) => b.inspDate.localeCompare(a.inspDate));
+}
+
+function generateMockLiveStatus() {
+  // สร้างสถานะรถแบบ realistic: บางคันกำลังใช้งาน, บางคันพร้อม, บางคันยังไม่ตรวจ
+  const destinations = ['โรงพยาบาลเชียงใหม่', 'ตลาดสันทราย', 'สนามบิน', 'อ.สันกำแพง', 'สำนักงานสาธารณสุข'];
+
+  const todayChecked = [
+    { carType: 'ขค.9662 ชม.รถปิ๊กอัพ4ประตู', driverName: 'นาย ชัยพร มอญแสง',      inspTime: '06:45' },
+    { carType: 'กล.9438 ชม.รถปิ๊กอัพ4ประตู', driverName: 'นายกัมพล โพธิ์พัด',      inspTime: '07:10' },
+    { carType: 'นง.86 ชม.รถตู้',              driverName: 'นาย นพดล คำปินคำ',        inspTime: '07:22' },
+    { carType: 'นง.8781 ชม.รถตู้ฮุนได',       driverName: 'นาย ภาณุพงศ์ กางสำโรง',  inspTime: '07:05' },
+  ];
+
+  const inUse = [
+    { carType: 'กล.9438 ชม.รถปิ๊กอัพ4ประตู', driver: 'นายกัมพล โพธิ์พัด',     destination: destinations[0] },
+    { carType: 'นง.86 ชม.รถตู้',              driver: 'นาย นพดล คำปินคำ',       destination: destinations[2] },
+  ];
+
+  const ready = [
+    { carType: 'ขค.9662 ชม.รถปิ๊กอัพ4ประตู' },
+    { carType: 'นง.8781 ชม.รถตู้ฮุนได' },
+  ];
+
+  return {
+    status: 'ok',
+    todayChecked,
+    inUse,
+    ready,
+    notCheckedCount: 3,
+    readyCount:      2,
+    inUseCount:      2,
+  };
+}
+
+function activateMockup() {
+  if (_isMockActive) {
+    deactivateMockup();
+    return;
+  }
+  _isMockActive = true;
+
+  // อัปเดตปุ่ม
+  const btn = document.getElementById('mockupBtn');
+  if (btn) {
+    btn.textContent = 'ออกจากโหมดสาธิต';
+    btn.style.background = 'linear-gradient(135deg,#f44336,#c62828)';
+  }
+
+  // โหลดข้อมูลสาธิต
+  allData = generateMockData(45);
+  document.getElementById('filterMonth').value = new Date().toISOString().slice(0,7);
+  applyFilters();
+  document.getElementById('lastUpdated').textContent = 'โหมดสาธิต — ข้อมูลจำลอง 45 วัน';
+
+  // แสดง live vehicle status สาธิต
+  const mockLive = generateMockLiveStatus();
+  renderLiveVehicleGrid(mockLive);
+  document.getElementById('vehicleLiveTime').textContent = 'โหมดสาธิต';
+
+  // อัปเดต KPI bar summary
+  document.getElementById('sv-notchecked').textContent = mockLive.notCheckedCount;
+  document.getElementById('sv-ready').textContent      = mockLive.readyCount;
+  document.getElementById('sv-inuse').textContent      = mockLive.inUseCount;
+  document.getElementById('statusUpdateTime').textContent = 'โหมดสาธิต';
+
+  // หยุด auto-refresh จริง
+  clearInterval(_mockInterval);
+
+  // แสดง toast
+  showMockToast('โหมดสาธิต — แสดงข้อมูลจำลอง 45 วัน');
+}
+
+function deactivateMockup() {
+  _isMockActive = false;
+  const btn = document.getElementById('mockupBtn');
+  if (btn) {
+    btn.textContent = 'โหมดสาธิต';
+    btn.style.background = '';
+  }
+  loadData();
+  loadLiveVehicleStatus();
+  showMockToast('กลับสู่ข้อมูลจริง');
+}
+
+function showMockToast(msg) {
+  let t = document.getElementById('mockToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'mockToast';
+    t.style.cssText = `
+      position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+      background:#0a2540;color:#fff;padding:10px 22px;border-radius:8px;
+      font-size:0.82rem;font-weight:600;z-index:9999;
+      box-shadow:0 4px 20px rgba(0,0,0,0.3);
+      transition:opacity 0.3s;pointer-events:none;
+    `;
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => { t.style.opacity = '0'; }, 2800);
+}
+
+// ── เพิ่มปุ่ม Mockup เข้า filter bar ──
+document.addEventListener('DOMContentLoaded', () => {
+  const filterActions = document.querySelector('.filter-actions');
+  if (filterActions) {
+    const btn = document.createElement('button');
+    btn.id = 'mockupBtn';
+    btn.className = 'refresh-btn';
+    btn.style.cssText = 'background:linear-gradient(135deg,#1e4d80,#163860);margin-left:4px;';
+    btn.textContent = 'โหมดสาธิต';
+    btn.onclick = activateMockup;
+    filterActions.appendChild(btn);
+  }
+});
+
 </script>
 </body>
 </html>
