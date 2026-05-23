@@ -805,6 +805,12 @@ textarea { resize: vertical; min-height: 80px; }
   <!-- ═══ PANEL: กลับถึง รพ. ═══ -->
   <div id="panelEnd" style="display:none;">
 
+    <!-- Active trips banner -->
+    <div id="activeTripsBanner" style="display:none;background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #fde68a;border-radius:14px;padding:14px 18px;margin-bottom:16px;">
+      <div style="font-size:12px;font-weight:700;color:#92400e;letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase;">🚗 รถที่กำลังออกปฏิบัติงานอยู่</div>
+      <div id="activeTripsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;"></div>
+    </div>
+
     <div class="card">
       <div class="card-header">
         <div class="card-header-icon teal">
@@ -1003,7 +1009,9 @@ let checkGateError  = false;
 document.addEventListener('DOMContentLoaded', () => {
   setDateTimeDefaults();
   loadVehicles();
-  loadMileHistory();
+  loadMileHistory().then(() => {
+    renderActiveTripsBanner();
+  });
   loadTodayCheckStatus();
   // รีเฟรชสถานะตรวจสภาพทุก 2 นาที (ทันทีที่มีคนตรวจเพิ่ม)
   setInterval(loadTodayCheckStatus, 120000);
@@ -1206,8 +1214,58 @@ async function loadMileHistory() {
   }
   // รีเฟรช dropdown e_carType ให้แสดงเฉพาะรถที่กำลังออกรถ
   populateCarSelects();
+  renderActiveTripsBanner();
   if (document.getElementById('panelHistory').style.display !== 'none') {
     renderHistory();
+  }
+}
+
+function renderActiveTripsBanner() {
+  const banner = document.getElementById('activeTripsBanner');
+  const grid   = document.getElementById('activeTripsGrid');
+  if (!banner || !grid) return;
+
+  // หารถที่กำลังใช้งาน จาก mileHistory (สถานะ = กำลังใช้งาน)
+  const activeTrips = mileHistory.filter(r => String(r['สถานะ']) === 'กำลังใช้งาน');
+
+  if (!activeTrips.length) {
+    banner.style.display = 'none';
+    return;
+  }
+
+  banner.style.display = 'block';
+  grid.innerHTML = activeTrips.map(r => {
+    const car     = String(r['ทะเบียน/รถ'] || '');
+    const plate   = car.split(' ')[0];
+    const driver  = String(r['พนักงานขับรถ'] || '—');
+    const dest    = String(r['ปลายทาง'] || '—');
+    const startOdo= r['เลขไมล์ต้น'] ? Number(r['เลขไมล์ต้น']).toLocaleString() : '—';
+    const tripDate= r['วันที่'] ? String(r['วันที่']).slice(0,10) : '—';
+    const tripTime= r['เวลาออก'] ? String(r['เวลาออก']).slice(0,5) : '—';
+    return \`<div style="background:#fff;border:1.5px solid #f59e0b;border-radius:10px;padding:11px 13px;cursor:pointer;"
+                 onclick="selectActiveTrip('\${car.replace(/'/g,'')}')">
+      <div style="font-size:14px;font-weight:800;color:#0a2540;">\${plate}</div>
+      <div style="font-size:11px;color:#64748b;margin-top:1px;">\${car.replace(plate,'').trim()}</div>
+      <div style="font-size:12px;color:#92400e;margin-top:6px;">→ \${dest}</div>
+      <div style="font-size:11px;color:#8898aa;margin-top:3px;">👤 \${driver}</div>
+      <div style="font-size:11px;color:#8898aa;">📍 ออก \${tripDate} \${tripTime} | ไมล์ต้น: \${startOdo}</div>
+      <div style="margin-top:7px;font-size:11px;font-weight:700;color:#0ea5e9;text-decoration:underline;">แตะเพื่อเลือกบันทึกกลับ →</div>
+    </div>\`;
+  }).join('');
+}
+
+function selectActiveTrip(carType) {
+  const eEl = document.getElementById('e_carType');
+  if (!eEl) return;
+  // หา option ที่ตรงกับ carType
+  for (let opt of eEl.options) {
+    if (opt.value.includes(carType.split(' ')[0]) || carType.includes(opt.value.split(' ')[0])) {
+      eEl.value = opt.value;
+      onEndCarChange();
+      // Scroll ไปที่ form
+      eEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      break;
+    }
   }
 }
 
@@ -1229,10 +1287,17 @@ function switchTab(tab) {
     document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1))
       .classList.toggle('active', t === tab);
   });
-  if (tab === 'history') renderHistory();
+  if (tab === 'history') {
+    if (mileHistory.length === 0) {
+      loadMileHistory().then(() => renderHistory());
+    } else {
+      renderHistory();
+    }
+  }
   // เมื่อสลับไป tab กลับ รพ. ให้โหลด active trips ใหม่
   if (tab === 'end') {
     loadMileHistory().then(() => {
+      renderActiveTripsBanner();
       // ถ้ามีรถที่เลือกอยู่แล้ว ให้ trigger onEndCarChange
       const selCar = document.getElementById('e_carType').value;
       if (selCar) onEndCarChange();
