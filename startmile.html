@@ -752,11 +752,11 @@ function startLiveClock() {
   clockInterval = setInterval(() => {
     const now = bkkNow();
     const dtVal = toDTLocal(now);
+    const p = parseDTLocal(dtVal);
     // อัปเดต start
     if (!startDTEdited) {
       document.getElementById('s_tripDateTime').value     = dtVal;
       document.getElementById('s_tripDateTimeDisplay').value = formatDT(now);
-      const p = parseDTLocal(dtVal);
       document.getElementById('s_tripDate').value = p.date;
       document.getElementById('s_tripTime').value = p.time;
     }
@@ -1343,9 +1343,8 @@ function submitEnd() {
 
 async function doConfirm() {
   if (!pendingAction) return;
+  const { type, data } = pendingAction;  // อ่านก่อน closeModal จะ null
   closeModal();
-
-  const { type, data } = pendingAction;
   const btn = document.getElementById(type === 'start' ? 'startBtn' : 'endBtn');
   btn.classList.add('loading'); btn.disabled = true;
 
