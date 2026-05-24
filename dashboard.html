@@ -274,10 +274,6 @@
 
   /* ── DONUT ── */
   .donut-wrap { display: flex; justify-content: center; align-items: center; padding: 12px 0; flex-direction: column; gap: 10px; }
-  .donut-svg { transform: rotate(-90deg); }
-  .donut-legend { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
-  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.76rem; color: var(--text-mid); font-weight: 500; }
-  .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 
   /* ── TABS ── */
   .tab-row { display: flex; gap: 0; border-bottom: 2px solid var(--border); margin-bottom: 14px; }
@@ -486,12 +482,6 @@
     from { opacity: 0; transform: translateY(14px); }
     to { opacity: 1; transform: translateY(0); }
   }
-  .fuel-level-bar { display: flex; flex-direction: column; gap: 7px; }
-  .fuel-level-row { display: flex; align-items: center; gap: 8px; }
-  .fuel-level-label { width: 36px; font-size: 0.74rem; font-weight: 600; color: var(--text-mid); text-align: right; flex-shrink: 0; }
-  .fuel-level-track { flex: 1; height: 16px; background: #f0f4f8; border-radius: 4px; overflow: hidden; }
-  .fuel-level-fill { height: 100%; border-radius: 4px; transition: width 0.9s cubic-bezier(0.34,1.56,0.64,1); }
-  .fuel-level-value { font-size: 0.74rem; font-weight: 700; color: var(--navy); width: 32px; text-align: right; font-family: 'Space Grotesk', sans-serif; }
 
   @media(max-width:600px) {
     .modal-check-grid { grid-template-columns: 1fr; }
@@ -789,14 +779,31 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
     </div>
 
-    <!-- โดนัทชาร์ต: สถิติน้ำมัน -->
+    <!-- ตารางสรุปค่าใช้จ่ายน้ำมันรายคัน -->
     <div class="card">
-      <div class="card-header">
-        <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></span>
-        <h2>สถิติการเติมน้ำมัน</h2>
+      <div class="card-header" style="background:linear-gradient(90deg,#0369a1,#0284c7);">
+        <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 22h14"/><path d="M9 22v-6h6v6"/><path d="M19 5l2 2-2 2M21 7H17"/></svg></span>
+        <h2>สรุปการเติมน้ำมันรายคัน</h2>
+        <span class="badge" id="fuelSummaryBadge" style="background:rgba(255,255,255,0.25);color:#fff;">—</span>
       </div>
-      <div class="card-body" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
-        <div id="fuelChart" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;"><div class="loading-state"><div class="spinner-sm"></div></div></div>
+      <div class="card-body" style="padding:0;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+          <thead>
+            <tr style="background:#f0f8ff;">
+              <th style="padding:9px 12px;text-align:left;font-size:0.7rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;">ทะเบียน</th>
+              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;">ครั้งที่เติม</th>
+              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;">ระดับน้ำมัน</th>
+              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:#0369a1;border-bottom:2px solid #bfdbfe;">สถานะล่าสุด</th>
+            </tr>
+          </thead>
+          <tbody id="fuelSummaryTbody">
+            <tr><td colspan="4" class="loading-state"><div class="spinner-sm"></div></td></tr>
+          </tbody>
+        </table>
+        <div id="fuelSummaryFooter" style="padding:8px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid #bfdbfe;display:flex;justify-content:space-between;align-items:center;">
+          <span>⛽ รวมจาก CheckLog ตามช่วงเวลาที่เลือก</span>
+          <span id="fuelSummaryTotal" style="font-weight:700;color:#0369a1;"></span>
+        </div>
       </div>
     </div>
 
@@ -1220,7 +1227,7 @@ function renderDashboard(data) {
   renderOdometer(data);
   renderStatusSummary(data);
   renderBarChart(data);
-  renderFuelChart(data);
+  renderFuelSummary(data);
   renderEquipChart(data, currentTab);
   renderRecentRecords(data);
 }
@@ -1523,48 +1530,73 @@ function renderBarChart(data) {
   `).join('');
 }
 
-function renderFuelChart(data) {
-  const el = document.getElementById('fuelChart');
-  if (!el) return; // overview panel hidden — skip
-  const fillCnt = data.filter(r => r.fuelFill === 'เติม').length;
-  const noFillCnt = data.filter(r => r.fuelFill === 'ไม่เติม').length;
-  const total = fillCnt + noFillCnt;
-  const levels = {'0%':0,'25%':0,'50%':0,'75%':0,'100%':0};
-  data.forEach(d => { if (levels[d.fuelLevel] !== undefined) levels[d.fuelLevel]++; });
-  const maxL = Math.max(...Object.values(levels), 1);
-  const fuelColors = {'0%':'#f44336','25%':'#ff9800','50%':'#ffeb3b','75%':'#8bc34a','100%':'#4caf50'};
+function renderFuelSummary(data) {
+  const tbody  = document.getElementById('fuelSummaryTbody');
+  const badge  = document.getElementById('fuelSummaryBadge');
+  const total  = document.getElementById('fuelSummaryTotal');
+  if (!tbody) return;
 
-  if (!total) { el.innerHTML = '<div class="empty-state"><div class="em">—</div>ยังไม่มีข้อมูล</div>'; return; }
-  const fillPct = fillCnt/total;
-  const r = 36, circ = 2*Math.PI*r;
+  // จัดกลุ่มตามทะเบียน
+  const byPlate = {};
+  data.forEach(r => {
+    const plate = extractPlate(r.carType);
+    if (!plate) return;
+    if (!byPlate[plate]) byPlate[plate] = { filled: 0, total: 0, levels: [], lastFill: '—', lastLevel: '—', lastFillFill: '' };
+    byPlate[plate].total++;
+    if (r.fuelFill === 'เติม') {
+      byPlate[plate].filled++;
+      if (r.inspDate > (byPlate[plate].lastFillDate || '')) {
+        byPlate[plate].lastFillDate = r.inspDate;
+        byPlate[plate].lastFill = r.inspDate ? r.inspDate.slice(5).replace('-', '/') : '—';
+      }
+    }
+    if (r.fuelLevel) byPlate[plate].lastLevel = r.fuelLevel;
+  });
 
-  el.innerHTML = `
-    <svg class="donut-svg" width="100" height="100" viewBox="0 0 100 100">
-      <circle cx="50" cy="50" r="${r}" fill="none" stroke="#e0e7ef" stroke-width="14"/>
-      <circle cx="50" cy="50" r="${r}" fill="none" stroke="var(--blue)" stroke-width="14"
-        stroke-dasharray="${circ*fillPct} ${circ}" stroke-linecap="round"/>
-    </svg>
-    <div style="text-align:center;margin-top:-8px;">
-      <div style="font-size:1.5rem;font-weight:700;color:var(--navy);font-family:'Space Grotesk',sans-serif;">${Math.round(fillPct*100)}%</div>
-      <div style="font-size:0.72rem;color:var(--text-light);">เติมน้ำมัน</div>
-    </div>
-    <div class="donut-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>เติม (${fillCnt})</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#e0e7ef"></div>ไม่เติม (${noFillCnt})</div>
-    </div>
-    <div style="width:100%;margin-top:14px;">
-      <div style="font-size:0.72rem;font-weight:700;color:var(--text-mid);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">ปริมาณน้ำมัน ณ เวลาตรวจ</div>
-      <div class="fuel-level-bar">
-        ${Object.entries(levels).map(([lvl,cnt]) => `
-          <div class="fuel-level-row">
-            <div class="fuel-level-label">${lvl}</div>
-            <div class="fuel-level-track"><div class="fuel-level-fill" style="width:${Math.round(cnt/maxL*100)}%;background:${fuelColors[lvl]};"></div></div>
-            <div class="fuel-level-value">${cnt}</div>
+  const rows = Object.entries(byPlate).sort((a, b) => b[1].filled - a[1].filled);
+  const totalFilled = rows.reduce((s, [, v]) => s + v.filled, 0);
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="em">—</div>ยังไม่มีข้อมูล</td></tr>';
+    if (badge) badge.textContent = '—';
+    return;
+  }
+
+  const levelColor = { '0%':'#ef4444','25%':'#f97316','50%':'#eab308','75%':'#84cc16','100%':'#22c55e' };
+  const levelBg    = { '0%':'#fef2f2','25%':'#fff7ed','50%':'#fefce8','75%':'#f7fee7','100%':'#f0fdf4' };
+
+  tbody.innerHTML = rows.map(([plate, v]) => {
+    const fillRate = v.total ? Math.round(v.filled / v.total * 100) : 0;
+    const barW = fillRate;
+    const lvl = v.lastLevel;
+    const lvlColor = levelColor[lvl] || '#94a3b8';
+    const lvlBg    = levelBg[lvl]    || '#f1f5f9';
+    const statusBg   = v.filled > 0 ? '#eff6ff' : '#f8fafc';
+    const statusText = v.filled > 0 ? '#1e40af' : '#94a3b8';
+    const statusIcon = v.filled > 0 ? '✅' : '—';
+    return `<tr style="border-bottom:1px solid #e8f0fe;transition:background .15s;" onmouseover="this.style.background='#f0f8ff'" onmouseout="this.style.background=''">
+      <td style="padding:9px 12px;font-weight:700;color:#0a2540;font-family:'Space Grotesk',sans-serif;font-size:0.82rem;">${plate}</td>
+      <td style="padding:9px 12px;text-align:center;">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+          <span style="font-size:0.88rem;font-weight:700;color:${v.filled > 0 ? '#1e40af' : '#94a3b8'};">${v.filled}<span style="font-size:0.65rem;color:#94a3b8;font-weight:400;">/${v.total}</span></span>
+          <div style="width:52px;height:5px;background:#e2e8f0;border-radius:99px;overflow:hidden;">
+            <div style="width:${barW}%;height:100%;background:${v.filled > 0 ? 'linear-gradient(90deg,#3b82f6,#0ea5e9)' : '#e2e8f0'};border-radius:99px;"></div>
           </div>
-        `).join('')}
-      </div>
-    </div>
-  `;
+        </div>
+      </td>
+      <td style="padding:9px 12px;text-align:center;">
+        ${lvl ? `<span style="background:${lvlBg};color:${lvlColor};font-size:0.72rem;font-weight:700;padding:2px 9px;border-radius:99px;border:1px solid ${lvlColor}33;">${lvl}</span>` : '<span style="color:#cbd5e1;">—</span>'}
+      </td>
+      <td style="padding:9px 12px;text-align:center;">
+        <span style="background:${statusBg};color:${statusText};font-size:0.72rem;font-weight:700;padding:3px 9px;border-radius:99px;">
+          ${statusIcon} ${v.filled > 0 ? 'เติม ' + v.filled + ' ครั้ง · ล่าสุด ' + v.lastFill : 'ยังไม่เติม'}
+        </span>
+      </td>
+    </tr>`;
+  }).join('');
+
+  if (badge) badge.textContent = 'เติมแล้ว ' + totalFilled + ' ครั้ง';
+  if (total) total.textContent = 'รถที่เติม: ' + rows.filter(([,v]) => v.filled > 0).length + '/' + rows.length + ' คัน';
 }
 
 
@@ -2456,8 +2488,14 @@ function renderLiveVehicleGrid(json) {
     const isChecked = !!checkedMap[v.plate] ||
       Object.keys(checkedMap).some(k => k.includes(v.plate) || v.plate.includes(k)) ||
       isReady;
-    const isFueled  = !!fueledMap[v.plate] ||
+    const isFueledLive = !!fueledMap[v.plate] ||
       Object.keys(fueledMap).some(k => k.includes(v.plate) || v.plate.includes(k));
+    // fallback: ดูจาก CheckLog ล่าสุดของวันนี้ ถ้า live API ไม่มีข้อมูล
+    const todayStr2 = new Date().toLocaleDateString('en-CA'); // yyyy-MM-dd
+    const isFueledCheck = !isFueledLive && latestRecord &&
+      latestRecord._normDate === todayStr2 &&
+      latestRecord.fuelFill === 'เติม';
+    const isFueled = isFueledLive || isFueledCheck;
 
     // resolve actual data objects
     const inUseData_ = inUseMap[v.plate] || Object.values(inUseMap).find(x => {
@@ -2597,13 +2635,18 @@ function renderLiveVehicleGrid(json) {
       </div>` : ''}
       <div style="margin-bottom:10px;">
         ${isFueled
-          ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#0ea5e9;color:#fff;font-size:0.62rem;font-weight:700;padding:3px 9px;border-radius:99px;letter-spacing:0.3px;">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 22h14"/><path d="M9 22v-6h6v6"/><path d="M19 5l2 2-2 2M21 7H17"/></svg>
-              เติมน้ำมันแล้ว${fuelData?.fuelLiters ? ' ' + fuelData.fuelLiters + 'L' : ''}
-             </span>`
+          ? (() => {
+              const liters = fuelData?.fuelLiters ? ' ' + fuelData.fuelLiters + 'L' : '';
+              const level  = (fuelData?.fuelLevel || latestRecord?.fuelLevel || '');
+              const src    = isFueledCheck ? ' · 🔍ตรวจรถ' : '';
+              return `<span style="display:inline-flex;align-items:center;gap:4px;background:#0ea5e9;color:#fff;font-size:0.62rem;font-weight:700;padding:3px 9px;border-radius:99px;letter-spacing:0.3px;">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 22h14"/><path d="M9 22v-6h6v6"/><path d="M19 5l2 2-2 2M21 7H17"/></svg>
+                เติมแล้ว${liters}${src}
+              </span>${level ? `<span style="display:inline-flex;align-items:center;margin-left:4px;background:#e0f2fe;color:#0369a1;font-size:0.62rem;font-weight:600;padding:3px 8px;border-radius:99px;">⛽ ${level}</span>` : ''}`;
+            })()
           : `<span style="display:inline-flex;align-items:center;gap:4px;background:#e2e8f0;color:#94a3b8;font-size:0.62rem;font-weight:600;padding:3px 9px;border-radius:99px;">
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M3 22h14"/><path d="M9 22v-6h6v6"/><path d="M19 5l2 2-2 2M21 7H17"/></svg>
-              ยังไม่ได้เติม
+              ยังไม่ได้เติม${latestRecord?.fuelLevel ? ' · ⛽ ' + latestRecord.fuelLevel : ''}
              </span>`
         }
       </div>
