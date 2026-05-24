@@ -68,36 +68,25 @@ body {
 }
 .back-btn:hover { background: rgba(255,255,255,.18); }
 
-/* ── MAIN WRAP ── */
-.main-wrap { max-width: 860px; margin: 0 auto; padding: 28px 16px 60px; }
+/* ── MAIN ── */
+.main-wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
 
-/* ── STATUS BANNER ── */
-.status-banner {
-  border-radius: var(--radius);
-  padding: 18px 22px;
-  margin-bottom: 24px;
-  display: flex; align-items: center; gap: 14px;
-  border: 1px solid var(--border);
-  background: var(--card);
-  box-shadow: var(--shadow);
+/* ── LOADING / ERROR BANNER ── */
+.api-banner {
+  border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px; font-size: 13px;
+  border: 1px solid; display: none;
 }
-.status-banner.in-use {
-  background: var(--warning-soft); border-color: #fde68a;
+.api-banner.show { display: flex; }
+.api-banner.loading { background: var(--blue-soft); border-color: #93c5fd; color: #1e40af; }
+.api-banner.error   { background: var(--danger-soft); border-color: #fca5a5; color: #991b1b; }
+.api-banner.success { background: var(--success-soft); border-color: #86efac; color: #065f46; }
+.api-spinner {
+  width: 16px; height: 16px; border: 2px solid rgba(30,64,175,.3);
+  border-top-color: #1e40af; border-radius: 50%;
+  animation: spin .6s linear infinite; flex-shrink: 0;
 }
-.status-banner.ready {
-  background: var(--success-soft); border-color: #a7f3d0;
-}
-.status-icon {
-  width: 44px; height: 44px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.status-icon.yellow { background: #fef3c7; color: #b45309; }
-.status-icon.green  { background: #d1fae5; color: #065f46; }
-.status-icon.gray   { background: #f1f5f9; color: #64748b; }
-.status-info { flex: 1; }
-.status-label { font-size: 12px; font-weight: 600; color: var(--text-light); letter-spacing: .5px; }
-.status-value { font-size: 15px; font-weight: 700; color: var(--text); margin-top: 2px; }
-.status-sub   { font-size: 12px; color: var(--text-mid); margin-top: 1px; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── TABS ── */
 .tab-row {
@@ -112,8 +101,13 @@ body {
   cursor: pointer; transition: all .2s; color: var(--text-mid);
   background: transparent;
 }
-.tab-btn.active { background: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(26,115,232,.3); }
-.tab-btn.end.active { background: var(--teal); box-shadow: 0 2px 8px rgba(0,137,123,.3); }
+.tab-btn.active-start { background: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(26,115,232,.3); }
+.tab-btn.active-end   { background: var(--teal); color: #fff; box-shadow: 0 2px 8px rgba(0,137,123,.3); }
+.tab-btn.active-hist  { background: var(--navy); color: #fff; box-shadow: 0 2px 8px rgba(10,37,64,.3); }
+
+/* ── TAB PANELS ── */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
 
 /* ── CARD ── */
 .card {
@@ -122,7 +116,7 @@ body {
   overflow: hidden; margin-bottom: 20px;
 }
 .card-header {
-  padding: 18px 22px 14px;
+  padding: 16px 20px 14px;
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 10px;
 }
@@ -130,18 +124,20 @@ body {
   width: 36px; height: 36px; border-radius: 10px;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.card-header-icon.blue { background: var(--blue-soft); color: var(--blue); }
-.card-header-icon.teal { background: var(--teal-soft); color: var(--teal); }
-.card-header-icon.amber{ background: var(--amber-soft); color: #b45309; }
+.card-header-icon.blue  { background: var(--blue-soft); color: var(--blue); }
+.card-header-icon.teal  { background: var(--teal-soft); color: var(--teal); }
+.card-header-icon.amber { background: var(--amber-soft); color: #b45309; }
 .card-header-title { font-size: 15px; font-weight: 700; color: var(--text); }
 .card-header-sub   { font-size: 12px; color: var(--text-light); margin-top: 2px; }
-.card-body { padding: 20px 22px; }
+.card-body { padding: 20px; }
 
 /* ── FORM ── */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
-.form-grid.one { grid-template-columns: 1fr; }
+.form-grid.one  { grid-template-columns: 1fr; }
+.form-grid.three{ grid-template-columns: 1fr 1fr 1fr; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group.span2 { grid-column: span 2; }
+.form-group.span3 { grid-column: span 3; }
 label { font-size: 12px; font-weight: 600; color: var(--text-mid); letter-spacing: .3px; }
 label .req { color: var(--danger); margin-left: 2px; }
 input, select, textarea {
@@ -154,124 +150,115 @@ input, select, textarea {
 input:focus, select:focus, textarea:focus {
   border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,115,232,.12);
 }
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%234a5568' d='M5 6L0 0h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+  padding-right: 36px; appearance: none; cursor: pointer;
+}
+textarea { resize: vertical; min-height: 70px; }
 input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; }
-textarea { resize: vertical; min-height: 80px; }
 
-/* ── ODOMETER INPUT ── */
-.odo-input-wrap { position: relative; }
-.odo-input-wrap input { padding-right: 52px; font-size: 18px; font-weight: 600; letter-spacing: 1px; }
+/* ── ODO INPUT ── */
+.odo-wrap { position: relative; }
+.odo-wrap input { padding-right: 48px; font-size: 17px; font-weight: 700; letter-spacing: 1px; }
 .odo-unit {
   position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
-  font-size: 12px; font-weight: 600; color: var(--text-light);
+  font-size: 11px; font-weight: 600; color: var(--text-light);
 }
-.odo-hint {
-  font-size: 11px; color: var(--text-light); margin-top: 4px;
-  display: flex; align-items: center; gap: 4px;
-}
+.odo-hint { font-size: 11px; color: var(--text-light); margin-top: 4px; }
 .odo-hint.warn { color: var(--warning); }
 .odo-hint.err  { color: var(--danger); }
 
+/* ── CHECK-GATE NOTICE ── */
+.check-gate-notice {
+  background: var(--warning-soft); border: 1px solid #fde68a;
+  border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 14px;
+  font-size: 13px; color: #92400e; display: none;
+  align-items: flex-start; gap: 10px; line-height: 1.5;
+}
+.check-gate-notice.show { display: flex; }
+
 /* ── ROUTE PREVIEW ── */
-.route-box {
+.route-preview {
   background: var(--bg); border: 1px solid var(--border);
-  border-radius: var(--radius-sm); padding: 14px 16px;
-  display: flex; align-items: center; gap: 12px;
-  margin-top: 4px;
+  border-radius: var(--radius-sm); padding: 14px 18px;
+  display: flex; align-items: center; gap: 12px; margin-top: 4px;
 }
-.route-start, .route-end {
-  flex: 1; text-align: center;
-}
+.route-col { flex: 1; text-align: center; }
 .route-label { font-size: 10px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--text-light); }
-.route-val   { font-size: 20px; font-weight: 700; color: var(--text); margin-top: 2px; font-variant-numeric: tabular-nums; }
+.route-val   { font-size: 22px; font-weight: 700; color: var(--text); margin-top: 3px; }
 .route-val.blue { color: var(--blue); }
 .route-val.teal { color: var(--teal); }
+.route-val.amber{ color: var(--amber); }
 .route-arrow { color: var(--text-light); flex-shrink: 0; }
-.route-dist  { text-align: center; flex-shrink: 0; }
-.route-dist .dist-val { font-size: 22px; font-weight: 700; color: var(--amber); }
-.route-dist .dist-unit{ font-size: 11px; color: var(--text-light); }
 
-/* ── ANOMALY ALERT ── */
-.anomaly-alert {
-  background: var(--danger-soft); border: 1px solid #fca5a5;
-  border-radius: var(--radius-sm); padding: 12px 16px;
-  display: flex; gap: 10px; align-items: flex-start;
-  margin-top: 12px; display: none;
-}
-.anomaly-alert.show { display: flex; }
-.anomaly-alert svg { color: var(--danger); flex-shrink: 0; width: 18px; height: 18px; margin-top: 1px; }
-.anomaly-alert .alert-text { font-size: 13px; color: #991b1b; line-height: 1.5; }
-
-/* ── SUBMIT BTN ── */
+/* ── SUBMIT ── */
 .submit-btn {
   width: 100%; padding: 14px 20px;
-  background: linear-gradient(135deg, var(--blue) 0%, #1557b0 100%);
-  color: #fff; border: none; border-radius: var(--radius-sm);
+  border: none; border-radius: var(--radius-sm);
   font-family: inherit; font-size: 15px; font-weight: 700;
-  cursor: pointer; letter-spacing: .3px;
-  box-shadow: 0 4px 16px rgba(26,115,232,.35);
+  color: #fff; cursor: pointer; letter-spacing: .3px;
   transition: transform .15s, box-shadow .15s, opacity .2s;
   display: flex; align-items: center; justify-content: center; gap: 8px;
 }
-.submit-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(26,115,232,.45); }
-.submit-btn:active{ transform: translateY(0); }
-.submit-btn.teal-btn {
+.submit-btn.blue {
+  background: linear-gradient(135deg, var(--blue) 0%, #1557b0 100%);
+  box-shadow: 0 4px 16px rgba(26,115,232,.35);
+}
+.submit-btn.teal {
   background: linear-gradient(135deg, var(--teal) 0%, #00695c 100%);
   box-shadow: 0 4px 16px rgba(0,137,123,.35);
 }
-.submit-btn.teal-btn:hover { box-shadow: 0 6px 22px rgba(0,137,123,.45); }
+.submit-btn:hover  { transform: translateY(-1px); }
+.submit-btn:active { transform: translateY(0); }
 .submit-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-.submit-btn .spinner {
+.spinner {
   width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.4);
   border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite;
   display: none;
 }
 .submit-btn.loading .spinner { display: block; }
 .submit-btn.loading .btn-text { display: none; }
-@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── HISTORY TABLE ── */
-.history-table-wrap { overflow-x: auto; }
-.history-table {
-  width: 100%; border-collapse: collapse; font-size: 13px;
-}
-.history-table th {
+.table-wrap { overflow-x: auto; }
+.hist-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.hist-table th {
   background: var(--navy); color: rgba(255,255,255,.85);
   padding: 10px 14px; text-align: left; font-size: 11px;
   font-weight: 600; letter-spacing: .5px; white-space: nowrap;
 }
-.history-table td {
-  padding: 11px 14px; border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
-.history-table tr:hover td { background: var(--blue-soft); }
+.hist-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.hist-table tr:hover td { background: var(--blue-soft); }
+.hist-table .empty-row td { text-align: center; color: var(--text-light); padding: 30px; }
 .status-badge {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 3px 9px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  white-space: nowrap;
 }
-.status-badge.in-use { background: var(--warning-soft); color: #b45309; }
-.status-badge.ready  { background: var(--success-soft); color: #065f46; }
-.empty-row td { text-align: center; color: var(--text-light); padding: 30px; font-style: italic; }
+.status-badge.active { background: var(--warning-soft); color: #b45309; }
+.status-badge.done   { background: var(--success-soft); color: #065f46; }
+.plate-chip {
+  background: var(--navy); color: #fff; padding: 2px 8px;
+  border-radius: 5px; font-size: 11px; font-weight: 700; white-space: nowrap;
+}
 
-/* ── FUEL SECTION ── */
-.fuel-card { margin-top: 16px; }
-.fuel-toggle {
-  display: flex; align-items: center; gap: 10px; cursor: pointer;
-  padding: 12px 0; border-bottom: 1px solid var(--border); margin-bottom: 0;
+/* ── ACTIVE TRIP BANNER ── */
+.active-trip-card {
+  background: var(--warning-soft); border: 1.5px solid #fde68a;
+  border-radius: var(--radius); padding: 16px 20px; margin-bottom: 20px;
+  display: none;
 }
-.fuel-toggle input[type="checkbox"] { display: none; }
-.fuel-toggle-track {
-  width: 38px; height: 22px; background: var(--border); border-radius: 11px;
-  position: relative; transition: background .2s; flex-shrink: 0;
+.active-trip-card.show { display: block; }
+.active-trip-title { font-size: 13px; font-weight: 700; color: #92400e; margin-bottom: 10px; }
+.active-trip-grid { display: grid; grid-template-columns: repeat(auto-fill,minmax(160px,1fr)); gap: 8px; }
+.active-chip {
+  background: #fff; border: 1px solid #fde68a; border-radius: var(--radius-sm);
+  padding: 10px 14px;
 }
-.fuel-toggle-track::after {
-  content: ''; position: absolute; top: 3px; left: 3px;
-  width: 16px; height: 16px; border-radius: 50%; background: #fff;
-  transition: transform .2s; box-shadow: 0 1px 4px rgba(0,0,0,.15);
-}
-.fuel-check:checked + .fuel-toggle .fuel-toggle-track { background: var(--blue); }
-.fuel-check:checked + .fuel-toggle .fuel-toggle-track::after { transform: translateX(16px); }
-.fuel-body { padding-top: 14px; display: none; }
-.fuel-check:checked ~ .fuel-body { display: block; }
+.active-chip .plate { font-size: 13px; font-weight: 700; color: var(--navy); }
+.active-chip .dest  { font-size: 11px; color: var(--text-mid); margin-top: 2px; }
+.active-chip .odo   { font-size: 12px; color: #b45309; font-weight: 600; margin-top: 4px; }
 
 /* ── TOAST ── */
 .toast {
@@ -287,229 +274,43 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* ── MODAL ── */
 .modal-overlay {
-  position: fixed; inset: 0; background: rgba(10,37,64,.5);
-  display: none; align-items: center; justify-content: center; z-index: 2000;
-  padding: 20px;
+  position: fixed; inset: 0; background: rgba(10,37,64,.55);
+  display: none; align-items: center; justify-content: center; z-index: 2000; padding: 20px;
 }
 .modal-overlay.show { display: flex; }
 .modal-box {
   background: var(--card); border-radius: var(--radius);
-  padding: 28px 24px; max-width: 380px; width: 100%;
+  padding: 30px 24px; max-width: 400px; width: 100%;
   box-shadow: var(--shadow-lg); text-align: center;
 }
-.modal-icon { font-size: 40px; margin-bottom: 14px; }
-.modal-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
-.modal-body { font-size: 14px; color: var(--text-mid); line-height: 1.7; margin-bottom: 22px; }
-.modal-actions { display: flex; gap: 10px; }
+.modal-icon { font-size: 44px; margin-bottom: 14px; }
+.modal-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+.modal-msg   { font-size: 14px; color: var(--text-mid); line-height: 1.6; margin-bottom: 22px; }
+.modal-detail {
+  background: var(--bg); border-radius: var(--radius-sm);
+  padding: 12px 16px; margin-bottom: 20px; text-align: left; font-size: 13px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 6px 16px;
+}
+.modal-detail .d-label { color: var(--text-light); font-size: 11px; font-weight: 600; text-transform: uppercase; }
+.modal-detail .d-val   { color: var(--text); font-weight: 600; }
+.modal-btns { display: flex; gap: 10px; }
 .modal-btn {
   flex: 1; padding: 11px; border-radius: var(--radius-sm);
   font-family: inherit; font-size: 14px; font-weight: 600;
-  cursor: pointer; border: none; transition: opacity .2s;
+  cursor: pointer; transition: opacity .2s; border: none;
 }
+.modal-btn.confirm { background: var(--blue); color: #fff; }
+.modal-btn.cancel  { background: var(--bg); color: var(--text-mid); border: 1px solid var(--border); }
 .modal-btn:hover { opacity: .85; }
-.modal-btn.primary { background: var(--blue); color: #fff; }
-.modal-btn.primary.teal { background: var(--teal); }
-.modal-btn.secondary { background: var(--bg); color: var(--text-mid); border: 1px solid var(--border); }
 
 /* ── RESPONSIVE ── */
 @media (max-width: 600px) {
   .main-wrap { padding: 16px 12px 48px; }
   .form-grid { grid-template-columns: 1fr; }
-  .form-group.span2 { grid-column: span 1; }
-  .card-body { padding: 16px; }
-  .card-header { padding: 14px 16px 12px; }
-  .tab-btn { font-size: 12px; padding: 9px 8px; }
+  .form-grid.three { grid-template-columns: 1fr 1fr; }
+  .form-group.span2, .form-group.span3 { grid-column: span 1; }
+  .active-trip-grid { grid-template-columns: 1fr 1fr; }
 }
-
-  .qtb {
-    padding: 4px 10px; border-radius: 6px;
-    border: 1.5px solid var(--blue); background: transparent;
-    color: var(--blue); font-family: inherit; font-size: 0.75rem;
-    font-weight: 600; cursor: pointer; transition: all 0.15s;
-  }
-  .qtb:hover { background: var(--blue); color: #fff; }
-
-  /* ── FUEL PHOTO ZONE ── */
-  .fuel-photo-zone {
-    border: 2.5px dashed #1a73e8;
-    border-radius: 14px;
-    padding: 20px 16px 16px;
-    text-align: center;
-    background: linear-gradient(135deg,rgba(26,115,232,0.04),rgba(0,137,123,0.04));
-    transition: border-color .2s, background .2s;
-    cursor: pointer;
-    margin-top: 4px;
-  }
-  .fuel-photo-zone:hover {
-    border-color: var(--teal);
-    background: linear-gradient(135deg,rgba(26,115,232,0.07),rgba(0,137,123,0.07));
-  }
-  .fuel-photo-zone.has-photo {
-    border-style: solid;
-    border-color: var(--teal);
-    background: linear-gradient(135deg,rgba(0,137,123,0.06),rgba(26,115,232,0.04));
-  }
-  .fuel-photo-icon { font-size: 2.2rem; margin-bottom: 6px; display: block; }
-  .fuel-photo-title {
-    font-size: 0.92rem; font-weight: 700; color: #1a73e8; margin-bottom: 4px;
-  }
-  .fuel-photo-sub {
-    font-size: 0.75rem; color: #8898aa; margin-bottom: 14px;
-  }
-  .fuel-cam-btns { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
-  .fuel-cam-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 9px 18px; border-radius: 9px; border: none;
-    background: linear-gradient(135deg, #1a73e8, #00897b);
-    color: #fff; font-family: inherit; font-size: 0.85rem;
-    font-weight: 700; cursor: pointer; transition: all .2s;
-    box-shadow: 0 3px 10px rgba(26,115,232,0.3);
-  }
-  .fuel-cam-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 16px rgba(26,115,232,0.4); }
-  .fuel-cam-btn.secondary {
-    background: #fff;
-    color: #1a73e8;
-    border: 2px solid #1a73e8;
-    box-shadow: none;
-  }
-  .fuel-cam-btn.secondary:hover { background: #e8f1fd; box-shadow: none; }
-  .fuel-photo-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 10px;
-    margin-top: 14px;
-  }
-  .fuel-thumb {
-    position: relative; border-radius: 10px; overflow: hidden;
-    aspect-ratio: 1; border: 2.5px solid var(--teal);
-    box-shadow: 0 2px 10px rgba(0,137,123,0.2);
-    cursor: zoom-in;
-    transition: transform .15s, box-shadow .15s;
-  }
-  .fuel-thumb:hover { transform: scale(1.04); box-shadow: 0 4px 18px rgba(0,137,123,0.35); }
-  .fuel-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .fuel-thumb-del {
-    position: absolute; top: 4px; right: 4px;
-    width: 22px; height: 22px;
-    background: rgba(244,67,54,0.9); border: none; border-radius: 50%;
-    color: #fff; font-size: 12px; font-weight: 700;
-    cursor: pointer; display: flex; align-items: center; justify-content: center;
-    transition: background .15s; z-index: 2;
-  }
-  .fuel-thumb-del:hover { background: #c62828; }
-  .fuel-photo-count {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: var(--teal); color: #fff;
-    font-size: 0.72rem; font-weight: 700;
-    padding: 3px 10px; border-radius: 99px; margin-top: 10px;
-  }
-  .fuel-warn-badge {
-    display: flex; align-items: center; gap: 6px;
-    background: #fff8e1; border: 1.5px solid #fde68a;
-    border-radius: 8px; padding: 8px 12px; margin-top: 10px;
-    font-size: 0.78rem; font-weight: 600; color: #92400e;
-  }
-  /* Lightbox for fuel photos */
-  .flightbox {
-    position: fixed; inset: 0; z-index: 9999;
-    background: rgba(0,0,0,0.92);
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0; pointer-events: none; transition: opacity .25s;
-  }
-  .flightbox.show { opacity: 1; pointer-events: all; }
-  .flightbox img {
-    max-width: 92vw; max-height: 88vh;
-    border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.6);
-  }
-  .flightbox-close {
-    position: absolute; top: 16px; right: 16px;
-    background: rgba(255,255,255,0.15); border: none; color: #fff;
-    border-radius: 50%; width: 42px; height: 42px;
-    font-size: 1.3rem; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background .2s;
-  }
-  .flightbox-close:hover { background: rgba(255,255,255,0.28); }
-  .flightbox-nav {
-    position: absolute; top: 50%; transform: translateY(-50%);
-    background: rgba(255,255,255,0.15); border: none; color: #fff;
-    border-radius: 50%; width: 44px; height: 44px;
-    font-size: 1.4rem; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background .2s;
-  }
-  .flightbox-nav:hover { background: rgba(255,255,255,0.28); }
-  .flightbox-nav.prev { left: 16px; }
-  .flightbox-nav.next { right: 16px; }
-  .flightbox-counter {
-    position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,0.5); color: #fff; padding: 4px 14px;
-    border-radius: 99px; font-size: 0.82rem; font-weight: 600;
-  }
-
-
-  /* ── CHECK-GATE BANNER ── */
-  .check-gate {
-    border-radius: var(--radius);
-    padding: 18px 20px;
-    margin-bottom: 18px;
-    display: flex; align-items: flex-start; gap: 14px;
-    border: 2px solid var(--border);
-    background: var(--card);
-    box-shadow: var(--shadow);
-    transition: all .3s;
-  }
-  .check-gate.blocked {
-    background: #fff5f5; border-color: #fca5a5;
-    animation: pulse-red 2s ease-in-out infinite;
-  }
-  .check-gate.pass {
-    background: #f0fdf4; border-color: #86efac;
-  }
-  .check-gate.loading {
-    background: #f8fafc; border-color: #e2e8f0;
-  }
-  @keyframes pulse-red {
-    0%,100% { box-shadow: 0 2px 16px rgba(239,68,68,.1); }
-    50%      { box-shadow: 0 4px 24px rgba(239,68,68,.25); }
-  }
-  .check-gate-icon {
-    width: 46px; height: 46px; border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; font-size: 1.3rem;
-  }
-  .check-gate-icon.red  { background: #fee2e2; }
-  .check-gate-icon.green{ background: #dcfce7; }
-  .check-gate-icon.gray { background: #f1f5f9; }
-  .check-gate-body { flex: 1; }
-  .check-gate-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
-  .check-gate-title.red  { color: #991b1b; }
-  .check-gate-title.green{ color: #14532d; }
-  .check-gate-title.gray { color: var(--text-mid); }
-  .check-gate-sub { font-size: 12px; line-height: 1.6; }
-  .check-gate-sub.red  { color: #ef4444; }
-  .check-gate-sub.green{ color: #16a34a; }
-  .check-gate-sub.gray { color: var(--text-light); }
-  .goto-check-btn {
-    margin-top: 12px;
-    display: inline-flex; align-items: center; gap: 7px;
-    padding: 9px 18px; border-radius: 9px;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: #fff; font-family: inherit; font-size: 13px; font-weight: 700;
-    text-decoration: none; border: none; cursor: pointer;
-    box-shadow: 0 3px 12px rgba(239,68,68,.35);
-    transition: all .2s;
-  }
-  .goto-check-btn:hover { transform: translateY(-1px); box-shadow: 0 5px 18px rgba(239,68,68,.45); }
-
-  /* ── FORM DISABLED STATE ── */
-  .form-blocked { pointer-events: none; opacity: .38; user-select: none; filter: grayscale(.4); }
-  .submit-btn.blocked-btn {
-    background: linear-gradient(135deg,#94a3b8,#64748b) !important;
-    box-shadow: none !important; cursor: not-allowed !important;
-  }
-  .submit-btn.blocked-btn:hover { transform: none !important; }
-
 </style>
 </head>
 <body>
@@ -527,549 +328,422 @@ textarea { resize: vertical; min-height: 80px; }
       <div class="sub-title">โรงพยาบาลสันทราย · Fleet Mile Recording</div>
     </div>
     <a href="index.html" class="back-btn">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
       หน้าหลัก
     </a>
   </div>
 </header>
 
-<main class="main-wrap">
+<div class="main-wrap">
 
-  <!-- สถานะรถปัจจุบัน -->
-  <div class="status-banner" id="statusBanner">
-    <div class="status-icon gray" id="statusIcon">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-      </svg>
-    </div>
-    <div class="status-info">
-      <div class="status-label">สถานะรถที่เลือก</div>
-      <div class="status-value" id="statusValue">เลือกรถเพื่อดูสถานะ</div>
-      <div class="status-sub" id="statusSub">—</div>
+  <!-- API Status Banner -->
+  <div class="api-banner loading show" id="apiBanner">
+    <div class="api-spinner" id="apiSpinner"></div>
+    <span id="apiBannerMsg">กำลังโหลดข้อมูลจาก Google Sheets...</span>
+  </div>
+
+  <!-- Active Trip Banner -->
+  <div class="active-trip-card" id="activeTripCard">
+    <div class="active-trip-title">🚗 รถที่กำลังออกปฏิบัติงาน</div>
+    <div class="active-trip-grid" id="activeTripGrid"></div>
+  </div>
+
+  <!-- CHECK GATE NOTICE -->
+  <div class="check-gate-notice" id="checkGateNotice">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div id="checkGateNoticeMsg">ยังมีรถที่ไม่ผ่านการตรวจสภาพประจำวันนี้ — <b>กรุณาตรวจสภาพรถก่อนออกรถ</b> ทะเบียนที่ยังไม่ตรวจ: <span id="notCheckedPlates"></span>
+      <br><a href="check.html" style="color:#b45309;font-weight:700;">→ ไปหน้าตรวจสภาพรถประจำวัน</a>
     </div>
   </div>
 
-  <!-- CHECK-GATE BANNER -->
-  <div class="check-gate loading" id="checkGateBanner">
-    <div class="check-gate-icon gray" id="cgIcon">⏳</div>
-    <div class="check-gate-body">
-      <div class="check-gate-title gray" id="cgTitle">กำลังตรวจสอบสถานะการตรวจสภาพรถ...</div>
-      <div class="check-gate-sub gray" id="cgSub">โปรดรอสักครู่</div>
-    </div>
-  </div>
-
-  <!-- TAB: ออกรถ / กลับถึงรพ. -->
+  <!-- TABS -->
   <div class="tab-row">
-    <button class="tab-btn active" id="tabStart" onclick="switchTab('start')">
-      บันทึกออกรถ
-    </button>
-    <button class="tab-btn end" id="tabEnd" onclick="switchTab('end')">
-      🏥 บันทึกกลับถึง รพ.
-    </button>
-    <button class="tab-btn" id="tabHistory" onclick="switchTab('history')">
-      ประวัติการใช้รถ
-    </button>
+    <button class="tab-btn active-start" id="tabStart" onclick="switchTab('start')">🚀 บันทึกออกรถ</button>
+    <button class="tab-btn" id="tabEnd"   onclick="switchTab('end')">🏁 บันทึกกลับ รพ.</button>
+    <button class="tab-btn" id="tabHist"  onclick="switchTab('hist')">📋 ประวัติการใช้รถ</button>
   </div>
 
-  <!-- ═══ PANEL: ออกรถ ═══ -->
-  <div id="panelStart">
+  <!-- ====== TAB: บันทึกออกรถ ====== -->
+  <div class="tab-panel active" id="panelStart">
 
     <div class="card">
       <div class="card-header">
         <div class="card-header-icon blue">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
         </div>
         <div>
-          <div class="card-header-title">บันทึกออกรถ</div>
-          <div class="card-header-sub">กรอกก่อนนำรถออกปฏิบัติงาน</div>
+          <div class="card-header-title">ข้อมูลการออกรถ</div>
+          <div class="card-header-sub">กรอกก่อนออกจาก รพ.</div>
         </div>
       </div>
       <div class="card-body">
-        <form id="startForm"><div id="startFormBody">
-          <div class="form-grid">
-
-            <div class="form-group">
-              <label>ทะเบียน / ประเภทรถ <span class="req">*</span></label>
-              <select id="s_carType" required onchange="onCarChange()">
-                <option value="">— เลือกรถ —</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>พนักงานขับรถ <span class="req">*</span></label>
-              <select id="s_driverName" required>
-                <option value="">-- กำลังโหลดรายชื่อ... --</option>
-              </select>
-            </div>
-
-            <div class="form-group span2">
-  <label>สถานที่ปลายทาง <span class="req">*</span></label>
-  <select id="s_destinationSelect" onchange="onDestChange()" style="margin-bottom:6px;">
-    <option value="">-- เลือกสถานที่ --</option>
-
-    <optgroup label="🏥 โรงพยาบาลศูนย์ / โรงพยาบาลทั่วไป (สธ.)">
-      <option value="รพ.นครพิงค์">รพ.นครพิงค์ </option>
-      <option value="รพ.สันทราย">รพ.สันทราย (อ.สันทราย)</option>
-      <option value="รพ.สันป่าตอง">รพ.สันป่าตอง (อ.สันป่าตอง)</option>
-      <option value="รพ.จอมทอง">รพ.จอมทอง (อ.จอมทอง)</option>
-      <option value="รพ.ฝาง">รพ.ฝาง (อ.ฝาง)</option>
-    </optgroup>
-
-    <optgroup label="🏨 โรงพยาบาลชุมชน (สธ.) — รายอำเภอ">
-      <option value="รพ.สันกำแพง">รพ.สันกำแพง (อ.สันกำแพง)</option>
-      <option value="รพ.ดอยสะเก็ด">รพ.ดอยสะเก็ด (อ.ดอยสะเก็ด)</option>
-      <option value="รพ.แม่แตง">รพ.แม่แตง (อ.แม่แตง)</option>
-      <option value="รพ.เชียงดาว">รพ.เชียงดาว (อ.เชียงดาว)</option>
-      <option value="รพ.แม่อาย">รพ.แม่อาย (อ.แม่อาย)</option>
-      <option value="รพ.ไชยปราการ">รพ.ไชยปราการ (อ.ไชยปราการ)</option>
-      <option value="รพ.เวียงแหง">รพ.เวียงแหง (อ.เวียงแหง)</option>
-      <option value="รพ.พร้าว">รพ.พร้าว (อ.พร้าว)</option>
-      <option value="รพ.สะเมิง">รพ.สะเมิง (อ.สะเมิง)</option>
-      <option value="รพ.หางดง">รพ.หางดง (อ.หางดง)</option>
-      <option value="รพ.สารภี">รพ.สารภี (อ.สารภี)</option>
-      <option value="รพ.ฮอด">รพ.ฮอด (อ.ฮอด)</option>
-      <option value="รพ.ดอยเต่า">รพ.ดอยเต่า (อ.ดอยเต่า)</option>
-      <option value="รพ.อมก๋อย">รพ.อมก๋อย (อ.อมก๋อย)</option>
-      <option value="รพ.แม่วาง">รพ.แม่วาง (อ.แม่วาง)</option>
-      <option value="รพ.แม่ออน">รพ.แม่ออน (อ.แม่ออน)</option>
-      <option value="รพ.ดอยหล่อ">รพ.ดอยหล่อ (อ.ดอยหล่อ)</option>
-      <option value="รพ.แม่แจ่ม">รพ.เทพรัตนเวชชานุกูล แม่แจ่ม (อ.แม่แจ่ม)</option>
-      <option value="รพ.กัลยาณิวัฒนา">รพ.วัดจันทร์เฉลิมพระเกียรติฯ กัลยาณิวัฒนา (อ.กัลยาณิวัฒนา)</option>
-    </optgroup>
-
-    <optgroup label="🏛️ หน่วยงานราชการ / สาธารณสุข">
-      <option value="สสจ.เชียงใหม่">สสจ.เชียงใหม่</option>
-      <option value="สสอ.สันทราย">สสอ.สันทราย</option>
-      <option value="ศูนย์อนามัยที่ 1 เชียงใหม่">ศูนย์อนามัยที่ 1 เชียงใหม่</option>
-      <option value="สำนักงานประกันสังคมเชียงใหม่">สำนักงานประกันสังคมเชียงใหม่</option>
-      <option value="ศาลากลางจังหวัดเชียงใหม่">ศาลากลางจังหวัดเชียงใหม่</option>
-      <option value="สถานีตำรวจภูธรสันทราย">สถานีตำรวจภูธรสันทราย</option>
-      <option value="อำเภอสันทราย">อำเภอสันทราย</option>
-    </optgroup>
-
-    <optgroup label="🏨 โรงแรม / สถานที่จัดประชุม (เชียงใหม่)">
-      <option value="โรงแรมดิเอ็มเพรส เชียงใหม่">โรงแรมดิเอ็มเพรส เชียงใหม่</option>
-      <option value="โรงแรมเชียงใหม่แกรนด์วิว">โรงแรมเชียงใหม่แกรนด์วิว</option>
-      <option value="โรงแรมอโมรา ท่าแพ เชียงใหม่">โรงแรมอโมรา ท่าแพ เชียงใหม่</option>
-      <option value="โรงแรมเชียงใหม่ออคิด">โรงแรมเชียงใหม่ออคิด</option>
-      <option value="โรงแรมโลตัส ปางสวนแก้ว เชียงใหม่">โรงแรมโลตัส ปางสวนแก้ว เชียงใหม่</option>
-      <option value="โรงแรมเลอ เมอริเดียน เชียงใหม่">โรงแรมเลอ เมอริเดียน เชียงใหม่</option>
-      <option value="โรงแรมแชงกรี-ลา เชียงใหม่">โรงแรมแชงกรี-ลา เชียงใหม่</option>
-      <option value="โรงแรมเชียงใหม่ แมริออท">โรงแรมเชียงใหม่ แมริออท</option>
-      <option value="โรงแรมฮอลิเดย์ อินน์ เชียงใหม่">โรงแรมฮอลิเดย์ อินน์ เชียงใหม่</option>
-      <option value="โรงแรมดวงตะวัน เชียงใหม่">โรงแรมดวงตะวัน เชียงใหม่</option>
-      <option value="ศูนย์ประชุมนานาชาติเชียงใหม่ (CMCC)">ศูนย์ประชุมนานาชาติเชียงใหม่ (CMCC)</option>
-    </optgroup>
-
-    <optgroup label="📍 สถานที่อื่น ๆ">
-      <option value="มหาวิทยาลัยแม่โจ้">มหาวิทยาลัยแม่โจ้</option>
-      <option value="มหาวิทยาลัยเชียงใหม่">มหาวิทยาลัยเชียงใหม่</option>
-      <option value="มหาวิทยาลัยพายัพ">มหาวิทยาลัยพายัพ</option>
-      <option value="สนามบินเชียงใหม่">สนามบินเชียงใหม่</option>
-      <option value="PCU หนองหาร">PCU หนองหาร</option>
-      <option value="__other__">📍 อื่นๆ (ระบุเอง)</option>
-    </optgroup>
-  </select>
-  <!-- hidden input สำหรับกรณีเลือก "อื่นๆ" -->
-  <input type="text" id="s_destination" placeholder="ระบุสถานที่อื่นๆ..."
-    style="display:none; margin-top:6px;" autocomplete="off">
-
-            <div class="form-group">
-              <label>วันที่ <span class="req">*</span></label>
-              <input type="date" id="s_tripDate" required>
-            </div>
-
-            <div class="form-group">
-              <label>เวลาออกรถ <span class="req">*</span></label>
-              <div style="position:relative;">
-              <input type="text" id="s_tripTime" required
-                placeholder="08:30" maxlength="5" autocomplete="off"
-                style="letter-spacing:2px;font-weight:600;"
-                oninput="fmt24Input(this)" onblur="val24Input(this)">
-              <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.75rem;color:#8898aa;font-weight:600;pointer-events:none;">น.</span>
-            </div>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;">
-              <span style="font-size:0.7rem;color:#8898aa;font-weight:600;align-self:center;">เร็ว:</span>
-              <button type="button" class="qtb" onclick="setT('s_tripTime','06:00')">06:00</button>
-              <button type="button" class="qtb" onclick="setT('s_tripTime','07:00')">07:00</button>
-              <button type="button" class="qtb" onclick="setT('s_tripTime','08:00')">08:00</button>
-              <button type="button" class="qtb" onclick="setT('s_tripTime','09:00')">09:00</button>
-              <button type="button" class="qtb" onclick="setT('s_tripTime','13:00')">13:00</button>
-              <button type="button" class="qtb" onclick="setT('s_tripTime','16:00')">16:00</button>
-            </div>
-            </div>
-
-            <div class="form-group span2">
-              <label>เลขไมล์ก่อนออกรถ <span class="req">*</span></label>
-              <div class="odo-input-wrap">
-                <input type="number" id="s_odometerStart" min="0" placeholder="000000" required
-                  oninput="validateStartOdo()">
-                <span class="odo-unit">กม.</span>
-              </div>
-              <div class="odo-hint" id="startOdoHint">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                <span id="startOdoHintText">เลขไมล์ล่าสุดจากการตรวจสภาพรถ: <strong id="lastOdoDisplay">—</strong></span>
-              </div>
-            </div>
-
-            <div class="form-group span2">
-              <label>หมายเหตุ</label>
-              <input type="text" id="s_remarks" placeholder="ภารกิจ / รายละเอียดเพิ่มเติม (ถ้ามี)">
-            </div>
-
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div class="form-group">
+            <label>ทะเบียนรถ <span class="req">*</span></label>
+            <select id="s_carType" onchange="onStartCarChange()" required>
+              <option value="">— กำลังโหลดรายการรถ... —</option>
+            </select>
           </div>
-
-          <!-- เติมน้ำมัน toggle -->
-          <div class="fuel-card" style="margin-top:18px;">
-            <input type="checkbox" id="fuelCheck" class="fuel-check">
-            <label for="fuelCheck" class="fuel-toggle">
-              <div class="fuel-toggle-track"></div>
-              <span style="font-size:14px; font-weight:600; color:var(--text);">มีการเติมน้ำมันก่อนออกรถ</span>
-            </label>
-            <div class="fuel-body">
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>จำนวนน้ำมันที่เติม (ลิตร)</label>
-                  <input type="number" id="s_fuelLiters" step="0.01" min="0" placeholder="เช่น 30.5">
-                </div>
-                <div class="form-group">
-                  <label>ราคาน้ำมัน (บาท)</label>
-                  <input type="number" id="s_fuelPrice" step="0.01" min="0" placeholder="เช่น 850">
-                </div>
-              </div>
-              <!-- รูปบิลน้ำมัน -->
-              <div class="form-group span2" style="margin-top:16px;">
-                <label style="font-size:13px;font-weight:700;color:var(--text-mid);margin-bottom:6px;display:flex;align-items:center;gap:6px;">
-                  <span style="background:var(--blue);color:#fff;border-radius:6px;padding:2px 8px;font-size:11px;">จำเป็น</span>
-                  รูปบิลน้ำมัน / สลิปการเติม
-                </label>
-
-                <!-- Drop Zone -->
-                <div class="fuel-photo-zone" id="fuelDropZone" onclick="document.getElementById('startFuelPhotoInput').click()">
-                  <span class="fuel-photo-icon" id="fuelZoneIcon"></span>
-                  <div class="fuel-photo-title" id="fuelZoneTitle">ถ่ายรูปหรืออัปโหลดบิลน้ำมัน</div>
-                  <div class="fuel-photo-sub" id="fuelZoneSub">รองรับหลายรูป — แตะเพื่อเปิดกล้องหรือเลือกจากคลัง</div>
-                  <div class="fuel-cam-btns">
-                    <button type="button" class="fuel-cam-btn" onclick="event.stopPropagation();document.getElementById('startFuelCamInput').click()">
-                      ถ่ายรูปทันที
-                    </button>
-                    <button type="button" class="fuel-cam-btn secondary" onclick="event.stopPropagation();document.getElementById('startFuelGalleryInput').click()">
-                      เลือกจากคลัง
-                    </button>
-                  </div>
-                  <!-- Hidden inputs -->
-                  <input type="file" id="startFuelPhotoInput" accept="image/*" multiple style="display:none">
-                  <input type="file" id="startFuelCamInput" accept="image/*" capture="environment" style="display:none">
-                  <input type="file" id="startFuelGalleryInput" accept="image/*" multiple style="display:none">
-                </div>
-
-                <!-- Warning badge -->
-                <div class="fuel-warn-badge">
-                  <span>⚠️</span>
-                  <span>กรุณาถ่ายรูปบิลน้ำมันทุกครั้ง เพื่อยืนยันการเติมและป้องกันความผิดพลาด</span>
-                </div>
-
-                <!-- Photo count badge (hidden until photos added) -->
-                <div id="fuelPhotoCountBadge" style="display:none;margin-top:8px;">
-                  <span class="fuel-photo-count" id="fuelPhotoCountText">0 รูป</span>
-                </div>
-
-                <!-- Photo grid preview -->
-                <div class="fuel-photo-grid" id="startFuelPhotoPreview"></div>
-              </div>
-            </div>
+          <div class="form-group">
+            <label>พนักงานขับรถ <span class="req">*</span></label>
+            <select id="s_driverName" required>
+              <option value="">— กำลังโหลดรายชื่อ... —</option>
+            </select>
           </div>
-
-          <div id="startAnomalyAlert" class="anomaly-alert">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-            <div class="alert-text" id="startAnomalyText"></div>
+          <div class="form-group">
+            <label>วันที่ <span class="req">*</span></label>
+            <input type="date" id="s_tripDate" required>
           </div>
-
-          <div style="margin-top:22px;">
-            <button type="submit" class="submit-btn" id="startSubmitBtn">
-              <div class="spinner"></div>
-              <span class="btn-text">บันทึกออกรถ — สถานะ "กำลังใช้งาน"</span>
-            </button>
+          <div class="form-group">
+            <label>เวลาออกรถ <span class="req">*</span></label>
+            <input type="time" id="s_tripTime" required>
           </div>
-        </div><!-- /startFormBody -->
-        </form>
+          <div class="form-group span2">
+            <label>ปลายทาง <span class="req">*</span></label>
+            <input type="text" id="s_destination" list="destinationList" placeholder="พิมพ์หรือเลือกปลายทาง..." required>
+            <datalist id="destinationList"></datalist>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-bottom:14px;">
+          <label>เลขไมล์ก่อนออกรถ <span class="req">*</span></label>
+          <div class="odo-wrap">
+            <input type="number" id="s_odometerStart" min="0" placeholder="เช่น 125340" required oninput="validateStartOdo()">
+            <span class="odo-unit">กม.</span>
+          </div>
+          <div class="odo-hint" id="s_lastMileHint">กำลังโหลดเลขไมล์ล่าสุด...</div>
+        </div>
+
+        <div class="form-group">
+          <label>หมายเหตุ</label>
+          <textarea id="s_remarks" placeholder="(ไม่บังคับ) ภารกิจ หรือหมายเหตุเพิ่มเติม..."></textarea>
+        </div>
       </div>
     </div>
 
+    <button class="submit-btn blue" id="startBtn" onclick="submitStart()">
+      <div class="spinner"></div>
+      <span class="btn-text">🚀 บันทึกออกรถ</span>
+    </button>
   </div>
 
-  <!-- ═══ PANEL: กลับถึง รพ. ═══ -->
-  <div id="panelEnd" style="display:none;">
-
-    <!-- Active trips banner -->
-    <div id="activeTripsBanner" style="display:none;background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #fde68a;border-radius:14px;padding:14px 18px;margin-bottom:16px;">
-      <div style="font-size:12px;font-weight:700;color:#92400e;letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase;">🚗 รถที่กำลังออกปฏิบัติงานอยู่ — แตะเพื่อเลือกบันทึกกลับ</div>
-      <div id="activeTripsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;"></div>
-    </div>
-
-    <!-- No active trips notice -->
-    <div id="noActiveTripsBanner" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;padding:16px 18px;margin-bottom:16px;text-align:center;">
-      <div style="font-size:1.5rem;margin-bottom:6px;">✅</div>
-      <div style="font-size:14px;font-weight:700;color:#14532d;">ไม่มีรถที่กำลังออกปฏิบัติงาน</div>
-      <div style="font-size:12px;color:#16a34a;margin-top:4px;">รถทุกคันกลับถึงโรงพยาบาลแล้ว หรือยังไม่มีการบันทึกออกรถวันนี้</div>
-    </div>
+  <!-- ====== TAB: บันทึกกลับ รพ. ====== -->
+  <div class="tab-panel" id="panelEnd">
 
     <div class="card">
       <div class="card-header">
         <div class="card-header-icon teal">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 12H5M12 5l-7 7 7 7"/>
-          </svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         </div>
         <div>
-          <div class="card-header-title">บันทึกกลับถึงโรงพยาบาล</div>
-          <div class="card-header-sub">กรอกหลังกลับถึงโรงพยาบาล</div>
+          <div class="card-header-title">บันทึกกลับ รพ.</div>
+          <div class="card-header-sub">บันทึกเมื่อกลับถึงโรงพยาบาล</div>
         </div>
       </div>
       <div class="card-body">
-        <form id="endForm">
-          <div class="form-grid">
-
-            <div class="form-group">
-              <label>ทะเบียน / ประเภทรถ <span class="req">*</span></label>
-              <select id="e_carType" required onchange="onEndCarChange()">
-                <option value="">— เลือกรถ —</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label>Trip ID (ถ้าทราบ)</label>
-              <input type="text" id="e_tripId" placeholder="อัปโหลดอัตโนมัติ">
-            </div>
-
-            <div class="form-group">
-              <label>เวลากลับถึง รพ. <span class="req">*</span></label>
-              <div style="position:relative;">
-              <input type="text" id="e_returnTime" required
-                placeholder="16:30" maxlength="5" autocomplete="off"
-                style="letter-spacing:2px;font-weight:600;"
-                oninput="fmt24Input(this)" onblur="val24Input(this)">
-              <span style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:0.75rem;color:#8898aa;font-weight:600;pointer-events:none;">น.</span>
-            </div>
-            <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:6px;">
-              <span style="font-size:0.7rem;color:#8898aa;font-weight:600;align-self:center;">เร็ว:</span>
-              <button type="button" class="qtb" onclick="setT('e_returnTime','12:00')">12:00</button>
-              <button type="button" class="qtb" onclick="setT('e_returnTime','13:00')">13:00</button>
-              <button type="button" class="qtb" onclick="setT('e_returnTime','16:30')">16:30</button>
-              <button type="button" class="qtb" onclick="setT('e_returnTime','17:00')">17:00</button>
-              <button type="button" class="qtb" onclick="setT('e_returnTime','18:00')">18:00</button>
-              <button type="button" class="qtb" onclick="setT('e_returnTime','20:00')">20:00</button>
-            </div>
-            </div>
-
-            <div class="form-group">
-              <label>เลขไมล์ขณะกลับ <span class="req">*</span></label>
-              <div class="odo-input-wrap">
-                <input type="number" id="e_odometerEnd" min="0" placeholder="000000" required
-                  oninput="calcDistance()">
-                <span class="odo-unit">กม.</span>
-              </div>
-            </div>
-
+        <div class="form-grid" style="margin-bottom:14px;">
+          <div class="form-group">
+            <label>ทะเบียนรถ <span class="req">*</span></label>
+            <select id="e_carType" onchange="onEndCarChange()" required>
+              <option value="">— เลือกรถที่กำลังออกอยู่ —</option>
+            </select>
           </div>
-
-          <!-- Route preview -->
-          <div class="route-box" style="margin-top:14px;">
-            <div class="route-start">
-              <div class="route-label">ไมล์ต้น</div>
-              <div class="route-val blue" id="e_startDisplay">—</div>
-            </div>
-            <div class="route-arrow">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </div>
-            <div class="route-dist">
-              <div class="route-label">ระยะทาง</div>
-              <div class="route-val dist-val" id="e_distDisplay">—</div>
-              <div class="dist-unit">กิโลเมตร</div>
-            </div>
-            <div class="route-arrow">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </div>
-            <div class="route-end">
-              <div class="route-label">ไมล์ปลาย</div>
-              <div class="route-val teal" id="e_endDisplay">—</div>
-            </div>
+          <div class="form-group">
+            <label>เวลากลับ <span class="req">*</span></label>
+            <input type="time" id="e_returnTime" required>
           </div>
+        </div>
 
-          <div id="endAnomalyAlert" class="anomaly-alert">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-            <div class="alert-text" id="endAnomalyText"></div>
+        <div class="form-group" style="margin-bottom:14px;">
+          <label>เลขไมล์เมื่อกลับ <span class="req">*</span></label>
+          <div class="odo-wrap">
+            <input type="number" id="e_odometerEnd" min="0" placeholder="เช่น 125580" required oninput="calcDistance()">
+            <span class="odo-unit">กม.</span>
           </div>
+          <div class="odo-hint" id="e_odoHint"></div>
+        </div>
 
-          <div class="form-grid" style="margin-top:16px;">
-            <div class="form-group span2">
-              <label>หมายเหตุ</label>
-              <input type="text" id="e_remarks" placeholder="สรุปภารกิจ / สิ่งผิดปกติระหว่างทาง">
-            </div>
+        <!-- Route Preview -->
+        <div class="route-preview" id="routePreview" style="display:none;">
+          <div class="route-col">
+            <div class="route-label">เลขไมล์ต้น</div>
+            <div class="route-val blue" id="rStart">—</div>
           </div>
+          <div class="route-arrow">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </div>
+          <div class="route-col">
+            <div class="route-label">เลขไมล์ปลาย</div>
+            <div class="route-val teal" id="rEnd">—</div>
+          </div>
+          <div class="route-arrow">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-light)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/></svg>
+          </div>
+          <div class="route-col">
+            <div class="route-label">ระยะทาง</div>
+            <div class="route-val amber" id="rDist">—</div>
+          </div>
+        </div>
 
-          <div style="margin-top:22px;">
-            <button type="submit" class="submit-btn teal-btn" id="endSubmitBtn">
-              <div class="spinner"></div>
-              <span class="btn-text">🏥 บันทึกกลับ — สถานะ "พร้อมใช้งาน"</span>
-            </button>
-          </div>
-        </form>
+        <div class="form-group" style="margin-top:14px;">
+          <label>หมายเหตุ</label>
+          <textarea id="e_remarks" placeholder="(ไม่บังคับ) หมายเหตุเพิ่มเติม..."></textarea>
+        </div>
       </div>
     </div>
 
+    <button class="submit-btn teal" id="endBtn" onclick="submitEnd()">
+      <div class="spinner"></div>
+      <span class="btn-text">🏁 บันทึกกลับ รพ.</span>
+    </button>
   </div>
 
-  <!-- ═══ PANEL: ประวัติ ═══ -->
-  <div id="panelHistory" style="display:none;">
-
+  <!-- ====== TAB: ประวัติ ====== -->
+  <div class="tab-panel" id="panelHist">
     <div class="card">
       <div class="card-header">
         <div class="card-header-icon amber">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-          </svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
         </div>
         <div>
           <div class="card-header-title">ประวัติการใช้รถ</div>
-          <div class="card-header-sub">บันทึกการเดินทางทั้งหมด</div>
+          <div class="card-header-sub">บันทึกล่าสุด 50 รายการ</div>
         </div>
-        <div style="margin-left:auto;">
-          <select id="histFilterCar" onchange="renderHistory()" style="font-size:12px;padding:6px 10px;border-radius:8px;">
-            <option value="">รถทุกคัน</option>
+        <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
+          <select id="histFilterCar" onchange="filterHistory()" style="font-size:12px;padding:6px 10px;min-width:140px;">
+            <option value="">ทุกคัน</option>
           </select>
+          <button onclick="loadMileHistory()" style="padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg);font-size:12px;cursor:pointer;font-family:inherit;">รีเฟรช</button>
         </div>
       </div>
-      <div class="card-body" style="padding:0;">
-        <div class="history-table-wrap">
-          <table class="history-table">
-            <thead>
-              <tr>
-                <th>วันที่</th>
-                <th>รถ</th>
-                <th>พขร.</th>
-                <th>ปลายทาง</th>
-                <th>ไมล์ต้น</th>
-                <th>ไมล์ปลาย</th>
-                <th>ระยะ (กม.)</th>
-                <th>สถานะ</th>
-              </tr>
-            </thead>
-            <tbody id="historyTbody">
-              <tr class="empty-row"><td colspan="8">กำลังโหลดข้อมูล...</td></tr>
-            </tbody>
-          </table>
-        </div>
+      <div class="table-wrap">
+        <table class="hist-table">
+          <thead>
+            <tr>
+              <th>ทะเบียน</th>
+              <th>พขร.</th>
+              <th>วันที่/เวลาออก</th>
+              <th>ปลายทาง</th>
+              <th>ไมล์ต้น</th>
+              <th>ไมล์ปลาย</th>
+              <th>ระยะ(กม.)</th>
+              <th>สถานะ</th>
+            </tr>
+          </thead>
+          <tbody id="histBody">
+            <tr class="empty-row"><td colspan="8">กำลังโหลดข้อมูล...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
-
   </div>
 
-</main>
+</div><!-- /main-wrap -->
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
-<!-- MODAL: ยืนยัน -->
-<div class="modal-overlay" id="modal">
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="confirmModal">
   <div class="modal-box">
-    <div class="modal-icon" id="modalIcon">✅</div>
-    <div class="modal-title" id="modalTitle">ยืนยันการบันทึก</div>
-    <div class="modal-body" id="modalBody"></div>
-    <div class="modal-actions">
-      <button class="modal-btn secondary" onclick="closeModal()">ยกเลิก</button>
-      <button class="modal-btn primary" id="modalConfirm" onclick="confirmSubmit()">ยืนยัน</button>
+    <div class="modal-icon" id="mIcon">🚀</div>
+    <div class="modal-title" id="mTitle">ยืนยันการบันทึก</div>
+    <div class="modal-msg"  id="mMsg"></div>
+    <div class="modal-detail" id="mDetail"></div>
+    <div class="modal-btns">
+      <button class="modal-btn cancel"  onclick="closeModal()">ยกเลิก</button>
+      <button class="modal-btn confirm" id="mConfirmBtn" onclick="doConfirm()">ยืนยัน</button>
     </div>
   </div>
 </div>
 
 <script>
-// ─────────────────────────────────────────────
-//  CONFIG
-// ─────────────────────────────────────────────
+// ════════════════════════════════════════════════════════
+//  CONFIG — แก้ URL นี้ถ้า deploy GAS ใหม่
+// ════════════════════════════════════════════════════════
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxL1ZYuJr_jtZtGB9oRS5HSO9lArCeqduleQOEli9Ctpv4tZGIiHrTXg-OqMGFvfQ/exec';
-const GAS_STATUS_URL = GAS_URL; // ใช้ endpoint เดียวกัน
 
-// ─────────────────────────────────────────────
-//  STATE
-// ─────────────────────────────────────────────
-let vehicles      = [];
-let mileHistory   = [];
-let pendingAction = null;   // { type: 'start'|'end', data: {} }
-let startOdoMap   = {};     // carType → lastOdometer จาก active trip
-
-// ── CHECK-GATE STATE ──
-let todayCheckedSet = new Set();   // carType strings ที่ผ่านตรวจวันนี้
-let checkGateLoaded = false;
-let checkGateError  = false;
-
-// ─────────────────────────────────────────────
-//  INIT
-// ─────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  setDateTimeDefaults();
-  loadVehicles();
-  loadMileHistory().then(function() { renderActiveTripsBanner(); });
-  loadTodayCheckStatus();
-  // รีเฟรชสถานะตรวจสภาพทุก 2 นาที (ทันทีที่มีคนตรวจเพิ่ม)
-  setInterval(loadTodayCheckStatus, 120000);
-});
-
-function setDateTimeDefaults() {
-  const now = new Date();
-  // ใช้ Bangkok timezone โดยตรง (ไม่แปลง UTC)
-  const bkkDate = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok',
-    year:'numeric', month:'2-digit', day:'2-digit' }).format(now);
-  const bkkTime = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Bangkok',
-    hour:'2-digit', minute:'2-digit', hour12:false }).format(now);
-  document.getElementById('s_tripDate').value   = bkkDate;
-  document.getElementById('s_tripTime').value   = bkkTime;
-  document.getElementById('e_returnTime').value = bkkTime;
-}
-
-// ─────────────────────────────────────────────
-//  LOAD VEHICLES
-// ─────────────────────────────────────────────
-async function loadVehicles() {
-  try {
-    const res  = await fetch(GAS_URL + '?action=getVehicles');
-    const json = await res.json();
-    vehicles   = (json.data && json.data.length) ? json.data : getDefaultVehicles();
-  } catch (_) {
-    vehicles = getDefaultVehicles();
-  }
-  populateCarSelects();
-  loadDrivers(); // โหลด drivers หลังจากมี vehicles แล้ว
-}
-
-async function loadDrivers() {
-  try {
-    const res  = await fetch(GAS_URL + '?action=getDrivers');
-    const json = await res.json();
-    const drivers = (json.drivers && json.drivers.length) ? json.drivers : DEFAULT_DRIVERS;
-    populateDriverSelect(drivers);
-  } catch (_) {
-    populateDriverSelect(DEFAULT_DRIVERS);
-  }
-}
-
+// ════════════════════════════════════════════════════════
+//  DEFAULT DATA (แสดงทันทีถ้า API ช้า / ออฟไลน์)
+// ════════════════════════════════════════════════════════
+const DEFAULT_VEHICLES = [
+  { ทะเบียน:'นจ.4919 ชม.', ประเภท:'รถตู้ฮุนได',         ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'นง.8781 ชม.', ประเภท:'รถตู้ฮุนได',         ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'นง.86 ชม.',   ประเภท:'รถตู้',              ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'จย.1379 ชม.', ประเภท:'รถ Refer',           ประเภทระบบ:'EMS' },
+  { ทะเบียน:'งบ.5466 ชม.', ประเภท:'รถ Refer',           ประเภทระบบ:'EMS' },
+  { ทะเบียน:'ขษ.4361 ชม.', ประเภท:'รถ Refer',           ประเภทระบบ:'EMS' },
+  { ทะเบียน:'ขร.501 ชม.',  ประเภท:'รถ Refer',           ประเภทระบบ:'EMS' },
+  { ทะเบียน:'ขธ.9302 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'ขฉ.8407 ชม.', ประเภท:'รถ Refer',           ประเภทระบบ:'EMS' },
+  { ทะเบียน:'ขค.9662 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'กล.9438 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ประเภทระบบ:'ทั่วไป' }
+];
 const DEFAULT_DRIVERS = [
   'นาย ชัยพร มอญแสง','นาย กิตติพงศ์ เขื่อนแก้ว','นาย กานต์นิธิ ทองอร',
   'นาย เฉลิมชนม์ นันติแก้ว','นาย นพดล คำปินคำ','นาย เก้า พิจิตร',
   'นาย ภาณุพงศ์ กางสำโรง','นาย เฉลิมพล เลาแก้ว','นายชัยพร ชัยศร','นายกัมพล โพธิ์พัด'
 ];
+const DEFAULT_DESTINATIONS = [
+  'รพ.นครพิงค์','รพ.สันทราย','รพ.สันป่าตอง','รพ.จอมทอง','รพ.ฝาง',
+  'รพ.แม่ริม','รพ.สันกำแพง','รพ.ดอยสะเก็ด','รพ.แม่แตง','รพ.เชียงดาว',
+  'รพ.แม่อาย','รพ.พร้าว','รพ.หางดง','รพ.สารภี','สำนักงานสาธารณสุขจังหวัด','อื่นๆ'
+];
+
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+let vehicles        = [...DEFAULT_VEHICLES];   // ใช้ default ทันที
+let mileHistory     = [];
+let todayCheckedSet = new Set();  // plates ที่ตรวจแล้ววันนี้
+let activeTripMap   = {};         // plate → trip data (กำลังใช้งาน)
+let pendingAction   = null;       // { type, data }
+let apiLoaded       = false;
+
+// ════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  setDateTimeDefaults();
+
+  // แสดง default vehicles ทันที ไม่ต้องรอ API
+  populateCarSelects();
+  populateDriverSelect(DEFAULT_DRIVERS);
+  populateDestinations(DEFAULT_DESTINATIONS);
+
+  // โหลดข้อมูลจาก Google Sheets แบบ parallel
+  loadAllData();
+});
+
+function setDateTimeDefaults() {
+  const now = new Date();
+  const bkkDate = new Intl.DateTimeFormat('en-CA', {
+    timeZone:'Asia/Bangkok', year:'numeric', month:'2-digit', day:'2-digit'
+  }).format(now);
+  const bkkTime = new Intl.DateTimeFormat('en-GB', {
+    timeZone:'Asia/Bangkok', hour:'2-digit', minute:'2-digit', hour12:false
+  }).format(now);
+  document.getElementById('s_tripDate').value   = bkkDate;
+  document.getElementById('s_tripTime').value   = bkkTime;
+  document.getElementById('e_returnTime').value = bkkTime;
+}
+
+// ════════════════════════════════════════════════════════
+//  โหลดข้อมูลจาก Google Sheets
+// ════════════════════════════════════════════════════════
+async function loadAllData() {
+  setBanner('loading', 'กำลังโหลดข้อมูลจาก Google Sheets...');
+  try {
+    // โหลดทุกอย่างพร้อมกัน
+    const [vRes, dRes, sumRes, mileRes] = await Promise.allSettled([
+      fetchGAS('getVehicles'),
+      fetchGAS('getDrivers'),
+      fetchGAS('getStatusSummary'),
+      fetchGAS('getMileData')
+    ]);
+
+    // ── Vehicles ──
+    if (vRes.status === 'fulfilled' && vRes.value.data && vRes.value.data.length) {
+      vehicles = vRes.value.data;
+    }
+    // กรอกรถทันที (อาจอัปเดตจาก default)
+    populateCarSelects();
+
+    // ── Drivers ──
+    if (dRes.status === 'fulfilled' && dRes.value.drivers && dRes.value.drivers.length) {
+      populateDriverSelect(dRes.value.drivers);
+    }
+
+    // ── Status Summary (รถที่ตรวจแล้ว + กำลังใช้งาน) ──
+    if (sumRes.status === 'fulfilled') {
+      const sum = sumRes.value;
+      // รถที่ตรวจแล้ววันนี้
+      todayCheckedSet.clear();
+      (sum.todayChecked || []).forEach(c => {
+        const plate = String(c.carType || '').split(' ')[0].trim();
+        if (plate) todayCheckedSet.add(plate);
+      });
+      // รถที่กำลังใช้งาน
+      activeTripMap = {};
+      (sum.inUse || []).forEach(trip => {
+        const plate = String(trip.carType || '').split(' ')[0].trim();
+        if (plate) activeTripMap[plate] = trip;
+      });
+
+      renderActiveTripBanner();
+      renderCheckGateNotice(sum);
+      // อัปเดต select ด้วยข้อมูล check gate
+      populateCarSelects();
+    }
+
+    // ── Mile History ──
+    if (mileRes.status === 'fulfilled' && mileRes.value.data) {
+      mileHistory = mileRes.value.data;
+      // สร้าง activeTripMap จาก mileHistory ด้วย (เพิ่มความแม่นยำ)
+      mileHistory.forEach(r => {
+        if (String(r['สถานะ'] || '') === 'กำลังใช้งาน') {
+          const plate = String(r['ทะเบียน/รถ'] || '').split(' ')[0].trim();
+          if (plate && !activeTripMap[plate]) {
+            activeTripMap[plate] = {
+              tripId: r['TripID'],
+              carType: r['ทะเบียน/รถ'],
+              destination: r['ปลายทาง'],
+              odomStart: Number(r['เลขไมล์ต้น']) || 0,
+              driver: r['พนักงานขับรถ']
+            };
+          }
+        }
+      });
+      renderActiveTripBanner();
+      populateCarSelects();  // อัปเดต e_carType ด้วยรถ active
+      renderHistory();
+    }
+
+    // ── Destinations จาก Config ──
+    try {
+      const cfgRes = await fetchGAS('getConfig');
+      if (cfgRes.config && cfgRes.config.destinations && cfgRes.config.destinations.length) {
+        populateDestinations(cfgRes.config.destinations);
+      }
+    } catch(_) {}
+
+    apiLoaded = true;
+    setBanner('success', `โหลดข้อมูลสำเร็จ — รถ ${vehicles.length} คัน | ประวัติ ${mileHistory.length} รายการ`);
+    setTimeout(() => hideBanner(), 3000);
+
+  } catch(err) {
+    setBanner('error', `โหลดข้อมูลไม่สำเร็จ: ${err.message} — ใช้ข้อมูล Default แทน`);
+    console.error('loadAllData error:', err);
+  }
+}
+
+// helper fetch GAS
+async function fetchGAS(action) {
+  const res = await fetch(GAS_URL + '?action=' + action, { cache: 'no-cache' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return await res.json();
+}
+
+// ════════════════════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════════════════════
+function setBanner(type, msg) {
+  const el  = document.getElementById('apiBanner');
+  const sp  = document.getElementById('apiSpinner');
+  const txt = document.getElementById('apiBannerMsg');
+  el.className = 'api-banner show ' + type;
+  sp.style.display = (type === 'loading') ? 'block' : 'none';
+  txt.textContent  = msg;
+}
+function hideBanner() {
+  document.getElementById('apiBanner').classList.remove('show');
+}
 
 function populateDriverSelect(drivers) {
   const sel = document.getElementById('s_driverName');
   if (!sel) return;
   const cur = sel.value;
-  sel.innerHTML = '<option value="">-- เลือกชื่อ --</option>';
+  sel.innerHTML = '<option value="">— เลือกชื่อพขร. —</option>';
   drivers.forEach(name => {
     const opt = document.createElement('option');
     opt.value = opt.textContent = name;
@@ -1078,946 +752,467 @@ function populateDriverSelect(drivers) {
   });
 }
 
-function getDefaultVehicles() {
-  return [
-    { ทะเบียน:'นจ.4919 ชม.', ประเภท:'รถตู้ฮุนได',         สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' },
-    { ทะเบียน:'นง.8781 ชม.', ประเภท:'รถตู้ฮุนได',         สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' },
-    { ทะเบียน:'นง.86 ชม.',   ประเภท:'รถตู้',              สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' },
-    { ทะเบียน:'จย.1379 ชม.', ประเภท:'รถ Refer',           สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
-    { ทะเบียน:'งบ.5466 ชม.', ประเภท:'รถ Refer',           สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
-    { ทะเบียน:'ขษ.4361 ชม.', ประเภท:'รถ Refer',           สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
-    { ทะเบียน:'ขร.501 ชม.',  ประเภท:'รถ Refer',           สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
-    { ทะเบียน:'ขธ.9302 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' },
-    { ทะเบียน:'ขฉ.8407 ชม.', ประเภท:'รถ Refer',           สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
-    { ทะเบียน:'ขค.9662 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' },
-    { ทะเบียน:'กล.9438 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' }
-  ];
+function populateDestinations(dests) {
+  const dl = document.getElementById('destinationList');
+  if (!dl) return;
+  dl.innerHTML = '';
+  dests.forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d;
+    dl.appendChild(opt);
+  });
 }
 
 function populateCarSelects() {
-  // ── s_carType (ออกรถ): แสดงเฉพาะรถที่ตรวจสภาพวันนี้แล้ว ──
-  const sEl  = document.getElementById('s_carType');
+  // ── s_carType: ออกรถ ──
+  const sEl = document.getElementById('s_carType');
   const sCur = sEl.value;
-  while (sEl.options.length > 1) sEl.remove(1);
+  sEl.innerHTML = '<option value="">— เลือกทะเบียนรถ —</option>';
 
+  // แยกกลุ่ม: ตรวจแล้ว / ยังไม่ตรวจ
+  const checkedV   = [];
+  const uncheckedV = [];
   vehicles.forEach(v => {
-    const plate = v['ทะเบียน'] || '';
-    const type  = v['ประเภท']  || '';
-    const label = plate + ' — ' + type;
-    const opt   = document.createElement('option');
-    opt.value   = label;
-    if (checkGateLoaded) {
-      const checked = isCarCheckedToday(label);
-      opt.text = checked ? '✅ ' + label : '🔴 ' + label + '  [ยังไม่ตรวจสภาพ]';
-      if (!checked) opt.style.color = '#b91c1c';
+    const plate = String(v['ทะเบียน'] || '').split(' ')[0].trim();
+    const inChecked = [...todayCheckedSet].some(cp =>
+      cp === plate || cp.includes(plate) || plate.includes(cp)
+    );
+    if (inChecked || todayCheckedSet.size === 0) {
+      checkedV.push(v);
     } else {
-      opt.text = label;
+      uncheckedV.push(v);
     }
-    sEl.appendChild(opt);
   });
+
+  if (checkedV.length > 0 && uncheckedV.length > 0) {
+    // แสดงรถที่ตรวจแล้วก่อน
+    const og1 = document.createElement('optgroup');
+    og1.label = '✅ ตรวจสภาพแล้ว — เลือกได้';
+    checkedV.forEach(v => appendCarOption(og1, v, false));
+    sEl.appendChild(og1);
+
+    const og2 = document.createElement('optgroup');
+    og2.label = '⚠️ ยังไม่ได้ตรวจสภาพวันนี้';
+    uncheckedV.forEach(v => appendCarOption(og2, v, false));
+    sEl.appendChild(og2);
+  } else {
+    // ยังไม่มีข้อมูล checkgate หรือทุกคันตรวจหมดแล้ว — แสดงทั้งหมด
+    vehicles.forEach(v => appendCarOption(sEl, v, false));
+  }
+
   if (sCur) sEl.value = sCur;
 
-  // ── e_carType (กลับ รพ.): แสดงเฉพาะรถที่กำลังใช้งาน (startOdoMap) ──
-  const eEl  = document.getElementById('e_carType');
+  // ── e_carType: กลับรพ. ──
+  const eEl = document.getElementById('e_carType');
   const eCur = eEl.value;
-  while (eEl.options.length > 1) eEl.remove(1);
+  eEl.innerHTML = '<option value="">— เลือกรถที่กำลังออกอยู่ —</option>';
 
-  // หารถที่กำลังใช้งาน (มีใน startOdoMap)
-  const activePlates = Object.keys(startOdoMap); // short plates
-
-  // match รถในรายการ vehicles กับ activePlates
-  const activeVehicles = vehicles.filter(v => {
-    const shortPlate = String(v['ทะเบียน'] || '').split(' ')[0].trim();
-    return activePlates.some(ap => ap === shortPlate || shortPlate.includes(ap) || ap.includes(shortPlate));
-  });
-
-  if (activeVehicles.length === 0) {
-    const hint = document.createElement('option');
-    hint.value    = '';
-    hint.text     = '— ยังไม่มีรถที่กำลังออกปฏิบัติงาน —';
-    hint.disabled = true;
-    eEl.appendChild(hint);
-    // fallback: แสดงทุกคันเพื่อให้กรอกได้ถ้าข้อมูลไม่ sync
+  const activePlates = Object.keys(activeTripMap);
+  if (activePlates.length > 0) {
+    const og = document.createElement('optgroup');
+    og.label = '🟡 กำลังออกปฏิบัติงาน';
     vehicles.forEach(v => {
-      const label = (v['ทะเบียน'] || '') + ' — ' + (v['ประเภท'] || '');
-      const opt   = document.createElement('option');
-      opt.value   = label;
-      opt.text    = label;
-      opt.style.color = '#94a3b8';
-      eEl.appendChild(opt);
+      const plate = String(v['ทะเบียน'] || '').split(' ')[0].trim();
+      const isActive = activePlates.some(ap => ap === plate || plate.includes(ap) || ap.includes(plate));
+      if (isActive) appendCarOption(og, v, true);
     });
-  } else {
-    // แสดงรถที่กำลังใช้งานก่อน (ด้วย 🟡)
-    activeVehicles.forEach(v => {
-      const label = (v['ทะเบียน'] || '') + ' — ' + (v['ประเภท'] || '');
-      const opt   = document.createElement('option');
-      opt.value   = label;
-      opt.text    = '🟡 ' + label + '  [กำลังออกรถ]';
-      eEl.appendChild(opt);
-    });
-    // แสดงรถที่เหลือ (ไม่ได้กำลังใช้งาน) โดยใส่ separator
-    const otherVehicles = vehicles.filter(v => !activeVehicles.includes(v));
-    if (otherVehicles.length > 0) {
-      const sep  = document.createElement('option');
-      sep.disabled = true;
-      sep.text     = '── รถที่ไม่ได้กำลังออกรถ ──';
-      eEl.appendChild(sep);
-      otherVehicles.forEach(v => {
-        const label = (v['ทะเบียน'] || '') + ' — ' + (v['ประเภท'] || '');
-        const opt   = document.createElement('option');
-        opt.value   = label;
-        opt.text    = label;
-        opt.style.color = '#94a3b8';
-        eEl.appendChild(opt);
-      });
-    }
+    eEl.appendChild(og);
   }
+
+  // แสดงรถอื่นด้วย (fallback กรณีข้อมูลไม่ sync)
+  const otherOg = document.createElement('optgroup');
+  otherOg.label = '— รถอื่นๆ —';
+  vehicles.forEach(v => {
+    const plate = String(v['ทะเบียน'] || '').split(' ')[0].trim();
+    const isActive = activePlates.some(ap => ap === plate || plate.includes(ap) || ap.includes(plate));
+    if (!isActive) appendCarOption(otherOg, v, false);
+  });
+  if (otherOg.children.length > 0) eEl.appendChild(otherOg);
+
   if (eCur) eEl.value = eCur;
 
   // ── histFilterCar ──
-  const hEl  = document.getElementById('histFilterCar');
-  const hCur = hEl ? hEl.value : '';
+  const hEl = document.getElementById('histFilterCar');
   if (hEl) {
-    while (hEl.options.length > 1) hEl.remove(1);
+    const hCur = hEl.value;
+    hEl.innerHTML = '<option value="">ทุกคัน</option>';
     vehicles.forEach(v => {
       const plate = v['ทะเบียน'] || '';
-      const label = plate + ' — ' + (v['ประเภท'] || '');
-      const opt   = document.createElement('option');
-      opt.value   = plate;
-      opt.text    = label;
+      const opt = document.createElement('option');
+      opt.value = plate.split(' ')[0];
+      opt.textContent = plate + ' — ' + (v['ประเภท'] || '');
       hEl.appendChild(opt);
     });
     if (hCur) hEl.value = hCur;
   }
 }
 
-/** ตรวจว่า carType label นั้นอยู่ใน todayCheckedSet หรือไม่ */
-function isCarCheckedToday(carTypeLabel) {
-  if (!checkGateLoaded) return true; // fail-open ถ้าโหลดไม่สำเร็จ
-  const plate = carTypeLabel.split(' ')[0].trim();
-  for (const checked of todayCheckedSet) {
-    const checkedPlate = checked.split(' ')[0].trim();
-    if (checkedPlate === plate || checked.includes(plate) || plate.includes(checkedPlate)) return true;
-  }
-  return false;
+function appendCarOption(parent, v, isActive) {
+  const plate = v['ทะเบียน'] || '';
+  const type  = v['ประเภท']  || '';
+  const label = plate + ' — ' + type;
+  const opt = document.createElement('option');
+  opt.value = label;
+  opt.textContent = (isActive ? '🚗 ' : '') + label;
+  parent.appendChild(opt);
 }
 
-// ─────────────────────────────────────────────
-//  LOAD MILE HISTORY
-// ─────────────────────────────────────────────
-async function loadMileHistory() {
-  try {
-    const res  = await fetch(GAS_URL + '?action=getMileData');
-    const json = await res.json();
-    mileHistory = json.data || [];
-  } catch (_) {
-    mileHistory = generateDemoHistory();
-  }
+// ════════════════════════════════════════════════════════
+//  BANNERS
+// ════════════════════════════════════════════════════════
+function renderActiveTripBanner() {
+  const card = document.getElementById('activeTripCard');
+  const grid = document.getElementById('activeTripGrid');
+  const trips = Object.values(activeTripMap);
 
-  // สร้าง startOdoMap: short plate → odometerStart ของ trip กำลังใช้งาน
-  startOdoMap = {};
-  mileHistory.forEach(row => {
-    const car    = String(row['ทะเบียน/รถ'] || '');
-    const plate  = car.split(' ')[0].trim();
-    const status = String(row['สถานะ'] || '');
-    if (status === 'กำลังใช้งาน') {
-      startOdoMap[plate] = Number(row['เลขไมล์ต้น']) || 0;
-    }
-  });
+  if (trips.length === 0) { card.classList.remove('show'); return; }
+  card.classList.add('show');
 
-  // รีเฟรช dropdown
-  populateCarSelects();
-  renderActiveTripsBanner();
-  if (document.getElementById('panelHistory').style.display !== 'none') {
-    renderHistory();
-  }
-}
-
-
-function renderActiveTripsBanner() {
-  var banner     = document.getElementById('activeTripsBanner');
-  var grid       = document.getElementById('activeTripsGrid');
-  var noBanner   = document.getElementById('noActiveTripsBanner');
-  if (!banner || !grid) return;
-
-  var activeTrips = mileHistory.filter(function(r) {
-    return String(r['สถานะ']) === 'กำลังใช้งาน';
-  });
-
-  // แสดง/ซ่อน banner ตาม panel ที่แสดงอยู่
-  var panelEnd = document.getElementById('panelEnd');
-  var isEndPanelVisible = panelEnd && panelEnd.style.display !== 'none';
-
-  if (!activeTrips.length) {
-    banner.style.display = 'none';
-    if (noBanner) noBanner.style.display = isEndPanelVisible ? 'block' : 'none';
-    return;
-  }
-
-  if (noBanner) noBanner.style.display = 'none';
-  banner.style.display = 'block';
-  grid.innerHTML = activeTrips.map(function(r) {
-    var car      = String(r['ทะเบียน/รถ'] || '');
-    var plate    = car.split(' ')[0];
-    var driver   = String(r['พนักงานขับรถ'] || '—');
-    var dest     = String(r['ปลายทาง'] || '—');
-    var startOdo = r['เลขไมล์ต้น'] ? Number(r['เลขไมล์ต้น']).toLocaleString() : '—';
-    var tripDate = r['วันที่'] ? String(r['วันที่']).slice(0,10) : '—';
-    var tripTime = r['เวลาออก'] ? String(r['เวลาออก']).slice(0,5) : '—';
-    var safeCarAttr = car.replace(/['\"]/g, '');
-    return '<div style="background:#fff;border:2px solid #f59e0b;border-radius:12px;padding:13px 15px;cursor:pointer;transition:box-shadow .15s,transform .15s;" '
-      + 'onclick="selectActiveTrip(\'' + safeCarAttr + '\')" '
-      + 'onmouseover="this.style.boxShadow=\'0 6px 20px rgba(245,158,11,.3)\';this.style.transform=\'translateY(-2px)\'" '
-      + 'onmouseout="this.style.boxShadow=\'\';this.style.transform=\'\'">'
-      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
-      + '<div style="font-size:15px;font-weight:800;color:#0a2540;">' + plate + '</div>'
-      + '<span style="background:#f59e0b;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;">กำลังออกรถ</span>'
-      + '</div>'
-      + '<div style="font-size:11px;color:#64748b;margin-bottom:4px;">' + car.replace(plate,'').trim() + '</div>'
-      + '<div style="font-size:12px;color:#92400e;margin-bottom:3px;">→ ' + dest + '</div>'
-      + '<div style="font-size:11px;color:#8898aa;">👤 ' + driver + '</div>'
-      + '<div style="font-size:11px;color:#8898aa;">📍 ออก ' + tripDate + ' ' + tripTime + ' | ไมล์ต้น: ' + startOdo + '</div>'
-      + '<div style="margin-top:9px;padding:7px;background:linear-gradient(135deg,#0ea5e9,#0284c7);border-radius:8px;text-align:center;font-size:12px;font-weight:700;color:#fff;">🏥 แตะเพื่อบันทึกกลับ รพ. →</div>'
-      + '</div>';
+  grid.innerHTML = trips.map(t => {
+    const plate = String(t.carType || t.carType || '').split(' ')[0];
+    const dest  = t.destination || t.dest || '—';
+    const odo   = t.odomStart || t.odometerStart || '';
+    const drv   = t.driver || t.driverName || '';
+    return `<div class="active-chip">
+      <div class="plate">${plate}</div>
+      <div class="dest">→ ${dest}</div>
+      ${drv ? `<div class="dest">👤 ${drv}</div>` : ''}
+      ${odo ? `<div class="odo">ไมล์ต้น: ${Number(odo).toLocaleString()} กม.</div>` : ''}
+    </div>`;
   }).join('');
 }
 
-function selectActiveTrip(carType) {
-  var eEl = document.getElementById('e_carType');
-  if (!eEl) return;
-  var plateSrc = carType.split(' ')[0];
-  for (var i = 0; i < eEl.options.length; i++) {
-    var opt = eEl.options[i];
-    var plateDst = opt.value.split(' ')[0];
-    if (opt.value.includes(plateSrc) || carType.includes(plateDst)) {
-      eEl.value = opt.value;
-      onEndCarChange();
-      eEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      break;
-    }
+function renderCheckGateNotice(sum) {
+  const notChecked = sum.notCheckedToday || [];
+  const notice = document.getElementById('checkGateNotice');
+  if (notChecked.length === 0) {
+    notice.classList.remove('show');
+    return;
   }
+  document.getElementById('notCheckedPlates').textContent = notChecked.slice(0, 5).join(', ') + (notChecked.length > 5 ? ' ...' : '');
+  notice.classList.add('show');
 }
 
-function generateDemoHistory() {
-  return [
-    { วันที่:'2025-05-20','ทะเบียน/รถ':'กข-0003 — รถตู้','พนักงานขับรถ':'นาย ก',ปลายทาง:'รพ.นครพิงค์','เลขไมล์ต้น':45200,'เลขไมล์ปลาย':45320,'ระยะทาง(กม.)':120,สถานะ:'พร้อมใช้งาน' },
-    { วันที่:'2025-05-21','ทะเบียน/รถ':'กข-0004 — รถกระบะ','พนักงานขับรถ':'นาย ข',ปลายทาง:'ตลาดสันทราย','เลขไมล์ต้น':31800,'เลขไมล์ปลาย':31840,'ระยะทาง(กม.)':40,สถานะ:'พร้อมใช้งาน' },
-    { วันที่:'2025-05-22','ทะเบียน/รถ':'กข-0001 — รถพยาบาล ALS','พนักงานขับรถ':'นาย ค',ปลายทาง:'อ.สันป่าตอง','เลขไมล์ต้น':28500,'เลขไมล์ปลาย':null,'ระยะทาง(กม.)':null,สถานะ:'กำลังใช้งาน' }
-  ];
-}
-
-// ─────────────────────────────────────────────
-//  TABS
-// ─────────────────────────────────────────────
-function switchTab(tab) {
-  ['start','end','history'].forEach(t => {
-    document.getElementById('panel' + t.charAt(0).toUpperCase() + t.slice(1)).style.display =
-      t === tab ? 'block' : 'none';
-    document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1))
-      .classList.toggle('active', t === tab);
-  });
-  if (tab === 'history') {
-    if (mileHistory.length === 0) {
-      loadMileHistory().then(function() { renderHistory(); });
-    } else {
-      renderHistory();
-    }
-  }
-  // เมื่อสลับไป tab กลับ รพ. ให้โหลด active trips ใหม่
-  if (tab === 'end') {
-    loadMileHistory().then(() => {
-      populateCarSelects();
-      renderActiveTripsBanner();
-      // auto-select รถคันแรกที่กำลังใช้งาน (ถ้ายังไม่ได้เลือก)
-      const eEl = document.getElementById('e_carType');
-      if (!eEl.value && Object.keys(startOdoMap).length > 0) {
-        const firstActive = Object.keys(startOdoMap)[0];
-        for (let i = 0; i < eEl.options.length; i++) {
-          const v = eEl.options[i].value;
-          if (v && v.split(' ')[0].trim() === firstActive) {
-            eEl.value = v;
-            break;
-          }
-        }
-      }
-      const selCar = document.getElementById('e_carType').value;
-      if (selCar) onEndCarChange();
-    });
-  }
-}
-
-// ─────────────────────────────────────────────
+// ════════════════════════════════════════════════════════
 //  CAR CHANGE HANDLERS
-// ─────────────────────────────────────────────
-async function onCarChange() {
+// ════════════════════════════════════════════════════════
+async function onStartCarChange() {
   const carType = document.getElementById('s_carType').value;
-  if (!carType) { resetStatusBanner(); applyCheckGateToForm(true); return; }
+  const hint = document.getElementById('s_lastMileHint');
+  if (!carType) { hint.textContent = ''; return; }
 
-  // ── ตรวจสอบก่อนว่าผ่านตรวจสภาพวันนี้หรือยัง ──
-  const passed = isCarCheckedToday(carType);
-  applyCheckGateToForm(passed);
+  hint.textContent = 'กำลังโหลดเลขไมล์ล่าสุด...';
+  hint.className = 'odo-hint';
 
-  // ดึงเลขไมล์ล่าสุดจาก Check sheet
   try {
-    const res  = await fetch(GAS_URL + '?action=getLastMile&carType=' + encodeURIComponent(carType));
-    const json = await res.json();
-    if (json.odometer) {
-      document.getElementById('lastOdoDisplay').textContent = json.odometer + ' กม. (' + (json.date||'') + ')';
-      document.getElementById('startOdoHint').className = 'odo-hint';
+    const plate = carType.split(' ')[0];
+    const res = await fetchGAS('getLastMile&carType=' + encodeURIComponent(carType));
+    if (res.odometer) {
+      hint.textContent = `เลขไมล์ล่าสุด: ${Number(res.odometer).toLocaleString()} กม. (${res.date || 'ไม่ทราบวันที่'})`;
+      hint.className = 'odo-hint';
+      // แนะนำค่า
+      const inp = document.getElementById('s_odometerStart');
+      if (!inp.value) inp.value = res.odometer;
+    } else {
+      hint.textContent = 'ยังไม่มีข้อมูลเลขไมล์ในระบบ';
     }
-  } catch (_) {}
-
-  updateStatusBanner(carType);
-}
-
-/** เปิด/ปิด form บันทึกออกรถ ตามผลการตรวจสภาพ */
-function applyCheckGateToForm(passed) {
-  const formBody   = document.getElementById('startFormBody');
-  const submitBtn  = document.getElementById('startSubmitBtn');
-  const carType    = document.getElementById('s_carType').value;
-  const plate      = carType ? carType.split(' ')[0] : '';
-
-  if (!passed && carType) {
-    formBody.classList.add('form-blocked');
-    submitBtn.classList.add('blocked-btn');
-    submitBtn.querySelector('.btn-text').textContent = '🔒 ต้องตรวจสภาพรถก่อนบันทึกออกรถ';
-    // แสดง inline warning ใต้ dropdown รถ
-    showCarBlockedNote(plate);
-  } else {
-    formBody.classList.remove('form-blocked');
-    submitBtn.classList.remove('blocked-btn');
-    submitBtn.querySelector('.btn-text').textContent = 'บันทึกออกรถ — สถานะ "กำลังใช้งาน"';
-    hideCarBlockedNote();
+  } catch(_) {
+    hint.textContent = 'โหลดเลขไมล์ไม่สำเร็จ — กรอกด้วยตนเอง';
   }
-}
-
-function showCarBlockedNote(plate) {
-  let note = document.getElementById('carBlockedNote');
-  if (!note) {
-    note = document.createElement('div');
-    note.id = 'carBlockedNote';
-    note.style.cssText = 'margin-top:8px;padding:10px 14px;background:#fff5f5;border:1.5px solid #fca5a5;border-radius:9px;font-size:12.5px;color:#991b1b;display:flex;gap:8px;align-items:flex-start;line-height:1.55;';
-    const carSelect = document.getElementById('s_carType');
-    carSelect.parentNode.appendChild(note);
-  }
-  note.innerHTML = `<span style="font-size:1.1rem;flex-shrink:0;">🚫</span>
-    <span><strong>${plate}</strong> ยังไม่ผ่านการตรวจสภาพรถประจำวันนี้<br>
-    กรุณาไปที่ <a href="check.html" style="color:#dc2626;font-weight:700;">ตรวจสภาพรถประจำวัน</a> แล้วบันทึกให้เรียบร้อยก่อน</span>`;
-  note.style.display = 'flex';
-}
-
-function hideCarBlockedNote() {
-  const note = document.getElementById('carBlockedNote');
-  if (note) note.style.display = 'none';
 }
 
 async function onEndCarChange() {
   const carType = document.getElementById('e_carType').value;
-  if (!carType) return;
+  const hint    = document.getElementById('e_odoHint');
+  if (!carType) { hint.textContent = ''; return; }
 
   const plate = carType.split(' ')[0].trim();
+  // หาจาก activeTripMap ก่อน
+  const trip = Object.values(activeTripMap).find(t => {
+    const tp = String(t.carType || '').split(' ')[0].trim();
+    return tp === plate || tp.includes(plate) || plate.includes(tp);
+  });
 
-  // 1. หาจาก startOdoMap ก่อน (เร็ว)
-  let odo    = startOdoMap[plate] || null;
-  let tripId = '';
-
-  // 2. ถ้าไม่มีใน map → ดึงจาก API โดยตรง (กรณี page refresh)
-  if (!odo) {
-    try {
-      const res  = await fetch(GAS_URL + '?action=getActiveTripByPlate&plate=' + encodeURIComponent(plate));
-      const json = await res.json();
-      if (json.found) {
-        odo    = json.odometerStart;
-        tripId = json.tripId || '';
-        // อัปเดต map
-        startOdoMap[plate] = odo;
-        // อัปเดต mileHistory ด้วย (สำหรับ banner)
-        const existingIdx = mileHistory.findIndex(r =>
-          String(r['TripID'] || '') === tripId
-        );
-        if (existingIdx < 0) {
-          mileHistory.push({
-            'TripID'        : tripId,
-            'ทะเบียน/รถ'   : json.carType,
-            'พนักงานขับรถ' : json.driverName,
-            'ปลายทาง'      : json.destination,
-            'เลขไมล์ต้น'  : odo,
-            'สถานะ'        : 'กำลังใช้งาน',
-            'วันที่'        : json.tripDate
-          });
-        }
-        renderActiveTripsBanner();
-      }
-    } catch (_) {}
-  } else {
-    // หา tripId จาก mileHistory
-    const activeTrip = mileHistory.find(r => {
-      const rowPlate = String(r['ทะเบียน/รถ'] || '').split(' ')[0].trim();
-      return String(r['สถานะ'] || '') === 'กำลังใช้งาน' && rowPlate === plate;
-    });
-    if (activeTrip) tripId = String(activeTrip['TripID'] || '');
+  if (trip) {
+    const startOdo = trip.odomStart || trip.odometerStart || 0;
+    hint.textContent = `เลขไมล์ก่อนออก: ${Number(startOdo).toLocaleString()} กม. | TripID: ${trip.tripId || '—'}`;
+    hint.className = 'odo-hint';
+    document.getElementById('rStart').textContent = Number(startOdo).toLocaleString();
+    document.getElementById('routePreview').style.display = 'flex';
+    return;
   }
 
-  document.getElementById('e_startDisplay').textContent = odo ? Number(odo).toLocaleString() : '—';
-
-  const tripIdEl = document.getElementById('e_tripId');
-  if (tripIdEl && tripId && !tripIdEl.value) {
-    tripIdEl.value = tripId;
-    tripIdEl.style.color = '#0a2540';
+  // ลองดูจาก API
+  try {
+    hint.textContent = 'กำลังโหลดข้อมูลการออกรถ...';
+    const res = await fetchGAS('getActiveTripByPlate&plate=' + encodeURIComponent(plate));
+    if (res.found && res.odometerStart) {
+      hint.textContent = `เลขไมล์ก่อนออก: ${Number(res.odometerStart).toLocaleString()} กม.`;
+      document.getElementById('rStart').textContent = Number(res.odometerStart).toLocaleString();
+      document.getElementById('routePreview').style.display = 'flex';
+      // เก็บ tripId
+      activeTripMap[plate] = { ...res, odomStart: res.odometerStart };
+    } else {
+      hint.textContent = 'ไม่พบข้อมูลการออกรถ — กรอกเลขไมล์ปลายทางได้เลย';
+    }
+  } catch(_) {
+    hint.textContent = 'โหลดไม่สำเร็จ — กรอกเลขไมล์ปลายทางได้เลย';
   }
 
   calcDistance();
 }
 
-function updateStatusBanner(carType) {
-  const v = vehicles.find(x => carType.includes(x['ทะเบียน']));
-  const banner = document.getElementById('statusBanner');
-  const icon   = document.getElementById('statusIcon');
-  const val    = document.getElementById('statusValue');
-  const sub    = document.getElementById('statusSub');
-
-  if (!v) return;
-  const status = v['สถานะ'] || 'พร้อมใช้งาน';
-
-  if (status === 'กำลังใช้งาน') {
-    banner.className = 'status-banner in-use';
-    icon.className   = 'status-icon yellow';
-    icon.innerHTML   = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
-    val.textContent  = '🟡 กำลังใช้งาน';
-    sub.textContent  = 'รถคันนี้กำลังออกปฏิบัติงาน — กรุณาใช้แท็บ "กลับถึง รพ."';
-  } else {
-    banner.className = 'status-banner ready';
-    icon.className   = 'status-icon green';
-    icon.innerHTML   = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-    val.textContent  = '🟢 พร้อมใช้งาน';
-    sub.textContent  = 'รถคันนี้พร้อมนำออกใช้งานได้';
-  }
-}
-
-function resetStatusBanner() {
-  const banner = document.getElementById('statusBanner');
-  banner.className = 'status-banner';
-  document.getElementById('statusIcon').className = 'status-icon gray';
-  document.getElementById('statusValue').textContent = 'เลือกรถเพื่อดูสถานะ';
-  document.getElementById('statusSub').textContent = '—';
-}
-
-// ─────────────────────────────────────────────
-//  VALIDATION
-// ─────────────────────────────────────────────
 function validateStartOdo() {
-  const val   = Number(document.getElementById('s_odometerStart').value);
-  const hint  = document.getElementById('startOdoHint');
-  // แสดงเลขไมล์ล่าสุดจาก hint text
-  const lastText = document.getElementById('lastOdoDisplay').textContent || '';
-  const last  = parseInt(lastText.replace(/,/g, '')) || 0;
-
-  if (last && val && val < last) {
-    hint.className = 'odo-hint err';
-    document.getElementById('startAnomalyText').textContent =
-      'เลขไมล์ที่กรอก (' + val.toLocaleString() + ' กม.) น้อยกว่าเลขไมล์ล่าสุด (' + last.toLocaleString() + ' กม.) — กรุณาตรวจสอบ';
-    document.getElementById('startAnomalyAlert').classList.add('show');
-  } else {
-    hint.className = 'odo-hint';
-    document.getElementById('startAnomalyAlert').classList.remove('show');
+  const val  = Number(document.getElementById('s_odometerStart').value);
+  const hint = document.getElementById('s_lastMileHint');
+  if (val > 0 && val < 1000) {
+    hint.textContent = '⚠️ เลขไมล์ดูน้อยเกินไป — กรุณาตรวจสอบ';
+    hint.className = 'odo-hint warn';
+  } else if (val > 9999999) {
+    hint.textContent = '⚠️ เลขไมล์ดูมากเกินไป — กรุณาตรวจสอบ';
+    hint.className = 'odo-hint warn';
   }
 }
 
 function calcDistance() {
-  const endVal  = Number(document.getElementById('e_odometerEnd').value) || 0;
   const carType = document.getElementById('e_carType').value;
-  const plate   = carType.split(' ')[0].trim();
+  if (!carType) return;
+  const plate = carType.split(' ')[0].trim();
+  const trip  = Object.values(activeTripMap).find(t => {
+    const tp = String(t.carType || '').split(' ')[0].trim();
+    return tp === plate || tp.includes(plate) || plate.includes(tp);
+  });
+  const startOdo = trip ? (trip.odomStart || trip.odometerStart || 0) : 0;
+  const endOdo   = Number(document.getElementById('e_odometerEnd').value) || 0;
 
-  // ค้นหาด้วย short plate
-  const startVal = startOdoMap[plate] || 0;
+  if (startOdo > 0 && endOdo > 0) {
+    const dist = endOdo - startOdo;
+    document.getElementById('rStart').textContent = Number(startOdo).toLocaleString();
+    document.getElementById('rEnd').textContent   = Number(endOdo).toLocaleString();
+    document.getElementById('rDist').textContent  = dist > 0 ? dist + ' กม.' : '⚠️ ผิดปกติ';
+    document.getElementById('routePreview').style.display = 'flex';
 
-  document.getElementById('e_endDisplay').textContent = endVal ? endVal.toLocaleString() : '—';
-
-  if (startVal && endVal) {
-    const dist = endVal - startVal;
-    document.getElementById('e_distDisplay').textContent = dist >= 0 ? dist.toLocaleString() : '—';
-    if (dist < 0 || dist > 500) {
-      document.getElementById('endAnomalyText').textContent =
-        dist < 0
-          ? 'เลขไมล์ปลาย (' + endVal.toLocaleString() + ') น้อยกว่าเลขไมล์ต้น (' + startVal.toLocaleString() + ') — ตรวจสอบด้วย'
-          : 'ระยะทาง ' + dist.toLocaleString() + ' กม. สูงผิดปกติ — กรุณาตรวจสอบ';
-      document.getElementById('endAnomalyAlert').classList.add('show');
+    if (dist < 0) {
+      document.getElementById('e_odoHint').textContent = '❌ เลขไมล์ปลายต้องมากกว่าเลขไมล์ต้น';
+      document.getElementById('e_odoHint').className = 'odo-hint err';
+    } else if (dist > 500) {
+      document.getElementById('e_odoHint').textContent = '⚠️ ระยะทางสูงมาก — กรุณาตรวจสอบ';
+      document.getElementById('e_odoHint').className = 'odo-hint warn';
     } else {
-      document.getElementById('endAnomalyAlert').classList.remove('show');
+      document.getElementById('e_odoHint').textContent = `ระยะทาง ${dist} กม.`;
+      document.getElementById('e_odoHint').className = 'odo-hint';
     }
-  } else {
-    document.getElementById('e_distDisplay').textContent = '—';
   }
 }
 
-// ─────────────────────────────────────────────
-//  SUBMIT HANDLERS
-// ─────────────────────────────────────────────
-document.getElementById('startForm').addEventListener('submit', (e) => {
-  e.preventDefault();
-  // Double-check: ถ้า form ยังถูก block อยู่ ไม่ให้ submit ผ่าน
-  const carType = document.getElementById('s_carType').value;
-  if (carType && !isCarCheckedToday(carType)) {
-    showToast('🚫 ต้องตรวจสภาพรถประจำวันก่อน', 'error');
-    return;
-  }
-  const data = {
-    action        : 'startMile',
-    carType       : document.getElementById('s_carType').value,
-    driverName    : document.getElementById('s_driverName').value.trim(),
-    destination   : (() => {
-      const sel = document.getElementById('s_destinationSelect');
-      const inp = document.getElementById('s_destination');
-      if (sel && sel.value && sel.value !== '__other__') return sel.value;
-      return inp ? inp.value.trim() : '';
-    })(),
-    tripDate      : document.getElementById('s_tripDate').value,
-    tripTime      : document.getElementById('s_tripTime').value,
-    odometerStart : document.getElementById('s_odometerStart').value,
-    remarks       : document.getElementById('s_remarks').value.trim()
-  };
-  if (document.getElementById('fuelCheck').checked) {
-    data.fuelLiters = document.getElementById('s_fuelLiters').value;
-    data.fuelPrice  = document.getElementById('s_fuelPrice').value;
-    if (startFuelPhotos.length > 0) {
-      data.fuelPhotos = startFuelPhotos.map(p => ({ name: p.name, data: p.data, type: p.type }));
-    }
-  }
+// ════════════════════════════════════════════════════════
+//  SUBMIT
+// ════════════════════════════════════════════════════════
+function submitStart() {
+  const carType    = document.getElementById('s_carType').value.trim();
+  const driverName = document.getElementById('s_driverName').value.trim();
+  const tripDate   = document.getElementById('s_tripDate').value;
+  const tripTime   = document.getElementById('s_tripTime').value;
+  const dest       = document.getElementById('s_destination').value.trim();
+  const odoStart   = Number(document.getElementById('s_odometerStart').value);
+  const remarks    = document.getElementById('s_remarks').value.trim();
 
-  pendingAction = { type: 'start', data };
-  showConfirmModal('start', data);
-});
-
-document.getElementById('endForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const carType = document.getElementById('e_carType').value;
-  if (!carType) {
-    showToast('⚠️ กรุณาเลือกรถที่ต้องการบันทึกกลับ', 'error');
-    return;
+  if (!carType || !driverName || !tripDate || !tripTime || !dest || !odoStart) {
+    showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบ', 'error'); return;
   }
-  const odometerEnd = document.getElementById('e_odometerEnd').value;
-  if (!odometerEnd) {
-    showToast('⚠️ กรุณากรอกเลขไมล์ขณะกลับ', 'error');
-    return;
-  }
-  // ดึง tripId อัตโนมัติถ้ายังไม่มี
-  const tripIdEl = document.getElementById('e_tripId');
-  if (!tripIdEl.value) {
-    await onEndCarChange();
-  }
-  const data = {
-    action       : 'endMile',
-    carType      : carType,
-    tripId       : document.getElementById('e_tripId').value.trim(),
-    odometerEnd  : odometerEnd,
-    returnTime   : document.getElementById('e_returnTime').value,
-    remarks      : document.getElementById('e_remarks').value.trim()
-  };
+  if (odoStart <= 0) { showToast('กรุณากรอกเลขไมล์ให้ถูกต้อง', 'error'); return; }
 
-  pendingAction = { type: 'end', data };
-  showConfirmModal('end', data);
-});
+  const plate = carType.split(' ')[0];
+  pendingAction = { type: 'start', data: { carType, driverName, tripDate, tripTime,
+    destination: dest, odometerStart: odoStart, remarks } };
 
-function showConfirmModal(type, data) {
-  const modal      = document.getElementById('modal');
-  const confirmBtn = document.getElementById('modalConfirm');
-
-  if (type === 'start') {
-    document.getElementById('modalIcon').textContent  = '🚗';
-    document.getElementById('modalTitle').textContent = 'ยืนยันการออกรถ';
-    document.getElementById('modalBody').innerHTML =
-      '<strong>' + data.carType + '</strong><br>' +
-      'พขร.: ' + data.driverName + '<br>' +
-      'ปลายทาง: ' + data.destination + '<br>' +
-      'เลขไมล์ต้น: <strong>' + Number(data.odometerStart).toLocaleString() + ' กม.</strong><br><br>' +
-      'สถานะรถจะอัปเดตเป็น <span style="color:#b45309;font-weight:700;">กำลังใช้งาน</span>';
-    confirmBtn.className = 'modal-btn primary';
-  } else {
-    const plate = data.carType.split(' ')[0].trim();
-    const start = startOdoMap[plate] || 0;
-    const dist  = Number(data.odometerEnd) - start;
-    document.getElementById('modalIcon').textContent  = '🏥';
-    document.getElementById('modalTitle').textContent = 'ยืนยันการกลับถึงโรงพยาบาล';
-    document.getElementById('modalBody').innerHTML =
-      '<strong>' + data.carType + '</strong><br>' +
-      'ไมล์ปลาย: <strong>' + Number(data.odometerEnd).toLocaleString() + ' กม.</strong><br>' +
-      'ระยะทาง: <strong>' + (dist >= 0 ? dist.toLocaleString() : '?') + ' กม.</strong><br><br>' +
-      'สถานะรถจะอัปเดตเป็น <span style="color:#065f46;font-weight:700;">พร้อมใช้งาน</span>';
-    confirmBtn.className = 'modal-btn primary teal';
-  }
-  modal.classList.add('show');
+  showModal('start',
+    `ยืนยันบันทึกออกรถ <b>${plate}</b>`,
+    { 'ทะเบียน': plate, 'พขร.': driverName, 'วันที่': tripDate + ' ' + tripTime,
+      'ปลายทาง': dest, 'เลขไมล์': odoStart.toLocaleString() + ' กม.' }
+  );
 }
 
-async function confirmSubmit() {
-  closeModal();
+function submitEnd() {
+  const carType   = document.getElementById('e_carType').value.trim();
+  const retTime   = document.getElementById('e_returnTime').value;
+  const odoEnd    = Number(document.getElementById('e_odometerEnd').value);
+  const remarks   = document.getElementById('e_remarks').value.trim();
+
+  if (!carType || !retTime || !odoEnd) {
+    showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบ', 'error'); return;
+  }
+
+  const plate = carType.split(' ')[0].trim();
+  const trip  = Object.values(activeTripMap).find(t => {
+    const tp = String(t.carType || '').split(' ')[0].trim();
+    return tp === plate || tp.includes(plate) || plate.includes(tp);
+  });
+  const startOdo = trip ? (trip.odomStart || trip.odometerStart || 0) : 0;
+
+  if (startOdo > 0 && odoEnd < startOdo) {
+    showToast(`เลขไมล์ปลาย (${odoEnd}) น้อยกว่าเลขไมล์ต้น (${startOdo})`, 'error'); return;
+  }
+
+  const dist = startOdo > 0 ? (odoEnd - startOdo) : 0;
+  pendingAction = { type: 'end', data: {
+    carType, returnTime: retTime, odometerEnd: odoEnd, remarks,
+    tripId: trip?.tripId || ''
+  }};
+
+  showModal('end',
+    `ยืนยันบันทึกกลับ รพ. — <b>${plate}</b>`,
+    { 'ทะเบียน': plate, 'เวลากลับ': retTime,
+      'เลขไมล์ปลาย': odoEnd.toLocaleString() + ' กม.',
+      'ระยะทาง': dist > 0 ? dist + ' กม.' : '— (ไม่ทราบ)' }
+  );
+}
+
+async function doConfirm() {
   if (!pendingAction) return;
+  closeModal();
 
   const { type, data } = pendingAction;
-  const btnId = type === 'start' ? 'startSubmitBtn' : 'endSubmitBtn';
-  const btn   = document.getElementById(btnId);
-  btn.classList.add('loading');
-  btn.disabled = true;
+  const btn = document.getElementById(type === 'start' ? 'startBtn' : 'endBtn');
+  btn.classList.add('loading'); btn.disabled = true;
 
   try {
     await fetch(GAS_URL, {
-      method : 'POST',
-      mode   : 'no-cors',
+      method: 'POST', mode: 'no-cors',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body   : 'payload=' + encodeURIComponent(JSON.stringify(data))
+      body: 'payload=' + encodeURIComponent(JSON.stringify({
+        action: type === 'start' ? 'startMile' : 'endMile',
+        ...data
+      }))
     });
 
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise(r => setTimeout(r, 600)); // รอ GAS ประมวลผล
 
+    const msg = type === 'start'
+      ? `บันทึกออกรถสำเร็จ — ${data.carType.split(' ')[0]} ไปยัง ${data.destination}`
+      : `บันทึกกลับ รพ. สำเร็จ`;
+    showToast(msg, 'success');
+
+    // รีเซ็ตฟอร์ม
     if (type === 'start') {
-      showToast('✅ บันทึกออกรถสำเร็จ — สถานะ: กำลังใช้งาน', 'success');
-      const plate = data.carType.split(' ')[0].trim();
-      startOdoMap[plate] = Number(data.odometerStart);
-      document.getElementById('startForm').reset();
-      startFuelPhotos = [];
-      renderStartFuelPreviews();
-      if (document.getElementById('fuelDropZone')) {
-        document.getElementById('fuelDropZone').classList.remove('has-photo');
-      }
-      setDateTimeDefaults();
-      // อัปเดต vehicle status ใน local array
-      const v = vehicles.find(x => (x['ทะเบียน'] || '').includes(plate) || plate.includes((x['ทะเบียน'] || '').split(' ')[0]));
-      if (v) v['สถานะ'] = 'กำลังใช้งาน';
-
+      document.getElementById('s_carType').value = '';
+      document.getElementById('s_odometerStart').value = '';
+      document.getElementById('s_destination').value = '';
+      document.getElementById('s_remarks').value = '';
+      document.getElementById('s_lastMileHint').textContent = '';
     } else {
-      showToast('✅ บันทึกกลับสำเร็จ — สถานะ: พร้อมใช้งาน', 'success');
-      const plate = data.carType.split(' ')[0].trim();
-      delete startOdoMap[plate];
-      document.getElementById('endForm').reset();
-      setDateTimeDefaults();
-      // อัปเดต vehicle status ใน local array
-      const v = vehicles.find(x => (x['ทะเบียน'] || '').includes(plate) || plate.includes((x['ทะเบียน'] || '').split(' ')[0]));
-      if (v) v['สถานะ'] = 'พร้อมใช้งาน';
+      document.getElementById('e_carType').value = '';
+      document.getElementById('e_odometerEnd').value = '';
+      document.getElementById('e_remarks').value = '';
+      document.getElementById('routePreview').style.display = 'none';
     }
 
-    // รีโหลด history + อัปเดต dropdown
-    await loadMileHistory();
-    populateCarSelects();
+    // รีโหลดข้อมูล
+    setTimeout(() => loadAllData(), 1500);
 
-  } catch (err) {
-    showToast('❌ เกิดข้อผิดพลาด: ' + err.message, 'error');
+  } catch(err) {
+    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
   } finally {
-    btn.classList.remove('loading');
-    btn.disabled = false;
+    btn.classList.remove('loading'); btn.disabled = false;
     pendingAction = null;
   }
 }
 
-function closeModal() {
-  document.getElementById('modal').classList.remove('show');
+// ════════════════════════════════════════════════════════
+//  HISTORY
+// ════════════════════════════════════════════════════════
+async function loadMileHistory() {
+  try {
+    const res = await fetchGAS('getMileData');
+    if (res.data) { mileHistory = res.data; renderHistory(); }
+  } catch(_) {}
 }
 
-// ─────────────────────────────────────────────
-//  RENDER HISTORY
-// ─────────────────────────────────────────────
 function renderHistory() {
-  const filterCar = document.getElementById('histFilterCar').value.toLowerCase();
-  let data = [...mileHistory];
-  if (filterCar) data = data.filter(r =>
-    String(r['ทะเบียน/รถ'] || '').toLowerCase().includes(filterCar)
-  );
+  const filterPlate = (document.getElementById('histFilterCar')?.value || '').trim();
+  const sorted = [...mileHistory]
+    .sort((a, b) => String(b['Timestamp'] || b['วันที่'] || '').localeCompare(String(a['Timestamp'] || a['วันที่'] || '')))
+    .slice(0, 50);
 
-  // เรียงจากใหม่ไปเก่า
-  data.sort((a,b) => String(b['วันที่']).localeCompare(String(a['วันที่'])));
+  const filtered = filterPlate
+    ? sorted.filter(r => String(r['ทะเบียน/รถ'] || '').includes(filterPlate))
+    : sorted;
 
-  const tbody = document.getElementById('historyTbody');
-  if (!data.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">ยังไม่มีข้อมูล</td></tr>';
+  const tbody = document.getElementById('histBody');
+  if (!filtered.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">ยังไม่มีประวัติการใช้รถ</td></tr>';
     return;
   }
 
-  tbody.innerHTML = data.slice(0, 50).map(r => {
-    const status   = String(r['สถานะ'] || 'พร้อมใช้งาน');
-    const badgeCls = status === 'กำลังใช้งาน' ? 'in-use' : 'ready';
-    const dist     = r['ระยะทาง(กม.)'];
-    const endOdo   = r['เลขไมล์ปลาย'];
-    const anomaly  = dist > 500 ? ' ⚠️' : '';
+  tbody.innerHTML = filtered.map(r => {
+    const plate  = String(r['ทะเบียน/รถ'] || '').split(' ')[0];
+    const status = String(r['สถานะ'] || '');
+    const isActive = status === 'กำลังใช้งาน';
+    const startMile = Number(r['เลขไมล์ต้น']  || 0);
+    const endMile   = Number(r['เลขไมล์ปลาย'] || 0);
+    const dist      = r['ระยะทาง(กม.)'] || (endMile && startMile ? endMile - startMile : '—');
     return `<tr>
-      <td>${r['วันที่'] || '—'}</td>
-      <td>${r['ทะเบียน/รถ'] || '—'}</td>
-      <td>${r['พนักงานขับรถ'] || '—'}</td>
-      <td>${r['ปลายทาง'] || '—'}</td>
-      <td>${r['เลขไมล์ต้น'] ? Number(r['เลขไมล์ต้น']).toLocaleString() : '—'}</td>
-      <td>${endOdo ? Number(endOdo).toLocaleString() : '<span style="color:var(--text-light)">รออัปเดต</span>'}</td>
-      <td>${dist ? '<strong>' + Number(dist).toLocaleString() + '</strong>' + anomaly : '—'}</td>
-      <td><span class="status-badge ${badgeCls}">${status}</span></td>
+      <td><span class="plate-chip">${plate}</span></td>
+      <td style="font-size:12px;">${(r['พนักงานขับรถ']||'—').substring(0,12)}</td>
+      <td style="font-size:12px;white-space:nowrap;">${r['วันที่']||'—'} ${r['เวลาออก']||''}</td>
+      <td style="font-size:12px;">${r['ปลายทาง']||'—'}</td>
+      <td style="font-weight:600;">${startMile ? startMile.toLocaleString() : '—'}</td>
+      <td style="font-weight:600;">${endMile   ? endMile.toLocaleString()   : '—'}</td>
+      <td style="font-weight:700;color:var(--teal);">${dist !== '—' ? dist : '—'}</td>
+      <td><span class="status-badge ${isActive ? 'active' : 'done'}">${isActive ? '🟡 กำลังใช้' : '✅ เสร็จแล้ว'}</span></td>
     </tr>`;
   }).join('');
 }
 
-// ─────────────────────────────────────────────
+function filterHistory() { renderHistory(); }
+
+// ════════════════════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════════════════════
+function switchTab(tab) {
+  ['start','end','hist'].forEach(t => {
+    document.getElementById('panel' + t.charAt(0).toUpperCase() + t.slice(1)).classList.remove('active');
+    const btn = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+    btn.className = 'tab-btn';
+  });
+  document.getElementById('panel' + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active');
+  document.getElementById('tab'   + tab.charAt(0).toUpperCase() + tab.slice(1)).classList.add('active-' + tab);
+}
+
+// ════════════════════════════════════════════════════════
+//  MODAL
+// ════════════════════════════════════════════════════════
+function showModal(type, title, details) {
+  document.getElementById('mIcon').textContent    = type === 'start' ? '🚀' : '🏁';
+  document.getElementById('mTitle').innerHTML     = title;
+  document.getElementById('mMsg').textContent     = 'ตรวจสอบข้อมูลแล้วกดยืนยัน';
+  document.getElementById('mConfirmBtn').style.background = type === 'start' ? 'var(--blue)' : 'var(--teal)';
+
+  const det = document.getElementById('mDetail');
+  det.innerHTML = Object.entries(details).map(([k,v]) =>
+    `<div class="d-label">${k}</div><div class="d-val">${v}</div>`
+  ).join('');
+
+  document.getElementById('confirmModal').classList.add('show');
+}
+
+function closeModal() {
+  document.getElementById('confirmModal').classList.remove('show');
+  pendingAction = null;
+}
+
+// ════════════════════════════════════════════════════════
 //  TOAST
-// ─────────────────────────────────────────────
+// ════════════════════════════════════════════════════════
 let toastTimer;
 function showToast(msg, type = '') {
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.className   = 'toast show' + (type ? ' ' + type : '');
+  el.className = 'toast show' + (type ? ' ' + type : '');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.classList.remove('show'); }, 3500);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
 }
-
-
-// ══════ FUEL PHOTO (startmile) ══════
-let startFuelPhotos = [];
-let fuelLightboxIdx = 0;
-
-function handleStartFuelFiles(files) {
-  Array.from(files).forEach(file => {
-    if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = e => {
-      startFuelPhotos.push({ name: file.name, data: e.target.result, type: file.type });
-      renderStartFuelPreviews();
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function renderStartFuelPreviews() {
-  const preview = document.getElementById('startFuelPhotoPreview');
-  const countBadge = document.getElementById('fuelPhotoCountBadge');
-  const countText = document.getElementById('fuelPhotoCountText');
-  const zone = document.getElementById('fuelDropZone');
-  const zoneIcon = document.getElementById('fuelZoneIcon');
-  const zoneTitle = document.getElementById('fuelZoneTitle');
-  const zoneSub = document.getElementById('fuelZoneSub');
-
-  if (!preview) return;
-
-  const n = startFuelPhotos.length;
-
-  // Update zone appearance
-  if (n > 0) {
-    zone.classList.add('has-photo');
-    zoneIcon.textContent = '✅';
-    zoneTitle.textContent = `มีรูปบิล ${n} รูปแล้ว`;
-    zoneSub.textContent = 'แตะเพื่อเพิ่มรูปอีก';
-    countBadge.style.display = 'block';
-    countText.textContent = `แนบบิลแล้ว ${n} รูป`;
-    countText.style.background = 'var(--teal)';
-  } else {
-    zone.classList.remove('has-photo');
-    zoneIcon.textContent = '';
-    zoneTitle.textContent = 'ถ่ายรูปหรืออัปโหลดบิลน้ำมัน';
-    zoneSub.textContent = 'รองรับหลายรูป — แตะเพื่อเปิดกล้องหรือเลือกจากคลัง';
-    countBadge.style.display = 'none';
-  }
-
-  // Render photo grid
-  preview.innerHTML = '';
-  startFuelPhotos.forEach((p, i) => {
-    const div = document.createElement('div');
-    div.className = 'fuel-thumb';
-    div.innerHTML = `
-      <img src="${p.data}" alt="บิลที่ ${i+1}" onclick="event.stopPropagation();openFuelLightbox(${i})">
-      <button type="button" class="fuel-thumb-del" onclick="event.stopPropagation();removeStartFuelPhoto(${i})">✕</button>
-    `;
-    preview.appendChild(div);
-  });
-}
-
-function removeStartFuelPhoto(i) {
-  startFuelPhotos.splice(i, 1);
-  renderStartFuelPreviews();
-}
-
-// ── Lightbox ──
-function openFuelLightbox(idx) {
-  fuelLightboxIdx = idx;
-  const lb = document.getElementById('fuelLightbox');
-  document.getElementById('fuelLightboxImg').src = startFuelPhotos[idx].data;
-  document.getElementById('fuelLightboxCounter').textContent = `${idx+1} / ${startFuelPhotos.length}`;
-  lb.classList.add('show');
-}
-
-function closeFuelLightbox() {
-  document.getElementById('fuelLightbox').classList.remove('show');
-  document.getElementById('fuelLightboxImg').src = '';
-}
-
-function navFuelLightbox(dir) {
-  fuelLightboxIdx = (fuelLightboxIdx + dir + startFuelPhotos.length) % startFuelPhotos.length;
-  document.getElementById('fuelLightboxImg').src = startFuelPhotos[fuelLightboxIdx].data;
-  document.getElementById('fuelLightboxCounter').textContent = `${fuelLightboxIdx+1} / ${startFuelPhotos.length}`;
-}
-
-document.addEventListener('keydown', e => {
-  const lb = document.getElementById('fuelLightbox');
-  if (!lb.classList.contains('show')) return;
-  if (e.key === 'Escape') closeFuelLightbox();
-  if (e.key === 'ArrowLeft') navFuelLightbox(-1);
-  if (e.key === 'ArrowRight') navFuelLightbox(1);
-});
-
-['startFuelPhotoInput','startFuelCamInput','startFuelGalleryInput'].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener('change', e => handleStartFuelFiles(e.target.files));
-});
-
-
-// ══════ 24H TIME INPUT ══════
-function fmt24Input(el) {
-  let v = el.value.replace(/[^0-9]/g, '');
-  if (v.length >= 3) v = v.slice(0,2) + ':' + v.slice(2,4);
-  el.value = v;
-  if (v.length === 5) {
-    const [h,m] = v.split(':').map(Number);
-    el.style.borderColor = (h<=23 && m<=59) ? 'var(--success)' : 'var(--danger)';
-  } else { el.style.borderColor = ''; }
-}
-function val24Input(el) {
-  if (!el.value) return;
-  if (!/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(el.value)) {
-    el.style.borderColor = 'var(--danger)'; el.value = '';
-  }
-}
-function setT(id, t) {
-  const el = document.getElementById(id);
-  if (el) { el.value = t; el.style.borderColor = 'var(--success)'; }
-}
-
-
-// ══════ DESTINATION SELECT ══════
-function onDestChange() {
-  const sel = document.getElementById('s_destinationSelect');
-  const inp = document.getElementById('s_destination');
-  if (sel.value === '__other__') {
-    inp.style.display = 'block';
-    inp.required = true;
-    inp.focus();
-  } else {
-    inp.style.display = 'none';
-    inp.required = false;
-    inp.value = sel.value;
-  }
-}
-
-
-// ══════════════════════════════════════════════════════
-//  CHECK-GATE: โหลดสถานะตรวจสภาพรถประจำวัน
-// ══════════════════════════════════════════════════════
-async function loadTodayCheckStatus() {
-  updateCheckGateBanner('loading');
-  try {
-    const res  = await fetch(GAS_STATUS_URL + '?action=getStatusSummary');
-    const json = await res.json();
-    if (json.status !== 'ok') throw new Error('api error');
-
-    checkGateLoaded = true;
-    checkGateError  = false;
-
-    // สร้าง Set จาก todayChecked
-    todayCheckedSet = new Set((json.todayChecked || []).map(x => x.carType));
-
-    const checkedCount   = json.checkedCount   || 0;
-    const notCheckedCount= json.notCheckedCount || 0;
-    const totalCars      = json.totalCars       || (checkedCount + notCheckedCount);
-
-    if (totalCars === 0 || (checkedCount === 0 && notCheckedCount === 0)) {
-      // ยังไม่มีข้อมูลตรวจสภาพวันนี้เลย
-      updateCheckGateBanner('none', { totalCars });
-    } else if (notCheckedCount === 0) {
-      updateCheckGateBanner('allpass', { checkedCount, totalCars });
-    } else {
-      updateCheckGateBanner('partial', { checkedCount, notCheckedCount, totalCars, notChecked: json.notCheckedToday || [] });
-    }
-
-    // รีเฟรช dropdown เพื่อแสดงป้าย ✅/🔴
-    populateCarSelects();
-
-    // ถ้าเลือกรถไว้แล้ว ให้ re-check gate
-    const selCar = document.getElementById('s_carType').value;
-    if (selCar) {
-      applyCheckGateToForm(isCarCheckedToday(selCar));
-      if (!isCarCheckedToday(selCar)) showCarBlockedNote(selCar.split(' ')[0]);
-    }
-
-  } catch(err) {
-    checkGateLoaded = false;
-    checkGateError  = true;
-    updateCheckGateBanner('error');
-  }
-}
-
-function updateCheckGateBanner(state, data = {}) {
-  const banner = document.getElementById('checkGateBanner');
-  const icon   = document.getElementById('cgIcon');
-  const title  = document.getElementById('cgTitle');
-  const sub    = document.getElementById('cgSub');
-
-  // ลบ button เก่า (ถ้ามี)
-  const oldBtn = banner.querySelector('.goto-check-btn');
-  if (oldBtn) oldBtn.remove();
-
-  if (state === 'loading') {
-    banner.className = 'check-gate loading';
-    icon.className = 'check-gate-icon gray'; icon.textContent = '⏳';
-    title.className = 'check-gate-title gray'; title.textContent = 'กำลังตรวจสอบสถานะการตรวจสภาพรถ...';
-    sub.className = 'check-gate-sub gray'; sub.textContent = 'โปรดรอสักครู่';
-
-  } else if (state === 'allpass') {
-    banner.className = 'check-gate pass';
-    icon.className = 'check-gate-icon green'; icon.textContent = '✅';
-    title.className = 'check-gate-title green';
-    title.textContent = `ตรวจสภาพรถครบทุกคันแล้ววันนี้ (${data.checkedCount}/${data.totalCars} คัน)`;
-    sub.className = 'check-gate-sub green';
-    sub.textContent = 'รถทุกคันผ่านการตรวจสภาพประจำวันแล้ว สามารถบันทึกออกรถได้ทันที';
-
-  } else if (state === 'partial') {
-    banner.className = 'check-gate blocked';
-    icon.className = 'check-gate-icon red'; icon.textContent = '🚫';
-    title.className = 'check-gate-title red';
-    title.textContent = `ยังมีรถที่ยังไม่ผ่านการตรวจสภาพวันนี้ ${data.notCheckedCount} คัน (ตรวจแล้ว ${data.checkedCount}/${data.totalCars} คัน)`;
-    sub.className = 'check-gate-sub red';
-    const plates = (data.notChecked || []).slice(0, 5).join(', ');
-    sub.innerHTML = `รถที่ยังไม่ตรวจ: <strong>${plates || '—'}</strong>${data.notChecked.length > 5 ? ` และอีก ${data.notChecked.length-5} คัน` : ''}<br>
-      <em style="font-size:11px;opacity:.85;">เลือกรถในรายการด้านล่าง — รถที่ยังไม่ตรวจจะไม่สามารถบันทึกออกรถได้</em>`;
-
-    // ปุ่มลิงก์ไปหน้าตรวจสภาพ
-    const btn = document.createElement('a');
-    btn.href = 'check.html';
-    btn.className = 'goto-check-btn';
-    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> ไปหน้าตรวจสภาพรถประจำวัน';
-    banner.querySelector('.check-gate-body').appendChild(btn);
-
-  } else if (state === 'none') {
-    banner.className = 'check-gate blocked';
-    icon.className = 'check-gate-icon red'; icon.textContent = '⚠️';
-    title.className = 'check-gate-title red';
-    title.textContent = 'ยังไม่มีการตรวจสภาพรถประจำวันนี้';
-    sub.className = 'check-gate-sub red';
-    sub.innerHTML = 'ยังไม่มีรถคันใดผ่านการตรวจสภาพวันนี้ — กรุณาตรวจสภาพรถก่อนบันทึกออกรถ';
-    const btn = document.createElement('a');
-    btn.href = 'check.html';
-    btn.className = 'goto-check-btn';
-    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg> ไปหน้าตรวจสภาพรถประจำวัน';
-    banner.querySelector('.check-gate-body').appendChild(btn);
-
-  } else if (state === 'error') {
-    banner.className = 'check-gate loading';
-    icon.className = 'check-gate-icon gray'; icon.textContent = '⚠️';
-    title.className = 'check-gate-title gray'; title.textContent = 'ไม่สามารถโหลดสถานะตรวจสภาพรถได้';
-    sub.className = 'check-gate-sub gray';
-    sub.innerHTML = 'ระบบจะอนุญาตให้บันทึกชั่วคราว — กรุณาตรวจสอบการเชื่อมต่อ <button onclick="loadTodayCheckStatus()" style="margin-left:6px;padding:2px 10px;border-radius:6px;border:1px solid #94a3b8;background:#f1f5f9;cursor:pointer;font-size:11px;">ลองใหม่</button>';
-  }
-}
-
 </script>
-
-
-<!-- ── FUEL PHOTO LIGHTBOX ── -->
-<div class="flightbox" id="fuelLightbox" onclick="closeFuelLightbox()">
-  <button class="flightbox-close" onclick="closeFuelLightbox()">✕</button>
-  <button class="flightbox-nav prev" onclick="event.stopPropagation();navFuelLightbox(-1)">‹</button>
-  <img id="fuelLightboxImg" src="" alt="บิลน้ำมัน">
-  <button class="flightbox-nav next" onclick="event.stopPropagation();navFuelLightbox(1)">›</button>
-  <div class="flightbox-counter" id="fuelLightboxCounter">1 / 1</div>
-</div>
 
 </body>
 </html>
