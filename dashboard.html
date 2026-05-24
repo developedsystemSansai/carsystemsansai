@@ -1090,6 +1090,23 @@ function parseDate(str) {
   return new Date(s);
 }
 
+/**
+ * normDateForMatch — normalize date string หลายรูปแบบ → "yyyy-MM-dd"
+ * รองรับ: "dd/MM/yyyy", "yyyy-MM-dd", "dd/MM/yyyy HH:mm:ss"
+ * ใช้เปรียบเทียบ date ระหว่าง CheckLog กับ MileLog ที่บันทึกต่างรูปแบบกัน
+ */
+function normDateForMatch(val) {
+  if (!val) return '';
+  const s = String(val).trim();
+  // dd/MM/yyyy ... → yyyy-MM-dd
+  const m1 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m1) return m1[3] + '-' + m1[2].padStart(2,'0') + '-' + m1[1].padStart(2,'0');
+  // yyyy-MM-dd
+  const m2 = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (m2) return m2[1];
+  return s.slice(0,10);
+}
+
 function renderDashboard(data) {
   window.allData = data; // store globally for vehicle detail popup
   renderKPIs(data);
@@ -1601,11 +1618,11 @@ function _openDetailForRecord(r) {
 
   // Fuel Photo section — หา MileLog record ที่ตรงกันเพื่อดึงรูปบิลน้ำมัน
   const _cPlate = (r.carType || '').split(' ')[0].trim();
-  const _cDate  = (r.inspDate || '').slice(0,10);
+  const _cDate  = normDateForMatch(r.inspDate || '');
   const _mileRec = (window._mileLogToday || []).find(m => {
     const mPlate = (m['ทะเบียน/รถ'] || m.carType || '').split(' ')[0].trim();
-    const mDate  = (m['วันที่'] || '').slice(0,10);
-    return mPlate === _cPlate && mDate === _cDate;
+    const mDate  = normDateForMatch(m['วันที่'] || '');
+    return mPlate === _cPlate && (mDate === _cDate || !_cDate || !mDate);
   }) || null;
   renderFuelPhotoSection(r, _mileRec);
 
@@ -1985,6 +2002,18 @@ function renderFuelTracker(json) {
     const levelLabel  = fd?.fuelLevel ? 'ระดับ ' + fd.fuelLevel : '';
 
     if (filled) {
+      const fuelUrl = (fd?.fuelPhotoUrl || '').toString().trim();
+      const cleanFuelUrl = fuelUrl.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
+      const billBtn = cleanFuelUrl.startsWith('http')
+        ? `<a href="${cleanFuelUrl}" target="_blank" rel="noopener"
+             style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;
+                    padding:5px 12px;background:#0ea5e9;color:#fff;border-radius:8px;
+                    font-size:0.7rem;font-weight:700;text-decoration:none;width:fit-content;">
+             🧾 ดูรูปบิลน้ำมัน
+           </a>`
+        : `<div style="font-size:0.68rem;color:#94a3b8;margin-top:6px;display:flex;align-items:center;gap:4px;">
+             📎 <span>เติมแล้ว — ยังไม่มีรูปบิล</span>
+           </div>`;
       return `<div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:2px solid #3b82f6;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div>
@@ -1999,6 +2028,7 @@ function renderFuelTracker(json) {
           ${sourceLabel ? `<span style="background:#e0f2fe;color:#0369a1;font-size:0.68rem;font-weight:600;padding:2px 9px;border-radius:99px;">${sourceLabel}</span>` : ''}
         </div>
         ${fd?.driverName ? `<div style="font-size:0.7rem;color:#1e40af;margin-top:2px;">👤 ${fd.driverName}${timeLabel ? ' · ' + timeLabel : ''}</div>` : ''}
+        ${billBtn}
       </div>`;
     } else {
       return `<div style="background:#f8fafc;border:2px dashed #e2e8f0;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;opacity:0.75;">
@@ -2595,9 +2625,9 @@ function openLiveVehicleDetail(plate) {
       const mileRec = (window._mileLogToday || []).find(m => {
         const mPlate = (m['ทะเบียน/รถ'] || m.carType || '').split(' ')[0].trim();
         const cPlate = (rec.carType || '').split(' ')[0].trim();
-        const mDate  = (m['วันที่'] || '').slice(0,10);
-        const cDate  = (rec.inspDate || '').slice(0,10);
-        return mPlate === cPlate && mDate === cDate;
+        const mDate  = normDateForMatch(m['วันที่'] || '');
+        const cDate  = normDateForMatch(rec.inspDate || '');
+        return mPlate === cPlate && (mDate === cDate || !cDate || !mDate);
       });
       const rawFuelLink = mileRec
         ? (mileRec.fuelPhotoUrl || mileRec['รูปบิลน้ำมัน'] || '').toString().trim()
