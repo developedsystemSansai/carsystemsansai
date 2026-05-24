@@ -265,8 +265,7 @@ textarea { resize: vertical; min-height: 80px; }
 .radio-opt.skip input:checked + .pill { background: var(--text-light); }
 .radio-opt.change input:checked + .pill { background: var(--warning); color: var(--text); }
 .radio-opt.nochange input:checked + .pill { background: var(--teal); }
-.radio-opt.fill input:checked + .pill { background: var(--blue); }
-.radio-opt.nofill input:checked + .pill { background: var(--text-mid); }
+.radio-opt input:checked + .pill { background: var(--blue); color: #fff; border-color: var(--blue); }
 /* FUEL GAUGE */
 .fuel-gauge {
   display: flex; gap: 0; border-radius: 10px; overflow: hidden;
@@ -837,26 +836,8 @@ textarea { resize: vertical; min-height: 80px; }
             <label for="fuel100">100%</label>
           </div>
         </div>
-        <div class="section-divider" style="margin-top:20px;"><span>การเติมน้ำมัน</span></div>
-        <div class="radio-group">
-          <label class="radio-opt fill"><input type="radio" name="fuelFill" value="เติม" required><span class="pill">เติม</span></label>
-          <label class="radio-opt nofill"><input type="radio" name="fuelFill" value="ไม่เติม"><span class="pill">ไม่เติม</span></label>
-        </div>
-        <div id="fuelPhotoSection" style="display:none;margin-top:20px;">
-          <div class="section-divider"><span>แนบรูปบิลน้ำมัน</span></div>
-          <div class="camera-zone" id="fuelCameraZone" onclick="document.getElementById('fuelPhotoInput').click()" style="border-color:var(--blue);background:rgba(26,115,232,0.03);">
-            <div class="cam-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg></div>
-            <p style="color:var(--blue);font-weight:600;">แนบรูปบิลน้ำมัน / สลิปการเติม</p>
-            <input type="file" id="fuelPhotoInput" accept="image/*" multiple style="display:none">
-            <button type="button" class="cam-btn" onclick="event.stopPropagation();document.getElementById('fuelCamInput').click()">ถ่ายรูปบิล</button>
-            <button type="button" class="cam-btn secondary" onclick="event.stopPropagation();document.getElementById('fuelGalleryInput').click()">เลือกจากคลัง</button>
-            <input type="file" id="fuelCamInput" accept="image/*" capture="environment" style="display:none">
-            <input type="file" id="fuelGalleryInput" accept="image/*" multiple style="display:none">
-          </div>
-          <div class="photo-preview" id="fuelPhotoPreview"></div>
-          <div style="margin-top:8px;font-size:0.78rem;color:var(--blue);text-align:center;font-weight:500;">
-            กรุณาถ่ายรูปบิลน้ำมันทุกครั้งที่มีการเติม
-          </div>
+        <div style="margin-top:10px;font-size:0.78rem;color:var(--text-light);text-align:center;">
+          การเติมน้ำมัน — บันทึกพร้อมรูปบิลได้ที่หน้า <strong>ออกรถ</strong>
         </div>
       </div>
     </div>
@@ -905,12 +886,6 @@ textarea { resize: vertical; min-height: 80px; }
         </div>
       </div>
     </div>
-
-<!-- FUEL PHOTO DRIVE LINKS -->
-<div id="fuelDriveLinksPanel" class="drive-links-panel" style="margin:0 20px 0;display:none;">
-  <div class="dl-title">✓ รูปบิลน้ำมัน — ลิ้งค์บน Google Drive</div>
-  <div id="fuelDriveLinksContainer"></div>
-</div>
 
 <!-- LIGHTBOX -->
 <div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)">
@@ -1149,7 +1124,7 @@ function filterDestinations() {
 // PROGRESS TRACKING
 // ============================================================
 const requiredFields = ['carType','driverName','inspDate','inspTime','odometer'];
-const requiredRadios = ['eq_oil','eq_battery','eq_tire','fuelLevel','fuelFill'];
+const requiredRadios = ['eq_oil','eq_battery','eq_tire','fuelLevel'];
 
 function updateProgress() {
   let filled = 0;
@@ -1284,9 +1259,8 @@ function removePhoto(i) {
 });
 
 // ── LIGHTBOX ────────────────────────────────────────────────
-// source: 'check' | 'fuel'
 function openLightbox(source, idx) {
-  lbPhotos = source === 'check' ? photos : fuelPhotos;
+  lbPhotos = photos;
   lbIndex  = idx;
   updateLightbox();
   document.getElementById('lightbox').classList.add('show');
@@ -1372,10 +1346,8 @@ function collectData() {
     eq_battery: getRadio('eq_battery'),
     eq_tire: getRadio('eq_tire'),
     fuelLevel: getRadio('fuelLevel'),
-    fuelFill: getRadio('fuelFill'),
     remarks: get('remarks'),
-    photos: photos.map(p => ({ name: p.name, data: p.data, type: p.type })),
-    fuelPhotos: fuelPhotos.map(p => ({ name: p.name, data: p.data, type: p.type }))
+    photos: photos.map(p => ({ name: p.name, data: p.data, type: p.type }))
   };
   
   checkItems.forEach(item => {
@@ -1423,23 +1395,11 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
       body: 'payload=' + encodeURIComponent(JSON.stringify(payloadNoPhotos))
     });
     
-    const fuelPhotosData = payload.fuelPhotos || [];
-    const totalPics = photosData.length + fuelPhotosData.length;
-    
-    if (totalPics > 0) {
-      // แสดง modal ก่อน แต่ยังไม่ reset — รอ upload เสร็จก่อน
-      showModal(`บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--text-light)">กำลังอัปโหลดรูป ${totalPics} รูปไปยัง Drive…</small>`);
-      
+    if (photosData.length > 0) {
+      showModal(`บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--text-light)">กำลังอัปโหลดรูป ${photosData.length} รูปไปยัง Drive…</small>`);
       try {
-        // await ให้ upload เสร็จจริงๆ ก่อน reset form (แก้ race condition)
-        if (photosData.length > 0) {
-          await uploadCheckPhotos(payload.carType, payload.inspDate, payload.driverName, photosData, 'CheckPhotos');
-        }
-        if (fuelPhotosData.length > 0) {
-          await uploadCheckPhotos(payload.carType, payload.inspDate, payload.driverName, fuelPhotosData, 'FuelReceipts');
-        }
-        // อัพเดต modal หลัง upload เสร็จ
-        document.getElementById('modalMsg').innerHTML = `บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--success)">✓ อัปโหลดรูป ${totalPics} รูปสำเร็จ</small>`;
+        await uploadCheckPhotos(payload.carType, payload.inspDate, payload.driverName, photosData, 'CheckPhotos');
+        document.getElementById('modalMsg').innerHTML = `บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--success)">✓ อัปโหลดรูป ${photosData.length} รูปสำเร็จ</small>`;
       } catch(uploadErr) {
         console.warn('Upload error:', uploadErr);
         document.getElementById('modalMsg').innerHTML = `บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--warning)">⚠ รูปอาจอัปโหลดไม่สมบูรณ์</small>`;
@@ -1461,12 +1421,8 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
 function resetForm() {
   document.getElementById('inspectionForm').reset();
   photos = [];
-  fuelPhotos = [];
   renderPreviews();
-  renderFuelPreviews();
   renderDriveLinksPanel();
-  document.getElementById('fuelPhotoSection').style.display = 'none';
-  document.getElementById('fuelDriveLinksPanel').style.display = 'none';
   document.querySelectorAll('.field-valid').forEach(el => el.classList.remove('field-valid'));
   setThaiDateTime();
   updateProgress();
@@ -1543,128 +1499,6 @@ async function uploadCheckPhotos(carType, inspDate, driverName, photosData, subF
   }
   return links;
 }
-
-// ══════ FUEL PHOTO SECTION TOGGLE ══════
-let fuelPhotos = [];
-
-document.querySelectorAll('input[name="fuelFill"]').forEach(radio => {
-  radio.addEventListener('change', function() {
-    const section = document.getElementById('fuelPhotoSection');
-    if (this.value === 'เติม') {
-      section.style.display = 'block';
-      section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } else {
-      section.style.display = 'none';
-      fuelPhotos = [];
-      renderFuelPreviews();
-    }
-  });
-});
-
-function handleFuelFiles(files) {
-  Array.from(files).forEach(file => {
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB', 'error'); return; }
-    const reader = new FileReader();
-    reader.onload = e => {
-      const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
-      fuelPhotos.push(photo);
-      renderFuelPreviews();
-      // อัปโหลดทันทีถ้ามี GAS_URL จริง
-      if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
-        uploadSingleFuelPhoto(photo, fuelPhotos.length - 1);
-      }
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-async function uploadSingleFuelPhoto(photo, idx) {
-  photo.status = 'uploading';
-  renderFuelPreviews();
-  try {
-    const carType  = document.getElementById('carType')?.value  || '';
-    const inspDate = document.getElementById('inspDate')?.value || '';
-    // ดึง tripId จาก localStorage ถ้ามีการออกรถก่อนหน้า
-    const tripId   = (typeof localStorage !== 'undefined' && localStorage.getItem('activeTripId')) || '';
-    const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
-    const uploadPayload = JSON.stringify({
-      action    : 'uploadPhotoPost',
-      subFolder : 'FuelReceipts',
-      fileName  : photo.name || ('fuel_' + Date.now() + '.jpg'),
-      mimeType  : photo.type || 'image/jpeg',
-      base64Data: b64,
-      carType   : carType,
-      inspDate  : inspDate,
-      tripId    : tripId
-    });
-    const resp = await fetch(GAS_URL, {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body   : 'payload=' + encodeURIComponent(uploadPayload)
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.status === 'ok' && data.url) {
-        photo.driveUrl = data.url;
-        photo.status   = 'ok';
-        showToast('✓ อัปโหลดบิลน้ำมันสำเร็จ', 'success');
-        renderFuelPreviews();
-        return;
-      }
-    }
-    photo.status = 'err';
-  } catch(e) {
-    photo.status = 'err';
-    console.warn('uploadSingleFuelPhoto:', e);
-  }
-  renderFuelPreviews();
-}
-
-function renderFuelPreviews() {
-  const preview = document.getElementById('fuelPhotoPreview');
-  preview.innerHTML = '';
-  fuelPhotos.forEach((p, i) => {
-    const thumb = document.createElement('div');
-    thumb.className = 'photo-thumb';
-    const badgeClass = p.driveUrl ? 'ok' : (p.status === 'uploading' ? 'uploading' : 'pending');
-    const badgeIcon  = p.driveUrl ? '✓' : (p.status === 'uploading' ? '↻' : '…');
-    thumb.innerHTML = `
-      <img src="${p.data}" alt="บิลที่ ${i+1}" style="cursor:pointer;" onclick="openLightbox('fuel',${i})">
-      <span class="upload-badge ${badgeClass}">${badgeIcon}</span>
-      <button type="button" class="view-btn" onclick="openLightbox('fuel',${i})">ดูรูป</button>
-      <button type="button" class="remove-btn" onclick="removeFuelPhoto(${i})" title="ลบ">✕</button>
-    `;
-    preview.appendChild(thumb);
-  });
-  // อัพเดท drive links panel สำหรับ fuel
-  const fuelPanel = document.getElementById('fuelDriveLinksPanel');
-  const fuelContainer = document.getElementById('fuelDriveLinksContainer');
-  if (fuelPanel && fuelContainer) {
-    const uploaded = fuelPhotos.filter(p => p.driveUrl);
-    if (uploaded.length) {
-      fuelPanel.style.display = 'block';
-      fuelContainer.innerHTML = uploaded.map(p => `
-        <div class="dl-item">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          <span style="flex:1;font-size:0.78rem;overflow:hidden;text-overflow:ellipsis;">${p.name}</span>
-          <a href="${p.driveUrl}" target="_blank" rel="noopener" class="dl-link">เปิด Drive</a>
-        </div>
-      `).join('');
-    } else {
-      fuelPanel.style.display = 'none';
-    }
-  }
-}
-
-function removeFuelPhoto(i) {
-  fuelPhotos.splice(i, 1);
-  renderFuelPreviews();
-}
-
-['fuelPhotoInput','fuelCamInput','fuelGalleryInput'].forEach(id => {
-  document.getElementById(id)?.addEventListener('change', e => handleFuelFiles(e.target.files));
-});
 
 
 // ══════ 24H TIME INPUT HELPERS ══════
