@@ -435,6 +435,27 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
 .fetch-mile-btn.loading .fm-spin { display: block; }
 .fetch-mile-btn.loading .fm-label { display: none; }
 
+
+/* ── ODOMETER MISMATCH ALERT ── */
+input.odo-mismatch {
+  border-color: var(--danger) !important;
+  box-shadow: 0 0 0 3px rgba(244,67,54,.15) !important;
+  background: #fff5f5 !important;
+}
+.odo-alert {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: #fff1f2; border: 1.5px solid #fca5a5;
+  border-radius: 8px; padding: 10px 13px; margin-top: 6px;
+  color: #991b1b; font-size: 12.5px; line-height: 1.6;
+}
+.odo-warn {
+  display: flex; align-items: flex-start; gap: 8px;
+  background: #fffbeb; border: 1.5px solid #fcd34d;
+  border-radius: 8px; padding: 10px 13px; margin-top: 6px;
+  color: #92400e; font-size: 12.5px; line-height: 1.6;
+}
+.mile-alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
 </style>
 </head>
 <body>
@@ -552,17 +573,11 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
 
         <div class="form-group" style="margin-bottom:14px;">
           <label>เลขไมล์ก่อนออกรถ <span class="req">*</span></label>
-          <div class="odo-row">
-            <div class="odo-wrap">
-              <input type="number" id="s_odometerStart" min="0" placeholder="เช่น 125340" required oninput="validateStartOdo()">
-              <span class="odo-unit">กม.</span>
-            </div>
-            <button type="button" class="fetch-mile-btn" id="fetchMileBtn" onclick="fetchLastMile()" title="ดึงเลขไมล์ล่าสุดของรถคันนี้">
-              <div class="fm-spin"></div>
-              <span class="fm-label">🔄 ดึงไมล์</span>
-            </button>
+          <div class="odo-wrap">
+            <input type="number" id="s_odometerStart" min="0" placeholder="เช่น 125340" required oninput="validateStartOdo()">
+            <span class="odo-unit">กม.</span>
           </div>
-          <div class="odo-hint" id="s_lastMileHint"></div>
+          <div id="s_lastMileHint" class="odo-hint"></div>
         </div>
 
         <div class="form-group">
@@ -1006,6 +1021,17 @@ function populateDriverSelect(drivers) {
 // ════════════════════════════════════════════════════════
 const DEST_GROUPS = [
   {
+    label: '⭐ ใช้บ่อย',
+    icon: '⭐',
+    items: [
+      'รพท.นครพิงค์', 'รพช.แม่แตง', 'รพช.สันกำแพง', 'รพช.ดอยสะเก็ด',
+      'สสจ.เชียงใหม่', 'สสอ.สันทราย',
+      'มหาวิทยาลัยเชียงใหม่ (มช.)', 'มหาวิทยาลัยแม่โจ้',
+      'สำนักงานเขตสุขภาพที่ 1',
+      'ศาลากลางจังหวัดเชียงใหม่',
+    ]
+  },
+  {
     label: '🏥 โรงพยาบาลชุมชน (รพช.) — เชียงใหม่',
     icon: '🏥',
     items: [
@@ -1389,72 +1415,65 @@ function renderCheckGateNotice(sum) {
 // ════════════════════════════════════════════════════════
 //  CAR CHANGE HANDLERS
 // ════════════════════════════════════════════════════════
-async function fetchLastMile() {
-  const carType = document.getElementById('s_carType').value;
-  const hint    = document.getElementById('s_lastMileHint');
-  const btn     = document.getElementById('fetchMileBtn');
-  const inp     = document.getElementById('s_odometerStart');
-
-  if (!carType) {
-    showToast('กรุณาเลือกทะเบียนรถก่อน', 'error'); return;
-  }
-
-  btn.classList.add('loading'); btn.disabled = true;
-  hint.textContent = 'กำลังดึงเลขไมล์ล่าสุด...';
-  hint.className = 'odo-hint';
-
-  try {
-    const res = await fetchGAS('getLastMile&carType=' + encodeURIComponent(carType));
-    if (res.odometer) {
-      const val = Number(res.odometer);
-      const dateStr = res.date || 'ไม่ทราบวันที่';
-      // แสดงที่มาของข้อมูล
-      const sourceLabel = res.source === 'MileLog_end'
-        ? '📋 จากเลขไมล์ปลาย (MileLog)'
-        : res.source === 'MileLog_start'
-          ? '⚠️ จากเลขไมล์ต้น (ยังไม่มีเลขปลาย)'
-          : '📝 จากใบตรวจสภาพ (CheckLog)';
-      hint.innerHTML = `<b>${val.toLocaleString()} กม.</b> &nbsp;·&nbsp; ${dateStr} &nbsp;<span style="color:var(--text-light);font-size:11px;">${sourceLabel}</span>`;
-      hint.className = 'odo-hint';
-      inp.value = val;
-      inp.dispatchEvent(new Event('input'));
-      showToast(`ดึงเลขไมล์ปลายสำเร็จ — ${val.toLocaleString()} กม.`, 'success');
-    } else {
-      hint.textContent = '⚠️ ยังไม่มีข้อมูลเลขไมล์ในระบบ — กรอกด้วยตนเอง';
-      hint.className = 'odo-hint warn';
-      showToast('ไม่พบข้อมูลเลขไมล์ของรถคันนี้', 'error');
-    }
-  } catch(e) {
-    hint.textContent = '❌ โหลดไม่สำเร็จ — กรอกด้วยตนเอง';
-    hint.className = 'odo-hint err';
-    showToast('ดึงเลขไมล์ไม่สำเร็จ', 'error');
-  } finally {
-    btn.classList.remove('loading'); btn.disabled = false;
-  }
-}
+// lastKnownOdo เก็บไว้ใช้ตรวจสอบ mismatch ตอนกรอกเลขไมล์
+let lastKnownOdo = 0;
+let lastKnownDate = '';
 
 async function onStartCarChange() {
   const carType = document.getElementById('s_carType').value;
-  const hint = document.getElementById('s_lastMileHint');
-  if (!carType) { hint.textContent = ''; return; }
+  const hint    = document.getElementById('s_lastMileHint');
+  const inp     = document.getElementById('s_odometerStart');
+  lastKnownOdo  = 0; lastKnownDate = '';
+  inp.classList.remove('odo-mismatch');
+  hint.innerHTML = ''; hint.className = 'odo-hint';
+  if (!carType) return;
 
-  hint.textContent = 'กำลังโหลดเลขไมล์ล่าสุด...';
-  hint.className = 'odo-hint';
-
+  hint.innerHTML = '<span style="color:var(--text-light)">กำลังตรวจสอบเลขไมล์อ้างอิง...</span>';
   try {
-    const plate = carType.split(' ')[0];
     const res = await fetchGAS('getLastMile&carType=' + encodeURIComponent(carType));
     if (res.odometer) {
-      hint.textContent = `เลขไมล์ล่าสุด: ${Number(res.odometer).toLocaleString()} กม. (${res.date || 'ไม่ทราบวันที่'})`;
-      hint.className = 'odo-hint';
-      // แนะนำค่า
-      const inp = document.getElementById('s_odometerStart');
-      if (!inp.value) inp.value = res.odometer;
+      lastKnownOdo  = Number(res.odometer);
+      lastKnownDate = res.date || '';
+      renderMileHint(Number(inp.value) || 0);
     } else {
-      hint.textContent = 'ยังไม่มีข้อมูลเลขไมล์ในระบบ';
+      hint.innerHTML = '<span style="color:var(--text-light);font-size:12px;">ยังไม่มีข้อมูลเลขไมล์อ้างอิงในระบบ</span>';
     }
   } catch(_) {
-    hint.textContent = 'โหลดเลขไมล์ไม่สำเร็จ — กรอกด้วยตนเอง';
+    hint.innerHTML = '<span style="color:var(--text-light);font-size:12px;">โหลดเลขไมล์ไม่สำเร็จ</span>';
+  }
+}
+
+function renderMileHint(enteredVal) {
+  const hint = document.getElementById('s_lastMileHint');
+  const inp  = document.getElementById('s_odometerStart');
+  if (!lastKnownOdo) return;
+  const dateStr = lastKnownDate || 'ไม่ทราบวันที่';
+
+  if (!enteredVal) {
+    inp.classList.remove('odo-mismatch');
+    hint.className = 'odo-hint';
+    hint.innerHTML = `อ้างอิงไมล์ปลายทริปล่าสุด: <b>${lastKnownOdo.toLocaleString()} กม.</b> <span style="color:var(--text-light);font-size:11px;">(${dateStr})</span>`;
+    return;
+  }
+
+  const diff = enteredVal - lastKnownOdo;
+
+  if (diff < 0) {
+    inp.classList.add('odo-mismatch');
+    hint.className = 'odo-hint odo-alert';
+    hint.innerHTML = `<span class="mile-alert-icon">⚠️</span><span><b>เลขไมล์ต่ำกว่าอ้างอิง ${Math.abs(diff).toLocaleString()} กม.!</b><br>อ้างอิง: ${lastKnownOdo.toLocaleString()} กม. (${dateStr})<br><span style="font-size:11px;color:#7f1d1d;">กรุณาตรวจสอบ — อาจมีการนำรถออกใช้โดยไม่บันทึก</span></span>`;
+  } else if (diff === 0) {
+    inp.classList.remove('odo-mismatch');
+    hint.className = 'odo-hint';
+    hint.innerHTML = `✅ ตรงกับเลขไมล์อ้างอิง (${lastKnownOdo.toLocaleString()} กม.)`;
+  } else if (diff <= 50) {
+    inp.classList.remove('odo-mismatch');
+    hint.className = 'odo-hint';
+    hint.innerHTML = `✅ เพิ่มขึ้น ${diff} กม. จากอ้างอิง (${lastKnownOdo.toLocaleString()} กม. · ${dateStr})`;
+  } else {
+    inp.classList.add('odo-mismatch');
+    hint.className = 'odo-hint odo-warn';
+    hint.innerHTML = `<span class="mile-alert-icon">⚠️</span><span><b>เลขไมล์สูงกว่าอ้างอิง ${diff.toLocaleString()} กม.</b><br>อ้างอิง: ${lastKnownOdo.toLocaleString()} กม. (${dateStr})<br><span style="font-size:11px;color:#78350f;">กรุณาตรวจสอบ — ระยะทางห่างมากผิดปกติ</span></span>`;
   }
 }
 
@@ -1500,7 +1519,9 @@ async function onEndCarChange() {
 }
 
 function validateStartOdo() {
-  const val  = Number(document.getElementById('s_odometerStart').value);
+  const val = Number(document.getElementById('s_odometerStart').value);
+  // ถ้ามีเลขอ้างอิง ให้ renderMileHint ดูแล hint
+  if (lastKnownOdo > 0) { renderMileHint(val); return; }
   const hint = document.getElementById('s_lastMileHint');
   if (val > 0 && val < 1000) {
     hint.textContent = ' เลขไมล์ดูน้อยเกินไป — กรุณาตรวจสอบ';
