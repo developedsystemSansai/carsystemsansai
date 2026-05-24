@@ -381,6 +381,39 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
   .form-group.span2, .form-group.span3 { grid-column: span 1; }
   .active-trip-grid { grid-template-columns: 1fr 1fr; }
 }
+
+/* ── DESTINATION DROPDOWN ── */
+.dest-wrap { position: relative; }
+.dest-wrap input { padding-right: 36px; }
+.dest-arrow {
+  position: absolute; right: 13px; top: 50%; transform: translateY(-50%);
+  font-size: 11px; color: var(--text-light); cursor: pointer; user-select: none;
+  transition: transform .2s;
+}
+.dest-wrap.open .dest-arrow { transform: translateY(-50%) rotate(180deg); }
+.dest-dropdown {
+  display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: #fff; border: 1.5px solid var(--blue);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow-lg);
+  max-height: 280px; overflow-y: auto; z-index: 500;
+  font-size: 13px;
+}
+.dest-wrap.open .dest-dropdown { display: block; }
+.dest-group-label {
+  padding: 7px 13px 4px; font-size: 10px; font-weight: 700;
+  letter-spacing: .8px; text-transform: uppercase;
+  color: var(--text-light); background: var(--bg);
+  border-bottom: 1px solid var(--border); position: sticky; top: 0;
+}
+.dest-option {
+  padding: 9px 14px; cursor: pointer; color: var(--text);
+  border-bottom: 1px solid #f0f4f8; transition: background .12s;
+  display: flex; align-items: center; gap: 8px;
+}
+.dest-option:hover, .dest-option.focused { background: var(--blue-soft); color: var(--blue); }
+.dest-option .dest-icon { font-size: 14px; flex-shrink: 0; }
+.dest-no-result { padding: 12px 14px; color: var(--text-light); font-size: 13px; }
+
 </style>
 </head>
 <body>
@@ -481,10 +514,18 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
             <input type="hidden" id="s_tripDate">
             <input type="hidden" id="s_tripTime">
           </div>
-          <div class="form-group span2">
+          <div class="form-group span2" style="position:relative;">
             <label>ปลายทาง <span class="req">*</span></label>
-            <input type="text" id="s_destination" list="destinationList" placeholder="พิมพ์หรือเลือกปลายทาง..." required>
-            <datalist id="destinationList"></datalist>
+            <div class="dest-wrap" id="destWrap">
+              <input type="text" id="s_destination" autocomplete="off"
+                placeholder="พิมพ์หรือเลือกปลายทาง..."
+                required
+                oninput="filterDestDropdown()"
+                onfocus="openDestDropdown()"
+                onkeydown="destKeyNav(event)">
+              <span class="dest-arrow" onclick="toggleDestDropdown()">▾</span>
+              <div class="dest-dropdown" id="destDropdown"></div>
+            </div>
           </div>
         </div>
 
@@ -933,16 +974,217 @@ function populateDriverSelect(drivers) {
   });
 }
 
+// ════════════════════════════════════════════════════════
+//  DESTINATION DATA
+// ════════════════════════════════════════════════════════
+const DEST_GROUPS = [
+  {
+    label: '🏥 โรงพยาบาลชุมชน (รพช.)',
+    icon: '🏥',
+    items: [
+      'รพช.แม่แตง', 'รพช.สะเมิง', 'รพช.แม่ริม', 'รพช.ดอยสะเก็ด',
+      'รพช.แม่วาง', 'รพช.สันป่าตอง', 'รพช.สันกำแพง', 'รพช.สารภี',
+      'รพช.หางดง', 'รพช.ฝาง', 'รพช.แม่อาย', 'รพช.เชียงดาว',
+      'รพช.พร้าว', 'รพช.เวียงแหง', 'รพช.ไชยปราการ', 'รพช.แม่แจ่ม',
+      'รพช.กัลยาณิวัฒนา', 'รพช.ดอยเต่า', 'รพช.อมก๋อย', 'รพช.ฮอด',
+      'รพช.จอมทอง', 'รพช.แม่ลาน้อย (แม่ฮ่องสอน)', 'รพช.ปาย',
+      'รพช.แม่สะเรียง', 'รพช.สบเมย',
+    ]
+  },
+  {
+    label: '🏨 โรงพยาบาลทั่วไป / ศูนย์ (รพท./รพศ.)',
+    icon: '🏨',
+    items: [
+      'รพท.นครพิงค์', 'รพท.เชียงใหม่ราม', 'รพท.แมคคอร์มิค',
+      'รพท.ลานนา', 'รพท.สันป่าตอง (รพท.)',
+      'รพศ.มหาราชนครเชียงใหม่', 'รพศ.เชียงรายประชานุเคราะห์',
+      'รพศ.ลำพูน', 'รพศ.ลำปาง', 'รพศ.แพร่',
+    ]
+  },
+  {
+    label: '🏥 โรงพยาบาลอื่น / เอกชน',
+    icon: '🏥',
+    items: [
+      'รพ.สันทราย (บ้าน)', 'รพ.มหาราช เชียงใหม่',
+      'รพ.สวนดอก มช.', 'รพ.ประสาทเชียงใหม่',
+      'รพ.เชียงใหม่ใกล้หมอ', 'รพ.เซ็นทรัลเชียงใหม่ เมโมเรียล',
+      'รพ.กรุงเทพเชียงใหม่', 'รพ.ราษฎร์ยินดี',
+    ]
+  },
+  {
+    label: '🏛️ สาธารณสุขจังหวัด / อำเภอ',
+    icon: '🏛️',
+    items: [
+      'สสจ.เชียงใหม่', 'สสจ.เชียงราย', 'สสจ.ลำพูน', 'สสจ.ลำปาง',
+      'สสจ.แม่ฮ่องสอน', 'สสจ.แพร่', 'สสจ.น่าน',
+      'สสอ.สันทราย', 'สสอ.สันกำแพง', 'สสอ.ดอยสะเก็ด', 'สสอ.แม่ริม',
+      'สสอ.แม่แตง', 'สสอ.สะเมิง', 'สสอ.สันป่าตอง', 'สสอ.หางดง',
+      'สสอ.สารภี', 'สสอ.จอมทอง', 'สสอ.ฝาง', 'สสอ.เชียงดาว',
+    ]
+  },
+  {
+    label: '🎓 มหาวิทยาลัย / สถาบันการศึกษา',
+    icon: '🎓',
+    items: [
+      'มหาวิทยาลัยเชียงใหม่ (มช.)', 'มหาวิทยาลัยแม่โจ้',
+      'มหาวิทยาลัยราชภัฏเชียงใหม่', 'มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา',
+      'มหาวิทยาลัยพายัพ', 'มหาวิทยาลัยฟาร์อีสเทอร์น',
+      'วิทยาลัยพยาบาลบรมราชชนนี เชียงใหม่',
+      'วิทยาลัยพยาบาลบรมราชชนนี เชียงราย',
+    ]
+  },
+  {
+    label: '🏨 โรงแรม / ศูนย์ประชุม',
+    icon: '🏨',
+    items: [
+      'โรงแรมดิเอ็มเพรส เชียงใหม่', 'โรงแรมเชียงใหม่แกรนด์วิว',
+      'โรงแรมโลตัสปางสวนแก้ว', 'โรงแรมอิมพีเรียลแม่ปิง',
+      'โรงแรมคุ้มขันโตก', 'โรงแรมดุสิตดีทู เชียงใหม่',
+      'โรงแรมเลอเมอริเดียน เชียงใหม่', 'โรงแรมเชียงใหม่ออคิด',
+      'โรงแรมฮอลิเดย์อินน์ เชียงใหม่', 'โรงแรมนิมมาน ออโรรา',
+      'ศูนย์ประชุมนานาชาติเชียงใหม่ (CMICE)',
+      'โรงแรมฟูราม่า เชียงใหม่', 'โรงแรมแคนทารี ฮิลล์ เชียงใหม่',
+      'โรงแรมน้ำพุ สันทราย', 'สวนพฤกษศาสตร์สมเด็จพระนางเจ้าสิริกิติ์',
+    ]
+  },
+  {
+    label: '🏢 หน่วยงานราชการ',
+    icon: '🏢',
+    items: [
+      'ศาลากลางจังหวัดเชียงใหม่', 'ที่ว่าการอำเภอสันทราย',
+      'สำนักงานเขตสุขภาพที่ 1', 'กรมสนับสนุนบริการสุขภาพ (กสธ.)',
+      'สำนักงานหลักประกันสุขภาพแห่งชาติ เขต 1',
+      'สำนักงานสาธารณสุข อ.สันทราย',
+      'กรมการแพทย์ (กรุงเทพฯ)', 'กระทรวงสาธารณสุข (นนทบุรี)',
+      'สถาบันพัฒนาสุขภาวะเขตเมือง',
+      'ศาลากลาง จ.ลำพูน', 'ศาลากลาง จ.ลำปาง',
+      'ที่ว่าการอำเภอสันกำแพง', 'ที่ว่าการอำเภอดอยสะเก็ด',
+      'ที่ว่าการอำเภอแม่ริม', 'ที่ว่าการอำเภอแม่แตง',
+      'องค์การบริหารส่วนจังหวัดเชียงใหม่ (อบจ.)',
+      'เทศบาลนครเชียงใหม่', 'เทศบาลตำบลสันทราย',
+      'ท่าอากาศยานนานาชาติเชียงใหม่', 'สถานีรถไฟเชียงใหม่',
+    ]
+  },
+  {
+    label: '📍 อื่นๆ',
+    icon: '📍',
+    items: [
+      'ตลาดวโรรส', 'ตลาดสดสันทราย', 'ห้างสรรพสินค้า Central Festival เชียงใหม่',
+      'อื่นๆ (ระบุในหมายเหตุ)',
+    ]
+  }
+];
+
+// รายการ flat สำหรับ custom destinations จาก GAS config
+let customDestinations = [];
+
 function populateDestinations(dests) {
-  const dl = document.getElementById('destinationList');
-  if (!dl) return;
-  dl.innerHTML = '';
-  dests.forEach(d => {
-    const opt = document.createElement('option');
-    opt.value = d;
-    dl.appendChild(opt);
-  });
+  // เพิ่ม custom destinations จาก GAS (ไม่ทับ built-in)
+  customDestinations = dests || [];
+  renderDestDropdown('');
 }
+
+// ─── Dropdown logic ───────────────────────────────────
+function buildDestItems(query) {
+  const q = query.trim().toLowerCase();
+  const results = [];
+
+  // custom destinations จาก GAS ก่อน
+  if (customDestinations.length) {
+    const matched = customDestinations.filter(d => !q || d.toLowerCase().includes(q));
+    if (matched.length) {
+      results.push({ type: 'group', label: '⭐ รายการจากระบบ' });
+      matched.forEach(d => results.push({ type: 'item', text: d, icon: '⭐' }));
+    }
+  }
+
+  // built-in groups
+  DEST_GROUPS.forEach(g => {
+    const matched = g.items.filter(d => !q || d.toLowerCase().includes(q));
+    if (matched.length) {
+      results.push({ type: 'group', label: g.label });
+      matched.forEach(d => results.push({ type: 'item', text: d, icon: g.icon }));
+    }
+  });
+
+  return results;
+}
+
+function renderDestDropdown(query) {
+  const dd = document.getElementById('destDropdown');
+  if (!dd) return;
+  const items = buildDestItems(query);
+  if (!items.length) {
+    dd.innerHTML = '<div class="dest-no-result">ไม่พบสถานที่ — พิมพ์เพิ่มเองได้เลย</div>';
+    return;
+  }
+  dd.innerHTML = items.map((it, i) => {
+    if (it.type === 'group') return `<div class="dest-group-label">${it.label}</div>`;
+    return `<div class="dest-option" data-val="${it.text}" onclick="selectDest('${it.text.replace(/'/g,"\'")}')">
+      <span class="dest-icon">${it.icon}</span>${it.text}
+    </div>`;
+  }).join('');
+}
+
+let destFocusIdx = -1;
+
+function openDestDropdown() {
+  const wrap = document.getElementById('destWrap');
+  const inp  = document.getElementById('s_destination');
+  wrap.classList.add('open');
+  renderDestDropdown(inp.value);
+  destFocusIdx = -1;
+}
+
+function closeDestDropdown() {
+  document.getElementById('destWrap').classList.remove('open');
+  destFocusIdx = -1;
+}
+
+function toggleDestDropdown() {
+  const wrap = document.getElementById('destWrap');
+  if (wrap.classList.contains('open')) closeDestDropdown();
+  else openDestDropdown();
+}
+
+function filterDestDropdown() {
+  const q = document.getElementById('s_destination').value;
+  openDestDropdown();
+  renderDestDropdown(q);
+  destFocusIdx = -1;
+}
+
+function selectDest(val) {
+  document.getElementById('s_destination').value = val;
+  closeDestDropdown();
+}
+
+function destKeyNav(e) {
+  const dd = document.getElementById('destDropdown');
+  if (!dd) return;
+  const opts = dd.querySelectorAll('.dest-option');
+  if (!opts.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    destFocusIdx = Math.min(destFocusIdx + 1, opts.length - 1);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    destFocusIdx = Math.max(destFocusIdx - 1, 0);
+  } else if (e.key === 'Enter' && destFocusIdx >= 0) {
+    e.preventDefault();
+    selectDest(opts[destFocusIdx].dataset.val);
+    return;
+  } else if (e.key === 'Escape') {
+    closeDestDropdown(); return;
+  } else { return; }
+  opts.forEach((o,i) => o.classList.toggle('focused', i === destFocusIdx));
+  if (destFocusIdx >= 0) opts[destFocusIdx].scrollIntoView({ block: 'nearest' });
+}
+
+// Close on outside click
+document.addEventListener('click', e => {
+  if (!document.getElementById('destWrap')?.contains(e.target)) closeDestDropdown();
+});
 
 function populateCarSelects() {
   const activePlates = Object.keys(activeTripMap);
