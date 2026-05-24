@@ -1585,6 +1585,8 @@ async function uploadSingleFuelPhoto(photo, idx) {
   try {
     const carType  = document.getElementById('carType')?.value  || '';
     const inspDate = document.getElementById('inspDate')?.value || '';
+    // ดึง tripId จาก localStorage ถ้ามีการออกรถก่อนหน้า
+    const tripId   = (typeof localStorage !== 'undefined' && localStorage.getItem('activeTripId')) || '';
     const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
     const uploadPayload = JSON.stringify({
       action    : 'uploadPhotoPost',
@@ -1593,7 +1595,8 @@ async function uploadSingleFuelPhoto(photo, idx) {
       mimeType  : photo.type || 'image/jpeg',
       base64Data: b64,
       carType   : carType,
-      inspDate  : inspDate
+      inspDate  : inspDate,
+      tripId    : tripId
     });
     const resp = await fetch(GAS_URL, {
       method : 'POST',
