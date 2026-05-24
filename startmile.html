@@ -574,6 +574,107 @@ input.odo-mismatch {
   display: flex; align-items: center; gap: 5px;
 }
 
+/* MULTI-PHOTO THUMBNAILS */
+.photo-grid {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px;
+}
+.photo-thumb-sm {
+  position: relative; width: 90px; height: 90px;
+  border-radius: 8px; overflow: hidden;
+  border: 2px solid var(--border); box-shadow: 0 2px 6px rgba(0,0,0,.1);
+  flex-shrink: 0;
+}
+.photo-thumb-sm img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+.photo-thumb-sm .rm-btn {
+  position: absolute; top: 3px; right: 3px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(244,67,54,.9); border: none; color: #fff;
+  font-size: 11px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.photo-thumb-sm .up-badge {
+  position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+}
+.photo-thumb-sm .up-badge.pending    { background:rgba(255,255,255,.8); color:var(--text-light); }
+.photo-thumb-sm .up-badge.uploading  { background:var(--blue); color:#fff; animation: spin .7s linear infinite; }
+.photo-thumb-sm .up-badge.ok         { background:var(--success); color:#fff; }
+.photo-thumb-sm .up-badge.err        { background:var(--danger); color:#fff; }
+.photo-thumb-sm .vw-btn {
+  position: absolute; bottom: 3px; left: 3px;
+  padding: 1px 6px; border-radius: 4px;
+  background: rgba(13,33,55,.7); border: none; color: #fff;
+  font-size: 9px; font-weight: 600; cursor: pointer;
+}
+/* DRIVE LINKS MINI PANEL */
+.drive-mini-panel {
+  margin-top: 10px; padding: 10px 12px;
+  background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 10px;
+  display: none;
+}
+.drive-mini-panel.show { display: block; }
+.drive-mini-panel .dmp-title { font-size: 11px; font-weight: 700; color: #059669; margin-bottom: 6px; }
+.drive-mini-panel .dmp-item {
+  display: flex; align-items: center; gap: 6px; padding: 3px 0;
+  font-size: 11px; border-bottom: 1px solid rgba(0,0,0,.05);
+}
+.drive-mini-panel .dmp-item:last-child { border: none; }
+.drive-mini-panel .dmp-link { color: var(--teal); font-weight: 700; text-decoration: none; }
+.drive-mini-panel .dmp-link:hover { text-decoration: underline; }
+/* ADD MORE BTN */
+.add-more-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 8px;
+  border: 1.5px dashed var(--border); background: transparent;
+  color: var(--text-mid); font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all .15s; margin-top: 8px;
+}
+.add-more-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+/* LIGHTBOX */
+.lightbox-ov {
+  position: fixed; inset: 0; background: rgba(0,0,0,.92);
+  z-index: 9999; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.lightbox-ov.show { opacity: 1; pointer-events: all; }
+.lightbox-ov img {
+  max-width: 96vw; max-height: 88vh; border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.5); object-fit: contain;
+}
+.lb-close {
+  position: fixed; top: 14px; right: 16px;
+  background: rgba(255,255,255,.15); border: none; color: #fff;
+  width: 38px; height: 38px; border-radius: 50%; font-size: 18px;
+  cursor: pointer; transition: background .2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.lb-close:hover { background: var(--danger); }
+.lb-nav {
+  position: fixed; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,.15); border: none; color: #fff;
+  width: 40px; height: 40px; border-radius: 50%; font-size: 20px;
+  cursor: pointer; transition: background .2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.lb-nav:hover { background: rgba(255,255,255,.3); }
+.lb-nav.prev { left: 12px; }
+.lb-nav.next { right: 12px; }
+.lb-cap {
+  position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,.7); font-size: 12px; background: rgba(0,0,0,.4);
+  padding: 4px 14px; border-radius: 20px; white-space: nowrap;
+}
+.lb-drive {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: var(--blue); color: #fff; padding: 7px 20px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; text-decoration: none;
+  display: none; align-items: center; gap: 6px; transition: background .2s;
+}
+.lb-drive.show { display: flex; }
+.lb-drive:hover { background: #1557b0; }
+
 </style>
 </head>
 <body>
@@ -704,6 +805,33 @@ input.odo-mismatch {
         </div>
 
         <!-- ── เติมน้ำมัน ── -->
+        <!-- ── ถ่ายรูปสภาพรถตอนออก (MULTI-PHOTO) ── -->
+        <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            ถ่ายรูปสภาพรถก่อนออก (ไม่บังคับ)
+          </div>
+          <label class="fuel-file-label" style="cursor:pointer;" for="s_tripPhoto">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>ถ่ายรูป / เลือกรูปสภาพรถ</span>
+            <input type="file" id="s_tripPhoto" accept="image/*" capture="environment" multiple
+                   onchange="handleTripPhotos(this.files)" style="display:none;">
+          </label>
+          <button type="button" class="add-more-btn" onclick="document.getElementById('s_tripPhotoGallery').click()">
+            + เลือกจากคลัง
+            <input type="file" id="s_tripPhotoGallery" accept="image/*" multiple
+                   onchange="handleTripPhotos(this.files)" style="display:none;">
+          </button>
+          <!-- Photo grid -->
+          <div class="photo-grid" id="tripPhotoGrid"></div>
+          <!-- Drive links panel -->
+          <div class="drive-mini-panel" id="tripDrivePanel">
+            <div class="dmp-title">✓ อัปโหลดสำเร็จ — ลิ้งค์บน Google Drive</div>
+            <div id="tripDriveLinks"></div>
+          </div>
+        </div>
+        <!-- ── end ถ่ายรูปสภาพรถ ── -->
+
         <div class="fuel-section" id="fuelSection">
           <label class="fuel-toggle-label">
             <input type="checkbox" id="s_hasFuel" onchange="toggleFuelUpload()">
@@ -726,9 +854,9 @@ input.odo-mismatch {
 
             <!-- Preview รูป -->
             <div class="fuel-photo-preview" id="fuelPhotoPreview">
-              <img id="fuelPhotoImg" src="" alt="รูปบิลน้ำมัน">
+              <img id="fuelPhotoImg" src="" alt="รูปบิลน้ำมัน" onclick="openLb('fuel',0)" style="cursor:pointer;">
               <div class="preview-actions">
-                <button class="preview-view-btn" onclick="viewFuelPhotoLocal()">🔍 ดูรูปเต็ม</button>
+                <button class="preview-view-btn" onclick="openLb('fuel',0)">🔍 ดูรูปเต็ม</button>
                 <button class="preview-remove-btn" onclick="removeFuelPhoto()">✕ ลบรูป</button>
               </div>
             </div>
@@ -890,6 +1018,19 @@ input.odo-mismatch {
   </div>
 
 </div><!-- /main-wrap -->
+
+<!-- LIGHTBOX -->
+<div class="lightbox-ov" id="sm_lightbox" onclick="closeLbSM(event)">
+  <button class="lb-close" onclick="closeLbSM()">✕</button>
+  <button class="lb-nav prev" onclick="event.stopPropagation();lbNavSM(-1)">&#8592;</button>
+  <img id="sm_lbImg" src="" alt="">
+  <button class="lb-nav next" onclick="event.stopPropagation();lbNavSM(1)">&#8594;</button>
+  <div class="lb-cap" id="sm_lbCap"></div>
+  <a class="lb-drive" id="sm_lbDrive" href="#" target="_blank" rel="noopener">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    เปิดใน Drive
+  </a>
+</div>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
@@ -2216,6 +2357,169 @@ function showToast(msg, type = '') {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
 }
+
+// ════════════════════════════════════════════════════════
+//  TRIP PHOTOS — ถ่ายรูปสภาพรถก่อนออก (multi-photo)
+// ════════════════════════════════════════════════════════
+let tripPhotos = [];   // { name, data, type, driveUrl, status }
+
+function handleTripPhotos(files) {
+  Array.from(files).forEach(file => {
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
+      tripPhotos.push(photo);
+      renderTripPhotoGrid();
+      if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
+        uploadTripPhoto(photo);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+  // reset inputs
+  document.getElementById('s_tripPhoto').value = '';
+  document.getElementById('s_tripPhotoGallery').value = '';
+}
+
+async function uploadTripPhoto(photo) {
+  photo.status = 'uploading';
+  renderTripPhotoGrid();
+  try {
+    const carType = document.getElementById('s_carType')?.value || '';
+    const today   = new Date().toISOString().slice(0, 10);
+    const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
+    const uploadPayload = JSON.stringify({
+      action    : 'uploadPhotoPost',
+      subFolder : 'TripPhotos',
+      fileName  : photo.name || ('trip_' + Date.now() + '.jpg'),
+      mimeType  : photo.type || 'image/jpeg',
+      base64Data: b64,
+      carType   : carType,
+      inspDate  : today
+    });
+    const resp = await fetch(GAS_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body   : 'payload=' + encodeURIComponent(uploadPayload)
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.status === 'ok' && data.url) {
+        photo.driveUrl = data.url;
+        photo.status   = 'ok';
+        showToast('✓ อัปโหลดรูปสภาพรถสำเร็จ', 'success');
+        renderTripPhotoGrid();
+        renderTripDriveLinks();
+        return;
+      }
+    }
+    photo.status = 'err';
+  } catch(e) {
+    photo.status = 'err';
+    console.warn('uploadTripPhoto:', e);
+  }
+  renderTripPhotoGrid();
+}
+
+function renderTripPhotoGrid() {
+  const grid = document.getElementById('tripPhotoGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  tripPhotos.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'photo-thumb-sm';
+    const badgeC = p.status === 'ok' ? 'ok' : p.status === 'uploading' ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
+    const badgeI = p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '!' : '…';
+    div.innerHTML = `
+      <img src="${p.data}" alt="รูปที่ ${i+1}" onclick="openLb('trip',${i})">
+      <span class="up-badge ${badgeC}">${badgeI}</span>
+      <button class="vw-btn" onclick="openLb('trip',${i})">ดู</button>
+      <button class="rm-btn" onclick="removeTripPhoto(${i})" title="ลบ">✕</button>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+function removeTripPhoto(i) {
+  tripPhotos.splice(i, 1);
+  renderTripPhotoGrid();
+  renderTripDriveLinks();
+}
+
+function renderTripDriveLinks() {
+  const panel   = document.getElementById('tripDrivePanel');
+  const linksEl = document.getElementById('tripDriveLinks');
+  if (!panel || !linksEl) return;
+  const uploaded = tripPhotos.filter(p => p.driveUrl);
+  if (!uploaded.length) { panel.classList.remove('show'); return; }
+  panel.classList.add('show');
+  linksEl.innerHTML = uploaded.map(p => `
+    <div class="dmp-item">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</span>
+      <a href="${p.driveUrl}" target="_blank" rel="noopener" class="dmp-link">เปิด Drive</a>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════════════
+//  LIGHTBOX (startmile)
+// ════════════════════════════════════════════════════════
+// source: 'trip' | 'fuel'
+let smLbPhotos = [];
+let smLbIdx    = 0;
+
+function openLb(source, idx) {
+  if (source === 'trip') {
+    smLbPhotos = tripPhotos;
+  } else {
+    // fuel: single photo from fuelPhotoB64
+    smLbPhotos = fuelPhotoB64 ? [{ name: 'บิลน้ำมัน', data: fuelPhotoB64, driveUrl: fuelPhotoUrl }] : [];
+  }
+  smLbIdx = idx || 0;
+  if (!smLbPhotos.length) return;
+  updateSmLb();
+  document.getElementById('sm_lightbox').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function updateSmLb() {
+  const p = smLbPhotos[smLbIdx];
+  document.getElementById('sm_lbImg').src = p.data;
+  document.getElementById('sm_lbCap').textContent = `${smLbIdx + 1} / ${smLbPhotos.length}  ·  ${p.name}`;
+  const lbD = document.getElementById('sm_lbDrive');
+  if (p.driveUrl) { lbD.href = p.driveUrl; lbD.classList.add('show'); }
+  else            { lbD.classList.remove('show'); }
+}
+
+function lbNavSM(dir) {
+  smLbIdx = (smLbIdx + dir + smLbPhotos.length) % smLbPhotos.length;
+  updateSmLb();
+}
+
+function closeLbSM(e) {
+  if (e && e.target !== document.getElementById('sm_lightbox')) return;
+  document.getElementById('sm_lightbox').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', ev => {
+  const lb = document.getElementById('sm_lightbox');
+  if (!lb.classList.contains('show')) return;
+  if (ev.key === 'ArrowLeft')  lbNavSM(-1);
+  if (ev.key === 'ArrowRight') lbNavSM(1);
+  if (ev.key === 'Escape') { lb.classList.remove('show'); document.body.style.overflow = ''; }
+});
+
+// override viewFuelPhotoLocal to use lightbox instead
+function viewFuelPhotoLocal() {
+  openLb('fuel', 0);
+}
+
+// ── expose tripPhoto URLs to submitStart payload ──
+const _origSubmitStart = typeof submitStart === 'function' ? submitStart : null;
 </script>
 
 </body>
