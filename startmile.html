@@ -293,6 +293,26 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
   .status-summary-row { grid-template-columns: 1fr; }
 }
 
+/* ── DATETIME WIDGET ── */
+.dt-wrap { position: relative; }
+.dt-display {
+  width: 100%; padding: 10px 13px;
+  border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+  font-family: 'Sarabun','IBM Plex Sans Thai', monospace;
+  font-size: 16px; font-weight: 700; letter-spacing: .5px;
+  color: var(--navy); background: #fff;
+  cursor: pointer; outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.dt-display:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,115,232,.12); }
+.dt-picker {
+  position: absolute; inset: 0; width: 100%; opacity: 0;
+  cursor: pointer; z-index: 2;
+}
+.dt-edit-hint {
+  font-size: 11px; color: var(--text-light); margin-top: 4px; display: block;
+}
+
 /* ── ACTIVE TRIP BANNER (ซ่อนแล้วแต่เก็บไว้) ── */
 .active-trip-card {
   background: var(--warning-soft); border: 1.5px solid #fde68a;
@@ -448,13 +468,18 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
               <option value="">— กำลังโหลดรายชื่อ... —</option>
             </select>
           </div>
-          <div class="form-group">
-            <label>วันที่ <span class="req">*</span></label>
-            <input type="date" id="s_tripDate" required>
-          </div>
-          <div class="form-group">
-            <label>เวลาออกรถ <span class="req">*</span></label>
-            <input type="time" id="s_tripTime" required>
+          <div class="form-group span2">
+            <label>วันที่และเวลาออกรถ <span class="req">*</span></label>
+            <div class="dt-wrap">
+              <input type="text" id="s_tripDateTimeDisplay" class="dt-display" readonly
+                placeholder="กำลังโหลด..." title="แก้ไขได้ที่ช่องด้านล่าง">
+              <input type="datetime-local" id="s_tripDateTime" class="dt-picker" required
+                onchange="onStartDTChange()">
+              <span class="dt-edit-hint">แตะเพื่อแก้ไขวัน/เวลา</span>
+            </div>
+            <!-- hidden compat fields สำหรับ submit logic เดิม -->
+            <input type="hidden" id="s_tripDate">
+            <input type="hidden" id="s_tripTime">
           </div>
           <div class="form-group span2">
             <label>ปลายทาง <span class="req">*</span></label>
@@ -507,8 +532,15 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
             </select>
           </div>
           <div class="form-group">
-            <label>เวลากลับ <span class="req">*</span></label>
-            <input type="time" id="e_returnTime" required>
+            <label>วันที่และเวลากลับ <span class="req">*</span></label>
+            <div class="dt-wrap">
+              <input type="text" id="e_returnTimeDisplay" class="dt-display" readonly
+                placeholder="กำลังโหลด..." title="แตะเพื่อแก้ไข">
+              <input type="datetime-local" id="e_returnDateTime" class="dt-picker" required
+                onchange="onEndDTChange()">
+              <span class="dt-edit-hint">แตะเพื่อแก้ไขวัน/เวลา</span>
+            </div>
+            <input type="hidden" id="e_returnTime">
           </div>
         </div>
 
@@ -673,18 +705,109 @@ document.addEventListener('DOMContentLoaded', () => {
   loadAllData();
 });
 
-function setDateTimeDefaults() {
-  const now = new Date();
-  const bkkDate = new Intl.DateTimeFormat('en-CA', {
-    timeZone:'Asia/Bangkok', year:'numeric', month:'2-digit', day:'2-digit'
-  }).format(now);
-  const bkkTime = new Intl.DateTimeFormat('en-GB', {
-    timeZone:'Asia/Bangkok', hour:'2-digit', minute:'2-digit', hour12:false
-  }).format(now);
-  document.getElementById('s_tripDate').value   = bkkDate;
-  document.getElementById('s_tripTime').value   = bkkTime;
-  document.getElementById('e_returnTime').value = bkkTime;
+// ── DATETIME HELPERS ──────────────────────────────────
+// คืน Date object ตาม timezone Bangkok
+function bkkNow() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
 }
+
+// แปลง Date → "dd/mm/yyyy HH:MM:SS"
+function formatDT(d) {
+  const dd   = String(d.getDate()).padStart(2, '0');
+  const mm   = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  const HH   = String(d.getHours()).padStart(2, '0');
+  const MM   = String(d.getMinutes()).padStart(2, '0');
+  const SS   = String(d.getSeconds()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy} ${HH}:${MM}:${SS}`;
+}
+
+// แปลง Date → ค่าสำหรับ datetime-local input "yyyy-MM-ddTHH:MM"
+function toDTLocal(d) {
+  const yyyy = d.getFullYear();
+  const mm   = String(d.getMonth() + 1).padStart(2, '0');
+  const dd   = String(d.getDate()).padStart(2, '0');
+  const HH   = String(d.getHours()).padStart(2, '0');
+  const MM   = String(d.getMinutes()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${HH}:${MM}`;
+}
+
+// แปลง datetime-local value → { date:"yyyy-MM-dd", time:"HH:MM:SS", display }
+function parseDTLocal(val) {
+  if (!val) return null;
+  const [datePart, timePart] = val.split('T');
+  const [y, m, d] = datePart.split('-');
+  const displayDate = `${d}/${m}/${y}`;
+  const timeWithSec = timePart + ':00';  // เพิ่ม :SS เพราะ input ไม่มี
+  return { date: datePart, time: timeWithSec, display: `${displayDate} ${timeWithSec}` };
+}
+
+// ── Live clock สำหรับ display field (อัปเดตทุกวินาที ถ้าไม่มีการแก้ไข) ──
+let startDTEdited = false;
+let endDTEdited   = false;
+let clockInterval = null;
+
+function startLiveClock() {
+  if (clockInterval) return;
+  clockInterval = setInterval(() => {
+    const now = bkkNow();
+    const dtVal = toDTLocal(now);
+    // อัปเดต start
+    if (!startDTEdited) {
+      document.getElementById('s_tripDateTime').value     = dtVal;
+      document.getElementById('s_tripDateTimeDisplay').value = formatDT(now);
+      const p = parseDTLocal(dtVal);
+      document.getElementById('s_tripDate').value = p.date;
+      document.getElementById('s_tripTime').value = p.time;
+    }
+    // อัปเดต end
+    if (!endDTEdited) {
+      document.getElementById('e_returnDateTime').value     = dtVal;
+      document.getElementById('e_returnTimeDisplay').value  = formatDT(now);
+      document.getElementById('e_returnTime').value = p.time;
+    }
+  }, 1000);
+}
+
+function setDateTimeDefaults() {
+  const now = bkkNow();
+  const dtVal = toDTLocal(now);
+  const display = formatDT(now);
+
+  // Start fields
+  document.getElementById('s_tripDateTime').value         = dtVal;
+  document.getElementById('s_tripDateTimeDisplay').value  = display;
+  const ps = parseDTLocal(dtVal);
+  document.getElementById('s_tripDate').value = ps.date;
+  document.getElementById('s_tripTime').value = ps.time;
+
+  // End fields
+  document.getElementById('e_returnDateTime').value       = dtVal;
+  document.getElementById('e_returnTimeDisplay').value    = display;
+  document.getElementById('e_returnTime').value = ps.time;
+
+  startLiveClock();
+}
+
+function onStartDTChange() {
+  startDTEdited = true;
+  const val = document.getElementById('s_tripDateTime').value;
+  const p   = parseDTLocal(val);
+  if (!p) return;
+  document.getElementById('s_tripDateTimeDisplay').value = p.display;
+  document.getElementById('s_tripDate').value = p.date;
+  document.getElementById('s_tripTime').value = p.time;
+}
+
+function onEndDTChange() {
+  endDTEdited = true;
+  const val = document.getElementById('e_returnDateTime').value;
+  const p   = parseDTLocal(val);
+  if (!p) return;
+  document.getElementById('e_returnTimeDisplay').value = p.display;
+  document.getElementById('e_returnTime').value = p.time;
+}
+// ─────────────────────────────────────────────────────
 
 // ════════════════════════════════════════════════════════
 //  โหลดข้อมูลจาก Google Sheets
@@ -822,37 +945,62 @@ function populateDestinations(dests) {
 }
 
 function populateCarSelects() {
+  const activePlates = Object.keys(activeTripMap);
+
   // ── s_carType: ออกรถ ──
+  // แสดงเฉพาะรถที่ "พร้อมใช้งาน" = ตรวจแล้ว + ไม่ได้กำลังออก
+  // รถที่ยังไม่ตรวจ หรือกำลังออกอยู่ → disabled
   const sEl = document.getElementById('s_carType');
   const sCur = sEl.value;
   sEl.innerHTML = '<option value="">— เลือกทะเบียนรถ —</option>';
 
-  const checkedV   = [];
-  const uncheckedV = [];
+  const readyV     = [];   // ตรวจแล้ว + ไม่กำลังออก
+  const inUseV     = [];   // กำลังออกปฏิบัติงาน
+  const uncheckedV = [];   // ยังไม่ตรวจ
+
   vehicles.forEach(v => {
     const plate = String(v['ทะเบียน'] || '').split(' ')[0].trim();
-    const inChecked = [...todayCheckedSet].some(cp =>
-      cp === plate || cp.includes(plate) || plate.includes(cp)
+    const isInUse = activePlates.some(ap =>
+      ap === plate || ap.includes(plate) || plate.includes(ap)
     );
-    if (inChecked || todayCheckedSet.size === 0) {
-      checkedV.push(v);
+    if (isInUse) {
+      inUseV.push(v);
+      return;
+    }
+    const inChecked = todayCheckedSet.size === 0 ? true
+      : [...todayCheckedSet].some(cp =>
+          cp === plate || cp.includes(plate) || plate.includes(cp)
+        );
+    if (inChecked) {
+      readyV.push(v);
     } else {
       uncheckedV.push(v);
     }
   });
 
-  if (checkedV.length > 0 && uncheckedV.length > 0) {
-    const og1 = document.createElement('optgroup');
-    og1.label = '✅ ตรวจสภาพแล้ว — เลือกได้';
-    checkedV.forEach(v => appendCarOption(og1, v, false, false));
-    sEl.appendChild(og1);
+  const hasGroups = inUseV.length > 0 || uncheckedV.length > 0;
 
-    // รถยังไม่ตรวจ — แสดงแต่ DISABLED เลือกไม่ได้
-    const og2 = document.createElement('optgroup');
-    og2.label = '🔒 ยังไม่ตรวจสภาพวันนี้ — ออกรถไม่ได้';
-    uncheckedV.forEach(v => appendCarOption(og2, v, false, true));
-    sEl.appendChild(og2);
+  if (hasGroups) {
+    if (readyV.length > 0) {
+      const og1 = document.createElement('optgroup');
+      og1.label = '✅ พร้อมใช้งาน — เลือกได้';
+      readyV.forEach(v => appendCarOption(og1, v, false, false));
+      sEl.appendChild(og1);
+    }
+    if (inUseV.length > 0) {
+      const og2 = document.createElement('optgroup');
+      og2.label = '🚗 กำลังออกปฏิบัติงาน — ใช้งานอยู่';
+      inUseV.forEach(v => appendCarOption(og2, v, true, true));
+      sEl.appendChild(og2);
+    }
+    if (uncheckedV.length > 0) {
+      const og3 = document.createElement('optgroup');
+      og3.label = '🔒 ยังไม่ตรวจสภาพวันนี้ — ออกรถไม่ได้';
+      uncheckedV.forEach(v => appendCarOption(og3, v, false, true));
+      sEl.appendChild(og3);
+    }
   } else {
+    // ยังไม่มีข้อมูล check gate — แสดงทั้งหมด
     vehicles.forEach(v => appendCarOption(sEl, v, false, false));
   }
 
@@ -863,7 +1011,6 @@ function populateCarSelects() {
   const eCur = eEl.value;
   eEl.innerHTML = '<option value="">— เลือกรถที่กำลังออกอยู่ —</option>';
 
-  const activePlates = Object.keys(activeTripMap);
   if (activePlates.length > 0) {
     const og = document.createElement('optgroup');
     og.label = '🟡 กำลังออกปฏิบัติงาน — เลือกได้';
@@ -1112,7 +1259,19 @@ function submitStart() {
   }
   if (odoStart <= 0) { showToast('กรุณากรอกเลขไมล์ให้ถูกต้อง', 'error'); return; }
 
-  // ── Check Gate: ป้องกันออกรถก่อนตรวจสภาพ ──
+  // ── Check Gate 1: ป้องกันออกรถที่กำลังใช้อยู่ ──
+  {
+    const plate = carType.split(' ')[0].trim();
+    const isInUse = Object.keys(activeTripMap).some(ap =>
+      ap === plate || ap.includes(plate) || plate.includes(ap)
+    );
+    if (isInUse) {
+      showToast(`🚗 ${plate} กำลังออกปฏิบัติงานอยู่ — ไม่สามารถบันทึกซ้ำได้`, 'error');
+      return;
+    }
+  }
+
+  // ── Check Gate 2: ป้องกันออกรถก่อนตรวจสภาพ ──
   if (todayCheckedSet.size > 0) {
     const plate = carType.split(' ')[0].trim();
     const isChecked = [...todayCheckedSet].some(cp =>
@@ -1125,12 +1284,13 @@ function submitStart() {
   }
 
   const plate = carType.split(' ')[0];
+  const displayDT = document.getElementById('s_tripDateTimeDisplay').value || (tripDate + ' ' + tripTime);
   pendingAction = { type: 'start', data: { carType, driverName, tripDate, tripTime,
     destination: dest, odometerStart: odoStart, remarks } };
 
   showModal('start',
     `ยืนยันบันทึกออกรถ <b>${plate}</b>`,
-    { 'ทะเบียน': plate, 'พขร.': driverName, 'วันที่': tripDate + ' ' + tripTime,
+    { 'ทะเบียน': plate, 'พขร.': driverName, 'วันที่/เวลา': displayDT,
       'ปลายทาง': dest, 'เลขไมล์': odoStart.toLocaleString() + ' กม.' }
   );
 }
@@ -1174,7 +1334,8 @@ function submitEnd() {
 
   showModal('end',
     `ยืนยันบันทึกกลับ รพ. — <b>${plate}</b>`,
-    { 'ทะเบียน': plate, 'เวลากลับ': retTime,
+    { 'ทะเบียน': plate,
+      'วันที่/เวลากลับ': document.getElementById('e_returnTimeDisplay').value || retTime,
       'เลขไมล์ปลาย': odoEnd.toLocaleString() + ' กม.',
       'ระยะทาง': dist > 0 ? dist + ' กม.' : '— (ไม่ทราบ)' }
   );
@@ -1212,11 +1373,13 @@ async function doConfirm() {
       document.getElementById('s_destination').value = '';
       document.getElementById('s_remarks').value = '';
       document.getElementById('s_lastMileHint').textContent = '';
+      startDTEdited = false;  // live clock เริ่มทำงานใหม่
     } else {
       document.getElementById('e_carType').value = '';
       document.getElementById('e_odometerEnd').value = '';
       document.getElementById('e_remarks').value = '';
       document.getElementById('routePreview').style.display = 'none';
+      endDTEdited = false;  // live clock เริ่มทำงานใหม่
     }
 
     // รีโหลดข้อมูล
