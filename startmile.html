@@ -695,7 +695,9 @@ input.odo-mismatch {
             <tr>
               <th>ทะเบียน</th>
               <th>พขร.</th>
-              <th>วันที่/เวลาออก</th>
+              <th>วันที่</th>
+              <th>เวลาออก</th>
+              <th>เวลากลับ</th>
               <th>ปลายทาง</th>
               <th>ไมล์ต้น</th>
               <th>ไมล์ปลาย</th>
@@ -1732,9 +1734,40 @@ function renderHistory() {
 
   const tbody = document.getElementById('histBody');
   if (!filtered.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">ยังไม่มีประวัติการใช้รถ</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="10">ยังไม่มีประวัติการใช้รถ</td></tr>';
     return;
   }
+
+  // ── helpers ─────────────────────────────────────────────
+  // แยกเฉพาะส่วนวันที่ออกจาก string ที่อาจมีเวลาต่อท้าย
+  function extractDate(val) {
+    if (!val) return '—';
+    const s = String(val).trim();
+    // รูปแบบ dd/MM/yyyy ... → ตัดเฉพาะวันที่
+    const m = s.match(/^(\d{1,2}\/\d{1,2}\/\d{4})/);
+    if (m) return m[1];
+    // yyyy-MM-dd
+    const m2 = s.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (m2) {
+      const [y, mo, d] = m2[1].split('-');
+      return `${d}/${mo}/${y}`;
+    }
+    return s.split(' ')[0] || '—';
+  }
+
+  // แยกเฉพาะส่วนเวลา (HH:MM) ออกจาก string ใดๆ
+  // รองรับ "30/12/1899 HH:MM:SS" (Excel time serial ที่ GAS แปลงแล้ว)
+  function extractTime(val) {
+    if (!val) return '—';
+    const s = String(val).trim();
+    // รูปแบบที่มีแค่เวลา HH:MM หรือ HH:MM:SS
+    if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) return s.slice(0, 5);
+    // ค้นหา HH:MM ใน string ใดๆ (เช่น "30/12/1899 11:24:00")
+    const m = s.match(/(\d{1,2}:\d{2})(:\d{2})?/);
+    if (m) return m[1];
+    return '—';
+  }
+  // ─────────────────────────────────────────────────────────
 
   tbody.innerHTML = filtered.map(r => {
     const plate  = String(r['ทะเบียน/รถ'] || '').split(' ')[0];
@@ -1743,15 +1776,23 @@ function renderHistory() {
     const startMile = Number(r['เลขไมล์ต้น']  || 0);
     const endMile   = Number(r['เลขไมล์ปลาย'] || 0);
     const dist      = r['ระยะทาง(กม.)'] || (endMile && startMile ? endMile - startMile : '—');
+
+    const dateStr   = extractDate(r['วันที่'] || r['Timestamp'] || '');
+    const timeOut   = extractTime(r['เวลาออก']  || r['startTime']  || '');
+    const timeBack  = isActive ? '<span style="color:#94a3b8;font-size:11px;">กำลังออก...</span>'
+                               : extractTime(r['เวลากลับ'] || r['returnTime'] || '');
+
     return `<tr>
       <td><span class="plate-chip">${plate}</span></td>
       <td style="font-size:12px;">${(r['พนักงานขับรถ']||'—').substring(0,12)}</td>
-      <td style="font-size:12px;white-space:nowrap;">${r['วันที่']||'—'} ${r['เวลาออก']||''}</td>
+      <td style="font-size:12px;white-space:nowrap;font-weight:500;">${dateStr}</td>
+      <td style="font-size:13px;font-weight:600;color:#0369a1;white-space:nowrap;">${timeOut} น.</td>
+      <td style="font-size:13px;font-weight:600;color:#15803d;white-space:nowrap;">${timeBack}${!isActive && timeBack !== '—' ? ' น.' : ''}</td>
       <td style="font-size:12px;">${r['ปลายทาง']||'—'}</td>
       <td style="font-weight:600;">${startMile ? startMile.toLocaleString() : '—'}</td>
       <td style="font-weight:600;">${endMile   ? endMile.toLocaleString()   : '—'}</td>
       <td style="font-weight:700;color:var(--teal);">${dist !== '—' ? dist : '—'}</td>
-      <td><span class="status-badge ${isActive ? 'active' : 'done'}">${isActive ? ' กำลังใช้' : ' เสร็จแล้ว'}</span></td>
+      <td><span class="status-badge ${isActive ? 'active' : 'done'}">${isActive ? '🚗 กำลังใช้' : '✅ เสร็จแล้ว'}</span></td>
     </tr>`;
   }).join('');
 }
