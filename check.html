@@ -403,6 +403,94 @@ textarea { resize: vertical; min-height: 80px; }
   transition: all 0.2s;
 }
 .photo-thumb .remove-btn:hover { background: var(--danger); transform: scale(1.1); }
+/* PHOTO THUMB — VIEW BUTTON */
+.photo-thumb .view-btn {
+  position: absolute; bottom: 4px; left: 4px;
+  padding: 2px 7px; border-radius: 5px;
+  background: rgba(13,33,55,0.75);
+  border: none; color: #fff; font-size: 10px; font-weight: 600;
+  cursor: pointer; transition: background .2s;
+}
+.photo-thumb .view-btn:hover { background: var(--blue); }
+/* PHOTO THUMB — UPLOAD STATUS BADGE */
+.photo-thumb .upload-badge {
+  position: absolute; top: 4px; left: 4px;
+  width: 18px; height: 18px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+}
+.photo-thumb .upload-badge.pending  { background: rgba(255,255,255,.8); color: var(--text-light); }
+.photo-thumb .upload-badge.uploading{ background: var(--blue); color:#fff; animation: spin .7s linear infinite; }
+.photo-thumb .upload-badge.ok       { background: var(--success); color:#fff; }
+.photo-thumb .upload-badge.err      { background: var(--danger); color:#fff; }
+/* DRIVE LINKS PANEL */
+.drive-links-panel {
+  margin-top: 12px; padding: 12px 14px;
+  background: var(--success-soft); border: 1px solid #a7f3d0;
+  border-radius: 10px; display: none;
+}
+.drive-links-panel.show { display: block; }
+.drive-links-panel .dl-title {
+  font-size: 0.78rem; font-weight: 700; color: var(--success);
+  margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+.drive-links-panel .dl-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,.06);
+  font-size: 0.8rem;
+}
+.drive-links-panel .dl-item:last-child { border-bottom: none; }
+.drive-links-panel .dl-link {
+  color: var(--blue); text-decoration: none; font-weight: 600;
+  display: flex; align-items: center; gap: 4px;
+}
+.drive-links-panel .dl-link:hover { text-decoration: underline; }
+/* LIGHTBOX */
+.lightbox-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.92);
+  z-index: 9999; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .25s;
+}
+.lightbox-overlay.show { opacity: 1; pointer-events: all; }
+.lightbox-img {
+  max-width: 96vw; max-height: 90vh; border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.5);
+  object-fit: contain;
+  transition: transform .2s;
+}
+.lightbox-close {
+  position: fixed; top: 16px; right: 18px;
+  background: rgba(255,255,255,.15); border: none;
+  color: #fff; width: 38px; height: 38px; border-radius: 50%;
+  font-size: 18px; cursor: pointer; transition: background .2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.lightbox-close:hover { background: var(--danger); }
+.lightbox-nav {
+  position: fixed; top: 50%; transform: translateY(-50%);
+  background: rgba(255,255,255,.15); border: none;
+  color: #fff; width: 42px; height: 42px; border-radius: 50%;
+  font-size: 20px; cursor: pointer; transition: background .2s;
+  display: flex; align-items: center; justify-content: center;
+}
+.lightbox-nav:hover { background: rgba(255,255,255,.3); }
+.lightbox-nav.prev { left: 14px; }
+.lightbox-nav.next { right: 14px; }
+.lightbox-caption {
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,.7); font-size: 0.78rem; background: rgba(0,0,0,.4);
+  padding: 4px 14px; border-radius: 20px; white-space: nowrap;
+}
+.lightbox-drive-link {
+  position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%);
+  background: var(--blue); color: #fff;
+  padding: 7px 20px; border-radius: 20px;
+  font-size: 0.8rem; font-weight: 600; text-decoration: none;
+  display: none; align-items: center; gap: 6px;
+  transition: background .2s;
+}
+.lightbox-drive-link.show { display: flex; }
+.lightbox-drive-link:hover { background: #1557b0; }
 /* SUBMIT */
 .submit-section {
   background: var(--card);
@@ -804,11 +892,38 @@ textarea { resize: vertical; min-height: 80px; }
           <input type="file" id="galleryInput" accept="image/*" multiple style="display:none">
         </div>
         <div class="photo-preview" id="photoPreview"></div>
+        <!-- DRIVE LINKS PANEL (แสดงหลัง upload สำเร็จ) -->
+        <div class="drive-links-panel" id="driveLinksPanel">
+          <div class="dl-title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            อัปโหลดสำเร็จ — ลิ้งค์บน Google Drive
+          </div>
+          <div id="driveLinksContainer"></div>
+        </div>
         <div style="margin-top:10px;font-size:0.78rem;color:var(--text-light);text-align:center;">
-          รูปภาพจะถูกอัปโหลดไปยัง Google Drive อัตโนมัติ
+          รูปภาพจะถูกอัปโหลดไปยัง Google Drive อัตโนมัติ และบันทึกลิ้งค์ใน Sheet
         </div>
       </div>
     </div>
+
+<!-- FUEL PHOTO DRIVE LINKS -->
+<div id="fuelDriveLinksPanel" class="drive-links-panel" style="margin:0 20px 0;display:none;">
+  <div class="dl-title">✓ รูปบิลน้ำมัน — ลิ้งค์บน Google Drive</div>
+  <div id="fuelDriveLinksContainer"></div>
+</div>
+
+<!-- LIGHTBOX -->
+<div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)">
+  <button class="lightbox-close" onclick="closeLightbox()">✕</button>
+  <button class="lightbox-nav prev" onclick="event.stopPropagation();lbNav(-1)">&#8592;</button>
+  <img class="lightbox-img" id="lbImg" src="" alt="">
+  <button class="lightbox-nav next" onclick="event.stopPropagation();lbNav(1)">&#8594;</button>
+  <div class="lightbox-caption" id="lbCaption"></div>
+  <a class="lightbox-drive-link" id="lbDriveLink" href="#" target="_blank" rel="noopener">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+    เปิดใน Google Drive
+  </a>
+</div>
 
     <!-- SUBMIT -->
     <div class="submit-section">
@@ -1058,20 +1173,68 @@ document.querySelectorAll('input, select').forEach(el => {
 });
 
 // ============================================================
-// PHOTO HANDLING
+// PHOTO HANDLING — พร้อม lightbox + per-photo upload + Drive link
 // ============================================================
-let photos = [];
+let photos = [];          // { name, data, type, driveUrl, status }
+let lbPhotos = [];        // array สำหรับ lightbox (รวม check + fuel)
+let lbIndex  = 0;
 
 function handleFiles(files) {
   Array.from(files).forEach(file => {
     if (!file.type.startsWith('image/')) return;
+    if (file.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB: ' + file.name, 'error'); return; }
     const reader = new FileReader();
     reader.onload = e => {
-      photos.push({ name: file.name, data: e.target.result, type: file.type });
+      const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
+      photos.push(photo);
       renderPreviews();
+      // อัปโหลดทันทีหากมี GAS_URL
+      if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
+        uploadSingleCheckPhoto(photo, photos.length - 1);
+      }
     };
     reader.readAsDataURL(file);
   });
+}
+
+async function uploadSingleCheckPhoto(photo, idx) {
+  photo.status = 'uploading';
+  renderPreviews();
+  try {
+    const carType  = document.getElementById('carType')?.value  || '';
+    const inspDate = document.getElementById('inspDate')?.value || '';
+    const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
+    const uploadPayload = JSON.stringify({
+      action    : 'uploadPhotoPost',
+      subFolder : 'CheckPhotos',
+      fileName  : photo.name || ('check_' + Date.now() + '.jpg'),
+      mimeType  : photo.type || 'image/jpeg',
+      base64Data: b64,
+      carType   : carType,
+      inspDate  : inspDate
+    });
+    const resp = await fetch(GAS_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body   : 'payload=' + encodeURIComponent(uploadPayload)
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.status === 'ok' && data.url) {
+        photo.driveUrl = data.url;
+        photo.status   = 'ok';
+        showToast('✓ อัปโหลดรูปสำเร็จ: ' + photo.name, 'success');
+        renderPreviews();
+        renderDriveLinksPanel();
+        return;
+      }
+    }
+    photo.status = 'err';
+  } catch(e) {
+    photo.status = 'err';
+    console.warn('uploadSingleCheckPhoto:', e);
+  }
+  renderPreviews();
 }
 
 function renderPreviews() {
@@ -1080,21 +1243,88 @@ function renderPreviews() {
   photos.forEach((p, i) => {
     const thumb = document.createElement('div');
     thumb.className = 'photo-thumb';
+    const badgeClass = p.status === 'ok' ? 'ok' : p.status === 'uploading' ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
+    const badgeIcon  = p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '✕' : '…';
     thumb.innerHTML = `
-      <img src="${p.data}" alt="รูปที่ ${i+1}">
-      <button type="button" class="remove-btn" onclick="removePhoto(${i})"></button>
+      <img src="${p.data}" alt="รูปที่ ${i+1}" style="cursor:pointer;" onclick="openLightbox('check',${i})">
+      <span class="upload-badge ${badgeClass}" title="${p.status}">${badgeIcon}</span>
+      <button type="button" class="view-btn" onclick="openLightbox('check',${i})">ดูรูป</button>
+      <button type="button" class="remove-btn" onclick="removePhoto(${i})" title="ลบ">✕</button>
     `;
     preview.appendChild(thumb);
   });
 }
 
+function renderDriveLinksPanel() {
+  const panel     = document.getElementById('driveLinksPanel');
+  const container = document.getElementById('driveLinksContainer');
+  const uploaded  = photos.filter(p => p.driveUrl);
+  if (!uploaded.length) { panel.classList.remove('show'); return; }
+  panel.classList.add('show');
+  container.innerHTML = uploaded.map((p, i) => `
+    <div class="dl-item">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <span style="flex:1;color:var(--text-mid);font-size:0.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</span>
+      <a href="${p.driveUrl}" target="_blank" rel="noopener" class="dl-link">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        เปิด Drive
+      </a>
+    </div>
+  `).join('');
+}
+
 function removePhoto(i) {
   photos.splice(i, 1);
   renderPreviews();
+  renderDriveLinksPanel();
 }
 
 ['photoInput','cameraInput','galleryInput'].forEach(id => {
   document.getElementById(id)?.addEventListener('change', e => handleFiles(e.target.files));
+});
+
+// ── LIGHTBOX ────────────────────────────────────────────────
+// source: 'check' | 'fuel'
+function openLightbox(source, idx) {
+  lbPhotos = source === 'check' ? photos : fuelPhotos;
+  lbIndex  = idx;
+  updateLightbox();
+  document.getElementById('lightbox').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function updateLightbox() {
+  if (!lbPhotos.length) return;
+  const p = lbPhotos[lbIndex];
+  document.getElementById('lbImg').src = p.data;
+  document.getElementById('lbCaption').textContent = `${lbIndex + 1} / ${lbPhotos.length}  ·  ${p.name}`;
+  const lbDrive = document.getElementById('lbDriveLink');
+  if (p.driveUrl) {
+    lbDrive.href = p.driveUrl;
+    lbDrive.classList.add('show');
+  } else {
+    lbDrive.classList.remove('show');
+  }
+}
+
+function lbNav(dir) {
+  lbIndex = (lbIndex + dir + lbPhotos.length) % lbPhotos.length;
+  updateLightbox();
+}
+
+function closeLightbox(e) {
+  if (e && e.target !== document.getElementById('lightbox') && !e.currentTarget.classList.contains('lightbox-overlay')) return;
+  document.getElementById('lightbox').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+// keyboard support
+document.addEventListener('keydown', e => {
+  const lb = document.getElementById('lightbox');
+  if (!lb.classList.contains('show')) return;
+  if (e.key === 'ArrowLeft')  lbNav(-1);
+  if (e.key === 'ArrowRight') lbNav(1);
+  if (e.key === 'Escape')     { lb.classList.remove('show'); document.body.style.overflow = ''; }
 });
 
 // ============================================================
@@ -1234,7 +1464,9 @@ function resetForm() {
   fuelPhotos = [];
   renderPreviews();
   renderFuelPreviews();
+  renderDriveLinksPanel();
   document.getElementById('fuelPhotoSection').style.display = 'none';
+  document.getElementById('fuelDriveLinksPanel').style.display = 'none';
   document.querySelectorAll('.field-valid').forEach(el => el.classList.remove('field-valid'));
   setThaiDateTime();
   updateProgress();
@@ -1332,13 +1564,58 @@ document.querySelectorAll('input[name="fuelFill"]').forEach(radio => {
 function handleFuelFiles(files) {
   Array.from(files).forEach(file => {
     if (!file.type.startsWith('image/')) return;
+    if (file.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB', 'error'); return; }
     const reader = new FileReader();
     reader.onload = e => {
-      fuelPhotos.push({ name: file.name, data: e.target.result, type: file.type });
+      const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
+      fuelPhotos.push(photo);
       renderFuelPreviews();
+      // อัปโหลดทันทีถ้ามี GAS_URL จริง
+      if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
+        uploadSingleFuelPhoto(photo, fuelPhotos.length - 1);
+      }
     };
     reader.readAsDataURL(file);
   });
+}
+
+async function uploadSingleFuelPhoto(photo, idx) {
+  photo.status = 'uploading';
+  renderFuelPreviews();
+  try {
+    const carType  = document.getElementById('carType')?.value  || '';
+    const inspDate = document.getElementById('inspDate')?.value || '';
+    const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
+    const uploadPayload = JSON.stringify({
+      action    : 'uploadPhotoPost',
+      subFolder : 'FuelReceipts',
+      fileName  : photo.name || ('fuel_' + Date.now() + '.jpg'),
+      mimeType  : photo.type || 'image/jpeg',
+      base64Data: b64,
+      carType   : carType,
+      inspDate  : inspDate
+    });
+    const resp = await fetch(GAS_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body   : 'payload=' + encodeURIComponent(uploadPayload)
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.status === 'ok' && data.url) {
+        photo.driveUrl = data.url;
+        photo.status   = 'ok';
+        showToast('✓ อัปโหลดบิลน้ำมันสำเร็จ', 'success');
+        renderFuelPreviews();
+        return;
+      }
+    }
+    photo.status = 'err';
+  } catch(e) {
+    photo.status = 'err';
+    console.warn('uploadSingleFuelPhoto:', e);
+  }
+  renderFuelPreviews();
 }
 
 function renderFuelPreviews() {
@@ -1347,12 +1624,34 @@ function renderFuelPreviews() {
   fuelPhotos.forEach((p, i) => {
     const thumb = document.createElement('div');
     thumb.className = 'photo-thumb';
+    const badgeClass = p.driveUrl ? 'ok' : (p.status === 'uploading' ? 'uploading' : 'pending');
+    const badgeIcon  = p.driveUrl ? '✓' : (p.status === 'uploading' ? '↻' : '…');
     thumb.innerHTML = `
-      <img src="${p.data}" alt="บิลที่ ${i+1}">
-      <button type="button" class="remove-btn" onclick="removeFuelPhoto(${i})"></button>
+      <img src="${p.data}" alt="บิลที่ ${i+1}" style="cursor:pointer;" onclick="openLightbox('fuel',${i})">
+      <span class="upload-badge ${badgeClass}">${badgeIcon}</span>
+      <button type="button" class="view-btn" onclick="openLightbox('fuel',${i})">ดูรูป</button>
+      <button type="button" class="remove-btn" onclick="removeFuelPhoto(${i})" title="ลบ">✕</button>
     `;
     preview.appendChild(thumb);
   });
+  // อัพเดท drive links panel สำหรับ fuel
+  const fuelPanel = document.getElementById('fuelDriveLinksPanel');
+  const fuelContainer = document.getElementById('fuelDriveLinksContainer');
+  if (fuelPanel && fuelContainer) {
+    const uploaded = fuelPhotos.filter(p => p.driveUrl);
+    if (uploaded.length) {
+      fuelPanel.style.display = 'block';
+      fuelContainer.innerHTML = uploaded.map(p => `
+        <div class="dl-item">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <span style="flex:1;font-size:0.78rem;overflow:hidden;text-overflow:ellipsis;">${p.name}</span>
+          <a href="${p.driveUrl}" target="_blank" rel="noopener" class="dl-link">เปิด Drive</a>
+        </div>
+      `).join('');
+    } else {
+      fuelPanel.style.display = 'none';
+    }
+  }
 }
 
 function removeFuelPhoto(i) {
