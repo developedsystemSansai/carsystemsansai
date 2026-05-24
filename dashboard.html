@@ -1798,11 +1798,30 @@ function renderLiveVehicleGrid(json) {
   window.liveVehicleDetailMap = {};
 
   const cards = ALL_VEHICLES.map(v => {
-    const isInUse   = !!inUseMap[v.plate];
-    const isReady   = !!readyMap[v.plate];
-    const isChecked = !!checkedMap[v.plate] || isReady;
-    const isFueled  = !!fueledMap[v.plate];
-    const fuelData  = fueledMap[v.plate];
+    // Robust plate match — ลอง exact match ก่อน แล้ว fallback ด้วย includes
+    const isInUse   = !!inUseMap[v.plate] ||
+      Object.keys(inUseMap).some(k => k.includes(v.plate) || v.plate.includes(k));
+    const isReady   = !!readyMap[v.plate] ||
+      Object.keys(readyMap).some(k => k.includes(v.plate) || v.plate.includes(k));
+    const isChecked = !!checkedMap[v.plate] ||
+      Object.keys(checkedMap).some(k => k.includes(v.plate) || v.plate.includes(k)) ||
+      isReady;
+    const isFueled  = !!fueledMap[v.plate] ||
+      Object.keys(fueledMap).some(k => k.includes(v.plate) || v.plate.includes(k));
+
+    // resolve actual data objects
+    const inUseData_ = inUseMap[v.plate] || Object.values(inUseMap).find(x => {
+      const p = (x.carType||'').split(' ')[0].trim();
+      return p.includes(v.plate) || v.plate.includes(p);
+    }) || null;
+    const chkData_ = checkedMap[v.plate] || Object.values(checkedMap).find(x => {
+      const p = (x.carType||'').split(' ')[0].trim();
+      return p.includes(v.plate) || v.plate.includes(p);
+    }) || null;
+    const fuelData = fueledMap[v.plate] || Object.values(fueledMap).find(x => {
+      const p = (x.carType||'').split(' ')[0].trim();
+      return p.includes(v.plate) || v.plate.includes(p);
+    }) || null;
 
     // ดึง latestRecord จาก allData — match ด้วย short plate
     const latestRecord = (window.allData||[]).filter(r => {
@@ -1821,20 +1840,23 @@ function renderLiveVehicleGrid(json) {
     window.liveVehicleDetailMap[v.plate] = {
       plate: v.plate, type: v.type,
       isInUse, isReady, isChecked,
-      inUseData : inUseMap[v.plate]   || null,
-      readyData : readyMap[v.plate]   || null,
-      chkData   : checkedMap[v.plate] || null,
+      inUseData : inUseData_,
+      readyData : readyMap[v.plate] || null,
+      chkData   : chkData_,
       latestRecord,
       hasIssue
     };
 
+    // ใช้ตัวแปร resolved สำหรับ template literal
+    const chkData = chkData_;
+
     let icon, statusLabel, statusSub, bgGrad, borderColor, textColor, badgeBg, badgeColor;
 
     if (isInUse) {
-      const x = inUseMap[v.plate];
+      const x = inUseData_;
       icon = '🚗';
       statusLabel = 'กำลังใช้งาน';
-      statusSub = x?.destination ? '→ ' + x.destination : '';
+      statusSub = x?.destination ? '→ ' + x.destination : (x?.driver ? '👤 ' + x.driver : '');
       bgGrad = 'linear-gradient(135deg,#fffbeb,#fef3c7)';
       borderColor = '#f59e0b'; textColor = '#92400e';
       badgeBg = '#f59e0b'; badgeColor = '#fff';
@@ -1849,7 +1871,7 @@ function renderLiveVehicleGrid(json) {
     } else if (isChecked) {
       icon = '✅';
       statusLabel = 'พร้อมใช้งาน';
-      const chkInfo = checkedMap[v.plate];
+      const chkInfo = chkData_;
       statusSub = chkInfo?.driverName ? 'ตรวจโดย ' + chkInfo.driverName : 'ตรวจสภาพแล้ว';
       bgGrad = 'linear-gradient(135deg,#f0fdf4,#dcfce7)';
       borderColor = '#22c55e';
