@@ -2059,6 +2059,37 @@ function renderLiveVehicleGrid(json) {
       return db.localeCompare(da);
     })[0];
 
+    // ── ดึงเลขไมล์ล่าสุดจาก MileLog (_mileLogToday) ──
+    // ลำดับ: เลขไมล์ปลายล่าสุด → เลขไมล์ต้น (กำลังออก) → CheckLog
+    let mileOdo = 0, mileOdoLabel = '', mileOdoSub = '';
+    const plateTrips = (_mileLogToday || []).filter(t => {
+      const raw = String(t['ทะเบียน/รถ'] || '');
+      const tp  = raw.split(' ')[0].trim();
+      return tp === v.plate || raw.includes(v.plate) || v.plate.includes(tp);
+    });
+    if (plateTrips.length > 0) {
+      // หาเลขไมล์ปลายล่าสุดที่มีค่า
+      const withEnd = plateTrips.filter(t => Number(t['เลขไมล์ปลาย'] || 0) > 0)
+        .sort((a, b) => Number(b['เลขไมล์ปลาย']||0) - Number(a['เลขไมล์ปลาย']||0));
+      // หา trip ที่กำลังใช้งาน (เลขไมล์ต้น)
+      const activeTrip = plateTrips.find(t => String(t['สถานะ']||'').trim() === 'กำลังใช้งาน');
+
+      if (activeTrip && Number(activeTrip['เลขไมล์ต้น']||0) > 0) {
+        mileOdo      = Number(activeTrip['เลขไมล์ต้น']);
+        mileOdoLabel = mileOdo.toLocaleString() + ' กม.';
+        mileOdoSub   = '🚗 ไมล์ต้น (กำลังออก)';
+      } else if (withEnd.length > 0) {
+        mileOdo      = Number(withEnd[0]['เลขไมล์ปลาย']);
+        mileOdoLabel = mileOdo.toLocaleString() + ' กม.';
+        mileOdoSub   = '✅ ไมล์ปลาย ' + extractTimeOnly(withEnd[0]['เวลากลับ']||'');
+      }
+    }
+    // fallback → CheckLog
+    const chkOdo = Number(chkData_?.odometer || latestRecord?.odometer || 0);
+    const displayOdo      = mileOdo   || chkOdo;
+    const displayOdoLabel = mileOdoLabel || (chkOdo ? chkOdo.toLocaleString() + ' กม.' : '');
+    const displayOdoSub   = mileOdoLabel ? mileOdoSub
+                            : (chkOdo && chkData_?.inspTime ? '🔍 ตรวจ ' + extractTimeOnly(chkData_.inspTime) : '');
     const hasIssue = latestRecord && Object.keys(latestRecord)
       .some(k => k.startsWith('chk_') && latestRecord[k] === 'ผิดปกติ');
 
@@ -2132,16 +2163,14 @@ function renderLiveVehicleGrid(json) {
       </div>
       <div style="font-size:1.6rem;margin-bottom:6px;">${icon}</div>
       <div style="font-size:0.82rem;color:${textColor};opacity:0.85;margin-bottom:8px;">${statusSub||'—'}</div>
-      ${latestRecord && latestRecord.odometer ? `
-      <div style="font-size:0.7rem;color:${textColor};opacity:0.75;margin-bottom:6px;display:flex;align-items:center;gap:4px;">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
-        ไมล์: <strong>${Number(latestRecord.odometer).toLocaleString()} กม.</strong>
-        ${latestRecord.inspDate ? '· ' + (latestRecord.inspDate.slice(0,10) || '') : ''}
-      </div>` : (chkData && chkData.odometer ? `
-      <div style="font-size:0.7rem;color:${textColor};opacity:0.75;margin-bottom:6px;display:flex;align-items:center;gap:4px;">
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
-        ไมล์: <strong>${Number(chkData.odometer).toLocaleString()} กม.</strong>
-      </div>` : '')}
+      ${displayOdoLabel ? `
+      <div style="font-size:0.7rem;color:${textColor};opacity:0.9;margin-bottom:6px;display:flex;flex-direction:column;gap:2px;">
+        <div style="display:flex;align-items:center;gap:4px;">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l2 2"/></svg>
+          <strong style="font-size:0.8rem;font-family:'Space Grotesk',monospace;">${displayOdoLabel}</strong>
+        </div>
+        ${displayOdoSub ? `<div style="font-size:0.62rem;opacity:0.75;padding-left:14px;">${displayOdoSub}</div>` : ''}
+      </div>` : ''}
       <div style="margin-bottom:10px;">
         ${isFueled
           ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#0ea5e9;color:#fff;font-size:0.62rem;font-weight:700;padding:3px 9px;border-radius:99px;letter-spacing:0.3px;">
