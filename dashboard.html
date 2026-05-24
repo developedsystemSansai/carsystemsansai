@@ -1228,7 +1228,7 @@ function renderOdometer(checkData) {
       initMileHtml = `
         <div class="odo-init">${m.toLocaleString()}</div>
         <div style="font-size:0.67rem;color:var(--text-light);margin-top:2px;">
-          🕐 ${chk.inspTime||''} · ${chk.driverName||''}
+          🕐 ${extractTimeOnly(chk.inspTime)||chk.inspTime||''} · ${chk.driverName||''}
         </div>`;
     } else {
       initMileHtml = `<span class="odo-no-check">ยังไม่ตรวจวันนี้</span>`;
