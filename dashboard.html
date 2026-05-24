@@ -943,12 +943,22 @@ body {
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 .lvm-plate-badge {
-  padding: 6px 12px; border-radius: var(--radius);
-  font-size: 1rem; font-weight: 800; color: #fff;
-  font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.5px;
-  flex-shrink: 0; align-self: flex-start;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.18);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px 7px 10px;
+  border-radius: 5px;
+  font-size: 1.22rem;
+  font-weight: 700;
+  color: #fff;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: 0.10em;
+  flex-shrink: 0;
+  align-self: flex-start;
+  background: rgba(255,255,255,0.10);
+  border: 2px solid rgba(255,255,255,0.16);
+  border-bottom-width: 3px;
+  box-shadow: 0 3px 12px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.08);
 }
 .lvm-title { flex: 1; }
 .lvm-title h3 { font-size: 0.88rem; font-weight: 700; color: #fff; }
@@ -1159,7 +1169,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <div class="header-text">
       <h1>ระบบบริหารการใช้งานรถราชการ</h1>
-      <p>โรงพยาบาลสันทราย · Vehicle Fleet Management System</p>
+      <p>โรงพยาบาลสันทราย จังหวัดเชียงใหม่ · Vehicle Fleet Management System</p>
     </div>
     <div class="header-nav">
       <a href="index.html" class="nav-btn">
@@ -2993,15 +3003,17 @@ function renderLiveVehicleGridFromCheckLog() {
     if (vt) vt.textContent = 'ยังไม่มีข้อมูลวันนี้';
     if (grid) grid.innerHTML = ALL_VEHICLES.map(v => `
       <div style="background:linear-gradient(135deg,#f8fafc,#f1f5f9);border:2px solid #cbd5e1;border-radius:16px;padding:16px 18px 14px;position:relative;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
-        <div style="position:absolute;top:10px;right:10px;background:#94a3b8;color:#fff;font-size:0.62rem;font-weight:700;padding:2px 8px;border-radius:99px;">รอตรวจสภาพ</div>
-        <div style="margin-bottom:8px;padding-right:72px;">
-          <div style="font-size:1rem;font-weight:800;color:#0a2540;font-family:'Space Grotesk',sans-serif;">${v.plate}</div>
-          <div style="font-size:0.72rem;color:#8898aa;margin-top:1px;">${v.type}</div>
+        <div style="position:absolute;top:10px;right:10px;background:#94a3b8;color:#fff;font-size:0.60rem;font-weight:700;padding:2px 9px;border-radius:3px;letter-spacing:0.8px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;">รอตรวจ</div>
+        <div style="margin-bottom:12px;">
+          <div style="display:inline-flex;align-items:center;background:#0d1f3c;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:1.30rem;font-weight:700;letter-spacing:0.10em;padding:6px 14px 6px 12px;border-radius:5px;border:2px solid rgba(255,255,255,0.10);border-bottom:3px solid #94a3b8;box-shadow:0 3px 10px rgba(0,0,0,0.22),inset 0 1px 0 rgba(255,255,255,0.06);">
+            <span style="display:inline-block;width:4px;height:1.2em;background:linear-gradient(180deg,#A51931 33%,#F4F5F8 33%,#F4F5F8 66%,#2D2A4A 66%);border-radius:1px;margin-right:8px;flex-shrink:0;opacity:0.7;"></span>
+            ${v.plate}
+          </div>
+          <div style="font-size:0.70rem;color:#64748b;margin-top:5px;font-weight:500;opacity:0.75;padding-left:2px;">${v.type}</div>
         </div>
-        <div style="font-size:1.6rem;margin-bottom:6px;">⏳</div>
-        <div style="font-size:0.8rem;color:#64748b;opacity:0.85;">ยังไม่ได้ตรวจวันนี้</div>
+        <div style="font-size:0.8rem;color:#64748b;opacity:0.85;margin-bottom:8px;">ยังไม่ได้ตรวจวันนี้</div>
         <div style="margin-top:8px;">
-          <span style="display:inline-flex;align-items:center;gap:4px;background:#e2e8f0;color:#94a3b8;font-size:0.62rem;font-weight:600;padding:3px 9px;border-radius:99px;">⛽ ยังไม่ได้เติม</span>
+          <span style="display:inline-flex;align-items:center;gap:4px;background:#f1f5f9;color:#94a3b8;font-size:0.60rem;font-weight:700;padding:2px 9px;border-radius:3px;letter-spacing:0.5px;font-family:'IBM Plex Mono',monospace;border:1px solid #e2e8f0;">ยังไม่ได้เติม</span>
         </div>
       </div>`).join('');
     return;
@@ -3311,12 +3323,34 @@ function renderLiveVehicleGrid(json) {
     " onclick="openLiveVehicleDetail('${v.plate}')"
        onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 28px rgba(0,0,0,0.14)'"
        onmouseout="this.style.transform='';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
-      <div style="position:absolute;top:10px;right:10px;background:${badgeBg};color:${badgeColor};font-size:0.62rem;font-weight:700;padding:2px 8px;border-radius:99px;letter-spacing:0.4px;">${statusLabel}</div>
-      <div style="margin-bottom:10px;padding-right:72px;">
-        <div style="font-size:1rem;font-weight:800;color:#0a2540;letter-spacing:0.3px;font-family:'Space Grotesk',sans-serif;">${v.plate}</div>
-        <div style="font-size:0.72rem;color:#8898aa;margin-top:1px;font-weight:500;">${v.type}</div>
+      <!-- Status badge top-right -->
+      <div style="position:absolute;top:10px;right:10px;background:${badgeBg};color:${badgeColor};font-size:0.60rem;font-weight:700;padding:2px 9px;border-radius:3px;letter-spacing:0.8px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;">${statusLabel}</div>
+
+      <!-- Plate badge — prominent, high contrast -->
+      <div style="margin-bottom:12px;">
+        <div style="
+          display:inline-flex;
+          align-items:center;
+          background:#0d1f3c;
+          color:#ffffff;
+          font-family:'IBM Plex Mono',monospace;
+          font-size:1.30rem;
+          font-weight:700;
+          letter-spacing:0.10em;
+          padding:6px 14px 6px 12px;
+          border-radius:5px;
+          border:2px solid rgba(255,255,255,0.12);
+          border-bottom:3px solid ${borderColor};
+          box-shadow:0 3px 10px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08);
+          user-select:none;
+          position:relative;
+        ">
+          <!-- Thai flag bar left -->
+          <span style="display:inline-block;width:4px;height:1.2em;background:linear-gradient(180deg,#A51931 33%,#F4F5F8 33%,#F4F5F8 66%,#2D2A4A 66%);border-radius:1px;margin-right:8px;flex-shrink:0;opacity:0.85;"></span>
+          ${v.plate}
+        </div>
+        <div style="font-size:0.70rem;color:${textColor};margin-top:5px;font-weight:500;opacity:0.75;padding-left:2px;">${v.type}</div>
       </div>
-      <div style="font-size:1.6rem;margin-bottom:6px;">${icon}</div>
       <div style="font-size:0.82rem;color:${textColor};opacity:0.85;margin-bottom:8px;">${statusSub||'—'}</div>
       ${displayOdoLabel ? `
       <div style="font-size:0.7rem;color:${textColor};opacity:0.9;margin-bottom:6px;display:flex;flex-direction:column;gap:2px;">
