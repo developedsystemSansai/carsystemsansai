@@ -1513,9 +1513,17 @@ function renderRecentRecords(data) {
       : `<span class="tag bad">พบปัญหา ${issues} จุด</span>`;
     const hasPhoto = (r.driveLinks||r.photoLinks||'').toString().trim().length > 0;
     const fuelFilled = r.fuelFill === 'เติม';
-    const fuelPhotoIcon = hasPhoto && fuelFilled
+    const fuelPhotoIcon = fuelFilled
       ? `<span title="มีรูปบิลน้ำมัน" style="color:#0ea5e9;font-size:0.72rem;margin-left:4px;cursor:pointer;"
            onclick="event.stopPropagation();openDetailByKey('${key}')">📎</span>` : '';
+    // ดึง fuelLiters จาก _mileLogToday ถ้ามี
+    const _fRec = fuelFilled ? (_mileLogToday || []).find(m => {
+      const mp = (m['ทะเบียน/รถ'] || '').split(' ')[0].trim();
+      const cp = extractPlate(r.carType);
+      return mp === cp || mp.includes(cp) || cp.includes(mp);
+    }) : null;
+    const fuelLitersLabel = _fRec && _fRec['น้ำมันที่เติม(ลิตร)']
+      ? `<br><span style="color:#0369a1;font-size:0.68rem;font-weight:700;">${_fRec['น้ำมันที่เติม(ลิตร)']} ลิตร${_fRec['ราคาน้ำมัน(บาท)'] || _fRec['ราคาน้ำมัน'] ? ' · ' + (_fRec['ราคาน้ำมัน(บาท)'] || _fRec['ราคาน้ำมัน']) + ' บาท' : ''}</span>` : '';
     return `<tr onclick="openDetailByKey('${key}')" style="cursor:pointer;">
       <td style="white-space:nowrap;font-size:0.76rem;">
         ${fmtDateTime(r.timestamp||r.inspDate||'')}
@@ -1524,7 +1532,7 @@ function renderRecentRecords(data) {
       <td style="font-size:0.78rem;">${(r.driverName||'—').substring(0,16)}</td>
       <td style="font-family:'Space Grotesk',monospace;font-weight:600;font-size:0.82rem;">${r.odometer ? (+r.odometer).toLocaleString() : '—'}</td>
       <td>${statusTag}</td>
-      <td style="font-size:0.8rem;">${r.fuelLevel||'—'} ${fuelFilled ? '<span style="color:var(--blue);font-size:0.68rem;font-weight:700;">เติม</span>'+fuelPhotoIcon : ''}</td>
+      <td style="font-size:0.8rem;">${r.fuelLevel||'—'} ${fuelFilled ? '<span style="color:var(--blue);font-size:0.68rem;font-weight:700;">✅ เติม</span>'+fuelPhotoIcon+fuelLitersLabel : '<span style="color:var(--text-light);font-size:0.68rem;">ไม่เติม</span>'}</td>
       <td style="font-size:0.75rem;color:var(--text-mid);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.remarks||'—'}</td>
       <td>
         <button class="view-btn" onclick="event.stopPropagation();openDetailByKey('${key}')">
@@ -1998,6 +2006,7 @@ function renderFuelTracker(json) {
     const filled = !!fd;
     const sourceLabel = fd?.source === 'check' ? '🔍 ตรวจรถ' : fd?.source === 'mile' ? '🚗 ออกรถ' : '';
     const litersLabel = fd?.fuelLiters ? fd.fuelLiters + ' ลิตร' : '';
+    const priceLabel  = fd?.fuelPrice  ? parseFloat(fd.fuelPrice).toLocaleString() + ' บาท' : '';
     const timeLabel   = fd?.time ? extractTimeOnly(fd.time) : '';
     const levelLabel  = fd?.fuelLevel ? 'ระดับ ' + fd.fuelLevel : '';
 
@@ -2024,6 +2033,7 @@ function renderFuelTracker(json) {
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;">
           ${litersLabel ? `<span style="background:#2563eb;color:#fff;font-size:0.68rem;font-weight:700;padding:2px 9px;border-radius:99px;">⛽ ${litersLabel}</span>` : ''}
+          ${priceLabel  ? `<span style="background:#7c3aed;color:#fff;font-size:0.68rem;font-weight:700;padding:2px 9px;border-radius:99px;">💰 ${priceLabel}</span>` : ''}
           ${levelLabel  ? `<span style="background:#0ea5e9;color:#fff;font-size:0.68rem;font-weight:700;padding:2px 9px;border-radius:99px;">${levelLabel}</span>` : ''}
           ${sourceLabel ? `<span style="background:#e0f2fe;color:#0369a1;font-size:0.68rem;font-weight:600;padding:2px 9px;border-radius:99px;">${sourceLabel}</span>` : ''}
         </div>
