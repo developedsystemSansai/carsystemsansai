@@ -1310,13 +1310,15 @@ async function loadMileLogToday() {
     const json = await res.json();
     const todayStr = bkkDateStr();
     _mileLogToday = (json.data || []).filter(r => {
-      // MileLog columns (header names): TripID, Timestamp, วันที่, เวลาออก, ทะเบียน/รถ,
-      //   พนักงานขับรถ, ปลายทาง, เลขไมล์ต้น, เลขไมล์ปลาย, ระยะทาง(กม.),
-      //   เวลากลับ, สถานะ, น้ำมันที่เติม(ลิตร), ราคาน้ำมัน, หมายเหตุ
-      const d = normalizeInspDate(r['วันที่'] || r['Timestamp'] || '');
+      // MileLog: GAS ส่ง key เป็น header ไทย เช่น 'วันที่', 'Timestamp', 'carType'
+      // normalizeInspDate รองรับทุกรูปแบบ: yyyy-MM-dd, dd/MM/yyyy, ISO string
+      const rawDate = r['วันที่'] || r['tripDate'] || r['Timestamp'] || '';
+      const d = normalizeInspDate(rawDate);
       return d === todayStr;
     });
-  } catch(_) { _mileLogToday = []; }
+    // expose to window สำหรับ _openDetailForRecord ที่ใช้ window._mileLogToday
+    window._mileLogToday = _mileLogToday;
+  } catch(_) { _mileLogToday = []; window._mileLogToday = []; }
   _mileLogLoading = false;
 }
 
@@ -2379,9 +2381,10 @@ async function loadLiveVehicleStatus() {
 
 /** สร้างสถานะรถจาก allData (CheckLog) เมื่อ live API ใช้ไม่ได้ */
 function renderLiveVehicleGridFromCheckLog() {
-  const todayStr = new Date().toLocaleDateString('en-CA');
+  // ใช้ bkkDateStr() เพื่อให้ timezone ถูกต้อง (Asia/Bangkok)
+  const todayStr = bkkDateStr();
   const todayRecords = (window.allData || []).filter(r => {
-    const nd = r._normDate || '';
+    const nd = r._normDate || normalizeInspDate(r.inspDate || r.timestamp || '');
     return nd === todayStr;
   });
 
@@ -2435,8 +2438,12 @@ function renderLiveVehicleGridFromCheckLog() {
 
 /** สร้างตาราง fuel tracker จาก allData เมื่อ live API ใช้ไม่ได้ */
 function renderFuelTrackerFromCheckLog() {
-  const todayStr = new Date().toLocaleDateString('en-CA');
-  const todayRecords = (window.allData || []).filter(r => r._normDate === todayStr);
+  // ใช้ bkkDateStr() เพื่อให้ timezone ถูกต้อง (Asia/Bangkok)
+  const todayStr = bkkDateStr();
+  const todayRecords = (window.allData || []).filter(r => {
+    const nd = r._normDate || normalizeInspDate(r.inspDate || r.timestamp || '');
+    return nd === todayStr;
+  });
   const fakeJson = {
     todayFueled: todayRecords
       .filter(r => r.fuelFill === 'เติม')
@@ -2985,19 +2992,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // ══════ LIVE VEHICLE DETAIL POPUP ══════
-const STATUS_KEYS_MAP = [
-  { key: 'engine', label: 'เครื่องยนต์' },
-  { key: 'brake', label: 'ระบบเบรก' },
-  { key: 'light', label: 'ไฟ/แสงสว่าง' },
-  { key: 'tire', label: 'ยางรถยนต์' },
-  { key: 'oil', label: 'น้ำมันเครื่อง' },
-  { key: 'coolant', label: 'น้ำหล่อเย็น' },
-  { key: 'battery', label: 'แบตเตอรี่' },
-  { key: 'wipers', label: 'ที่ปัดน้ำฝน' },
-  { key: 'horn', label: 'แตร' },
-  { key: 'ac', label: 'แอร์' },
-  { key: 'door', label: 'ประตู/กุญแจ' },
-  { key: 'body', label: 'ตัวถัง/กระจก' },
+// หมายเหตุ: ใช้ STATUS_KEYS (ที่ตรงกับ headerToKey ใน Code.gs) แทน STATUS_KEYS_MAP ที่มี key ผิด
+const CHECK_ITEMS_LVM = [
+  { key: 'brake',         label: '🛑 ระบบเบรค' },
+  { key: 'mirror',        label: '🪟 กระจกมองข้าง' },
+  { key: 'coolant',       label: '💧 น้ำในหม้อน้ำ' },
+  { key: 'suspension',    label: '🔧 ช่วงล่าง' },
+  { key: 'oilLevel',      label: '🛢️ ระดับน้ำมันเครื่อง' },
+  { key: 'tirePressure',  label: '⚙️ ลมยาง' },
+  { key: 'headlight',     label: '💡 ไฟหน้า' },
+  { key: 'taillight',     label: '🔴 ไฟท้าย/ไฟเบรค' },
+  { key: 'reverseLight',  label: '🔦 ไฟถอย' },
+  { key: 'horn',          label: '📣 เสียงแตร' },
+  { key: 'wiper',         label: '🌧️ ที่ปัดน้ำฝน' },
+  { key: 'aircon',        label: '❄️ เครื่องปรับอากาศ' },
+  { key: 'exteriorClean', label: '🚿 ความสะอาดภายนอก' },
+  { key: 'interiorClean', label: '🧹 ความสะอาดภายใน' },
 ];
 
 function openLiveVehicleDetail(plate) {
