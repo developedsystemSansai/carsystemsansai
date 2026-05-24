@@ -2360,21 +2360,30 @@ function fmtNow24() {
 async function loadLiveVehicleStatus() {
   const timeEl = document.getElementById('vehicleLiveTime');
   try {
+    // ดึง getStatusSummary (รวม Vehicles sheet + MileLog + CheckLog จาก GAS)
     const res = await fetch(GAS_STATUS_URL + '?action=getStatusSummary');
     const json = await res.json();
     if (json.status !== 'ok') throw new Error('api error');
+
+    // ── สถานะรถแต่ละคัน (จาก Vehicles sheet + MileLog) ──
     renderLiveVehicleGrid(json);
+
+    // ── การเติมน้ำมันวันนี้ (จาก MileLog todayFueled) ──
     renderFuelTracker(json);
-    // อัปเดต KPI เติมน้ำมัน
-    document.getElementById('kpi-fueled').textContent = (json.fueledCount || (json.todayFueled||[]).length) + ' คัน';
+
+    // อัปเดต KPI
+    const fueled = json.fueledCount || (json.todayFueled||[]).length;
+    document.getElementById('kpi-fueled').textContent = fueled + ' คัน';
     document.getElementById('kpi-fueled').dataset.fromLive = '1';
     timeEl.textContent = 'อัปเดต ' + fmtNow24();
+    console.log('[Live] getStatusSummary OK — checked:', json.checkedCount,
+                '| inUse:', json.inUseCount, '| fueled:', fueled);
   } catch(e) {
-    console.warn('[Live] API ไม่ตอบสนอง — ใช้ข้อมูลจาก CheckLog แทน:', e.message);
-    timeEl.textContent = 'จาก CheckLog · ' + fmtNow24();
-    // สร้าง json จาก allData วันนี้ เพื่อแสดงสถานะรถได้แม้ API ล้มเหลว
+    console.warn('[Live] getStatusSummary ล้มเหลว:', e.message, '— ใช้ข้อมูลจาก CheckLog+MileLog ที่โหลดแล้วแทน');
+    timeEl.textContent = 'จาก local data · ' + fmtNow24();
+    // Fallback: ใช้ allData (CheckLog) + _mileLogToday สำหรับ fuel
     renderLiveVehicleGridFromCheckLog();
-    renderFuelTrackerFromCheckLog();
+    renderFuelTrackerFromMileLog();
   }
 }
 
@@ -2536,6 +2545,36 @@ function renderFuelTracker(json) {
   grid.innerHTML = cards.join('');
 }
 
+/** renderFuelTrackerFromMileLog — Fallback ใช้ _mileLogToday (MileLog) แทน getStatusSummary */
+function renderFuelTrackerFromMileLog() {
+  const todayStr = bkkDateStr();
+  // กรอง MileLog วันนี้ที่มีการเติมน้ำมัน (น้ำมันที่เติม(ลิตร) มีค่า หรือ = 'ใช่')
+  const todayFueled = [];
+  const seenPlate = new Set();
+  (_mileLogToday || []).forEach(r => {
+    const hasFuel = String(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || '').trim();
+    if (!hasFuel || hasFuel === '0') return;
+    const plate = (String(r['ทะเบียน/รถ'] || r['carType'] || '')).split(' ')[0].trim();
+    if (!plate || seenPlate.has(plate)) return;
+    seenPlate.add(plate);
+    todayFueled.push({
+      carType    : r['ทะเบียน/รถ'] || r['carType'] || plate,
+      driverName : r['พนักงานขับรถ'] || '',
+      time       : extractTimeOnly(r['เวลาออก'] || ''),
+      fuelLevel  : '',
+      fuelLiters : hasFuel,
+      fuelPrice  : String(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || ''),
+      fuelPhotoUrl: r['fuelPhotoUrl'] || '',
+      source     : 'mile'
+    });
+  });
+  renderFuelTracker({ todayFueled });
+  const fueledEl = document.getElementById('kpi-fueled');
+  if (fueledEl && !fueledEl.dataset.fromLive) {
+    fueledEl.textContent = todayFueled.length + ' คัน';
+  }
+}
+
 function renderFuelTrackerOffline() {
   document.getElementById('fuelTrackerGrid').innerHTML =
     '<div style="text-align:center;padding:20px;color:var(--text-light);grid-column:1/-1;font-size:0.85rem;">— ไม่สามารถโหลดข้อมูลได้ —</div>';
@@ -2577,14 +2616,8 @@ function renderLiveVehicleGrid(json) {
       isReady;
     const isFueledLive = !!fueledMap[v.plate] ||
       Object.keys(fueledMap).some(k => k.includes(v.plate) || v.plate.includes(k));
-    // fallback: ดูจาก CheckLog ล่าสุดของวันนี้ ถ้า live API ไม่มีข้อมูล
-    const todayStr2 = new Date().toLocaleDateString('en-CA'); // yyyy-MM-dd
-    const isFueledCheck = !isFueledLive && latestRecord &&
-      latestRecord._normDate === todayStr2 &&
-      latestRecord.fuelFill === 'เติม';
-    const isFueled = isFueledLive || isFueledCheck;
 
-    // resolve actual data objects
+    // resolve actual data objects (ต้อง declare ก่อน latestRecord / isFueled)
     const inUseData_ = inUseMap[v.plate] || Object.values(inUseMap).find(x => {
       const p = (x.carType||'').split(' ')[0].trim();
       return p.includes(v.plate) || v.plate.includes(p);
@@ -2598,7 +2631,7 @@ function renderLiveVehicleGrid(json) {
       return p.includes(v.plate) || v.plate.includes(p);
     }) || null;
 
-    // ดึง latestRecord จาก allData — match ด้วย short plate
+    // ดึง latestRecord จาก allData — MUST ก่อน isFueledCheck
     const latestRecord = (window.allData||[]).filter(r => {
       const ct = String(r.carType || '');
       return ct.includes(v.plate) || ct.split(' ')[0].trim() === v.plate;
@@ -2607,6 +2640,13 @@ function renderLiveVehicleGrid(json) {
       const db = (b.inspDate||'') + (b.inspTime||'');
       return db.localeCompare(da);
     })[0];
+
+    // fallback: ดูจาก allData วันนี้ ถ้า live API ไม่มีข้อมูล
+    const todayStr2 = new Date().toLocaleDateString('en-CA');
+    const isFueledCheck = !isFueledLive && latestRecord &&
+      latestRecord._normDate === todayStr2 &&
+      latestRecord.fuelFill === 'เติม';
+    const isFueled = isFueledLive || isFueledCheck;
 
     // ── ดึงเลขไมล์ล่าสุดจาก MileLog (_mileLogToday) ──
     // ลำดับ: เลขไมล์ปลายล่าสุด → เลขไมล์ต้น (กำลังออก) → CheckLog
