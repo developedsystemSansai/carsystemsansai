@@ -456,6 +456,124 @@ input.odo-mismatch {
 }
 .mile-alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
 
+/* ── SKELETON LOADING ── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.skeleton-block {
+  border-radius: 8px; height: 42px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f0f4f8 50%, #e2e8f0 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite;
+}
+.skeleton-block.short { height: 18px; width: 60%; border-radius: 5px; margin-bottom: 6px; }
+.skeleton-block.tall  { height: 70px; }
+
+/* Overlay para bloquear el form durante la carga */
+.form-skeleton-overlay {
+  position: absolute; inset: 0; z-index: 10;
+  background: rgba(255,255,255,0.72);
+  border-radius: var(--radius);
+  display: none; align-items: center; justify-content: center;
+  flex-direction: column; gap: 10px;
+  backdrop-filter: blur(2px);
+}
+.form-skeleton-overlay.show { display: flex; }
+.skeleton-msg {
+  font-size: 13px; font-weight: 600; color: var(--blue);
+  display: flex; align-items: center; gap: 8px;
+}
+.skeleton-spinner {
+  width: 20px; height: 20px; border: 2.5px solid rgba(29,111,181,.25);
+  border-top-color: var(--blue); border-radius: 50%;
+  animation: spin .7s linear infinite; flex-shrink: 0;
+}
+.card { position: relative; } /* needed for overlay positioning */
+
+/* ── FUEL SECTION ── */
+.fuel-section {
+  background: #f0fdf9;
+  border: 1.5px solid #6ee7b7;
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+  margin-top: 4px;
+}
+.fuel-toggle-label {
+  display: flex; align-items: center; gap: 10px;
+  cursor: pointer; font-size: 14px; font-weight: 600;
+  color: var(--teal); letter-spacing: normal;
+}
+.fuel-toggle-label input[type="checkbox"] {
+  width: 18px; height: 18px; accent-color: var(--teal);
+  cursor: pointer; flex-shrink: 0;
+}
+.fuel-upload-area {
+  margin-top: 12px; padding-top: 12px;
+  border-top: 1px dashed #6ee7b7;
+  display: none;
+}
+.fuel-upload-area.show { display: block; }
+.fuel-file-label {
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 12px 16px;
+  border: 2px dashed #34d399; border-radius: var(--radius-sm);
+  background: #fff; cursor: pointer;
+  font-size: 13px; font-weight: 600; color: var(--teal);
+  transition: background .18s, border-color .18s;
+  min-height: 56px;
+}
+.fuel-file-label:hover { background: #ecfdf5; border-color: var(--teal); }
+.fuel-file-label input[type="file"] { display: none; }
+.fuel-photo-preview {
+  margin-top: 10px; border-radius: var(--radius-sm);
+  overflow: hidden; display: none;
+  border: 1.5px solid #6ee7b7;
+  background: #fff;
+}
+.fuel-photo-preview img {
+  width: 100%; max-height: 220px; object-fit: contain;
+  display: block;
+}
+.fuel-photo-preview .preview-actions {
+  display: flex; gap: 8px; padding: 8px 10px;
+  border-top: 1px solid #d1fae5; background: #f0fdf4;
+}
+.fuel-photo-preview .preview-actions button {
+  flex: 1; padding: 6px 10px; border-radius: 7px;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer; border: none; transition: opacity .15s;
+}
+.preview-view-btn {
+  background: var(--teal); color: #fff;
+}
+.preview-remove-btn {
+  background: var(--danger-soft); color: var(--danger); border: 1px solid #fca5a5 !important;
+}
+.preview-view-btn:hover, .preview-remove-btn:hover { opacity: .85; }
+.fuel-link-box {
+  margin-top: 8px; padding: 10px 12px;
+  background: #ecfdf5; border: 1px solid #6ee7b7;
+  border-radius: var(--radius-sm);
+  display: none; align-items: center; gap: 8px;
+  font-size: 13px;
+}
+.fuel-link-box.show { display: flex; }
+.fuel-link-box a {
+  color: var(--teal); font-weight: 700; text-decoration: none;
+  word-break: break-all;
+}
+.fuel-link-box a:hover { text-decoration: underline; }
+.fuel-uploading {
+  display: none; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--teal); margin-top: 8px;
+}
+.fuel-uploading.show { display: flex; }
+.fuel-req-note {
+  font-size: 11px; color: #059669; margin-top: 6px; margin-bottom: 0;
+  display: flex; align-items: center; gap: 5px;
+}
+
 </style>
 </head>
 <body>
@@ -584,6 +702,58 @@ input.odo-mismatch {
           <label>หมายเหตุ</label>
           <textarea id="s_remarks" placeholder="(ไม่บังคับ) ภารกิจ หรือหมายเหตุเพิ่มเติม..."></textarea>
         </div>
+
+        <!-- ── เติมน้ำมัน ── -->
+        <div class="fuel-section" id="fuelSection">
+          <label class="fuel-toggle-label">
+            <input type="checkbox" id="s_hasFuel" onchange="toggleFuelUpload()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M3 22V8l9-6 9 6v14"/><path d="M9 22V12h6v10"/><rect x="11" y="7" width="2" height="2" rx=".5" fill="currentColor" stroke="none"/></svg>
+            เติมน้ำมันในการออกรถครั้งนี้
+          </label>
+
+          <div class="fuel-upload-area" id="fuelUploadArea">
+            <p class="fuel-req-note">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              กรุณาแนบรูปบิลน้ำมันทุกครั้ง
+            </p>
+
+            <label class="fuel-file-label" id="fuelFileLabel" for="s_fuelPhoto">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <span id="fuelFileLabelText">ถ่ายรูป / เลือกรูปบิลน้ำมัน</span>
+              <input type="file" id="s_fuelPhoto" accept="image/*" capture="environment"
+                     onchange="onFuelPhotoSelected()">
+            </label>
+
+            <!-- Preview รูป -->
+            <div class="fuel-photo-preview" id="fuelPhotoPreview">
+              <img id="fuelPhotoImg" src="" alt="รูปบิลน้ำมัน">
+              <div class="preview-actions">
+                <button class="preview-view-btn" onclick="viewFuelPhotoLocal()">🔍 ดูรูปเต็ม</button>
+                <button class="preview-remove-btn" onclick="removeFuelPhoto()">✕ ลบรูป</button>
+              </div>
+            </div>
+
+            <!-- กำลัง upload -->
+            <div class="fuel-uploading" id="fuelUploading">
+              <div class="skeleton-spinner"></div>
+              กำลังอัปโหลดรูปไปยัง Google Drive...
+            </div>
+
+            <!-- Link หลัง upload สำเร็จ -->
+            <div class="fuel-link-box" id="fuelLinkBox">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+              <span>อัปโหลดสำเร็จ: </span>
+              <a id="fuelPhotoLink" href="#" target="_blank" rel="noopener">ดูรูปบิล</a>
+            </div>
+          </div>
+        </div>
+        <!-- ── end เติมน้ำมัน ── -->
+
+      </div>
+      <!-- Skeleton overlay (แสดงระหว่างโหลด) -->
+      <div class="form-skeleton-overlay" id="startFormOverlay">
+        <div class="skeleton-spinner"></div>
+        <div class="skeleton-msg">กำลังโหลดข้อมูลรถและพนักงาน...</div>
       </div>
     </div>
 
@@ -662,6 +832,11 @@ input.odo-mismatch {
           <label>หมายเหตุ</label>
           <textarea id="e_remarks" placeholder="(ไม่บังคับ) หมายเหตุเพิ่มเติม..."></textarea>
         </div>
+      </div>
+      <!-- Skeleton overlay (แสดงระหว่างโหลด) -->
+      <div class="form-skeleton-overlay" id="endFormOverlay">
+        <div class="skeleton-spinner"></div>
+        <div class="skeleton-msg">กำลังโหลดข้อมูลรถที่กำลังออกอยู่...</div>
       </div>
     </div>
 
@@ -780,6 +955,9 @@ let apiLoaded       = false;
 // ════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
   setDateTimeDefaults();
+
+  // แสดง skeleton overlay ทันทีขณะรอโหลด API
+  showFormSkeletons();
 
   // แสดง default vehicles ทันที ไม่ต้องรอ API
   populateCarSelects();
@@ -976,10 +1154,12 @@ async function loadAllData() {
     apiLoaded = true;
     setBanner('success', `โหลดข้อมูลสำเร็จ — รถ ${vehicles.length} คัน | ประวัติ ${mileHistory.length} รายการ`);
     setTimeout(() => hideBanner(), 3000);
+    hideFormSkeletons();  // ซ่อน skeleton เมื่อโหลดเสร็จ
 
   } catch(err) {
     setBanner('error', `โหลดข้อมูลไม่สำเร็จ: ${err.message} — ใช้ข้อมูล Default แทน`);
     console.error('loadAllData error:', err);
+    hideFormSkeletons();  // ซ่อน skeleton แม้เกิด error เพื่อไม่บล็อก form
   }
 }
 
@@ -1605,13 +1785,27 @@ function submitStart() {
 
   const plate = carType.split(' ')[0];
   const displayDT = document.getElementById('s_tripDateTimeDisplay').value || (tripDate + ' ' + tripTime);
+
+  // ── ตรวจสอบ: ติ้กเติมน้ำมันแต่ไม่ได้แนบรูป ──
+  const hasFuel = document.getElementById('s_hasFuel').checked;
+  if (hasFuel && !fuelPhotoFile) {
+    showToast('กรุณาแนบรูปบิลน้ำมันทุกครั้งที่มีการเติมน้ำมัน', 'error'); return;
+  }
+
   pendingAction = { type: 'start', data: { carType, driverName, tripDate, tripTime,
-    destination: dest, odometerStart: odoStart, remarks } };
+    destination: dest, odometerStart: odoStart, remarks,
+    hasFuel: hasFuel ? 'ใช่' : '',
+    fuelPhotoUrl: fuelPhotoUrl || '',
+    fuelPhotoB64: (hasFuel && !fuelPhotoUrl && fuelPhotoB64) ? fuelPhotoB64 : ''
+  } };
+
+  const modalDetails = { 'ทะเบียน': plate, 'พขร.': driverName, 'วันที่/เวลา': displayDT,
+    'ปลายทาง': dest, 'เลขไมล์': odoStart.toLocaleString() + ' กม.' };
+  if (hasFuel) modalDetails['เติมน้ำมัน'] = fuelPhotoUrl ? '✓ มีรูปบิล (Drive)' : '✓ มีรูปบิล (local)';
 
   showModal('start',
     `ยืนยันบันทึกออกรถ <b>${plate}</b>`,
-    { 'ทะเบียน': plate, 'พขร.': driverName, 'วันที่/เวลา': displayDT,
-      'ปลายทาง': dest, 'เลขไมล์': odoStart.toLocaleString() + ' กม.' }
+    modalDetails
   );
 }
 
@@ -1693,6 +1887,10 @@ async function doConfirm() {
       document.getElementById('s_remarks').value = '';
       document.getElementById('s_lastMileHint').textContent = '';
       startDTEdited = false;  // live clock เริ่มทำงานใหม่
+      // รีเซ็ตส่วนเติมน้ำมัน
+      document.getElementById('s_hasFuel').checked = false;
+      document.getElementById('fuelUploadArea').classList.remove('show');
+      removeFuelPhoto();
     } else {
       document.getElementById('e_carType').value = '';
       document.getElementById('e_odometerEnd').value = '';
@@ -1832,6 +2030,171 @@ function showModal(type, title, details) {
 function closeModal() {
   document.getElementById('confirmModal').classList.remove('show');
   pendingAction = null;
+}
+
+// ════════════════════════════════════════════════════════
+//  SKELETON LOADING
+// ════════════════════════════════════════════════════════
+function showFormSkeletons() {
+  const startOverlay = document.getElementById('startFormOverlay');
+  const endOverlay   = document.getElementById('endFormOverlay');
+  const startBtn     = document.getElementById('startBtn');
+  const endBtn       = document.getElementById('endBtn');
+  if (startOverlay) startOverlay.classList.add('show');
+  if (endOverlay)   endOverlay.classList.add('show');
+  if (startBtn)     { startBtn.disabled = true; }
+  if (endBtn)       { endBtn.disabled   = true; }
+}
+function hideFormSkeletons() {
+  const startOverlay = document.getElementById('startFormOverlay');
+  const endOverlay   = document.getElementById('endFormOverlay');
+  const startBtn     = document.getElementById('startBtn');
+  const endBtn       = document.getElementById('endBtn');
+  if (startOverlay) startOverlay.classList.remove('show');
+  if (endOverlay)   endOverlay.classList.remove('show');
+  if (startBtn)     { startBtn.disabled = false; }
+  if (endBtn)       { endBtn.disabled   = false; }
+}
+
+// ════════════════════════════════════════════════════════
+//  เติมน้ำมัน + อัปโหลดรูปบิล
+// ════════════════════════════════════════════════════════
+let fuelPhotoFile   = null;   // File object ที่เลือก
+let fuelPhotoUrl    = '';     // URL หลัง upload สำเร็จ
+let fuelPhotoB64    = '';     // base64 สำหรับ preview local
+
+function toggleFuelUpload() {
+  const checked = document.getElementById('s_hasFuel').checked;
+  const area    = document.getElementById('fuelUploadArea');
+  if (checked) {
+    area.classList.add('show');
+  } else {
+    area.classList.remove('show');
+    removeFuelPhoto();
+  }
+}
+
+function onFuelPhotoSelected() {
+  const fileInput = document.getElementById('s_fuelPhoto');
+  const file = fileInput.files[0];
+  if (!file) return;
+
+  // ตรวจ size (max 10 MB)
+  if (file.size > 10 * 1024 * 1024) {
+    showToast('ไฟล์รูปใหญ่เกิน 10 MB — กรุณาเลือกรูปที่มีขนาดเล็กกว่า', 'error');
+    fileInput.value = '';
+    return;
+  }
+
+  fuelPhotoFile = file;
+
+  // แสดง preview local
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    fuelPhotoB64 = e.target.result;
+    const preview = document.getElementById('fuelPhotoPreview');
+    const img     = document.getElementById('fuelPhotoImg');
+    img.src = fuelPhotoB64;
+    preview.style.display = 'block';
+    document.getElementById('fuelFileLabelText').textContent = '✓ ' + file.name;
+  };
+  reader.readAsDataURL(file);
+
+  // อัปโหลดไป GAS/Drive
+  uploadFuelPhoto(file);
+}
+
+async function uploadFuelPhoto(file) {
+  const uploading = document.getElementById('fuelUploading');
+  const linkBox   = document.getElementById('fuelLinkBox');
+  uploading.classList.add('show');
+  linkBox.classList.remove('show');
+  fuelPhotoUrl = '';
+
+  try {
+    // แปลง File → base64 (ไม่รวม prefix data:...)
+    const b64 = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload  = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+
+    const payload = JSON.stringify({
+      action    : 'uploadFuelPhoto',
+      fileName  : file.name,
+      mimeType  : file.type,
+      base64Data: b64
+    });
+
+    const resp = await fetch(GAS_URL, {
+      method : 'POST',
+      mode   : 'no-cors',   // GAS webapp ต้องการ no-cors
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body   : 'payload=' + encodeURIComponent(payload)
+    });
+
+    // no-cors → opaque response; ดึง URL จาก GAS ไม่ได้โดยตรง
+    // วิธี workaround: ใช้ fetch GET พร้อม parameter แทน
+    const checkResp = await fetch(
+      GAS_URL + '?action=uploadFuelPhoto' +
+      '&fileName=' + encodeURIComponent(file.name) +
+      '&mimeType=' + encodeURIComponent(file.type) +
+      '&base64Data=' + encodeURIComponent(b64),
+      { cache: 'no-cache' }
+    );
+
+    if (checkResp.ok) {
+      const data = await checkResp.json();
+      if (data.status === 'ok' && data.url) {
+        fuelPhotoUrl = data.url;
+        document.getElementById('fuelPhotoLink').href = data.url;
+        linkBox.classList.add('show');
+        showToast('อัปโหลดรูปบิลสำเร็จ ✓', 'success');
+      } else {
+        // GAS ยังไม่รองรับ endpoint นี้ → เก็บ base64 ไว้ใน local
+        fuelPhotoUrl = ''; // จะ submit พร้อม base64
+        showToast('บันทึกรูปไว้ในเครื่อง — จะส่งพร้อมบันทึกออกรถ', '');
+      }
+    }
+  } catch(err) {
+    console.warn('uploadFuelPhoto error:', err);
+    showToast('บันทึกรูปไว้ในเครื่อง — จะส่งพร้อมบันทึกออกรถ', '');
+  } finally {
+    uploading.classList.remove('show');
+  }
+}
+
+function viewFuelPhotoLocal() {
+  if (!fuelPhotoB64) return;
+  // ถ้ามี URL Drive ให้เปิด Drive แทน
+  if (fuelPhotoUrl) {
+    window.open(fuelPhotoUrl, '_blank', 'noopener');
+    return;
+  }
+  // เปิด blob URL ใน tab ใหม่
+  const win = window.open('', '_blank');
+  if (win) {
+    win.document.write(`<html><body style="margin:0;background:#111">
+      <img src="${fuelPhotoB64}" style="max-width:100%;display:block;margin:auto;max-height:100vh;object-fit:contain">
+    </body></html>`);
+    win.document.close();
+  }
+}
+
+function removeFuelPhoto() {
+  fuelPhotoFile = null;
+  fuelPhotoUrl  = '';
+  fuelPhotoB64  = '';
+  const fileInput = document.getElementById('s_fuelPhoto');
+  if (fileInput) fileInput.value = '';
+  const preview = document.getElementById('fuelPhotoPreview');
+  if (preview) { preview.style.display = 'none'; document.getElementById('fuelPhotoImg').src = ''; }
+  const linkBox = document.getElementById('fuelLinkBox');
+  if (linkBox) linkBox.classList.remove('show');
+  const uploading = document.getElementById('fuelUploading');
+  if (uploading) uploading.classList.remove('show');
+  document.getElementById('fuelFileLabelText').textContent = 'ถ่ายรูป / เลือกรูปบิลน้ำมัน';
 }
 
 // ════════════════════════════════════════════════════════
