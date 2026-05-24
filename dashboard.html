@@ -791,9 +791,9 @@ document.addEventListener('DOMContentLoaded', function() {
           <thead>
             <tr style="background:#f0f8ff;">
               <th style="padding:9px 12px;text-align:left;font-size:0.7rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;">ทะเบียน</th>
-              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;">ครั้งที่เติม</th>
-              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;">ระดับน้ำมัน</th>
-              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:#0369a1;border-bottom:2px solid #bfdbfe;">สถานะล่าสุด</th>
+              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;">จำนวนครั้ง</th>
+              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:#0369a1;border-bottom:2px solid #bfdbfe;">ลิตร / บาท</th>
+              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:#0369a1;border-bottom:2px solid #bfdbfe;">เติมล่าสุด</th>
             </tr>
           </thead>
           <tbody id="fuelSummaryTbody">
@@ -801,7 +801,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </tbody>
         </table>
         <div id="fuelSummaryFooter" style="padding:8px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid #bfdbfe;display:flex;justify-content:space-between;align-items:center;">
-          <span>⛽ รวมจาก CheckLog ตามช่วงเวลาที่เลือก</span>
+          <span>⛽ รวมจาก MileLog ตามช่วงเวลาที่เลือก</span>
           <span id="fuelSummaryTotal" style="font-weight:700;color:#0369a1;"></span>
         </div>
       </div>
@@ -1227,6 +1227,9 @@ function renderDashboard(data) {
   renderOdometer(data);
   renderStatusSummary(data);
   renderBarChart(data);
+  // renderFuelSummary ใช้ _mileLogAll — เรียกหลัง loadMileLogAll() เสร็จ
+  // (เรียกผ่าน loadData → loadMileLogAll().then(renderSummaryTables) แล้ว)
+  // เรียกตรงนี้ด้วยเผื่อ _mileLogAll โหลดแล้ว (refresh / filter)
   renderFuelSummary(data);
   renderEquipChart(data, currentTab);
   renderRecentRecords(data);
@@ -1531,73 +1534,101 @@ function renderBarChart(data) {
   `).join('');
 }
 
-function renderFuelSummary(data) {
+/**
+ * renderFuelSummary — ดึงข้อมูลจาก MileLog (_mileLogAll)
+ * แสดงสรุปการเติมน้ำมันรายคัน: จำนวนครั้ง, ลิตร, บาท, ล่าสุด
+ * กรองตาม filterMonth ที่เลือกอยู่
+ */
+function renderFuelSummary(_unused) {
   const tbody  = document.getElementById('fuelSummaryTbody');
   const badge  = document.getElementById('fuelSummaryBadge');
-  const total  = document.getElementById('fuelSummaryTotal');
+  const totalEl = document.getElementById('fuelSummaryTotal');
   if (!tbody) return;
+
+  // กรองเดือนเดียวกับ filterMonth
+  const monF = (document.getElementById('filterMonth') || {}).value || '';
+
+  // ดึงจาก MileLog — เฉพาะแถวที่มีการเติมน้ำมัน
+  const mileRows = (_mileLogAll || []).filter(r => {
+    const hasFuel = String(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || '').trim();
+    if (!hasFuel || hasFuel === '0' || hasFuel === '') return false;
+    if (monF) {
+      // กรองเดือน: วันที่ใน MileLog อยู่ใน col 'วันที่' (yyyy-MM-dd หรือ dd/MM/yyyy)
+      const rowDate = normalizeInspDate(r['วันที่'] || r['Timestamp'] || '');
+      if (!rowDate.startsWith(monF)) return false;
+    }
+    return true;
+  });
 
   // จัดกลุ่มตามทะเบียน
   const byPlate = {};
-  data.forEach(r => {
-    const plate = extractPlate(r.carType);
+  mileRows.forEach(r => {
+    const raw   = String(r['ทะเบียน/รถ'] || r['carType'] || '');
+    const plate = raw.split(' ')[0].trim();
     if (!plate) return;
-    if (!byPlate[plate]) byPlate[plate] = { filled: 0, total: 0, levels: [], lastFill: '—', lastLevel: '—', lastFillFill: '' };
-    byPlate[plate].total++;
-    if (r.fuelFill === 'เติม') {
-      byPlate[plate].filled++;
-      if (r.inspDate > (byPlate[plate].lastFillDate || '')) {
-        byPlate[plate].lastFillDate = r.inspDate;
-        byPlate[plate].lastFill = r.inspDate ? r.inspDate.slice(5).replace('-', '/') : '—';
-      }
+    if (!byPlate[plate]) byPlate[plate] = {
+      trips: 0, totalLiters: 0, totalPrice: 0,
+      lastDate: '', lastLiters: 0, lastPrice: 0, lastDriver: ''
+    };
+    const liters = parseFloat(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || 0) || 0;
+    const price  = parseFloat(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || 0) || 0;
+    const rowDate = normalizeInspDate(r['วันที่'] || '');
+    byPlate[plate].trips++;
+    byPlate[plate].totalLiters += liters;
+    byPlate[plate].totalPrice  += price;
+    if (rowDate > byPlate[plate].lastDate) {
+      byPlate[plate].lastDate   = rowDate;
+      byPlate[plate].lastLiters = liters;
+      byPlate[plate].lastPrice  = price;
+      byPlate[plate].lastDriver = String(r['พนักงานขับรถ'] || '');
     }
-    if (r.fuelLevel) byPlate[plate].lastLevel = r.fuelLevel;
   });
 
-  const rows = Object.entries(byPlate).sort((a, b) => b[1].filled - a[1].filled);
-  const totalFilled = rows.reduce((s, [, v]) => s + v.filled, 0);
+  const rows = Object.entries(byPlate).sort((a, b) => b[1].trips - a[1].trips);
+  const grandLiters = rows.reduce((s, [,v]) => s + v.totalLiters, 0);
+  const grandPrice  = rows.reduce((s, [,v]) => s + v.totalPrice,  0);
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="em">—</div>ยังไม่มีข้อมูล</td></tr>';
-    if (badge) badge.textContent = '—';
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="em">—</div>ยังไม่มีข้อมูลการเติมน้ำมันจาก MileLog</td></tr>';
+    if (badge)   badge.textContent  = '—';
+    if (totalEl) totalEl.textContent = '';
     return;
   }
 
-  const levelColor = { '0%':'#ef4444','25%':'#f97316','50%':'#eab308','75%':'#84cc16','100%':'#22c55e' };
-  const levelBg    = { '0%':'#fef2f2','25%':'#fff7ed','50%':'#fefce8','75%':'#f7fee7','100%':'#f0fdf4' };
-
   tbody.innerHTML = rows.map(([plate, v]) => {
-    const fillRate = v.total ? Math.round(v.filled / v.total * 100) : 0;
-    const barW = fillRate;
-    const lvl = v.lastLevel;
-    const lvlColor = levelColor[lvl] || '#94a3b8';
-    const lvlBg    = levelBg[lvl]    || '#f1f5f9';
-    const statusBg   = v.filled > 0 ? '#eff6ff' : '#f8fafc';
-    const statusText = v.filled > 0 ? '#1e40af' : '#94a3b8';
-    const statusIcon = v.filled > 0 ? '✅' : '—';
-    return `<tr style="border-bottom:1px solid #e8f0fe;transition:background .15s;" onmouseover="this.style.background='#f0f8ff'" onmouseout="this.style.background=''">
+    const litersStr = v.totalLiters > 0 ? v.totalLiters.toLocaleString(undefined, {maximumFractionDigits:1}) + ' ล.' : '—';
+    const priceStr  = v.totalPrice  > 0 ? v.totalPrice.toLocaleString()  + ' ฿' : '—';
+    const lastStr   = v.lastDate ? v.lastDate.slice(5).replace('-', '/') : '—';
+    const statusBg  = '#eff6ff', statusText = '#1e40af';
+    return `<tr style="border-bottom:1px solid #e8f0fe;transition:background .15s;"
+              onmouseover="this.style.background='#f0f8ff'" onmouseout="this.style.background=''">
       <td style="padding:9px 12px;font-weight:700;color:#0a2540;font-family:'Space Grotesk',sans-serif;font-size:0.82rem;">${plate}</td>
       <td style="padding:9px 12px;text-align:center;">
-        <div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
-          <span style="font-size:0.88rem;font-weight:700;color:${v.filled > 0 ? '#1e40af' : '#94a3b8'};">${v.filled}<span style="font-size:0.65rem;color:#94a3b8;font-weight:400;">/${v.total}</span></span>
-          <div style="width:52px;height:5px;background:#e2e8f0;border-radius:99px;overflow:hidden;">
-            <div style="width:${barW}%;height:100%;background:${v.filled > 0 ? 'linear-gradient(90deg,#3b82f6,#0ea5e9)' : '#e2e8f0'};border-radius:99px;"></div>
-          </div>
-        </div>
+        <span style="font-size:0.95rem;font-weight:700;color:#1e40af;">${v.trips}</span>
+        <span style="font-size:0.65rem;color:#94a3b8;"> ครั้ง</span>
       </td>
       <td style="padding:9px 12px;text-align:center;">
-        ${lvl ? `<span style="background:${lvlBg};color:${lvlColor};font-size:0.72rem;font-weight:700;padding:2px 9px;border-radius:99px;border:1px solid ${lvlColor}33;">${lvl}</span>` : '<span style="color:#cbd5e1;">—</span>'}
+        <div style="font-weight:700;color:#0369a1;font-size:0.82rem;">${litersStr}</div>
+        <div style="font-size:0.68rem;color:#7c3aed;font-weight:600;">${priceStr}</div>
       </td>
       <td style="padding:9px 12px;text-align:center;">
         <span style="background:${statusBg};color:${statusText};font-size:0.72rem;font-weight:700;padding:3px 9px;border-radius:99px;">
-          ${statusIcon} ${v.filled > 0 ? 'เติม ' + v.filled + ' ครั้ง · ล่าสุด ' + v.lastFill : 'ยังไม่เติม'}
+          ✅ ล่าสุด ${lastStr}${v.lastDriver ? ' · ' + v.lastDriver.split(' ').slice(-1)[0] : ''}
         </span>
       </td>
     </tr>`;
-  }).join('');
+  }).join('') + `<tr style="background:#eff6ff;border-top:2px solid #3b82f6;">
+    <td style="padding:9px 12px;font-weight:700;color:#1e40af;" colspan="1">รวม (${rows.length} คัน)</td>
+    <td style="padding:9px 12px;text-align:center;font-weight:700;color:#1e40af;">${rows.reduce((s,[,v])=>s+v.trips,0)} ครั้ง</td>
+    <td style="padding:9px 12px;text-align:center;">
+      <div style="font-weight:700;color:#0369a1;">${grandLiters.toLocaleString(undefined,{maximumFractionDigits:1})} ล.</div>
+      <div style="font-size:0.72rem;color:#7c3aed;font-weight:700;">${grandPrice.toLocaleString()} ฿</div>
+    </td>
+    <td></td>
+  </tr>`;
 
-  if (badge) badge.textContent = 'เติมแล้ว ' + totalFilled + ' ครั้ง';
-  if (total) total.textContent = 'รถที่เติม: ' + rows.filter(([,v]) => v.filled > 0).length + '/' + rows.length + ' คัน';
+  if (badge)   badge.textContent  = 'เติมแล้ว ' + rows.length + ' คัน · ' + grandLiters.toLocaleString(undefined,{maximumFractionDigits:1}) + ' ล.';
+  if (totalEl) totalEl.textContent = 'รวม ' + grandPrice.toLocaleString() + ' บาท';
 }
 
 
@@ -1652,6 +1683,8 @@ async function renderSummaryTables() {
 
   renderDistSummary(selDate);
   renderFuelCostSummary(selDate);
+  // อัปเดตตาราง "สรุปการเติมน้ำมันรายคัน" จาก MileLog ด้วย
+  renderFuelSummary(null);
 }
 
 // ── ตารางสรุประยะทาง ──
