@@ -1300,12 +1300,13 @@ async function uploadCheckPhotos(carType, inspDate, driverName, photosData) {
         photos    : [],          // ส่ง array ว่างเพราะอัพโหลดไปแล้ว
         driveLinks: links        // ส่ง links ที่ได้มาบันทึกเลย
       };
-      await fetch(GAS_URL, {
+      const saveResp = await fetch(GAS_URL, {
         method: 'POST',
-        mode  : 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body  : 'payload=' + encodeURIComponent(JSON.stringify(savePayload))
       });
+      const saveData = await saveResp.json();
+      console.log('saveLinks result:', saveData);
     } catch(e) { console.warn('saveLinks error:', e); }
     showToast('✓ อัพโหลดรูป ' + links.length + ' รูปสำเร็จ', 'success');
   }
