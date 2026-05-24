@@ -1089,6 +1089,31 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 
   <!-- CHARTS ROW -->
+  <div class="main-grid wide" style="margin-bottom:16px;">
+
+    <!-- บาร์ชาร์ต: ความถี่การตรวจต่อทะเบียน -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="18" y="3" width="4" height="18"/><rect x="10" y="8" width="4" height="13"/><rect x="2" y="13" width="4" height="8"/></svg></span>
+        <h2>ความถี่การตรวจสภาพต่อทะเบียน</h2>
+      </div>
+      <div class="card-body">
+        <div id="barChart" class="bar-chart"><div class="loading-state"><div class="spinner-sm"></div></div></div>
+      </div>
+    </div>
+
+    <!-- โดนัทชาร์ต: สถิติน้ำมัน -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></span>
+        <h2>สถิติการเติมน้ำมัน</h2>
+      </div>
+      <div class="card-body" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <div id="fuelChart" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:10px;"><div class="loading-state"><div class="spinner-sm"></div></div></div>
+      </div>
+    </div>
+
+  </div>
 
   <!-- ══ DAILY SUMMARY DATE PICKER ══ -->
   <div class="card" style="margin-bottom:12px;">
