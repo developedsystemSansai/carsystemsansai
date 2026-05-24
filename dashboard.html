@@ -2368,10 +2368,91 @@ async function loadLiveVehicleStatus() {
     document.getElementById('kpi-fueled').textContent = (json.fueledCount || (json.todayFueled||[]).length) + ' คัน';
     document.getElementById('kpi-fueled').dataset.fromLive = '1';
     timeEl.textContent = 'อัปเดต ' + fmtNow24();
-  } catch(_) {
-    timeEl.textContent = 'โหลดไม่สำเร็จ';
-    renderLiveVehicleGridOffline();
-    renderFuelTrackerOffline();
+  } catch(e) {
+    console.warn('[Live] API ไม่ตอบสนอง — ใช้ข้อมูลจาก CheckLog แทน:', e.message);
+    timeEl.textContent = 'จาก CheckLog · ' + fmtNow24();
+    // สร้าง json จาก allData วันนี้ เพื่อแสดงสถานะรถได้แม้ API ล้มเหลว
+    renderLiveVehicleGridFromCheckLog();
+    renderFuelTrackerFromCheckLog();
+  }
+}
+
+/** สร้างสถานะรถจาก allData (CheckLog) เมื่อ live API ใช้ไม่ได้ */
+function renderLiveVehicleGridFromCheckLog() {
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  const todayRecords = (window.allData || []).filter(r => {
+    const nd = r._normDate || '';
+    return nd === todayStr;
+  });
+
+  // สร้าง fake json ที่ renderLiveVehicleGrid รองรับ
+  const fakeJson = {
+    inUse: [],
+    ready: [],
+    todayChecked: todayRecords.map(r => ({
+      carType: r.carType || '',
+      driverName: r.driverName || '',
+      inspDate: r.inspDate || '',
+      inspTime: r.inspTime || '',
+      odometer: r.odometer || '',
+      fuelLevel: r.fuelLevel || '',
+      fuelFill: r.fuelFill || '',
+    })),
+    todayFueled: todayRecords
+      .filter(r => r.fuelFill === 'เติม')
+      .map(r => ({
+        carType: r.carType || '',
+        fuelLevel: r.fuelLevel || '',
+        fuelFill: r.fuelFill || '',
+        driverName: r.driverName || '',
+        time: r.inspTime || '',
+      })),
+  };
+
+  if (todayRecords.length === 0) {
+    // ไม่มีข้อมูลวันนี้ — แสดงรถทั้งหมดในสถานะ "รอตรวจ"
+    const grid = document.getElementById('liveVehicleGrid');
+    const vt = document.getElementById('vehicleLiveTime');
+    if (vt) vt.textContent = 'ยังไม่มีข้อมูลวันนี้';
+    if (grid) grid.innerHTML = ALL_VEHICLES.map(v => `
+      <div style="background:linear-gradient(135deg,#f8fafc,#f1f5f9);border:2px solid #cbd5e1;border-radius:16px;padding:16px 18px 14px;position:relative;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+        <div style="position:absolute;top:10px;right:10px;background:#94a3b8;color:#fff;font-size:0.62rem;font-weight:700;padding:2px 8px;border-radius:99px;">รอตรวจสภาพ</div>
+        <div style="margin-bottom:8px;padding-right:72px;">
+          <div style="font-size:1rem;font-weight:800;color:#0a2540;font-family:'Space Grotesk',sans-serif;">${v.plate}</div>
+          <div style="font-size:0.72rem;color:#8898aa;margin-top:1px;">${v.type}</div>
+        </div>
+        <div style="font-size:1.6rem;margin-bottom:6px;">⏳</div>
+        <div style="font-size:0.8rem;color:#64748b;opacity:0.85;">ยังไม่ได้ตรวจวันนี้</div>
+        <div style="margin-top:8px;">
+          <span style="display:inline-flex;align-items:center;gap:4px;background:#e2e8f0;color:#94a3b8;font-size:0.62rem;font-weight:600;padding:3px 9px;border-radius:99px;">⛽ ยังไม่ได้เติม</span>
+        </div>
+      </div>`).join('');
+    return;
+  }
+
+  renderLiveVehicleGrid(fakeJson);
+}
+
+/** สร้างตาราง fuel tracker จาก allData เมื่อ live API ใช้ไม่ได้ */
+function renderFuelTrackerFromCheckLog() {
+  const todayStr = new Date().toLocaleDateString('en-CA');
+  const todayRecords = (window.allData || []).filter(r => r._normDate === todayStr);
+  const fakeJson = {
+    todayFueled: todayRecords
+      .filter(r => r.fuelFill === 'เติม')
+      .map(r => ({
+        carType: r.carType || '',
+        fuelLevel: r.fuelLevel || '',
+        driverName: r.driverName || '',
+        time: r.inspTime || '',
+        source: 'check',
+      })),
+  };
+  renderFuelTracker(fakeJson);
+  // อัปเดต KPI
+  const fueledEl = document.getElementById('kpi-fueled');
+  if (fueledEl && !fueledEl.dataset.fromLive) {
+    fueledEl.textContent = fakeJson.todayFueled.length + ' คัน';
   }
 }
 
