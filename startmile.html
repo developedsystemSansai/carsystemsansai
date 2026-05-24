@@ -2005,20 +2005,57 @@ async function doConfirm() {
   btn.classList.add('loading'); btn.disabled = true;
 
   try {
-    await fetch(GAS_URL, {
-      method: 'POST', mode: 'no-cors',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'payload=' + encodeURIComponent(JSON.stringify({
-        action: type === 'start' ? 'startMile' : 'endMile',
-        ...data
-      }))
-    });
+    const payloadObj = { action: type === 'start' ? 'startMile' : 'endMile', ...data };
+
+    // startMile: ใช้ cors เพื่อรับ tripId กลับมา (เผื่อ upload รูปใน GAS)
+    // endMile: ใช้ no-cors ปกติ (ไม่ต้องการ response)
+    let respOk = false;
+    if (type === 'start') {
+      try {
+        const resp = await fetch(GAS_URL, {
+          method : 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body   : 'payload=' + encodeURIComponent(JSON.stringify(payloadObj))
+        });
+        if (resp.ok) {
+          const json = await resp.json().catch(() => ({}));
+          if (json.status === 'ok') respOk = true;
+          // ถ้า GAS upload รูปสำเร็จและคืน URL ใหม่ — อัปเดต fuelPhotoUrl
+          if (json.fuelPhotoUrl && !data.fuelPhotoUrl) {
+            // store ไว้แสดงใน toast
+            data.fuelPhotoUrl = json.fuelPhotoUrl;
+          }
+        }
+      } catch(_) {
+        // CORS error — fallback no-cors
+        await fetch(GAS_URL, {
+          method: 'POST', mode: 'no-cors',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body   : 'payload=' + encodeURIComponent(JSON.stringify(payloadObj))
+        });
+        respOk = true;
+      }
+    } else {
+      await fetch(GAS_URL, {
+        method: 'POST', mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'payload=' + encodeURIComponent(JSON.stringify(payloadObj))
+      });
+      respOk = true;
+    }
 
     await new Promise(r => setTimeout(r, 600)); // รอ GAS ประมวลผล
 
-    const msg = type === 'start'
-      ? `บันทึกออกรถสำเร็จ — ${data.carType.split(' ')[0]} ไปยัง ${data.destination}`
-      : `บันทึกกลับ รพ. สำเร็จ`;
+    const plate = data.carType ? data.carType.split(' ')[0] : '';
+    let msg;
+    if (type === 'start') {
+      msg = `✅ บันทึกออกรถสำเร็จ — ${plate} ไปยัง ${data.destination}`;
+      if (data.hasFuel === 'ใช่' || data.hasFuel) {
+        msg += data.fuelPhotoUrl ? ' · 🧾 บิลน้ำมันบันทึกแล้ว' : ' · ⛽ บันทึกการเติมน้ำมัน';
+      }
+    } else {
+      msg = `✅ บันทึกกลับ รพ. สำเร็จ`;
+    }
     showToast(msg, 'success');
 
     // รีเซ็ตฟอร์ม
@@ -2132,15 +2169,37 @@ function renderHistory() {
       <td style="font-weight:600;">${startMile ? startMile.toLocaleString() : '—'}</td>
       <td style="font-weight:600;">${endMile   ? endMile.toLocaleString()   : '—'}</td>
       <td style="font-weight:700;color:var(--teal);">${dist !== '—' ? dist : '—'}</td>
-      <td style="text-align:center;">
+      <td style="text-align:center;min-width:80px;">
         ${(() => {
-          const fUrl = String(r['รูปบิลน้ำมัน'] || r['fuelPhotoUrl'] || '').trim();
-          if (fUrl) return `<a href="${fUrl}" target="_blank" rel="noopener"
-            style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;
-                   background:#0ea5e9;color:#fff;border-radius:6px;font-size:11px;
-                   font-weight:700;text-decoration:none;">🧾 ดูรูปบิล</a>`;
+          const rawUrl = String(r['รูปบิลน้ำมัน'] || r['fuelPhotoUrl'] || '').trim();
+          const fUrl = rawUrl.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
+          if (fUrl && fUrl.startsWith('http')) {
+            // สร้าง thumbnail จาก Drive URL
+            const driveMatch = fUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+            if (driveMatch) {
+              const fid = driveMatch[1];
+              const thumb = `https://drive.google.com/thumbnail?id=${fid}&sz=w80`;
+              const view  = `https://drive.google.com/file/d/${fid}/view`;
+              return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <a href="${view}" target="_blank" rel="noopener"
+                   style="display:block;width:52px;height:46px;border-radius:6px;overflow:hidden;
+                          border:2px solid #0ea5e9;cursor:pointer;">
+                  <img src="${thumb}" alt="บิลน้ำมัน"
+                       style="width:100%;height:100%;object-fit:cover;"
+                       onerror="this.parentElement.innerHTML='🧾'">
+                </a>
+                <a href="${view}" target="_blank" rel="noopener"
+                   style="font-size:10px;font-weight:700;color:#0ea5e9;text-decoration:none;">ดูบิล</a>
+              </div>`;
+            }
+            // URL ทั่วไป (ไม่ใช่ Drive)
+            return `<a href="${fUrl}" target="_blank" rel="noopener"
+              style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;
+                     background:#0ea5e9;color:#fff;border-radius:6px;font-size:11px;
+                     font-weight:700;text-decoration:none;">🧾 ดูบิล</a>`;
+          }
           if (r['น้ำมันที่เติม(ลิตร)'] || r['hasFuel']==='ใช่')
-            return '<span style="font-size:10px;color:#94a3b8;">เติมแล้ว<br>(ไม่มีรูป)</span>';
+            return '<span style="font-size:10px;color:#94a3b8;">⛽ เติมแล้ว<br>(ไม่มีรูป)</span>';
           return '<span style="color:#cbd5e1;font-size:11px;">—</span>';
         })()}
       </td>
