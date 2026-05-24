@@ -1477,7 +1477,6 @@ async function loadData() {
     window.allData = allData;
     console.log('[Dashboard] getData:', allData.length, 'records');
     applyFilters();
-    if (typeof loadLiveVehicleStatus === 'function') loadLiveVehicleStatus();
     // โหลด MileLog ด้วย
     await loadMileLogToday();
     renderOdometer(filteredData.length ? filteredData : allData);
@@ -2758,9 +2757,8 @@ function renderLiveVehicleGridOffline() {
   document.getElementById('liveVehicleGrid').innerHTML = cards;
 }
 
-// โหลดสถานะรถทันทีและ refresh ทุก 2 นาที
-loadLiveVehicleStatus();
-setInterval(loadLiveVehicleStatus, 120000);
+// โหลดสถานะรถ — จะถูกเรียกใน DOMContentLoaded หลัง loadData เสร็จ
+let _liveRefreshTimer = null;
 
 // ══════════════════════════════════════════════════════════════
 // TEST MOCKUP — แสดงข้อมูลสาธิตที่สมจริง
@@ -2963,8 +2961,19 @@ function showMockToast(msg) {
 }
 
 // ── เพิ่มปุ่ม Mockup เข้า filter bar ──
-document.addEventListener('DOMContentLoaded', () => {
-  loadVehicleMaster(); // โหลดรายการรถจาก Google Sheets
+document.addEventListener('DOMContentLoaded', async () => {
+  // ① โหลดรายการรถก่อน (เพื่อให้ dropdown + ALL_VEHICLES พร้อม)
+  await loadVehicleMaster();
+
+  // ② โหลดข้อมูล CheckLog + MileLog หลัก (รวม renderOdometer ด้วย)
+  await loadData();
+
+  // ③ โหลดสถานะรถ live (ใช้ allData ที่โหลดเสร็จแล้ว)
+  await loadLiveVehicleStatus();
+
+  // ④ refresh อัตโนมัติทุก 2 นาที
+  if (_liveRefreshTimer) clearInterval(_liveRefreshTimer);
+  _liveRefreshTimer = setInterval(loadLiveVehicleStatus, 120000);
 
   // ตรวจสอบ Drive authorization status
   checkDriveAuth();
