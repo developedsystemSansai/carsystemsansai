@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — ติดตามการใช้งานรถราชการ รพ.สันทราย</title>
+<title>Dashboard — ระบบบริหารการใช้งานรถราชการ</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -499,6 +499,169 @@
     .modal-status-item { min-width: 50%; }
   }
 
+  /* ── VIEW MODE TABS ── */
+  .view-mode-bar {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 6px;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    display: flex; gap: 4px; align-items: center;
+  }
+  .view-mode-btn {
+    flex: 1; padding: 9px 16px; border-radius: 10px;
+    border: none; font-family: inherit; font-size: 0.82rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; color: var(--text-mid);
+    background: transparent; display: flex; align-items: center; justify-content: center; gap: 7px;
+  }
+  .view-mode-btn.active {
+    background: linear-gradient(135deg, var(--navy), var(--navy-mid));
+    color: #fff; box-shadow: 0 2px 10px rgba(10,37,64,0.22);
+  }
+  .view-mode-btn:not(.active):hover { background: var(--bg2); }
+
+  /* ── DAILY VIEW PANEL ── */
+  #dailyPanel { display: none; }
+  #dailyPanel.show { display: block; }
+  #overviewPanel.hide { display: none; }
+
+  .daily-nav-bar {
+    background: var(--card); border-radius: var(--radius);
+    padding: 14px 18px; margin-bottom: 16px;
+    box-shadow: var(--shadow); border: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .daily-nav-btn {
+    width: 36px; height: 36px; border-radius: 9px;
+    border: 1.5px solid var(--border);
+    background: var(--bg); color: var(--text-mid);
+    font-size: 1rem; cursor: pointer; transition: all 0.18s;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .daily-nav-btn:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+  .daily-nav-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .daily-date-display { flex: 1; text-align: center; }
+  .daily-date-display .dd-main { font-size: 1.05rem; font-weight: 700; color: var(--navy); }
+  .daily-date-display .dd-sub  { font-size: 0.72rem; color: var(--text-light); margin-top: 1px; }
+  .daily-date-input {
+    padding: 7px 11px; border-radius: 8px; border: 1.5px solid var(--border);
+    font-family: inherit; font-size: 0.82rem; color: var(--text);
+    background: #fafbfc; outline: none; cursor: pointer; transition: all 0.2s;
+  }
+  .daily-date-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(26,115,232,0.1); }
+
+  /* ── DAILY KPI ── */
+  .daily-kpi-row {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    gap: 10px; margin-bottom: 14px;
+  }
+  @media(max-width:900px) { .daily-kpi-row { grid-template-columns: repeat(3,1fr); } }
+  @media(max-width:480px) { .daily-kpi-row { grid-template-columns: repeat(2,1fr); } }
+  .daily-kpi {
+    background: var(--card); border-radius: 12px; border: 1px solid var(--border);
+    padding: 13px 14px; box-shadow: var(--shadow); position: relative; overflow: hidden;
+  }
+  .daily-kpi::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; }
+  .daily-kpi.c-blue::before   { background: linear-gradient(90deg,var(--blue),#4da3ff); }
+  .daily-kpi.c-teal::before   { background: linear-gradient(90deg,var(--teal),#26c6da); }
+  .daily-kpi.c-green::before  { background: linear-gradient(90deg,#22c55e,#86efac); }
+  .daily-kpi.c-danger::before { background: linear-gradient(90deg,var(--danger),#ff8a80); }
+  .daily-kpi.c-fuel::before   { background: linear-gradient(90deg,#0ea5e9,#38bdf8); }
+  .daily-kpi-label { font-size: 0.68rem; font-weight: 700; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.7px; margin-bottom: 6px; }
+  .daily-kpi-val   { font-size: 1.6rem; font-weight: 700; color: var(--navy); font-family: 'Space Grotesk', sans-serif; line-height: 1; }
+  .daily-kpi-sub   { font-size: 0.7rem; color: var(--text-mid); margin-top: 3px; }
+
+  /* ── DAILY TABLES ── */
+  .daily-check-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .daily-check-table thead th {
+    background: #f5f7fa; padding: 9px 12px;
+    font-size: 0.71rem; font-weight: 700; color: var(--text-mid);
+    text-align: left; border-bottom: 2px solid var(--border); white-space: nowrap;
+  }
+  .daily-check-table tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; cursor: pointer; }
+  .daily-check-table tbody tr:hover { background: #edf3fb; }
+  .daily-check-table tbody tr:last-child { border-bottom: none; }
+  .daily-check-table td { padding: 9px 12px; vertical-align: middle; }
+
+  .daily-mile-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  .daily-mile-table thead th {
+    background: #f0f8ff; padding: 9px 12px;
+    font-size: 0.71rem; font-weight: 700; color: #1e40af;
+    text-align: left; border-bottom: 2px solid #bfdbfe; white-space: nowrap;
+  }
+  .daily-mile-table tbody tr { border-bottom: 1px solid var(--border); transition: background .15s; }
+  .daily-mile-table tbody tr:hover { background: #f0f8ff; }
+  .daily-mile-table tbody tr:last-child { border-bottom: none; }
+  .daily-mile-table td { padding: 9px 12px; vertical-align: middle; }
+
+  /* ── DAILY SYSCHECK GRID ── */
+  .daily-syscheck-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 6px;
+  }
+  .daily-syscheck-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 10px; border-radius: 8px; font-size: 0.78rem;
+    border: 1px solid var(--border); background: #fafbfc;
+  }
+  .daily-syscheck-item.bad  { border-color: #fca5a5; background: #fff5f5; }
+  .daily-syscheck-item.ok   { border-color: #bbf7d0; background: #f0fdf4; }
+  .daily-syscheck-item.skip { opacity: 0.55; }
+
+  /* ── DAILY TIMELINE ── */
+  .daily-timeline { display: flex; flex-direction: column; gap: 0; }
+  .timeline-item { display: flex; gap: 0; position: relative; }
+  .timeline-item::before {
+    content:''; position:absolute; left:21px; top:36px; bottom:-1px;
+    width: 2px; background: var(--border); z-index: 0;
+  }
+  .timeline-item:last-child::before { display: none; }
+  .tl-dot { width: 44px; flex-shrink: 0; display: flex; justify-content: center; padding-top: 14px; z-index: 1; }
+  .tl-dot-inner {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2.5px solid #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; font-weight: 700; flex-shrink: 0;
+  }
+  .tl-dot-inner.check { background: var(--teal); box-shadow: 0 0 0 2px #6ee7b7; color:#fff; }
+  .tl-dot-inner.trip  { background: var(--blue); box-shadow: 0 0 0 2px #93c5fd; color:#fff; }
+  .tl-dot-inner.fuel  { background: #f59e0b;     box-shadow: 0 0 0 2px #fcd34d; color:#fff; }
+  .tl-dot-inner.issue { background: var(--danger);box-shadow: 0 0 0 2px #fca5a5; color:#fff; }
+  .tl-dot-inner.ret   { background: #8b5cf6;     box-shadow: 0 0 0 2px #c4b5fd; color:#fff; }
+  .tl-body { flex: 1; padding: 10px 4px 16px 8px; }
+  .tl-time   { font-size: 0.68rem; color: var(--text-light); font-weight: 600; margin-bottom: 3px; }
+  .tl-title  { font-size: 0.85rem; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+  .tl-detail { font-size: 0.75rem; color: var(--text-mid); line-height: 1.5; }
+
+  /* ── CALENDAR MINI ── */
+  .cal-grid {
+    display: grid; grid-template-columns: repeat(7,1fr); gap: 3px;
+    margin-bottom: 6px;
+  }
+  .cal-hd { font-size: 0.65rem; font-weight: 700; color: var(--text-light); text-align: center; padding: 4px 0; }
+  .cal-cell {
+    aspect-ratio: 1; border-radius: 7px; border: none; background: transparent;
+    font-size: 0.75rem; font-weight: 600; cursor: pointer;
+    transition: all 0.15s; position: relative; display: flex; align-items: center;
+    justify-content: center; flex-direction: column; gap: 1px;
+  }
+  .cal-cell:hover:not(:disabled) { background: var(--blue-soft); color: var(--blue); }
+  .cal-cell.has-data { color: var(--navy); }
+  .cal-cell.has-data::after {
+    content:''; width: 5px; height: 5px; border-radius: 50%;
+    background: var(--teal); position: absolute; bottom: 3px;
+  }
+  .cal-cell.has-issue::after { background: var(--danger); }
+  .cal-cell.selected { background: var(--navy) !important; color: #fff !important; }
+  .cal-cell.selected::after { background: #fff; }
+  .cal-cell.today-cell { font-weight: 800; }
+  .cal-cell.other-month { opacity: 0.28; }
+  .cal-cell:disabled { cursor: default; }
+
+  .empty-day { text-align: center; padding: 60px 20px; color: var(--text-light); }
+  .empty-day .em { font-size: 2.5rem; margin-bottom: 12px; }
+  .empty-day .et { font-size: 1rem; font-weight: 700; color: var(--text-mid); margin-bottom: 6px; }
+  .empty-day .es { font-size: 0.82rem; }
+
   /* ── LIVE VEHICLE DETAIL MODAL ── */
   #liveVehModal {
     position: fixed; inset: 0;
@@ -659,7 +822,162 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <div class="dash-wrapper">
 
-  <!-- FILTER BAR -->
+  <!-- ══ VIEW MODE SWITCHER ══ -->
+  <div class="view-mode-bar">
+    <button class="view-mode-btn active" id="vmBtnOverview" onclick="switchViewMode('overview')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      ภาพรวม
+    </button>
+    <button class="view-mode-btn" id="vmBtnDaily" onclick="switchViewMode('daily')">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      รายวัน
+    </button>
+  </div>
+
+  <!-- ══ DAILY PANEL ══ -->
+  <div id="dailyPanel">
+
+    <!-- Nav bar วันที่ -->
+    <div class="daily-nav-bar">
+      <button class="daily-nav-btn" id="dailyPrevBtn" onclick="dailyNavDate(-1)" title="วันก่อนหน้า">&#8592;</button>
+      <div class="daily-date-display">
+        <div class="dd-main" id="dailyDateDisplay">—</div>
+        <div class="dd-sub" id="dailyDateSub">—</div>
+      </div>
+      <input type="date" class="daily-date-input" id="dailyDatePicker" onchange="onDailyDatePick()">
+      <button class="daily-nav-btn" id="dailyNextBtn" onclick="dailyNavDate(1)" title="วันถัดไป">&#8594;</button>
+      <button class="daily-nav-btn" style="width:auto;padding:0 12px;font-size:0.78rem;font-weight:700;" onclick="dailyGoToday()">วันนี้</button>
+      <button class="daily-nav-btn" id="dailyRefreshBtn" onclick="renderDailyView()" title="รีเฟรช" style="font-size:0.85rem;">↻</button>
+    </div>
+
+    <!-- KPI รายวัน -->
+    <div class="daily-kpi-row" id="dailyKpiRow">
+      <div class="daily-kpi c-blue"><div class="daily-kpi-label">ตรวจสภาพ</div><div class="daily-kpi-val" id="dkpi-check">—</div><div class="daily-kpi-sub">คัน</div></div>
+      <div class="daily-kpi c-teal"><div class="daily-kpi-label">ออกรถ</div><div class="daily-kpi-val" id="dkpi-trips">—</div><div class="daily-kpi-sub">เที่ยว</div></div>
+      <div class="daily-kpi c-green"><div class="daily-kpi-label">ระยะรวม</div><div class="daily-kpi-val" id="dkpi-km">—</div><div class="daily-kpi-sub">กม.</div></div>
+      <div class="daily-kpi c-danger"><div class="daily-kpi-label">พบปัญหา</div><div class="daily-kpi-val" id="dkpi-issues">—</div><div class="daily-kpi-sub">จุด</div></div>
+      <div class="daily-kpi c-fuel"><div class="daily-kpi-label">เติมน้ำมัน</div><div class="daily-kpi-val" id="dkpi-fuel">—</div><div class="daily-kpi-sub" id="dkpi-fuel-sub">คัน</div></div>
+    </div>
+
+    <!-- grid หลัก: timeline + ปฏิทิน -->
+    <div style="display:grid;grid-template-columns:1fr 280px;gap:16px;margin-bottom:16px;" id="dailyMainGrid">
+
+      <!-- Timeline กิจกรรมวันนั้น -->
+      <div class="card">
+        <div class="card-header" style="background:linear-gradient(90deg,var(--navy),var(--navy-mid));">
+          <span class="icon">📅</span>
+          <h2>Timeline กิจกรรมประจำวัน</h2>
+          <span class="badge" id="dailyTimelineBadge">—</span>
+        </div>
+        <div class="card-body" style="padding:16px 12px;">
+          <div id="dailyTimeline"><div class="empty-day"><div class="em">📅</div><div class="et">เลือกวันเพื่อดูกิจกรรม</div></div></div>
+        </div>
+      </div>
+
+      <!-- ปฏิทินขนาดย่อ + สรุปสถิติเดือน -->
+      <div style="display:flex;flex-direction:column;gap:14px;">
+        <div class="card">
+          <div class="card-header" style="background:linear-gradient(90deg,#1e3a5f,#1e4d80);">
+            <span class="icon">🗓</span>
+            <h2 id="calMonthTitle">—</h2>
+            <div style="margin-left:auto;display:flex;gap:4px;">
+              <button onclick="calNavMonth(-1)" style="background:rgba(255,255,255,.15);border:none;border-radius:6px;width:26px;height:26px;color:#fff;cursor:pointer;font-size:0.9rem;">‹</button>
+              <button onclick="calNavMonth(1)"  style="background:rgba(255,255,255,.15);border:none;border-radius:6px;width:26px;height:26px;color:#fff;cursor:pointer;font-size:0.9rem;">›</button>
+            </div>
+          </div>
+          <div class="card-body" style="padding:12px;">
+            <div class="cal-grid" id="calHeaderRow"></div>
+            <div class="cal-grid" id="calBodyGrid"></div>
+          </div>
+        </div>
+        <!-- สรุปเดือน -->
+        <div class="card">
+          <div class="card-header"><span class="icon">📊</span><h2>สรุปเดือนนี้</h2></div>
+          <div class="card-body" id="dailyMonthSummary" style="padding:14px;">
+            <div style="font-size:0.8rem;color:var(--text-light);">กำลังคำนวณ...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ตรวจสภาพรายวัน -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <span class="icon">🔍</span>
+        <h2>บันทึกตรวจสภาพ</h2>
+        <span class="badge" id="dailyCheckBadge">—</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-scroll">
+          <table class="daily-check-table">
+            <thead>
+              <tr>
+                <th>เวลา</th>
+                <th>ทะเบียน / ประเภท</th>
+                <th>ผู้ตรวจ</th>
+                <th>เลขไมล์</th>
+                <th>น้ำมัน</th>
+                <th>สภาพรวม</th>
+                <th>อุปกรณ์</th>
+                <th>หมายเหตุ</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="dailyCheckTbody">
+              <tr><td colspan="9" class="empty-state">เลือกวันเพื่อดูข้อมูล</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- การตรวจสอบระบบรถ (รวม) -->
+    <div class="card" style="margin-bottom:16px;" id="dailySysCheckCard">
+      <div class="card-header"><span class="icon">⚙️</span><h2>ผลตรวจสอบระบบ — สรุปรายวัน</h2></div>
+      <div class="card-body">
+        <div id="dailySysCheckGrid" class="daily-syscheck-grid">
+          <div style="color:var(--text-light);font-size:0.82rem;">เลือกวันเพื่อดูข้อมูล</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ตารางออกรถ -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header" style="background:linear-gradient(90deg,#0a2540,#1e4d80);">
+        <span class="icon">🚗</span>
+        <h2>บันทึกการออกรถ</h2>
+        <span class="badge" id="dailyMileBadge">—</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-scroll">
+          <table class="daily-mile-table">
+            <thead>
+              <tr>
+                <th>เวลาออก</th>
+                <th>ทะเบียน / รถ</th>
+                <th>พนักงานขับ</th>
+                <th>ปลายทาง</th>
+                <th>ไมล์ต้น</th>
+                <th>ไมล์ปลาย</th>
+                <th>ระยะทาง</th>
+                <th>เวลากลับ</th>
+                <th>น้ำมัน</th>
+                <th>สถานะ</th>
+              </tr>
+            </thead>
+            <tbody id="dailyMileTbody">
+              <tr><td colspan="10" class="empty-state">เลือกวันเพื่อดูข้อมูล</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end #dailyPanel -->
+
+  <!-- ══ OVERVIEW PANEL ══ -->
+  <div id="overviewPanel">
   <div class="filter-bar">
     <div class="filter-group">
       <span class="filter-label">รถ</span>
@@ -825,7 +1143,9 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 
-</div>
+</div><!-- end #overviewPanel -->
+
+</div><!-- end .dash-wrapper -->
 
 <!-- ── DETAIL MODAL ── -->
 <div class="modal-overlay" id="detailModal" onclick="closeModal(event)">
