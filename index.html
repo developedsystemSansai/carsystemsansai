@@ -973,6 +973,18 @@ let ALL_VEHICLES = [
   { plate:'กล.9438 ชม.', type:'รถปิ๊กอัพ 4 ประตู', sys:'ทั่วไป' },
 ];
 
+/** extractTimeOnly — ดึงเฉพาะ HH:MM จาก string ที่อาจมี 1899 หรือเป็น Date.toString() */
+function extractTimeOnly(val) {
+  if (!val) return '';
+  const s = String(val).trim();
+  if (!s || s === '—') return '';
+  // HH:MM หรือ HH:MM:SS ล้วนๆ
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) return s.slice(0, 5);
+  // ดึง HH:MM จาก string ใดๆ (รวม "30/12/1899 08:14:00", "Sat Dec 30 1899 08:14:00 GMT...")
+  const m = s.match(/\b(\d{1,2}:\d{2})(?::\d{2})?/);
+  return m ? m[1] : s;
+}
+
 function fmtNow() {
   const d=new Date(), p=n=>String(n).padStart(2,'0');
   return `อัปเดต ${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
@@ -1044,7 +1056,7 @@ function renderVehicleCards(json) {
 
     const chkInfo = chkKey ? checkedMap[chkKey] : null;
     const chkSub = chkInfo
-      ? `ตรวจ ${chkInfo.inspTime||''} · ${chkInfo.driverName||''}`
+      ? `ตรวจ ${extractTimeOnly(chkInfo.inspTime)||chkInfo.inspTime||''} · ${chkInfo.driverName||''}`
       : isInUse && inUseKey ? `พขร. ${inUseMap[inUseKey]?.driver||''}`
       : 'ยังไม่ได้ตรวจสภาพวันนี้';
 
