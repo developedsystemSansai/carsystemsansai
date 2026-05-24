@@ -1089,15 +1089,86 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 
   <!-- CHARTS ROW -->
-  <div class="main-grid">
-    <div class="card">
-      <div class="card-header"><span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><h2>จำนวนการตรวจสอบแต่ละคัน</h2></div>
-      <div class="card-body"><div class="bar-chart" id="barChart"><div class="loading-state"><div class="spinner-sm"></div></div></div></div>
+
+  <!-- ══ DAILY SUMMARY DATE PICKER ══ -->
+  <div class="card" style="margin-bottom:12px;">
+    <div style="padding:12px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:linear-gradient(90deg,#f8fafc,#f0f4f8);border-radius:16px;">
+      <span style="font-size:0.82rem;font-weight:700;color:var(--navy);">📅 ดูข้อมูลประจำวัน :</span>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button onclick="summaryNavDate(-1)" style="width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);color:var(--text-mid);font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='var(--navy)';this.style.color='#fff'" onmouseout="this.style.background='var(--bg)';this.style.color='var(--text-mid)'">&#8592;</button>
+        <input type="date" id="summaryDatePicker" style="padding:6px 10px;border-radius:8px;border:1.5px solid var(--border);font-family:inherit;font-size:0.82rem;color:var(--text);background:#fff;outline:none;cursor:pointer;" onchange="renderSummaryTables()">
+        <button onclick="summaryNavDate(1)" style="width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);color:var(--text-mid);font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='var(--navy)';this.style.color='#fff'" onmouseout="this.style.background='var(--bg)';this.style.color='var(--text-mid)'">&#8594;</button>
+        <button onclick="summaryGoToday()" style="padding:6px 13px;border-radius:7px;border:1.5px solid var(--teal);background:var(--teal-soft);color:var(--teal);font-family:inherit;font-size:0.78rem;font-weight:700;cursor:pointer;">วันนี้</button>
+      </div>
+      <span id="summaryDateLabel" style="font-size:0.82rem;font-weight:600;color:var(--blue);"></span>
     </div>
+  </div>
+
+  <!-- ตารางสรุประยะทาง + ตารางค่าน้ำมัน -->
+  <div class="main-grid" style="margin-bottom:16px;">
+
+    <!-- ══ ตารางสรุประยะทาง ══ -->
     <div class="card">
-      <div class="card-header"><span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14M3 22h14M9 22v-6h6v6"/><path d="M19 5l2 2-2 2M21 7H17"/></svg></span><h2>ปริมาณและการเติมน้ำมัน</h2></div>
-      <div class="card-body"><div class="donut-wrap" id="fuelChart"><div class="loading-state"><div class="spinner-sm"></div></div></div></div>
+      <div class="card-header" style="background:linear-gradient(90deg,#0a2540,#1e4d80);">
+        <span class="icon">&#128739;&#65039;</span>
+        <h2>สรุประยะทางที่ใช้งาน</h2>
+        <span class="badge" id="distSummaryBadge">&#8212;</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-scroll">
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+            <thead>
+              <tr style="background:#f5f7fa;">
+                <th style="padding:9px 12px;text-align:left;font-size:0.71rem;font-weight:700;color:var(--text-mid);border-bottom:2px solid var(--border);white-space:nowrap;">ทะเบียน</th>
+                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:#0369a1;border-bottom:2px solid var(--border);white-space:nowrap;">ไมล์ตรวจเช็ค (เช้า)</th>
+                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:#15803d;border-bottom:2px solid var(--border);white-space:nowrap;">ไมล์ล่าสุด</th>
+                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:#7c3aed;border-bottom:2px solid var(--border);white-space:nowrap;">ระยะทางรวม</th>
+                <th style="padding:9px 12px;text-align:center;font-size:0.71rem;font-weight:700;color:var(--text-mid);border-bottom:2px solid var(--border);white-space:nowrap;">เที่ยว</th>
+              </tr>
+            </thead>
+            <tbody id="distSummaryTbody">
+              <tr><td colspan="5" class="loading-state"><div class="spinner-sm"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:7px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid var(--border);display:flex;align-items:center;gap:5px;">
+          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#7c3aed;"></span>
+          ระยะทาง = ไมล์ล่าสุด (MileLog) &#8722; ไมล์ตรวจเช็คเช้า (CheckLog)
+        </div>
+      </div>
     </div>
+
+    <!-- ══ ตารางค่าน้ำมัน ══ -->
+    <div class="card">
+      <div class="card-header" style="background:linear-gradient(90deg,#0369a1,#0ea5e9);">
+        <span class="icon">&#9981;</span>
+        <h2>สรุปค่าน้ำมันที่ใช้ไป</h2>
+        <span class="badge" id="fuelCostBadge" style="background:rgba(255,255,255,0.25);">&#8212;</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div class="table-scroll">
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+            <thead>
+              <tr style="background:#f0f8ff;">
+                <th style="padding:9px 12px;text-align:left;font-size:0.71rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;white-space:nowrap;">ทะเบียน</th>
+                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;white-space:nowrap;">ปริมาณ (ลิตร)</th>
+                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:#7c3aed;border-bottom:2px solid #bfdbfe;white-space:nowrap;">จำนวนเงิน (บาท)</th>
+                <th style="padding:9px 12px;text-align:center;font-size:0.71rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;white-space:nowrap;">เที่ยวที่เติม</th>
+                <th style="padding:9px 12px;text-align:center;font-size:0.71rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;white-space:nowrap;">เวลา</th>
+              </tr>
+            </thead>
+            <tbody id="fuelCostTbody">
+              <tr><td colspan="5" class="loading-state"><div class="spinner-sm"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:7px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid #bfdbfe;display:flex;align-items:center;justify-content:space-between;">
+          <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#0ea5e9;"></span>ข้อมูลจาก MileLog (บันทึกการออกรถ)</span>
+          <span id="fuelCostTotal" style="font-weight:700;color:#0369a1;"></span>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- EQUIPMENT CHANGES -->
@@ -1686,6 +1757,8 @@ async function loadData() {
     await loadMileLogToday();
     renderOdometer(filteredData.length ? filteredData : allData);
     startOdoAutoRefresh();
+    // Load all MileLog for summary tables
+    loadMileLogAll().then(() => renderSummaryTables());
     document.getElementById('lastUpdated').textContent =
       'อัปเดต: ' + fmtDateTime(new Date()) + ' (' + allData.length + ' รายการ)';
   } catch (e) {
@@ -1773,6 +1846,253 @@ function renderFuelChart(data) {
     </div>
   `;
 }
+
+
+// ══════════════════════════════════════════════════════════════
+//  SUMMARY TABLES (ระยะทาง + ค่าน้ำมัน) — มี date picker
+// ══════════════════════════════════════════════════════════════
+
+// Cache ข้อมูล MileLog ทั้งหมด (ไม่จำกัดแค่วันนี้) สำหรับ summary
+let _mileLogAll = [];
+let _mileLogAllLoaded = false;
+
+async function loadMileLogAll() {
+  if (_mileLogAllLoaded) return;
+  try {
+    const res  = await fetch(GAS_URL + '?action=getMileData');
+    const json = await res.json();
+    _mileLogAll = json.data || [];
+    _mileLogAllLoaded = true;
+  } catch (_) { _mileLogAll = []; }
+}
+
+function summaryNavDate(delta) {
+  const picker = document.getElementById('summaryDatePicker');
+  if (!picker || !picker.value) return;
+  const d = new Date(picker.value);
+  d.setDate(d.getDate() + delta);
+  picker.value = d.toISOString().split('T')[0];
+  renderSummaryTables();
+}
+
+function summaryGoToday() {
+  const picker = document.getElementById('summaryDatePicker');
+  if (!picker) return;
+  picker.value = bkkDateStr();
+  renderSummaryTables();
+}
+
+async function renderSummaryTables() {
+  // โหลด MileLog ทั้งหมดถ้ายังไม่มี
+  if (!_mileLogAllLoaded) await loadMileLogAll();
+
+  const picker = document.getElementById('summaryDatePicker');
+  const selDate = (picker && picker.value) ? picker.value : bkkDateStr();
+
+  // อัปเดต label
+  const labelEl = document.getElementById('summaryDateLabel');
+  if (labelEl) {
+    const d = new Date(selDate);
+    const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric', timeZone:'Asia/Bangkok' };
+    labelEl.textContent = d.toLocaleDateString('th-TH', opts);
+  }
+
+  renderDistSummary(selDate);
+  renderFuelCostSummary(selDate);
+}
+
+// ── ตารางสรุประยะทาง ──
+function renderDistSummary(dateStr) {
+  const tbody     = document.getElementById('distSummaryTbody');
+  const badgeEl   = document.getElementById('distSummaryBadge');
+  if (!tbody) return;
+
+  // CheckLog: หาเลขไมล์ตอนตรวจเช็คเช้า (ต่อ plate ในวันนั้น)
+  const checkOdoMap = {}; // plate → odometer (จาก CheckLog)
+  (window.allData || []).forEach(r => {
+    const nd = r._normDate || normalizeInspDate(r.inspDate || r.timestamp || '');
+    if (nd !== dateStr) return;
+    const plate = extractPlate(r.carType);
+    if (!plate) return;
+    const odo = Number(r.odometer || 0);
+    if (!checkOdoMap[plate] || odo < checkOdoMap[plate]) checkOdoMap[plate] = odo;
+  });
+
+  // MileLog: หาเลขไมล์ล่าสุด + จำนวนเที่ยว (ต่อ plate ในวันนั้น)
+  const mileMap = {}; // plate → { lastOdo, trips }
+  (_mileLogAll.length ? _mileLogAll : _mileLogToday).forEach(t => {
+    const nd = normalizeInspDate(t['วันที่'] || t['Timestamp'] || '');
+    if (nd !== dateStr) return;
+    const raw   = String(t['ทะเบียน/รถ'] || '');
+    const plate = raw.split(' ')[0].trim();
+    if (!plate) return;
+
+    const oEnd   = Number(t['เลขไมล์ปลาย'] || 0);
+    const oStart = Number(t['เลขไมล์ต้น']  || 0);
+    const lastOdo = oEnd || oStart;
+
+    if (!mileMap[plate]) mileMap[plate] = { lastOdo: 0, trips: 0 };
+    mileMap[plate].trips++;
+    if (lastOdo > mileMap[plate].lastOdo) mileMap[plate].lastOdo = lastOdo;
+  });
+
+  let totalKm = 0, activeCount = 0;
+  const rows = ALL_VEHICLES.map(v => {
+    const checkOdo = checkOdoMap[v.plate] || 0;
+    const mile     = mileMap[v.plate] || { lastOdo: 0, trips: 0 };
+    const lastOdo  = mile.lastOdo;
+    const diff     = (lastOdo && checkOdo && lastOdo > checkOdo) ? lastOdo - checkOdo : 0;
+    if (diff > 0) { totalKm += diff; activeCount++; }
+
+    const checkOdoHtml = checkOdo
+      ? `<span style="font-weight:700;font-family:'Space Grotesk',monospace;color:#0369a1;">${checkOdo.toLocaleString()}</span>`
+      : `<span style="color:var(--text-light);font-size:0.75rem;">ไม่มีข้อมูล</span>`;
+
+    const lastOdoHtml = lastOdo
+      ? `<span style="font-weight:700;font-family:'Space Grotesk',monospace;color:#15803d;">${lastOdo.toLocaleString()}</span>`
+      : `<span style="color:var(--text-light);font-size:0.75rem;">—</span>`;
+
+    let distHtml;
+    if (diff > 0) {
+      const pct = Math.min(100, Math.round(diff / 300 * 100));
+      distHtml = `<div style="display:flex;flex-direction:column;gap:3px;">
+        <span style="font-weight:800;font-family:'Space Grotesk',monospace;color:#7c3aed;font-size:0.9rem;">+${diff.toLocaleString()} กม.</span>
+        <div style="height:4px;background:var(--border);border-radius:99px;overflow:hidden;width:80px;">
+          <div style="height:100%;background:linear-gradient(90deg,#7c3aed,#a855f7);border-radius:99px;width:${pct}%;"></div>
+        </div>
+      </div>`;
+    } else if (!checkOdo && !lastOdo) {
+      distHtml = `<span style="color:var(--text-light);font-size:0.75rem;">ไม่มีข้อมูล</span>`;
+    } else {
+      distHtml = `<span style="color:var(--text-light);font-size:0.75rem;">— กม.</span>`;
+    }
+
+    const tripHtml = mile.trips
+      ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:99px;background:#e0e7ff;color:#4f46e5;font-weight:700;font-size:0.78rem;">${mile.trips}</span>`
+      : `<span style="color:var(--text-light);font-size:0.75rem;">—</span>`;
+
+    return `<tr style="border-bottom:1px solid var(--border);${diff > 0 ? 'background:linear-gradient(90deg,#faf9ff,#fff);' : ''}">
+      <td style="padding:9px 12px;">
+        <span class="plate-badge" style="font-size:0.72rem;">${v.plate}</span>
+        <div style="font-size:0.66rem;color:var(--text-light);margin-top:2px;">${v.type}</div>
+      </td>
+      <td style="padding:9px 12px;text-align:right;">${checkOdoHtml}</td>
+      <td style="padding:9px 12px;text-align:right;">${lastOdoHtml}</td>
+      <td style="padding:9px 12px;text-align:right;">${distHtml}</td>
+      <td style="padding:9px 12px;text-align:center;">${tripHtml}</td>
+    </tr>`;
+  });
+
+  // แถวรวม
+  rows.push(`<tr style="background:#f0eeff;border-top:2px solid #c4b5fd;">
+    <td style="padding:9px 12px;font-weight:700;font-size:0.82rem;color:#4f46e5;" colspan="3">รวมทั้งหมด (${activeCount} คัน)</td>
+    <td style="padding:9px 12px;text-align:right;font-weight:800;font-family:'Space Grotesk',monospace;color:#7c3aed;font-size:0.95rem;">+${totalKm.toLocaleString()} กม.</td>
+    <td style="padding:9px 12px;"></td>
+  </tr>`);
+
+  tbody.innerHTML = rows.join('');
+  if (badgeEl) badgeEl.textContent = `${activeCount} คัน · รวม ${totalKm.toLocaleString()} กม.`;
+}
+
+// ── ตารางค่าน้ำมัน ──
+function renderFuelCostSummary(dateStr) {
+  const tbody   = document.getElementById('fuelCostTbody');
+  const badgeEl = document.getElementById('fuelCostBadge');
+  const totalEl = document.getElementById('fuelCostTotal');
+  if (!tbody) return;
+
+  // หา trip ที่มีการเติมน้ำมันในวันนั้น
+  const fuelRows = [];
+  const plateSeen = {};
+
+  (_mileLogAll.length ? _mileLogAll : _mileLogToday).forEach(t => {
+    const nd = normalizeInspDate(t['วันที่'] || t['Timestamp'] || '');
+    if (nd !== dateStr) return;
+    const raw    = String(t['ทะเบียน/รถ'] || '');
+    const plate  = raw.split(' ')[0].trim();
+    if (!plate) return;
+
+    const liters = parseFloat(t['น้ำมันที่เติม(ลิตร)'] || t['fuelLiters'] || 0);
+    const price  = parseFloat(t['ราคาน้ำมัน(บาท)'] || t['ราคาน้ำมัน'] || t['fuelPrice'] || 0);
+    if (!liters && !price) return; // ไม่มีการเติม
+
+    const timeOut  = extractTimeOnly(t['เวลาออก']  || '');
+    const timeBack = extractTimeOnly(t['เวลากลับ'] || '');
+    const tripNo   = (plateSeen[plate] = (plateSeen[plate] || 0) + 1);
+
+    fuelRows.push({ plate, liters, price, timeOut, timeBack, tripNo,
+      type: ALL_VEHICLES.find(v => v.plate === plate)?.type || '' });
+  });
+
+  if (!fuelRows.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="empty-state" style="padding:30px;"><div class="em">⛽</div>ไม่มีการเติมน้ำมันในวันนี้</td></tr>`;
+    if (badgeEl) badgeEl.textContent = 'ยังไม่มีข้อมูล';
+    if (totalEl) totalEl.textContent = '';
+    return;
+  }
+
+  // รวมต่อ plate
+  const plateTotal = {};
+  fuelRows.forEach(r => {
+    if (!plateTotal[r.plate]) plateTotal[r.plate] = { liters: 0, price: 0, trips: 0, type: r.type };
+    plateTotal[r.plate].liters += r.liters;
+    plateTotal[r.plate].price  += r.price;
+    plateTotal[r.plate].trips++;
+  });
+
+  const grandTotalLiters = fuelRows.reduce((s, r) => s + r.liters, 0);
+  const grandTotalPrice  = fuelRows.reduce((s, r) => s + r.price, 0);
+
+  const rows = fuelRows.map(r => {
+    const litersHtml = r.liters
+      ? `<span style="font-weight:700;font-family:'Space Grotesk',monospace;color:#0369a1;">${r.liters.toLocaleString()} ล.</span>`
+      : `<span style="color:var(--text-light);">—</span>`;
+
+    const priceHtml = r.price
+      ? `<span style="font-weight:800;font-family:'Space Grotesk',monospace;color:#7c3aed;font-size:0.88rem;">${r.price.toLocaleString()} ฿</span>`
+      : `<span style="color:var(--text-light);">—</span>`;
+
+    const timeHtml = r.timeOut || r.timeBack
+      ? `<div style="font-size:0.72rem;color:var(--text-mid);">${r.timeOut ? 'ออก '+r.timeOut : ''}${r.timeOut && r.timeBack ? ' · ' : ''}${r.timeBack ? 'กลับ '+r.timeBack : ''}</div>`
+      : `<span style="color:var(--text-light);font-size:0.72rem;">—</span>`;
+
+    return `<tr style="border-bottom:1px solid #bfdbfe;">
+      <td style="padding:9px 12px;">
+        <span class="plate-badge" style="font-size:0.72rem;background:#0369a1;">${r.plate}</span>
+        <div style="font-size:0.66rem;color:var(--text-light);margin-top:2px;">${r.type}</div>
+      </td>
+      <td style="padding:9px 12px;text-align:right;">${litersHtml}</td>
+      <td style="padding:9px 12px;text-align:right;">${priceHtml}</td>
+      <td style="padding:9px 12px;text-align:center;"><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:99px;background:#eff6ff;color:#1e40af;font-weight:700;font-size:0.78rem;">${r.tripNo}</span></td>
+      <td style="padding:9px 12px;text-align:center;">${timeHtml}</td>
+    </tr>`;
+  });
+
+  // แถวรวม
+  rows.push(`<tr style="background:#eff6ff;border-top:2px solid #3b82f6;">
+    <td style="padding:9px 12px;font-weight:700;color:#1e40af;" colspan="1">รวม (${Object.keys(plateTotal).length} คัน)</td>
+    <td style="padding:9px 12px;text-align:right;font-weight:700;color:#0369a1;font-family:'Space Grotesk',monospace;">${grandTotalLiters.toLocaleString()} ล.</td>
+    <td style="padding:9px 12px;text-align:right;font-weight:800;color:#7c3aed;font-family:'Space Grotesk',monospace;font-size:0.95rem;">${grandTotalPrice.toLocaleString()} ฿</td>
+    <td colspan="2"></td>
+  </tr>`);
+
+  tbody.innerHTML = rows.join('');
+  if (badgeEl) badgeEl.textContent = `เติมแล้ว ${Object.keys(plateTotal).length} คัน`;
+  if (totalEl) totalEl.textContent = `รวม ${grandTotalPrice.toLocaleString()} บาท`;
+}
+
+// init summary date picker
+(function initSummaryDatePicker() {
+  document.addEventListener('DOMContentLoaded', async function() {
+    const picker = document.getElementById('summaryDatePicker');
+    if (picker) {
+      picker.value = bkkDateStr();
+      // โหลด MileLog ทั้งหมดแล้ว render
+      await loadMileLogAll();
+      renderSummaryTables();
+    }
+  });
+})();
 
 function switchTab(tab, el) {
   currentTab = tab;
