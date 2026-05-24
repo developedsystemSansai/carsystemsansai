@@ -1599,8 +1599,15 @@ function _openDetailForRecord(r) {
   }
   renderModalPhotos(driveLinksVal);
 
-  // Fuel Photo section
-  renderFuelPhotoSection(r);
+  // Fuel Photo section — หา MileLog record ที่ตรงกันเพื่อดึงรูปบิลน้ำมัน
+  const _cPlate = (r.carType || '').split(' ')[0].trim();
+  const _cDate  = (r.inspDate || '').slice(0,10);
+  const _mileRec = (window._mileLogToday || []).find(m => {
+    const mPlate = (m['ทะเบียน/รถ'] || m.carType || '').split(' ')[0].trim();
+    const mDate  = (m['วันที่'] || '').slice(0,10);
+    return mPlate === _cPlate && mDate === _cDate;
+  }) || null;
+  renderFuelPhotoSection(r, _mileRec);
 
   document.getElementById('detailModal').classList.add('show');
   document.body.style.overflow = 'hidden';
@@ -1685,13 +1692,20 @@ function renderModalPhotos(photoLinks) {
 }
 
 // ── FUEL PHOTO SECTION ──
-function renderFuelPhotoSection(r) {
+function renderFuelPhotoSection(r, mileRec) {
   const existing = document.getElementById('m-fuel-photos-section');
   if (existing) existing.remove();
 
   if (r.fuelFill !== 'เติม') return;
 
-  const links = (r.driveLinks || r.photoLinks || '').toString().split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
+  // รูปบิลน้ำมัน — อยู่ใน fuelPhotoUrl (MileLog col 16) ไม่ใช่ driveLinks (CheckLog)
+  const rawFuel = mileRec
+    ? (mileRec.fuelPhotoUrl || mileRec['รูปบิลน้ำมัน'] || '').toString().trim()
+    : '';
+  const fuelPhotoClean = rawFuel.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
+  const links = fuelPhotoClean
+    ? fuelPhotoClean.split(/[\n,]+/).map(l => l.trim()).filter(l => l.startsWith('http'))
+    : [];
 
   const photosSection = document.getElementById('m-photos').parentElement;
   const wrap = document.createElement('div');
@@ -2576,9 +2590,22 @@ function openLiveVehicleDetail(plate) {
         lastInspDate !== '—' ? lastInspDate : ''
       ].filter(Boolean).join(' · ');
 
-      // รูปบิลน้ำมัน — ดึงจาก driveLinks / photoLinks
-      const rawLinks = (rec.driveLinks || rec.photoLinks || '').toString();
-      const fuelLinks = rawLinks.split(/[\n,]+/).map(l => l.trim()).filter(l => l.length > 0);
+      // รูปบิลน้ำมัน — ต้องดึงจาก MileLog (fuelPhotoUrl) ไม่ใช่ CheckLog (driveLinks)
+      // ใช้ _mileLogToday ที่โหลดไว้แล้ว หา record ที่ plate+date ตรงกัน
+      const mileRec = (window._mileLogToday || []).find(m => {
+        const mPlate = (m['ทะเบียน/รถ'] || m.carType || '').split(' ')[0].trim();
+        const cPlate = (rec.carType || '').split(' ')[0].trim();
+        const mDate  = (m['วันที่'] || '').slice(0,10);
+        const cDate  = (rec.inspDate || '').slice(0,10);
+        return mPlate === cPlate && mDate === cDate;
+      });
+      const rawFuelLink = mileRec
+        ? (mileRec.fuelPhotoUrl || mileRec['รูปบิลน้ำมัน'] || '').toString().trim()
+        : '';
+      const cleanFuelLink = rawFuelLink.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
+      const fuelLinks = cleanFuelLink
+        ? cleanFuelLink.split(/[\n,]+/).map(l => l.trim()).filter(l => l.startsWith('http'))
+        : [];
       let fuelLinkHtml = '';
       if (fuelLinks.length > 0) {
         const thumbs = fuelLinks.map((url, i) => {
