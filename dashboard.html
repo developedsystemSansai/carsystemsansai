@@ -1585,8 +1585,18 @@ function _openDetailForRecord(r) {
     remarksSection.style.display = 'none';
   }
 
-  // Photos — API ส่งมาเป็น driveLinks, fallback photoLinks
-  const driveLinksVal = r.driveLinks || r.photoLinks || '';
+  // Photos — ใช้ driveUrls (array จาก col 29) ก่อน, fallback → driveLinks (col 28), fallback → photoLinks
+  // driveUrls = array ของ URL จริงๆ ที่ GAS ส่งมาให้ dashboard
+  let driveLinksVal = '';
+  if (Array.isArray(r.driveUrls) && r.driveUrls.length > 0) {
+    driveLinksVal = r.driveUrls.join('\n');
+  } else if (r.driveLinksUrls) {
+    driveLinksVal = r.driveLinksUrls;
+  } else {
+    // fallback: driveLinks อาจเป็น HYPERLINK formula → ดึง URL ออกมา
+    const raw = (r.driveLinks || r.photoLinks || '').toString();
+    driveLinksVal = raw.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1');
+  }
   renderModalPhotos(driveLinksVal);
 
   // Fuel Photo section
