@@ -597,8 +597,9 @@ function checkPw() {
   }
 }
 
-// Check session on load — รอให้ script ทั้งหมดโหลดก่อนผ่าน DOMContentLoaded
+// Check session on load
 document.addEventListener('DOMContentLoaded', function() {
+  loadVehicleMaster(); // โหลด vehicle list ก่อนเสมอ (ใช้ใน filter + live grid)
   if (checkSession()) {
     document.getElementById('pwOverlay').style.display = 'none';
     loadData();
@@ -843,6 +844,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 // ── CONFIG ──
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxL1ZYuJr_jtZtGB9oRS5HSO9lArCeqduleQOEli9Ctpv4tZGIiHrTXg-OqMGFvfQ/exec';
+// NOTE: GAS_STATUS_URL ใช้ตัวเดียวกับ GAS_URL (ประกาศซ้ำด้านล่างเพื่อ compatibility)
 // ── Bangkok Timezone Helpers ──────────────────────────────
 function bkkDateStr(d) {
   // ส่งคืน 'yyyy-MM-dd' ใน timezone Asia/Bangkok
@@ -934,36 +936,48 @@ async function loadData() {
     const res = await fetch(GAS_URL + '?action=getData');
     const json = await res.json();
     allData = json.data || [];
-    window.allData = allData; // sync กับ liveVehicleGrid
+    window.allData = allData;
     console.log('[Dashboard] getData:', allData.length, 'records');
     if (allData.length > 0) {
-      console.log('[Dashboard] sample record keys:', Object.keys(allData[0]));
-      console.log('[Dashboard] sample inspDate:', allData[0].inspDate, '| timestamp:', allData[0].timestamp);
+      // Debug: แสดง sample keys และ inspDate
+      console.log('[Dashboard] sample keys:', Object.keys(allData[0]));
+      console.log('[Dashboard] sample inspDate:', allData[0].inspDate, '| carType:', allData[0].carType);
+    } else {
+      console.warn('[Dashboard] ⚠️ ได้รับข้อมูล 0 รายการจาก API - ตรวจสอบ CheckLog sheet');
     }
     applyFilters();
-    // refresh live grid เพื่อให้ latestRecord อัปเดต
     if (typeof loadLiveVehicleStatus === 'function') loadLiveVehicleStatus();
-    document.getElementById('lastUpdated').textContent = 'อัปเดต: ' + fmtDateTime(new Date()) + ' (' + allData.length + ' รายการ)';
+    document.getElementById('lastUpdated').textContent =
+      'อัปเดต: ' + fmtDateTime(new Date()) + ' (' + allData.length + ' รายการ)';
   } catch (e) {
     console.error('[Dashboard] loadData error:', e);
     allData = generateDemoData();
     applyFilters();
-    document.getElementById('lastUpdated').textContent = 'Demo mode (โหลดข้อมูลไม่สำเร็จ)';
+    document.getElementById('lastUpdated').textContent = 'Demo mode (โหลดข้อมูลไม่สำเร็จ: ' + e.message + ')';
   }
 }
 
-// แปลง inspDate ให้เป็น "yyyy-MM-dd" เสมอ (รองรับทั้ง "dd/MM/yyyy" และ "yyyy-MM-dd")
+// แปลง inspDate ให้เป็น "yyyy-MM-dd" เสมอ (รองรับทุกรูปแบบที่ GAS ส่งมา)
 function normalizeInspDate(val) {
-  if (!val) return '';
+  if (!val && val !== 0) return '';
   const s = String(val).trim();
-  if (!s || s === '—') return '';
+  if (!s || s === '—' || s === 'undefined') return '';
+  // yyyy-MM-dd ✓
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
   // dd/MM/yyyy หรือ dd/MM/yyyy HH:mm:ss
   const dmyMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
-  if (dmyMatch) return `${dmyMatch[3]}-${dmyMatch[2]}-${dmyMatch[1]}`;
-  // yyyy-MM-dd ✓ ส่งตรง
-  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
-  // ISO date string (2025-05-23T...)
+  if (dmyMatch) return dmyMatch[3] + '-' + dmyMatch[2] + '-' + dmyMatch[1];
+  // ISO date string
   if (/^\d{4}-\d{2}-\d{2}T/.test(s)) return s.slice(0, 10);
+  // ลอง parse เป็น Date
+  try {
+    const d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      const bkk = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok',
+        year:'numeric', month:'2-digit', day:'2-digit' }).format(d);
+      return bkk;
+    }
+  } catch (_) {}
   return '';
 }
 
@@ -993,28 +1007,35 @@ function normalizeFuelLevel(val) {
 }
 
 function applyFilters() {
-  // normalize inspDate ทุก record ก่อน filter (copy กลับเป็น inspDate ด้วย เพื่อ sort/display)
+  // normalize inspDate ทุก record ก่อน filter
   let data = allData.map(r => {
-    // ลอง inspDate ก่อน ถ้าว่างหรือ normalize ไม่ได้ ให้ fallback ไป timestamp
-    const nd = normalizeInspDate(r.inspDate) || normalizeInspDate(r.timestamp);
-    return { ...r, inspDate: nd || r.inspDate, _normDate: nd || '', fuelLevel: normalizeFuelLevel(r.fuelLevel) };
+    // ลอง inspDate → timestamp → ว่าง
+    let nd = normalizeInspDate(r.inspDate);
+    if (!nd) nd = normalizeInspDate(r.timestamp);
+    return {
+      ...r,
+      inspDate  : nd || r.inspDate || '',
+      _normDate : nd || '',
+      fuelLevel : normalizeFuelLevel(r.fuelLevel)
+    };
   });
 
-  const carF    = document.getElementById('filterCar').value;
-  const monF    = document.getElementById('filterMonth').value;
-  const searchF = document.getElementById('filterSearch').value.toLowerCase().trim();
+  const carF    = (document.getElementById('filterCar')    || {}).value || '';
+  const monF    = (document.getElementById('filterMonth')  || {}).value || '';
+  const searchF = ((document.getElementById('filterSearch') || {}).value || '').toLowerCase().trim();
 
   if (carF)    data = data.filter(r => (r.carType||'').includes(carF));
   // กรองเดือนเฉพาะเมื่อมีค่า filterMonth
   if (monF)    data = data.filter(r => r._normDate && r._normDate.startsWith(monF));
   if (searchF) data = data.filter(r =>
-    (r.carType||'').toLowerCase().includes(searchF) ||
-    (r.driverName||'').toLowerCase().includes(searchF) ||
-    (r.remarks||'').toLowerCase().includes(searchF)
+    (r.carType    ||'').toLowerCase().includes(searchF) ||
+    (r.driverName ||'').toLowerCase().includes(searchF) ||
+    (r.remarks    ||'').toLowerCase().includes(searchF)
   );
 
   filteredData = data;
-  console.log('[applyFilters] allData:', allData.length, '→ filtered:', data.length, '| monF:', monF, '| carF:', carF);
+  console.log('[applyFilters] allData:', allData.length, '→ filtered:', data.length,
+              '| monF:', monF || '(ทั้งหมด)', '| carF:', carF || '(ทั้งหมด)');
   renderDashboard(data);
 }
 
@@ -1596,7 +1617,7 @@ function generateDemoData() {
 
 
 // ══════ LIVE VEHICLE STATUS ══════
-const GAS_STATUS_URL = 'https://script.google.com/macros/s/AKfycbxL1ZYuJr_jtZtGB9oRS5HSO9lArCeqduleQOEli9Ctpv4tZGIiHrTXg-OqMGFvfQ/exec';
+const GAS_STATUS_URL = GAS_URL; // ใช้ endpoint เดียวกัน
 
 function fmt24(dateObj) {
   const d = dateObj instanceof Date ? dateObj : new Date(dateObj);
@@ -1687,55 +1708,34 @@ async function loadLiveVehicleStatus() {
   }
 }
 
-// ─── renderFuelTracker ───────────────────────────────────────
 function renderFuelTracker(json) {
   const grid  = document.getElementById('fuelTrackerGrid');
   const badge = document.getElementById('fuelTrackerBadge');
+  if (!grid || !badge) return;
 
-  // รวบรวมทุกรถ (ALL_VEH ใน liveVehicleGrid)
-  const ALL_VEH = [
-    { plate:'นจ.4919', type:'รถตู้ฮุนได' },
-    { plate:'นง.8781', type:'รถตู้ฮุนได' },
-    { plate:'นง.86',   type:'รถตู้' },
-    { plate:'จย.1379', type:'รถ Refer' },
-    { plate:'งบ.5466', type:'รถ Refer' },
-    { plate:'ขษ.4361', type:'รถ Refer' },
-    { plate:'ขร.501',  type:'รถ Refer' },
-    { plate:'ขธ.9302', type:'รถปิ๊กอัพ 4 ประตู' },
-    { plate:'ขฉ.8407', type:'รถ Refer' },
-    { plate:'ขค.9662', type:'รถปิ๊กอัพ 4 ประตู' },
-    { plate:'กล.9438', type:'รถปิ๊กอัพ 4 ประตู' },
-  ];
-
-  // สร้าง fueledMap จาก todayFueled
+  // ใช้ ALL_VEHICLES ที่โหลดจาก API (หรือ default)
   const fueledData = json.todayFueled || [];
-  const fueledMap = {};
+  const fueledMap  = {};
   fueledData.forEach(f => {
-    const plate = (f.carType || '').split(' ')[0];
+    const plate = (f.carType || '').split(' ')[0].trim();
     if (plate) fueledMap[plate] = f;
   });
 
   const fueledCount = Object.keys(fueledMap).length;
-  badge.textContent = fueledCount > 0 ? `เติมแล้ว ${fueledCount}/${ALL_VEH.length} คัน` : 'ยังไม่มีการเติมน้ำมัน';
+  badge.textContent = fueledCount > 0
+    ? 'เติมแล้ว ' + fueledCount + '/' + ALL_VEHICLES.length + ' คัน'
+    : 'ยังไม่มีการเติมน้ำมัน';
 
-  const cards = ALL_VEH.map(v => {
-    const fd = fueledMap[v.plate] || Object.values(fueledMap).find(f =>
-      (f.carType||'').includes(v.plate) || v.plate.includes((f.carType||'').split(' ')[0])
-    );
+  const cards = ALL_VEHICLES.map(v => {
+    const fd = fueledMap[v.plate];
     const filled = !!fd;
-
     const sourceLabel = fd?.source === 'check' ? '🔍 ตรวจรถ' : fd?.source === 'mile' ? '🚗 ออกรถ' : '';
-    const litersLabel = fd?.fuelLiters ? `${fd.fuelLiters} ลิตร` : '';
+    const litersLabel = fd?.fuelLiters ? fd.fuelLiters + ' ลิตร' : '';
     const timeLabel   = fd?.time || '';
-    const levelLabel  = fd?.fuelLevel ? `ระดับ ${fd.fuelLevel}` : '';
+    const levelLabel  = fd?.fuelLevel ? 'ระดับ ' + fd.fuelLevel : '';
 
     if (filled) {
-      return `<div style="
-        background:linear-gradient(135deg,#eff6ff,#dbeafe);
-        border:2px solid #3b82f6;
-        border-radius:14px;padding:14px 16px;
-        display:flex;flex-direction:column;gap:6px;
-      ">
+      return `<div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:2px solid #3b82f6;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div>
             <div style="font-size:0.95rem;font-weight:800;color:#0a2540;font-family:'Space Grotesk',sans-serif;">${v.plate}</div>
@@ -1751,13 +1751,7 @@ function renderFuelTracker(json) {
         ${fd?.driverName ? `<div style="font-size:0.7rem;color:#1e40af;margin-top:2px;">👤 ${fd.driverName}${timeLabel ? ' · ' + timeLabel : ''}</div>` : ''}
       </div>`;
     } else {
-      return `<div style="
-        background:#f8fafc;
-        border:2px dashed #e2e8f0;
-        border-radius:14px;padding:14px 16px;
-        display:flex;flex-direction:column;gap:4px;
-        opacity:0.75;
-      ">
+      return `<div style="background:#f8fafc;border:2px dashed #e2e8f0;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;opacity:0.75;">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div>
             <div style="font-size:0.95rem;font-weight:800;color:#334155;font-family:'Space Grotesk',sans-serif;">${v.plate}</div>
@@ -1765,7 +1759,7 @@ function renderFuelTracker(json) {
           </div>
           <span style="background:#e2e8f0;color:#94a3b8;font-size:0.62rem;font-weight:600;padding:3px 10px;border-radius:99px;">ยังไม่ได้เติม</span>
         </div>
-        <div style="font-size:0.7rem;color:#94a3b8;margin-top:2px;">⛽ — ยังไม่มีการบันทึกการเติมน้ำมัน</div>
+        <div style="font-size:0.7rem;color:#94a3b8;margin-top:2px;">⛽ — ยังไม่มีการบันทึก</div>
       </div>`;
     }
   });
@@ -1781,65 +1775,55 @@ function renderFuelTrackerOffline() {
 
 function renderLiveVehicleGrid(json) {
   const inUseMap={}, readyMap={}, checkedMap={}, fueledMap={};
-  (json.inUse||[]).forEach(x => { inUseMap[x.carType]=x; });
-  (json.ready||[]).forEach(x => { readyMap[x.carType]=x; });
-  (json.todayChecked||[]).forEach(x => { checkedMap[x.carType]=x; });
-  // สร้าง fueledMap: plate → ข้อมูลการเติมน้ำมัน (จาก todayFueled ที่ backend ส่งมา)
-  (json.todayFueled||[]).forEach(x => {
-    const plate = (x.carType||'').split(' ')[0];
-    fueledMap[plate] = x;
-  });
 
-  const ALL_VEH = [
-    { plate:'นจ.4919', type:'รถตู้ฮุนได' },
-    { plate:'นง.8781', type:'รถตู้ฮุนได' },
-    { plate:'นง.86',   type:'รถตู้' },
-    { plate:'จย.1379', type:'รถ Refer' },
-    { plate:'งบ.5466', type:'รถ Refer' },
-    { plate:'ขษ.4361', type:'รถ Refer' },
-    { plate:'ขร.501',  type:'รถ Refer' },
-    { plate:'ขธ.9302', type:'รถปิ๊กอัพ 4 ประตู' },
-    { plate:'ขฉ.8407', type:'รถ Refer' },
-    { plate:'ขค.9662', type:'รถปิ๊กอัพ 4 ประตู' },
-    { plate:'กล.9438', type:'รถปิ๊กอัพ 4 ประตู' },
-  ];
+  // Build lookup maps ด้วย short plate เพื่อ match แบบ robust
+  (json.inUse||[]).forEach(x => {
+    const p = (x.carType||'').split(' ')[0].trim();
+    inUseMap[p] = x;
+  });
+  (json.ready||[]).forEach(x => {
+    const p = (x.carType||'').split(' ')[0].trim();
+    readyMap[p] = x;
+  });
+  (json.todayChecked||[]).forEach(x => {
+    const p = (x.carType||'').split(' ')[0].trim();
+    checkedMap[p] = x;
+  });
+  (json.todayFueled||[]).forEach(x => {
+    const p = (x.carType||'').split(' ')[0].trim();
+    fueledMap[p] = x;
+  });
 
   // liveVehicleDetailMap เก็บข้อมูลแต่ละคัน สำหรับ popup
   window.liveVehicleDetailMap = {};
 
-  const cards = ALL_VEH.map(v => {
-    const inUseKey  = Object.keys(inUseMap).find(k => k.includes(v.plate) || v.plate.includes(k.split(' ')[0]));
-    const readyKey  = Object.keys(readyMap).find(k => k.includes(v.plate) || v.plate.includes(k.split(' ')[0]));
-    const chkKey    = Object.keys(checkedMap).find(k => k.includes(v.plate) || v.plate.includes(k.split(' ')[0]));
+  const cards = ALL_VEHICLES.map(v => {
+    const isInUse   = !!inUseMap[v.plate];
+    const isReady   = !!readyMap[v.plate];
+    const isChecked = !!checkedMap[v.plate] || isReady;
+    const isFueled  = !!fueledMap[v.plate];
+    const fuelData  = fueledMap[v.plate];
 
-    const isInUse   = !!inUseKey;
-    const isReady   = !!readyKey;
-    const isChecked = !!chkKey || isReady;
-    // ตรวจว่าเติมน้ำมันวันนี้แล้วหรือยัง
-    const isFueled  = !!Object.keys(fueledMap).find(k => k === v.plate || v.plate.includes(k) || k.includes(v.plate));
-    const fuelData  = fueledMap[v.plate] || Object.values(fueledMap).find(f => (f.carType||'').includes(v.plate) || v.plate.includes((f.carType||'').split(' ')[0]));
-
-    // ดึงข้อมูลจาก allData เพื่อตรวจหาปัญหา — match ทั้ง "นง.86" และ "นง.86 ชม."
+    // ดึง latestRecord จาก allData — match ด้วย short plate
     const latestRecord = (window.allData||[]).filter(r => {
-      const ct = (r.carType||'');
-      // ตรวจว่า plate ปรากฏใน carType ไม่ว่ารูปแบบใด
-      return ct.includes(v.plate) || v.plate.includes(ct.split(' ')[0]);
-    }).sort((a,b) => {
-      // sort by inspDate desc, inspTime desc
+      const ct = String(r.carType || '');
+      return ct.includes(v.plate) || ct.split(' ')[0].trim() === v.plate;
+    }).sort((a, b) => {
       const da = (a.inspDate||'') + (a.inspTime||'');
       const db = (b.inspDate||'') + (b.inspTime||'');
       return db.localeCompare(da);
     })[0];
 
-    const hasIssue = latestRecord && Object.keys(latestRecord).some(k => k.startsWith('chk_') && latestRecord[k] === 'ผิดปกติ');
+    const hasIssue = latestRecord && Object.keys(latestRecord)
+      .some(k => k.startsWith('chk_') && latestRecord[k] === 'ผิดปกติ');
 
     // เก็บ detail สำหรับ popup
     window.liveVehicleDetailMap[v.plate] = {
       plate: v.plate, type: v.type,
       isInUse, isReady, isChecked,
-      inUseData: inUseKey ? inUseMap[inUseKey] : null,
-      readyData: readyKey ? readyMap[readyKey] : null,
-      chkData: chkKey ? checkedMap[chkKey] : null,
+      inUseData : inUseMap[v.plate]   || null,
+      readyData : readyMap[v.plate]   || null,
+      chkData   : checkedMap[v.plate] || null,
       latestRecord,
       hasIssue
     };
@@ -1847,13 +1831,12 @@ function renderLiveVehicleGrid(json) {
     let icon, statusLabel, statusSub, bgGrad, borderColor, textColor, badgeBg, badgeColor;
 
     if (isInUse) {
-      const x = inUseMap[inUseKey];
+      const x = inUseMap[v.plate];
       icon = '🚗';
       statusLabel = 'กำลังใช้งาน';
       statusSub = x?.destination ? '→ ' + x.destination : '';
       bgGrad = 'linear-gradient(135deg,#fffbeb,#fef3c7)';
-      borderColor = '#f59e0b';
-      textColor = '#92400e';
+      borderColor = '#f59e0b'; textColor = '#92400e';
       badgeBg = '#f59e0b'; badgeColor = '#fff';
     } else if (hasIssue) {
       icon = '⚠️';
@@ -1866,7 +1849,7 @@ function renderLiveVehicleGrid(json) {
     } else if (isChecked) {
       icon = '✅';
       statusLabel = 'พร้อมใช้งาน';
-      const chkInfo = chkKey ? checkedMap[chkKey] : null;
+      const chkInfo = checkedMap[v.plate];
       statusSub = chkInfo?.driverName ? 'ตรวจโดย ' + chkInfo.driverName : 'ตรวจสภาพแล้ว';
       bgGrad = 'linear-gradient(135deg,#f0fdf4,#dcfce7)';
       borderColor = '#22c55e';
@@ -1935,25 +1918,12 @@ function renderLiveVehicleGrid(json) {
 
 
 function renderLiveVehicleGridOffline() {
-  const ALL_VEH = [
-    { plate:'นจ.4919', type:'รถตู้ฮุนได' },
-    { plate:'นง.8781', type:'รถตู้ฮุนได' },
-    { plate:'นง.86',   type:'รถตู้' },
-    { plate:'จย.1379', type:'รถ Refer' },
-    { plate:'งบ.5466', type:'รถ Refer' },
-    { plate:'ขษ.4361', type:'รถ Refer' },
-    { plate:'ขร.501',  type:'รถ Refer' },
-    { plate:'ขธ.9302', type:'รถปิ๊กอัพ 4 ประตู' },
-    { plate:'ขฉ.8407', type:'รถ Refer' },
-    { plate:'ขค.9662', type:'รถปิ๊กอัพ 4 ประตู' },
-    { plate:'กล.9438', type:'รถปิ๊กอัพ 4 ประตู' },
-  ];
-  const cards = ALL_VEH.map(v => `<div style="background:#f1f5f9;border:2px solid #e2e8f0;border-radius:16px;padding:18px 20px;">
+  const cards = ALL_VEHICLES.map(v => `<div style="background:#f1f5f9;border:2px solid #e2e8f0;border-radius:16px;padding:18px 20px;">
     <div style="font-size:1rem;font-weight:800;color:#0a2540;font-family:'Space Grotesk',sans-serif;">${v.plate}</div>
     <div style="font-size:0.72rem;color:#8898aa;margin-bottom:10px;">${v.type}</div>
     <div style="font-size:0.85rem;color:#94a3b8;">— ไม่สามารถโหลดสถานะได้ —</div>
-  </div>`);
-  document.getElementById('liveVehicleGrid').innerHTML = cards.join('');
+  </div>`).join('');
+  document.getElementById('liveVehicleGrid').innerHTML = cards;
 }
 
 // โหลดสถานะรถทันทีและ refresh ทุก 2 นาที
