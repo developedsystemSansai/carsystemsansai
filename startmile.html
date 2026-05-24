@@ -877,6 +877,7 @@ input.odo-mismatch {
               <th>ไมล์ต้น</th>
               <th>ไมล์ปลาย</th>
               <th>ระยะ(กม.)</th>
+              <th>รูปบิล</th>
               <th>สถานะ</th>
             </tr>
           </thead>
@@ -1932,7 +1933,7 @@ function renderHistory() {
 
   const tbody = document.getElementById('histBody');
   if (!filtered.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="10">ยังไม่มีประวัติการใช้รถ</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="11">ยังไม่มีประวัติการใช้รถ</td></tr>';
     return;
   }
 
@@ -1990,6 +1991,18 @@ function renderHistory() {
       <td style="font-weight:600;">${startMile ? startMile.toLocaleString() : '—'}</td>
       <td style="font-weight:600;">${endMile   ? endMile.toLocaleString()   : '—'}</td>
       <td style="font-weight:700;color:var(--teal);">${dist !== '—' ? dist : '—'}</td>
+      <td style="text-align:center;">
+        ${(() => {
+          const fUrl = String(r['รูปบิลน้ำมัน'] || r['fuelPhotoUrl'] || '').trim();
+          if (fUrl) return `<a href="${fUrl}" target="_blank" rel="noopener"
+            style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;
+                   background:#0ea5e9;color:#fff;border-radius:6px;font-size:11px;
+                   font-weight:700;text-decoration:none;">🧾 ดูรูปบิล</a>`;
+          if (r['น้ำมันที่เติม(ลิตร)'] || r['hasFuel']==='ใช่')
+            return '<span style="font-size:10px;color:#94a3b8;">เติมแล้ว<br>(ไม่มีรูป)</span>';
+          return '<span style="color:#cbd5e1;font-size:11px;">—</span>';
+        })()}
+      </td>
       <td><span class="status-badge ${isActive ? 'active' : 'done'}">${isActive ? '🚗 กำลังใช้' : '✅ เสร็จแล้ว'}</span></td>
     </tr>`;
   }).join('');
@@ -2112,53 +2125,48 @@ async function uploadFuelPhoto(file) {
   fuelPhotoUrl = '';
 
   try {
-    // แปลง File → base64 (ไม่รวม prefix data:...)
-    const b64 = await new Promise((res, rej) => {
+    // แปลง File → full base64 dataURL (รวม prefix)
+    const dataUrl = await new Promise((res, rej) => {
       const r = new FileReader();
-      r.onload  = () => res(r.result.split(',')[1]);
+      r.onload  = () => res(r.result);
       r.onerror = rej;
       r.readAsDataURL(file);
     });
+    const b64 = dataUrl.split(',')[1];
 
+    // ── ใช้ POST แทน GET เพื่อรองรับรูปขนาดใหญ่ ──
+    // GAS รองรับ fetch POST แบบ cors เมื่อ access=ANYONE_ANONYMOUS
     const payload = JSON.stringify({
-      action    : 'uploadFuelPhoto',
-      fileName  : file.name,
-      mimeType  : file.type,
+      action    : 'uploadPhotoPost',
+      subFolder : 'FuelReceipts',
+      fileName  : file.name || ('fuel_' + Date.now() + '.jpg'),
+      mimeType  : file.type || 'image/jpeg',
       base64Data: b64
     });
 
     const resp = await fetch(GAS_URL, {
       method : 'POST',
-      mode   : 'no-cors',   // GAS webapp ต้องการ no-cors
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body   : 'payload=' + encodeURIComponent(payload)
     });
 
-    // no-cors → opaque response; ดึง URL จาก GAS ไม่ได้โดยตรง
-    // วิธี workaround: ใช้ fetch GET พร้อม parameter แทน
-    const checkResp = await fetch(
-      GAS_URL + '?action=uploadFuelPhoto' +
-      '&fileName=' + encodeURIComponent(file.name) +
-      '&mimeType=' + encodeURIComponent(file.type) +
-      '&base64Data=' + encodeURIComponent(b64),
-      { cache: 'no-cache' }
-    );
-
-    if (checkResp.ok) {
-      const data = await checkResp.json();
+    if (resp.ok) {
+      const data = await resp.json();
       if (data.status === 'ok' && data.url) {
         fuelPhotoUrl = data.url;
-        document.getElementById('fuelPhotoLink').href = data.url;
+        const linkEl = document.getElementById('fuelPhotoLink');
+        if (linkEl) linkEl.href = data.url;
         linkBox.classList.add('show');
-        showToast('อัปโหลดรูปบิลสำเร็จ ✓', 'success');
-      } else {
-        // GAS ยังไม่รองรับ endpoint นี้ → เก็บ base64 ไว้ใน local
-        fuelPhotoUrl = ''; // จะ submit พร้อม base64
-        showToast('บันทึกรูปไว้ในเครื่อง — จะส่งพร้อมบันทึกออกรถ', '');
+        showToast('✓ อัปโหลดรูปบิลสำเร็จ — บันทึก URL ลง Drive แล้ว', 'success');
+        return;
       }
     }
+    // fallback: เก็บ base64 ไว้ส่งพร้อม startMile
+    fuelPhotoUrl = '';
+    showToast('บันทึกรูปไว้ในเครื่อง — จะส่งพร้อมบันทึกออกรถ', '');
   } catch(err) {
     console.warn('uploadFuelPhoto error:', err);
+    fuelPhotoUrl = '';
     showToast('บันทึกรูปไว้ในเครื่อง — จะส่งพร้อมบันทึกออกรถ', '');
   } finally {
     uploading.classList.remove('show');
