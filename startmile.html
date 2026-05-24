@@ -4,21 +4,21 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>บันทึกการใช้รถ — โรงพยาบาลสันทราย</title>
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --navy:       #0a2540;
-  --navy-mid:   #163860;
-  --blue:       #1a73e8;
+  --navy:         #0d2137;
+  --navy-mid:     #163251;
+  --blue:         #1d6fb5;
   --blue-soft:  #e8f1fd;
-  --teal:       #00897b;
+  --teal:         #007a6e;
   --teal-soft:  #e0f5f3;
   --amber:      #f59e0b;
   --amber-soft: #fef3c7;
-  --bg:         #f0f4f8;
+  --bg:           #eef2f7;
   --card:       #ffffff;
-  --border:     #dde3eb;
-  --text:       #1a2332;
+  --border:       #d5dce8;
+  --text:         #182332;
   --text-mid:   #4a5568;
   --text-light: #8898aa;
   --success:    #00c853;
@@ -34,39 +34,39 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: 'Sarabun','IBM Plex Sans Thai', sans-serif;
+  font-family: 'Noto Sans Thai', sans-serif;
   background: var(--bg); color: var(--text); min-height: 100vh;
 }
 
 /* ── HEADER ── */
 .site-header {
-  background: linear-gradient(135deg, var(--navy) 0%, var(--navy-mid) 60%, #1a5276 100%);
-  position: sticky; top: 0; z-index: 100;
-  box-shadow: 0 2px 20px rgba(0,0,0,.25);
+  background: var(--navy);
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  position: sticky; top: 0; z-index: 200;
+  box-shadow: 0 2px 16px rgba(0,0,0,.28);
 }
 .header-inner {
   max-width: 860px; margin: auto; padding: 0 20px;
-  height: 60px; display: flex; align-items: center; gap: 12px;
+  height: 58px; display: flex; align-items: center; gap: 12px;
 }
 .header-logo {
-  width: 38px; height: 38px;
-  background: linear-gradient(135deg, var(--blue) 0%, var(--teal) 100%);
-  border-radius: 10px;
+  width: 36px; height: 36px;
+  border-radius: 9px;
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
 }
-.header-logo svg { width: 20px; height: 20px; }
+.header-logo svg { width: 18px; height: 18px; }
 .header-titles { flex: 1; }
-.header-titles .main-title { font-size: 14px; font-weight: 700; color: #fff; }
-.header-titles .sub-title  { font-size: 11px; color: rgba(255,255,255,.55); }
+.header-titles .main-title { font-size: 13.5px; font-weight: 700; color: #fff; }
+.header-titles .sub-title  { font-size: 11px; color: rgba(255,255,255,.45); }
 .back-btn {
-  padding: 6px 14px; border-radius: 8px;
-  background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2);
-  color: rgba(255,255,255,.85); font-size: 12px; font-weight: 500;
+  padding: 5px 12px; border-radius: 7px;
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);
+  color: rgba(255,255,255,.7); font-size: 12px; font-weight: 500;
   cursor: pointer; text-decoration: none;
   display: flex; align-items: center; gap: 5px;
-  transition: background .2s;
+  transition: background .18s; font-family: inherit;
 }
-.back-btn:hover { background: rgba(255,255,255,.18); }
+.back-btn:hover { background: rgba(255,255,255,.14); color: #fff; }
 
 /* ── MAIN ── */
 .main-wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
@@ -415,12 +415,12 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
   <!-- Status Summary Banner -->
   <div class="status-summary-row" id="statusSummaryRow" style="display:none;">
     <div class="summary-block active-block" id="activeSummaryBlock">
-      <div class="summary-label">🚗 กำลังออกปฏิบัติงาน</div>
+      <div class="summary-label"> กำลังออกปฏิบัติงาน</div>
       <div class="summary-count" id="activeCount">0</div>
       <div class="summary-chips" id="activeChips"></div>
     </div>
     <div class="summary-block ready-block" id="readySummaryBlock">
-      <div class="summary-label">✅ พร้อมใช้งาน</div>
+      <div class="summary-label"> พร้อมใช้งาน</div>
       <div class="summary-count" id="readyCount">0</div>
       <div class="summary-chips" id="readyChips"></div>
     </div>
@@ -436,9 +436,9 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
 
   <!-- TABS -->
   <div class="tab-row">
-    <button class="tab-btn active-start" id="tabStart" onclick="switchTab('start')">🚀 บันทึกออกรถ</button>
-    <button class="tab-btn" id="tabEnd"   onclick="switchTab('end')">🏁 บันทึกกลับ รพ.</button>
-    <button class="tab-btn" id="tabHist"  onclick="switchTab('hist')">📋 ประวัติการใช้รถ</button>
+    <button class="tab-btn active-start" id="tabStart" onclick="switchTab('start')"> บันทึกออกรถ</button>
+    <button class="tab-btn" id="tabEnd"   onclick="switchTab('end')"> บันทึกกลับ รพ.</button>
+    <button class="tab-btn" id="tabHist"  onclick="switchTab('hist')"> ประวัติการใช้รถ</button>
   </div>
 
   <!-- ====== TAB: บันทึกออกรถ ====== -->
@@ -506,7 +506,7 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
 
     <button class="submit-btn blue" id="startBtn" onclick="submitStart()">
       <div class="spinner"></div>
-      <span class="btn-text">🚀 บันทึกออกรถ</span>
+      <span class="btn-text"> บันทึกออกรถ</span>
     </button>
   </div>
 
@@ -584,7 +584,7 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
 
     <button class="submit-btn teal" id="endBtn" onclick="submitEnd()">
       <div class="spinner"></div>
-      <span class="btn-text">🏁 บันทึกกลับ รพ.</span>
+      <span class="btn-text"> บันทึกกลับ รพ.</span>
     </button>
   </div>
 
@@ -636,7 +636,7 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
 <!-- CONFIRM MODAL -->
 <div class="modal-overlay" id="confirmModal">
   <div class="modal-box">
-    <div class="modal-icon" id="mIcon">🚀</div>
+    <div class="modal-icon" id="mIcon"></div>
     <div class="modal-title" id="mTitle">ยืนยันการบันทึก</div>
     <div class="modal-msg"  id="mMsg"></div>
     <div class="modal-detail" id="mDetail"></div>
@@ -983,19 +983,19 @@ function populateCarSelects() {
   if (hasGroups) {
     if (readyV.length > 0) {
       const og1 = document.createElement('optgroup');
-      og1.label = '✅ พร้อมใช้งาน — เลือกได้';
+      og1.label = ' พร้อมใช้งาน — เลือกได้';
       readyV.forEach(v => appendCarOption(og1, v, false, false));
       sEl.appendChild(og1);
     }
     if (inUseV.length > 0) {
       const og2 = document.createElement('optgroup');
-      og2.label = '🚗 กำลังออกปฏิบัติงาน — ใช้งานอยู่';
+      og2.label = ' กำลังออกปฏิบัติงาน — ใช้งานอยู่';
       inUseV.forEach(v => appendCarOption(og2, v, true, true));
       sEl.appendChild(og2);
     }
     if (uncheckedV.length > 0) {
       const og3 = document.createElement('optgroup');
-      og3.label = '🔒 ยังไม่ตรวจสภาพวันนี้ — ออกรถไม่ได้';
+      og3.label = ' ยังไม่ตรวจสภาพวันนี้ — ออกรถไม่ได้';
       uncheckedV.forEach(v => appendCarOption(og3, v, false, true));
       sEl.appendChild(og3);
     }
@@ -1013,7 +1013,7 @@ function populateCarSelects() {
 
   if (activePlates.length > 0) {
     const og = document.createElement('optgroup');
-    og.label = '🟡 กำลังออกปฏิบัติงาน — เลือกได้';
+    og.label = ' กำลังออกปฏิบัติงาน — เลือกได้';
     // จาก vehicles list
     vehicles.forEach(v => {
       const plate = String(v['ทะเบียน'] || '').split(' ')[0].trim();
@@ -1030,7 +1030,7 @@ function populateCarSelects() {
         const trip = activeTripMap[ap];
         const opt = document.createElement('option');
         opt.value = trip.carType || ap;
-        opt.textContent = '🚗 ' + (trip.carType || ap);
+        opt.textContent = ' ' + (trip.carType || ap);
         og.appendChild(opt);
       }
     });
@@ -1068,7 +1068,7 @@ function appendCarOption(parent, v, isActive, disabled) {
   const label = plate + ' — ' + type;
   const opt = document.createElement('option');
   opt.value = disabled ? '' : label;   // disabled options ส่ง value '' เพื่อกันการ submit
-  opt.textContent = (isActive ? '🚗 ' : disabled ? '🔒 ' : '') + label;
+  opt.textContent = (isActive ? ' ' : disabled ? ' ' : '') + label;
   if (disabled) {
     opt.disabled = true;
     opt.style.color = '#aaa';
@@ -1203,10 +1203,10 @@ function validateStartOdo() {
   const val  = Number(document.getElementById('s_odometerStart').value);
   const hint = document.getElementById('s_lastMileHint');
   if (val > 0 && val < 1000) {
-    hint.textContent = '⚠️ เลขไมล์ดูน้อยเกินไป — กรุณาตรวจสอบ';
+    hint.textContent = ' เลขไมล์ดูน้อยเกินไป — กรุณาตรวจสอบ';
     hint.className = 'odo-hint warn';
   } else if (val > 9999999) {
-    hint.textContent = '⚠️ เลขไมล์ดูมากเกินไป — กรุณาตรวจสอบ';
+    hint.textContent = ' เลขไมล์ดูมากเกินไป — กรุณาตรวจสอบ';
     hint.className = 'odo-hint warn';
   }
 }
@@ -1226,14 +1226,14 @@ function calcDistance() {
     const dist = endOdo - startOdo;
     document.getElementById('rStart').textContent = Number(startOdo).toLocaleString();
     document.getElementById('rEnd').textContent   = Number(endOdo).toLocaleString();
-    document.getElementById('rDist').textContent  = dist > 0 ? dist + ' กม.' : '⚠️ ผิดปกติ';
+    document.getElementById('rDist').textContent  = dist > 0 ? dist + ' กม.' : ' ผิดปกติ';
     document.getElementById('routePreview').style.display = 'flex';
 
     if (dist < 0) {
-      document.getElementById('e_odoHint').textContent = '❌ เลขไมล์ปลายต้องมากกว่าเลขไมล์ต้น';
+      document.getElementById('e_odoHint').textContent = ' เลขไมล์ปลายต้องมากกว่าเลขไมล์ต้น';
       document.getElementById('e_odoHint').className = 'odo-hint err';
     } else if (dist > 500) {
-      document.getElementById('e_odoHint').textContent = '⚠️ ระยะทางสูงมาก — กรุณาตรวจสอบ';
+      document.getElementById('e_odoHint').textContent = ' ระยะทางสูงมาก — กรุณาตรวจสอบ';
       document.getElementById('e_odoHint').className = 'odo-hint warn';
     } else {
       document.getElementById('e_odoHint').textContent = `ระยะทาง ${dist} กม.`;
@@ -1266,7 +1266,7 @@ function submitStart() {
       ap === plate || ap.includes(plate) || plate.includes(ap)
     );
     if (isInUse) {
-      showToast(`🚗 ${plate} กำลังออกปฏิบัติงานอยู่ — ไม่สามารถบันทึกซ้ำได้`, 'error');
+      showToast(` ${plate} กำลังออกปฏิบัติงานอยู่ — ไม่สามารถบันทึกซ้ำได้`, 'error');
       return;
     }
   }
@@ -1278,7 +1278,7 @@ function submitStart() {
       cp === plate || cp.includes(plate) || plate.includes(cp)
     );
     if (!isChecked) {
-      showToast(`🔒 ${plate} ยังไม่ได้ตรวจสภาพประจำวัน — กรุณาตรวจสภาพก่อนออกรถ`, 'error');
+      showToast(` ${plate} ยังไม่ได้ตรวจสภาพประจำวัน — กรุณาตรวจสภาพก่อนออกรถ`, 'error');
       return;
     }
   }
@@ -1434,7 +1434,7 @@ function renderHistory() {
       <td style="font-weight:600;">${startMile ? startMile.toLocaleString() : '—'}</td>
       <td style="font-weight:600;">${endMile   ? endMile.toLocaleString()   : '—'}</td>
       <td style="font-weight:700;color:var(--teal);">${dist !== '—' ? dist : '—'}</td>
-      <td><span class="status-badge ${isActive ? 'active' : 'done'}">${isActive ? '🟡 กำลังใช้' : '✅ เสร็จแล้ว'}</span></td>
+      <td><span class="status-badge ${isActive ? 'active' : 'done'}">${isActive ? ' กำลังใช้' : ' เสร็จแล้ว'}</span></td>
     </tr>`;
   }).join('');
 }
@@ -1458,7 +1458,7 @@ function switchTab(tab) {
 //  MODAL
 // ════════════════════════════════════════════════════════
 function showModal(type, title, details) {
-  document.getElementById('mIcon').textContent    = type === 'start' ? '🚀' : '🏁';
+  document.getElementById('mIcon').textContent    = type === 'start' ? '' : '';
   document.getElementById('mTitle').innerHTML     = title;
   document.getElementById('mMsg').textContent     = 'ตรวจสอบข้อมูลแล้วกดยืนยัน';
   document.getElementById('mConfirmBtn').style.background = type === 'start' ? 'var(--blue)' : 'var(--teal)';
