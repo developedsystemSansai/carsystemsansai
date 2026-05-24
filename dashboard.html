@@ -189,14 +189,19 @@
   /* ── ODOMETER TABLE ── */
   .odo-table { width: 100%; border-collapse: collapse; font-size: 0.83rem; }
   .odo-table thead th {
-    background: #f5f7fa; padding: 9px 12px;
-    font-size: 0.73rem; font-weight: 700; color: var(--text-mid);
+    background: #f5f7fa; padding: 9px 10px;
+    font-size: 0.71rem; font-weight: 700; color: var(--text-mid);
     text-align: left; border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+  }
+  .odo-table thead th.col-group-start {
+    border-left: 2px solid var(--border-strong);
   }
   .odo-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; }
   .odo-table tbody tr:hover { background: #f7f9fc; }
   .odo-table tbody tr:last-child { border-bottom: none; }
-  .odo-table td { padding: 9px 12px; }
+  .odo-table td { padding: 8px 10px; vertical-align: middle; }
+  .odo-table td.col-group-start { border-left: 2px solid var(--border); }
   .plate-badge {
     display: inline-flex; align-items: center;
     padding: 3px 9px; border-radius: 6px;
@@ -206,6 +211,36 @@
   .mileage { font-weight: 700; font-family: 'Space Grotesk', monospace; font-size: 0.9rem; color: var(--navy); }
   .mileage-bar { height: 4px; background: var(--border); border-radius: 99px; margin-top: 4px; overflow: hidden; }
   .mileage-fill { height: 100%; background: linear-gradient(90deg, var(--teal), var(--blue)); border-radius: 99px; }
+
+  /* ── MILE TRIP ROW ── */
+  .trip-row {
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .trip-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px; border-radius: 6px;
+    font-size: 0.68rem; font-weight: 700; white-space: nowrap;
+    margin-bottom: 2px;
+  }
+  .trip-chip.in-use   { background:#fff8e1; color:#92400e; border:1px solid #f59e0b; }
+  .trip-chip.done     { background:#f0fdf4; color:#14532d; border:1px solid #22c55e; }
+  .trip-chip.none     { background:#f8fafc; color:#94a3b8; border:1px solid #e2e8f0; }
+  .mile-num { font-family:'Space Grotesk',monospace; font-weight:700; font-size:0.82rem; color:var(--navy); }
+  .mile-num.start { color:#0369a1; }
+  .mile-num.end   { color:#15803d; }
+  .mile-dist { display:inline-flex; align-items:center; gap:3px; font-size:0.7rem; font-weight:700;
+               background:#eef2ff; color:#4f46e5; border-radius:4px; padding:1px 6px; }
+  .odo-init { font-family:'Space Grotesk',monospace; font-weight:700; font-size:0.88rem; color:#0a2540; }
+  .odo-no-check { font-size:0.75rem; color:var(--text-light); }
+  .realtime-dot {
+    display:inline-block; width:7px; height:7px; border-radius:50%;
+    background:var(--success); margin-right:5px;
+    animation: blink 1.4s ease-in-out infinite;
+  }
+  @keyframes blink {
+    0%,100% { opacity:1; }
+    50%      { opacity:0.25; }
+  }
 
   /* ── STATUS SUMMARY ── */
   .status-list { display: flex; flex-direction: column; gap: 0; }
@@ -697,14 +732,33 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="card-header">
         <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l3-10 3 10M17 7l3 10-3 0"/><line x1="9" y1="12" x2="15" y2="12"/></svg></span>
         <h2>ติดตามเลขไมล์รถ</h2>
-        <span class="badge" id="odoUpdate">—</span>
+        <span class="badge" id="odoUpdate" style="display:flex;align-items:center;gap:4px;">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;margin-right:2px;animation:blink 1.4s ease-in-out infinite;"></span>Real-time
+        </span>
       </div>
       <div class="card-body" style="padding:0;">
         <div class="table-scroll">
           <table class="odo-table">
-            <thead><tr><th>#</th><th>ทะเบียน / ประเภท</th><th>ไมล์ล่าสุด</th><th>ตรวจครั้งล่าสุด</th></tr></thead>
-            <tbody id="odoTableBody"><tr><td colspan="4" class="loading-state"><div class="spinner-sm"></div><br>กำลังโหลด...</td></tr></tbody>
+            <thead>
+              <tr>
+                <th style="width:28px;">#</th>
+                <th>ทะเบียน / ประเภท</th>
+                <th>เริ่มต้นไมล์วันนี้<br><span style="font-size:0.65rem;font-weight:500;color:#8898aa;">(จากตรวจเช็ค)</span></th>
+                <th class="col-group-start">การใช้งานวันนี้</th>
+                <th>ไมล์ต้น</th>
+                <th>ไมล์ปลาย</th>
+                <th>ระยะทาง</th>
+                <th>ปลายทาง / คนขับ</th>
+              </tr>
+            </thead>
+            <tbody id="odoTableBody">
+              <tr><td colspan="8" class="loading-state"><div class="spinner-sm"></div><br>กำลังโหลด...</td></tr>
+            </tbody>
           </table>
+        </div>
+        <div style="padding:8px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--success);margin-right:5px;animation:blink 1.4s ease-in-out infinite;"></span>อัปเดตอัตโนมัติทุก 60 วินาที</span>
+          <span id="odoLastRefresh">—</span>
         </div>
       </div>
     </div>
@@ -930,32 +984,7 @@ function filterToday() {
   applyFilters();
 }
 
-async function loadData() {
-  document.getElementById('lastUpdated').textContent = 'กำลังโหลด...';
-  try {
-    const res = await fetch(GAS_URL + '?action=getData');
-    const json = await res.json();
-    allData = json.data || [];
-    window.allData = allData;
-    console.log('[Dashboard] getData:', allData.length, 'records');
-    if (allData.length > 0) {
-      // Debug: แสดง sample keys และ inspDate
-      console.log('[Dashboard] sample keys:', Object.keys(allData[0]));
-      console.log('[Dashboard] sample inspDate:', allData[0].inspDate, '| carType:', allData[0].carType);
-    } else {
-      console.warn('[Dashboard] ⚠️ ได้รับข้อมูล 0 รายการจาก API - ตรวจสอบ CheckLog sheet');
-    }
-    applyFilters();
-    if (typeof loadLiveVehicleStatus === 'function') loadLiveVehicleStatus();
-    document.getElementById('lastUpdated').textContent =
-      'อัปเดต: ' + fmtDateTime(new Date()) + ' (' + allData.length + ' รายการ)';
-  } catch (e) {
-    console.error('[Dashboard] loadData error:', e);
-    allData = generateDemoData();
-    applyFilters();
-    document.getElementById('lastUpdated').textContent = 'Demo mode (โหลดข้อมูลไม่สำเร็จ: ' + e.message + ')';
-  }
-}
+// loadData ถูกแทนที่ด้วย version ใหม่ในส่วน renderOdometer ด้านล่าง
 
 // แปลง inspDate ให้เป็น "yyyy-MM-dd" เสมอ (รองรับทุกรูปแบบที่ GAS ส่งมา)
 function normalizeInspDate(val) {
@@ -1108,38 +1137,200 @@ function extractPlate(carType) {
   return (carType||'').split(' ')[0];
 }
 
-function renderOdometer(data) {
-  const latest = {};
-  data.forEach(r => {
+// ══════════════════════════════════════════════════════════════
+//  ODOMETER TABLE — realtime (CheckLog + MileLog)
+// ══════════════════════════════════════════════════════════════
+
+// Cache สำหรับ MileLog วันนี้ (โหลดแยกต่างหาก)
+let _mileLogToday = [];     // trip ทั้งหมดวันนี้จาก MileLog
+let _mileLogLoading = false;
+
+async function loadMileLogToday() {
+  if (_mileLogLoading) return;
+  _mileLogLoading = true;
+  try {
+    const res  = await fetch(GAS_URL + '?action=getMileData');
+    const json = await res.json();
+    const todayStr = bkkDateStr();
+    _mileLogToday = (json.data || []).filter(r => {
+      // MileLog columns (header names): TripID, Timestamp, วันที่, เวลาออก, ทะเบียน/รถ,
+      //   พนักงานขับรถ, ปลายทาง, เลขไมล์ต้น, เลขไมล์ปลาย, ระยะทาง(กม.),
+      //   เวลากลับ, สถานะ, น้ำมันที่เติม(ลิตร), ราคาน้ำมัน, หมายเหตุ
+      const d = normalizeInspDate(r['วันที่'] || r['Timestamp'] || '');
+      return d === todayStr;
+    });
+  } catch(_) { _mileLogToday = []; }
+  _mileLogLoading = false;
+}
+
+function renderOdometer(checkData) {
+  // checkData = allData (CheckLog records, filtered)
+  // ── หา check record ล่าสุดวันนี้ต่อ plate ──
+  const todayStr = bkkDateStr();
+  const todayCheck = {}; // plate → CheckLog record วันนี้
+  checkData.forEach(r => {
     const plate = extractPlate(r.carType);
     if (!plate) return;
-    if (!latest[plate] || +r.odometer > +(latest[plate].odometer||0)) latest[plate] = r;
+    const nd = r._normDate || normalizeInspDate(r.inspDate || r.timestamp || '');
+    if (nd !== todayStr) return;
+    if (!todayCheck[plate] || (r.inspTime||'') > (todayCheck[plate].inspTime||'')) {
+      todayCheck[plate] = r;
+    }
   });
-  const maxMile = Math.max(...Object.values(latest).map(r => +r.odometer||0), 1);
+
+  // ── จัด MileLog วันนี้ เป็น plate → trips[] ──
+  const tripsByPlate = {}; // plate → [trip, ...]
+  _mileLogToday.forEach(r => {
+    const raw = r['ทะเบียน/รถ'] || r['carType'] || '';
+    const plate = raw.split(' ')[0].trim();
+    if (!plate) return;
+    if (!tripsByPlate[plate]) tripsByPlate[plate] = [];
+    tripsByPlate[plate].push(r);
+  });
+
   const tbody = document.getElementById('odoTableBody');
-  const rows = ALL_VEHICLES.map((v,i) => {
-    const r = latest[v.plate];
-    const mile = r ? (+r.odometer||0) : null;
-    const pct = mile ? Math.round(mile/maxMile*100) : 0;
-    const dateStr = r ? (r.inspDate||'—') : '—';
-    return `<tr>
+  if (!tbody) return;
+
+  const rows = ALL_VEHICLES.map((v, i) => {
+    const chk   = todayCheck[v.plate];
+    const trips = (tripsByPlate[v.plate] || []);
+
+    // ── คอลัมน์ "เริ่มต้นไมล์วันนี้" (จาก CheckLog) ──
+    let initMileHtml;
+    if (chk && chk.odometer) {
+      const m = Number(chk.odometer);
+      initMileHtml = `
+        <div class="odo-init">${m.toLocaleString()}</div>
+        <div style="font-size:0.67rem;color:var(--text-light);margin-top:2px;">
+          🕐 ${chk.inspTime||''} · ${chk.driverName||''}
+        </div>`;
+    } else {
+      initMileHtml = `<span class="odo-no-check">ยังไม่ตรวจวันนี้</span>`;
+    }
+
+    // ── คอลัมน์การใช้งาน / ไมล์ต้น / ไมล์ปลาย / ระยะทาง / ปลายทาง ──
+    let usageHtml = '', startHtml = '', endHtml = '', distHtml = '', infoHtml = '';
+
+    if (trips.length === 0) {
+      usageHtml = `<span class="trip-chip none">ยังไม่ออกรถ</span>`;
+      startHtml = '<span style="color:var(--text-light);font-size:0.72rem;">—</span>';
+      endHtml   = '<span style="color:var(--text-light);font-size:0.72rem;">—</span>';
+      distHtml  = '<span style="color:var(--text-light);font-size:0.72rem;">—</span>';
+      infoHtml  = '<span style="color:var(--text-light);font-size:0.72rem;">—</span>';
+    } else {
+      // รวมทุก trip ของวันนี้
+      trips.forEach((t, ti) => {
+        const status   = String(t['สถานะ'] || '').trim();
+        const inUse    = status === 'กำลังใช้งาน';
+        const oStart   = Number(t['เลขไมล์ต้น'] || 0);
+        const oEnd     = Number(t['เลขไมล์ปลาย'] || 0);
+        const dist     = Number(t['ระยะทาง(กม.)'] || 0);
+        const dest     = String(t['ปลายทาง'] || '—');
+        const driver   = String(t['พนักงานขับรถ'] || '');
+        const timeOut  = String(t['เวลาออก'] || '');
+        const timeBack = String(t['เวลากลับ'] || '');
+
+        usageHtml += `<span class="trip-chip ${inUse ? 'in-use' : 'done'}" title="Trip ${ti+1}">
+          ${inUse ? '🚗 กำลังออกรถ' : '✅ กลับแล้ว'}
+          ${trips.length > 1 ? ` (${ti+1})` : ''}
+        </span><br>`;
+
+        startHtml += `<div class="mile-num start">
+          ${oStart ? oStart.toLocaleString() : '<span style="color:#94a3b8">—</span>'}
+        </div>
+        ${timeOut ? `<div style="font-size:0.65rem;color:var(--text-light);">ออก ${timeOut}</div>` : ''}`;
+
+        endHtml += `<div class="mile-num end">
+          ${oEnd ? oEnd.toLocaleString() : (inUse ? '<span style="color:#f59e0b;font-size:0.72rem;">กำลังออก...</span>' : '<span style="color:#94a3b8">—</span>')}
+        </div>
+        ${timeBack && !inUse ? `<div style="font-size:0.65rem;color:var(--text-light);">กลับ ${timeBack}</div>` : ''}`;
+
+        distHtml += dist
+          ? `<span class="mile-dist">+${dist.toLocaleString()} กม.</span><br>`
+          : (inUse ? `<span style="font-size:0.7rem;color:#f59e0b;">กำลังใช้...</span><br>` : `<span style="color:#94a3b8;font-size:0.72rem;">—</span><br>`);
+
+        infoHtml += `<div style="font-size:0.72rem;color:var(--text-mid);margin-bottom:2px;">
+          📍 ${dest}${driver ? ` · 👤 ${driver.split(' ').slice(-1)[0]}` : ''}
+        </div>`;
+      });
+
+      // ถ้ามีหลาย trip แสดงยอดรวม
+      if (trips.length > 1) {
+        const totalDist = trips.reduce((s, t) => s + (Number(t['ระยะทาง(กม.)']||0)), 0);
+        distHtml += `<div style="margin-top:4px;"><span class="mile-dist" style="background:#e0e7ff;color:#3730a3;">รวม ${totalDist.toLocaleString()} กม.</span></div>`;
+      }
+    }
+
+    // สีแถว — เน้นรถที่กำลังใช้งาน
+    const isInUse = trips.some(t => String(t['สถานะ']||'').trim() === 'กำลังใช้งาน');
+    const rowStyle = isInUse ? 'background:linear-gradient(90deg,#fffdf0,#fff);' : '';
+
+    return `<tr style="${rowStyle}">
       <td style="color:var(--text-light);font-size:0.72rem;">${i+1}</td>
       <td>
         <span class="plate-badge">${v.plate}</span>
         <div style="font-size:0.7rem;color:var(--text-light);margin-top:3px;">${v.type}</div>
       </td>
-      <td>
-        ${mile !== null ? `
-          <span class="mileage">${mile.toLocaleString()}</span>
-          <span style="font-size:0.7rem;color:var(--text-light);"> กม.</span>
-          <div class="mileage-bar"><div class="mileage-fill" style="width:${pct}%"></div></div>
-        ` : '<span style="color:var(--text-light);font-size:0.78rem;">ยังไม่มีข้อมูล</span>'}
-      </td>
-      <td style="font-size:0.78rem;color:var(--text-mid);">${dateStr}</td>
+      <td>${initMileHtml}</td>
+      <td class="col-group-start">${usageHtml}</td>
+      <td>${startHtml}</td>
+      <td>${endHtml}</td>
+      <td>${distHtml}</td>
+      <td>${infoHtml}</td>
     </tr>`;
   }).join('');
+
   tbody.innerHTML = rows;
-  document.getElementById('odoUpdate').textContent = `${Object.keys(latest).length} คัน`;
+
+  const checkedCount = Object.keys(todayCheck).length;
+  const inUseCount   = ALL_VEHICLES.filter(v =>
+    (tripsByPlate[v.plate]||[]).some(t => String(t['สถานะ']||'').trim() === 'กำลังใช้งาน')
+  ).length;
+
+  document.getElementById('odoUpdate').innerHTML =
+    `<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;margin-right:4px;animation:blink 1.4s ease-in-out infinite;"></span>` +
+    `ตรวจแล้ว ${checkedCount} · ออกรถ ${inUseCount} คัน`;
+
+  const now = new Date();
+  const p = n => String(n).padStart(2,'0');
+  const ts = `${p(now.getHours())}:${p(now.getMinutes())}:${p(now.getSeconds())} น.`;
+  const el = document.getElementById('odoLastRefresh');
+  if (el) el.textContent = 'อัปเดต ' + ts;
+}
+
+// Auto-refresh ตารางเลขไมล์ทุก 60 วินาที
+let _odoRefreshTimer = null;
+function startOdoAutoRefresh() {
+  if (_odoRefreshTimer) clearInterval(_odoRefreshTimer);
+  _odoRefreshTimer = setInterval(async () => {
+    await loadMileLogToday();
+    renderOdometer(filteredData.length ? filteredData : allData);
+  }, 60000);
+}
+
+// โหลด MileLog ครั้งแรกพร้อมกับ loadData
+async function loadData() {
+  document.getElementById('lastUpdated').textContent = 'กำลังโหลด...';
+  try {
+    const res = await fetch(GAS_URL + '?action=getData');
+    const json = await res.json();
+    allData = json.data || [];
+    window.allData = allData;
+    console.log('[Dashboard] getData:', allData.length, 'records');
+    applyFilters();
+    if (typeof loadLiveVehicleStatus === 'function') loadLiveVehicleStatus();
+    // โหลด MileLog ด้วย
+    await loadMileLogToday();
+    renderOdometer(filteredData.length ? filteredData : allData);
+    startOdoAutoRefresh();
+    document.getElementById('lastUpdated').textContent =
+      'อัปเดต: ' + fmtDateTime(new Date()) + ' (' + allData.length + ' รายการ)';
+  } catch (e) {
+    console.error('[Dashboard] loadData error:', e);
+    allData = generateDemoData();
+    applyFilters();
+    document.getElementById('lastUpdated').textContent = 'Demo mode (โหลดข้อมูลไม่สำเร็จ: ' + e.message + ')';
+  }
 }
 
 function renderStatusSummary(data) {
