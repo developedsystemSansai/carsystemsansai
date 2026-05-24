@@ -807,8 +807,15 @@ textarea { resize: vertical; min-height: 80px; }
 
     <!-- Active trips banner -->
     <div id="activeTripsBanner" style="display:none;background:linear-gradient(135deg,#fffbeb,#fef3c7);border:1.5px solid #fde68a;border-radius:14px;padding:14px 18px;margin-bottom:16px;">
-      <div style="font-size:12px;font-weight:700;color:#92400e;letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase;">🚗 รถที่กำลังออกปฏิบัติงานอยู่</div>
+      <div style="font-size:12px;font-weight:700;color:#92400e;letter-spacing:.5px;margin-bottom:8px;text-transform:uppercase;">🚗 รถที่กำลังออกปฏิบัติงานอยู่ — แตะเพื่อเลือกบันทึกกลับ</div>
       <div id="activeTripsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;"></div>
+    </div>
+
+    <!-- No active trips notice -->
+    <div id="noActiveTripsBanner" style="display:none;background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;padding:16px 18px;margin-bottom:16px;text-align:center;">
+      <div style="font-size:1.5rem;margin-bottom:6px;">✅</div>
+      <div style="font-size:14px;font-weight:700;color:#14532d;">ไม่มีรถที่กำลังออกปฏิบัติงาน</div>
+      <div style="font-size:12px;color:#16a34a;margin-top:4px;">รถทุกคันกลับถึงโรงพยาบาลแล้ว หรือยังไม่มีการบันทึกออกรถวันนี้</div>
     </div>
 
     <div class="card">
@@ -1228,36 +1235,49 @@ async function loadMileHistory() {
 
 
 function renderActiveTripsBanner() {
-  var banner = document.getElementById('activeTripsBanner');
-  var grid   = document.getElementById('activeTripsGrid');
+  var banner     = document.getElementById('activeTripsBanner');
+  var grid       = document.getElementById('activeTripsGrid');
+  var noBanner   = document.getElementById('noActiveTripsBanner');
   if (!banner || !grid) return;
 
   var activeTrips = mileHistory.filter(function(r) {
-    return String(r['\u0e2a\u0e16\u0e32\u0e19\u0e30']) === '\u0e01\u0e33\u0e25\u0e31\u0e07\u0e43\u0e0a\u0e49\u0e07\u0e32\u0e19';
+    return String(r['สถานะ']) === 'กำลังใช้งาน';
   });
+
+  // แสดง/ซ่อน banner ตาม panel ที่แสดงอยู่
+  var panelEnd = document.getElementById('panelEnd');
+  var isEndPanelVisible = panelEnd && panelEnd.style.display !== 'none';
 
   if (!activeTrips.length) {
     banner.style.display = 'none';
+    if (noBanner) noBanner.style.display = isEndPanelVisible ? 'block' : 'none';
     return;
   }
 
+  if (noBanner) noBanner.style.display = 'none';
   banner.style.display = 'block';
   grid.innerHTML = activeTrips.map(function(r) {
-    var car      = String(r['\u0e17\u0e30\u0e40\u0e1a\u0e35\u0e22\u0e19/\u0e23\u0e16'] || '');
+    var car      = String(r['ทะเบียน/รถ'] || '');
     var plate    = car.split(' ')[0];
-    var driver   = String(r['\u0e1e\u0e19\u0e31\u0e01\u0e07\u0e32\u0e19\u0e02\u0e31\u0e1a\u0e23\u0e16'] || '\u2014');
-    var dest     = String(r['\u0e1b\u0e25\u0e32\u0e22\u0e17\u0e32\u0e07'] || '\u2014');
-    var startOdo = r['\u0e40\u0e25\u0e02\u0e44\u0e21\u0e25\u0e4c\u0e15\u0e49\u0e19'] ? Number(r['\u0e40\u0e25\u0e02\u0e44\u0e21\u0e25\u0e4c\u0e15\u0e49\u0e19']).toLocaleString() : '\u2014';
-    var tripDate = r['\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48'] ? String(r['\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48']).slice(0,10) : '\u2014';
-    var tripTime = r['\u0e40\u0e27\u0e25\u0e32\u0e2d\u0e2d\u0e01'] ? String(r['\u0e40\u0e27\u0e25\u0e32\u0e2d\u0e2d\u0e01']).slice(0,5) : '\u2014';
-    var safeCarAttr = car.replace(/['"]/g, '');
-    return '<div style="background:#fff;border:1.5px solid #f59e0b;border-radius:10px;padding:11px 13px;cursor:pointer;" onclick="selectActiveTrip(\'' + safeCarAttr + '\')">'
-      + '<div style="font-size:14px;font-weight:800;color:#0a2540;">' + plate + '</div>'
-      + '<div style="font-size:11px;color:#64748b;margin-top:1px;">' + car.replace(plate,'').trim() + '</div>'
-      + '<div style="font-size:12px;color:#92400e;margin-top:6px;">\u2192 ' + dest + '</div>'
-      + '<div style="font-size:11px;color:#8898aa;margin-top:3px;">\uD83D\uDC64 ' + driver + '</div>'
-      + '<div style="font-size:11px;color:#8898aa;">\uD83D\uDCCD \u0e2d\u0e2d\u0e01 ' + tripDate + ' ' + tripTime + ' | \u0e44\u0e21\u0e25\u0e4c\u0e15\u0e49\u0e19: ' + startOdo + '</div>'
-      + '<div style="margin-top:7px;font-size:11px;font-weight:700;color:#0ea5e9;text-decoration:underline;">\u0e41\u0e15\u0e30\u0e40\u0e1e\u0e37\u0e48\u0e2d\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e01\u0e25\u0e31\u0e1a \u2192</div>'
+    var driver   = String(r['พนักงานขับรถ'] || '—');
+    var dest     = String(r['ปลายทาง'] || '—');
+    var startOdo = r['เลขไมล์ต้น'] ? Number(r['เลขไมล์ต้น']).toLocaleString() : '—';
+    var tripDate = r['วันที่'] ? String(r['วันที่']).slice(0,10) : '—';
+    var tripTime = r['เวลาออก'] ? String(r['เวลาออก']).slice(0,5) : '—';
+    var safeCarAttr = car.replace(/['\"]/g, '');
+    return '<div style="background:#fff;border:2px solid #f59e0b;border-radius:12px;padding:13px 15px;cursor:pointer;transition:box-shadow .15s,transform .15s;" '
+      + 'onclick="selectActiveTrip(\'' + safeCarAttr + '\')" '
+      + 'onmouseover="this.style.boxShadow=\'0 6px 20px rgba(245,158,11,.3)\';this.style.transform=\'translateY(-2px)\'" '
+      + 'onmouseout="this.style.boxShadow=\'\';this.style.transform=\'\'">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">'
+      + '<div style="font-size:15px;font-weight:800;color:#0a2540;">' + plate + '</div>'
+      + '<span style="background:#f59e0b;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;">กำลังออกรถ</span>'
+      + '</div>'
+      + '<div style="font-size:11px;color:#64748b;margin-bottom:4px;">' + car.replace(plate,'').trim() + '</div>'
+      + '<div style="font-size:12px;color:#92400e;margin-bottom:3px;">→ ' + dest + '</div>'
+      + '<div style="font-size:11px;color:#8898aa;">👤 ' + driver + '</div>'
+      + '<div style="font-size:11px;color:#8898aa;">📍 ออก ' + tripDate + ' ' + tripTime + ' | ไมล์ต้น: ' + startOdo + '</div>'
+      + '<div style="margin-top:9px;padding:7px;background:linear-gradient(135deg,#0ea5e9,#0284c7);border-radius:8px;text-align:center;font-size:12px;font-weight:700;color:#fff;">🏥 แตะเพื่อบันทึกกลับ รพ. →</div>'
       + '</div>';
   }).join('');
 }
@@ -1306,7 +1326,20 @@ function switchTab(tab) {
   // เมื่อสลับไป tab กลับ รพ. ให้โหลด active trips ใหม่
   if (tab === 'end') {
     loadMileHistory().then(() => {
+      populateCarSelects();
       renderActiveTripsBanner();
+      // auto-select รถคันแรกที่กำลังใช้งาน (ถ้ายังไม่ได้เลือก)
+      const eEl = document.getElementById('e_carType');
+      if (!eEl.value && Object.keys(startOdoMap).length > 0) {
+        const firstActive = Object.keys(startOdoMap)[0];
+        for (let i = 0; i < eEl.options.length; i++) {
+          const v = eEl.options[i].value;
+          if (v && v.split(' ')[0].trim() === firstActive) {
+            eEl.value = v;
+            break;
+          }
+        }
+      }
       const selCar = document.getElementById('e_carType').value;
       if (selCar) onEndCarChange();
     });
@@ -1555,14 +1588,28 @@ document.getElementById('startForm').addEventListener('submit', (e) => {
   showConfirmModal('start', data);
 });
 
-document.getElementById('endForm').addEventListener('submit', (e) => {
+document.getElementById('endForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const carType = document.getElementById('e_carType').value;
+  if (!carType) {
+    showToast('⚠️ กรุณาเลือกรถที่ต้องการบันทึกกลับ', 'error');
+    return;
+  }
+  const odometerEnd = document.getElementById('e_odometerEnd').value;
+  if (!odometerEnd) {
+    showToast('⚠️ กรุณากรอกเลขไมล์ขณะกลับ', 'error');
+    return;
+  }
+  // ดึง tripId อัตโนมัติถ้ายังไม่มี
+  const tripIdEl = document.getElementById('e_tripId');
+  if (!tripIdEl.value) {
+    await onEndCarChange();
+  }
   const data = {
     action       : 'endMile',
     carType      : carType,
     tripId       : document.getElementById('e_tripId').value.trim(),
-    odometerEnd  : document.getElementById('e_odometerEnd').value,
+    odometerEnd  : odometerEnd,
     returnTime   : document.getElementById('e_returnTime').value,
     remarks      : document.getElementById('e_remarks').value.trim()
   };
