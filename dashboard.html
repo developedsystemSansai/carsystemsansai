@@ -1145,6 +1145,32 @@ function extractPlate(carType) {
 let _mileLogToday = [];     // trip ทั้งหมดวันนี้จาก MileLog
 let _mileLogLoading = false;
 
+// ── helper: ดึงเฉพาะ HH:MM จาก string ที่อาจเป็น Excel serial "30/12/1899 HH:MM:SS"
+function extractTimeOnly(val) {
+  if (!val) return '';
+  const s = String(val).trim();
+  if (!s || s === '—') return '';
+  // รูปแบบ HH:MM หรือ HH:MM:SS ล้วนๆ
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) return s.slice(0, 5);
+  // ค้นหา HH:MM ใน string ใดๆ (รวม "30/12/1899 11:24:00", "24/05/2026 11:24:00")
+  const m = s.match(/\b(\d{1,2}:\d{2})(?::\d{2})?/);
+  return m ? m[1] : '';
+}
+
+// ── helper: ดึงเฉพาะวันที่ dd/MM/yyyy จาก string ที่อาจมีเวลาต่อท้าย
+function extractDateOnly(val) {
+  if (!val) return '';
+  const s = String(val).trim();
+  if (!s || s === '—') return '';
+  // dd/MM/yyyy ด้านหน้า
+  const m = s.match(/^(\d{1,2}\/\d{1,2}\/\d{4})/);
+  if (m) return m[1];
+  // yyyy-MM-dd → แปลงเป็น dd/MM/yyyy
+  const m2 = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m2) return `${m2[3]}/${m2[2]}/${m2[1]}`;
+  return s.split(' ')[0] || '';
+}
+
 async function loadMileLogToday() {
   if (_mileLogLoading) return;
   _mileLogLoading = true;
@@ -1227,8 +1253,8 @@ function renderOdometer(checkData) {
         const dist     = Number(t['ระยะทาง(กม.)'] || 0);
         const dest     = String(t['ปลายทาง'] || '—');
         const driver   = String(t['พนักงานขับรถ'] || '');
-        const timeOut  = String(t['เวลาออก'] || '');
-        const timeBack = String(t['เวลากลับ'] || '');
+        const timeOut  = extractTimeOnly(t['เวลาออก']  || '');
+        const timeBack = extractTimeOnly(t['เวลากลับ'] || '');
 
         usageHtml += `<span class="trip-chip ${inUse ? 'in-use' : 'done'}" title="Trip ${ti+1}">
           ${inUse ? '🚗 กำลังออกรถ' : '✅ กลับแล้ว'}
@@ -1867,13 +1893,22 @@ function formatThaiDateTime(val, showDay = true, showTime = true) {
 /** formatThaiDate — วันที่อย่างเดียว ไม่มีชื่อวัน ไม่มีเวลา */
 function formatThaiDate(val) { return formatThaiDateTime(val, false, false); }
 
-/** formatThaiTime — เวลาอย่างเดียว "HH:MM น." */
+/** formatThaiTime — เวลาอย่างเดียว "HH:MM น." รองรับ Excel serial "30/12/1899 HH:MM:SS" */
 function formatThaiTime(val) {
   if (!val) return '—';
-  if (typeof val === 'string' && /^\d{2}:\d{2}/.test(val)) return val.slice(0, 5) + ' น.';
-  const d = val instanceof Date ? val : new Date(val);
-  if (isNaN(d)) return String(val);
-  return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} น.`;
+  const s = String(val).trim();
+  if (!s || s === '—') return '—';
+  // HH:MM หรือ HH:MM:SS ล้วนๆ
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) return s.slice(0, 5) + ' น.';
+  // ดึง HH:MM จาก string ใดๆ (รวม Excel serial "30/12/1899 11:24:00")
+  const m = s.match(/\b(\d{1,2}:\d{2})(?::\d{2})?/);
+  if (m) return m[1] + ' น.';
+  // fallback: ลอง parse เป็น Date (เฉพาะรูปแบบที่ไม่ใช่ Excel serial)
+  if (!/1899/.test(s)) {
+    const d = val instanceof Date ? val : new Date(s);
+    if (!isNaN(d?.getTime())) return `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')} น.`;
+  }
+  return '—';
 }
 
 function fmtNow24() {
@@ -1922,7 +1957,7 @@ function renderFuelTracker(json) {
     const filled = !!fd;
     const sourceLabel = fd?.source === 'check' ? '🔍 ตรวจรถ' : fd?.source === 'mile' ? '🚗 ออกรถ' : '';
     const litersLabel = fd?.fuelLiters ? fd.fuelLiters + ' ลิตร' : '';
-    const timeLabel   = fd?.time || '';
+    const timeLabel   = fd?.time ? extractTimeOnly(fd.time) : '';
     const levelLabel  = fd?.fuelLevel ? 'ระดับ ' + fd.fuelLevel : '';
 
     if (filled) {
@@ -2422,8 +2457,8 @@ function openLiveVehicleDetail(plate) {
   const inspector    = rec?.driverName || chkData?.driverName || '—';
   const lastInspDate = rec?.inspDate ? formatThaiDate(rec.inspDate) 
                        : chkData?.inspTime ? '(วันนี้)' : '—';
-  const lastInspTime = rec?.inspTime ? formatThaiTime(rec.inspTime)
-                       : chkData?.inspTime ? formatThaiTime(chkData.inspTime) : '—';
+  const lastInspTime = rec?.inspTime ? formatThaiTime(extractTimeOnly(rec.inspTime) || rec.inspTime)
+                       : chkData?.inspTime ? formatThaiTime(extractTimeOnly(chkData.inspTime) || chkData.inspTime) : '—';
 
   // timestamp อัปเดตล่าสุด
   let lastUpdate = '—';
