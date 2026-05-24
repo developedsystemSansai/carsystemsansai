@@ -987,8 +987,7 @@ textarea { resize: vertical; min-height: 80px; }
 //  CONFIG
 // ─────────────────────────────────────────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxL1ZYuJr_jtZtGB9oRS5HSO9lArCeqduleQOEli9Ctpv4tZGIiHrTXg-OqMGFvfQ/exec';
-// ใช้ endpoint เดียวกับ Dashboard สำหรับดึงสถานะตรวจสภาพ
-const GAS_STATUS_URL = 'https://script.google.com/macros/s/AKfycbxL1ZYuJr_jtZtGB9oRS5HSO9lArCeqduleQOEli9Ctpv4tZGIiHrTXg-OqMGFvfQ/exec';
+const GAS_STATUS_URL = GAS_URL; // ใช้ endpoint เดียวกัน
 
 // ─────────────────────────────────────────────
 //  STATE
@@ -1089,18 +1088,20 @@ function getDefaultVehicles() {
 }
 
 function populateCarSelects() {
-  // ── s_carType (ออกรถ): แสดงทุกคัน พร้อมป้ายตรวจสภาพ
-  const sEl = document.getElementById('s_carType');
+  // ── s_carType (ออกรถ): แสดงเฉพาะรถที่ตรวจสภาพวันนี้แล้ว ──
+  const sEl  = document.getElementById('s_carType');
   const sCur = sEl.value;
   while (sEl.options.length > 1) sEl.remove(1);
+
   vehicles.forEach(v => {
-    const plate = v['ทะเบียน'];
-    const label = `${plate} — ${v['ประเภท']}`;
+    const plate = v['ทะเบียน'] || '';
+    const type  = v['ประเภท']  || '';
+    const label = plate + ' — ' + type;
     const opt   = document.createElement('option');
     opt.value   = label;
     if (checkGateLoaded) {
       const checked = isCarCheckedToday(label);
-      opt.text = checked ? `✅ ${label}` : `🔴 ${label}  [ยังไม่ตรวจสภาพ]`;
+      opt.text = checked ? '✅ ' + label : '🔴 ' + label + '  [ยังไม่ตรวจสภาพ]';
       if (!checked) opt.style.color = '#b91c1c';
     } else {
       opt.text = label;
@@ -1109,50 +1110,53 @@ function populateCarSelects() {
   });
   if (sCur) sEl.value = sCur;
 
-  // ── e_carType (กลับ รพ.): แสดงรถที่กำลังออกรถ + ถ้าไม่มีให้แสดงทุกคัน
-  const eEl = document.getElementById('e_carType');
+  // ── e_carType (กลับ รพ.): แสดงเฉพาะรถที่กำลังใช้งาน (startOdoMap) ──
+  const eEl  = document.getElementById('e_carType');
   const eCur = eEl.value;
   while (eEl.options.length > 1) eEl.remove(1);
+
+  // หารถที่กำลังใช้งาน (มีใน startOdoMap)
+  const activePlates = Object.keys(startOdoMap); // short plates
+
+  // match รถในรายการ vehicles กับ activePlates
   const activeVehicles = vehicles.filter(v => {
-    const plate = v['ทะเบียน'];
-    // ตรวจว่ามีใน startOdoMap (กำลังใช้งาน)
-    return Object.keys(startOdoMap).some(k => k.includes(plate) || plate.includes(k.split(' ')[0]));
+    const shortPlate = String(v['ทะเบียน'] || '').split(' ')[0].trim();
+    return activePlates.some(ap => ap === shortPlate || shortPlate.includes(ap) || ap.includes(shortPlate));
   });
+
   if (activeVehicles.length === 0) {
-    // แสดงรถทุกคันพร้อม hint ว่าอาจยังไม่ได้ออกรถ
-    const hintOpt = document.createElement('option');
-    hintOpt.value = '';
-    hintOpt.text  = '— ยังไม่พบรถที่กำลังออกปฏิบัติงาน (เลือกรถที่ต้องการ) —';
-    hintOpt.disabled = true;
-    eEl.appendChild(hintOpt);
+    const hint = document.createElement('option');
+    hint.value    = '';
+    hint.text     = '— ยังไม่มีรถที่กำลังออกปฏิบัติงาน —';
+    hint.disabled = true;
+    eEl.appendChild(hint);
+    // fallback: แสดงทุกคันเพื่อให้กรอกได้ถ้าข้อมูลไม่ sync
     vehicles.forEach(v => {
-      const plate = v['ทะเบียน'];
-      const label = `${plate} — ${v['ประเภท']}`;
+      const label = (v['ทะเบียน'] || '') + ' — ' + (v['ประเภท'] || '');
       const opt   = document.createElement('option');
       opt.value   = label;
       opt.text    = label;
-      opt.style.color = '#374151';
+      opt.style.color = '#94a3b8';
       eEl.appendChild(opt);
     });
   } else {
+    // แสดงรถที่กำลังใช้งานก่อน (ด้วย 🟡)
     activeVehicles.forEach(v => {
-      const plate = v['ทะเบียน'];
-      const label = `${plate} — ${v['ประเภท']}`;
+      const label = (v['ทะเบียน'] || '') + ' — ' + (v['ประเภท'] || '');
       const opt   = document.createElement('option');
       opt.value   = label;
-      opt.text    = `🟡 ${label}  [กำลังออกรถ]`;
+      opt.text    = '🟡 ' + label + '  [กำลังออกรถ]';
       eEl.appendChild(opt);
     });
-    // เพิ่มรถที่เหลือ (ไม่ได้กำลังใช้งาน) ด้วย แต่แยก optgroup
+    // แสดงรถที่เหลือ (ไม่ได้กำลังใช้งาน) โดยใส่ separator
     const otherVehicles = vehicles.filter(v => !activeVehicles.includes(v));
     if (otherVehicles.length > 0) {
-      const sep = document.createElement('option');
+      const sep  = document.createElement('option');
       sep.disabled = true;
-      sep.text = '── รถที่ไม่ได้กำลังออกรถ ──';
+      sep.text     = '── รถที่ไม่ได้กำลังออกรถ ──';
       eEl.appendChild(sep);
       otherVehicles.forEach(v => {
-        const plate = v['ทะเบียน'];
-        const label = `${plate} — ${v['ประเภท']}`;
+        const label = (v['ทะเบียน'] || '') + ' — ' + (v['ประเภท'] || '');
         const opt   = document.createElement('option');
         opt.value   = label;
         opt.text    = label;
@@ -1163,27 +1167,30 @@ function populateCarSelects() {
   }
   if (eCur) eEl.value = eCur;
 
-  // ── histFilterCar: แสดงทุกคัน
-  const hEl = document.getElementById('histFilterCar');
-  const hCur = hEl.value;
-  while (hEl.options.length > 1) hEl.remove(1);
-  vehicles.forEach(v => {
-    const plate = v['ทะเบียน'];
-    const label = `${plate} — ${v['ประเภท']}`;
-    const opt   = document.createElement('option');
-    opt.value   = plate;
-    opt.text    = label;
-    hEl.appendChild(opt);
-  });
-  if (hCur) hEl.value = hCur;
+  // ── histFilterCar ──
+  const hEl  = document.getElementById('histFilterCar');
+  const hCur = hEl ? hEl.value : '';
+  if (hEl) {
+    while (hEl.options.length > 1) hEl.remove(1);
+    vehicles.forEach(v => {
+      const plate = v['ทะเบียน'] || '';
+      const label = plate + ' — ' + (v['ประเภท'] || '');
+      const opt   = document.createElement('option');
+      opt.value   = plate;
+      opt.text    = label;
+      hEl.appendChild(opt);
+    });
+    if (hCur) hEl.value = hCur;
+  }
 }
 
 /** ตรวจว่า carType label นั้นอยู่ใน todayCheckedSet หรือไม่ */
 function isCarCheckedToday(carTypeLabel) {
-  if (!checkGateLoaded) return true; // ถ้าโหลดไม่ได้ ให้ผ่านไปก่อน (fail-open)
-  const plate = carTypeLabel.split(' ')[0];
+  if (!checkGateLoaded) return true; // fail-open ถ้าโหลดไม่สำเร็จ
+  const plate = carTypeLabel.split(' ')[0].trim();
   for (const checked of todayCheckedSet) {
-    if (checked.includes(plate) || plate.includes(checked.split(' ')[0])) return true;
+    const checkedPlate = checked.split(' ')[0].trim();
+    if (checkedPlate === plate || checked.includes(plate) || plate.includes(checkedPlate)) return true;
   }
   return false;
 }
@@ -1196,24 +1203,22 @@ async function loadMileHistory() {
     const res  = await fetch(GAS_URL + '?action=getMileData');
     const json = await res.json();
     mileHistory = json.data || [];
-    // สร้าง map: carType → odometerStart ของ trip ที่กำลังใช้งาน
-    mileHistory.forEach(row => {
-      const car = String(row['ทะเบียน/รถ'] || row['carType'] || '');
-      if (String(row['สถานะ']) === 'กำลังใช้งาน') {
-        startOdoMap[car] = row['เลขไมล์ต้น'] || 0;
-      }
-    });
   } catch (_) {
     mileHistory = generateDemoHistory();
-    // สร้าง startOdoMap จาก demo ด้วย
-    mileHistory.forEach(row => {
-      const car = String(row['ทะเบียน/รถ'] || row['carType'] || '');
-      if (String(row['สถานะ']) === 'กำลังใช้งาน') {
-        startOdoMap[car] = row['เลขไมล์ต้น'] || 0;
-      }
-    });
   }
-  // รีเฟรช dropdown e_carType ให้แสดงเฉพาะรถที่กำลังออกรถ
+
+  // สร้าง startOdoMap: short plate → odometerStart ของ trip กำลังใช้งาน
+  startOdoMap = {};
+  mileHistory.forEach(row => {
+    const car    = String(row['ทะเบียน/รถ'] || '');
+    const plate  = car.split(' ')[0].trim();
+    const status = String(row['สถานะ'] || '');
+    if (status === 'กำลังใช้งาน') {
+      startOdoMap[plate] = Number(row['เลขไมล์ต้น']) || 0;
+    }
+  });
+
+  // รีเฟรช dropdown
   populateCarSelects();
   renderActiveTripsBanner();
   if (document.getElementById('panelHistory').style.display !== 'none') {
@@ -1376,56 +1381,58 @@ function hideCarBlockedNote() {
 async function onEndCarChange() {
   const carType = document.getElementById('e_carType').value;
   if (!carType) return;
-  
-  // หา odometerStart จาก active trip ใน map ก่อน
-  let odo = null;
+
+  const plate = carType.split(' ')[0].trim();
+
+  // 1. หาจาก startOdoMap ก่อน (เร็ว)
+  let odo    = startOdoMap[plate] || null;
   let tripId = '';
-  
-  // ค้นหาใน startOdoMap ด้วย fuzzy match
-  const matchKey = Object.keys(startOdoMap).find(k => 
-    carType.includes(k.split(' ')[0]) || k.includes(carType.split(' ')[0])
-  );
-  if (matchKey) {
-    odo = startOdoMap[matchKey];
-    // หา tripId ด้วย
+
+  // 2. ถ้าไม่มีใน map → ดึงจาก API โดยตรง (กรณี page refresh)
+  if (!odo) {
+    try {
+      const res  = await fetch(GAS_URL + '?action=getActiveTripByPlate&plate=' + encodeURIComponent(plate));
+      const json = await res.json();
+      if (json.found) {
+        odo    = json.odometerStart;
+        tripId = json.tripId || '';
+        // อัปเดต map
+        startOdoMap[plate] = odo;
+        // อัปเดต mileHistory ด้วย (สำหรับ banner)
+        const existingIdx = mileHistory.findIndex(r =>
+          String(r['TripID'] || '') === tripId
+        );
+        if (existingIdx < 0) {
+          mileHistory.push({
+            'TripID'        : tripId,
+            'ทะเบียน/รถ'   : json.carType,
+            'พนักงานขับรถ' : json.driverName,
+            'ปลายทาง'      : json.destination,
+            'เลขไมล์ต้น'  : odo,
+            'สถานะ'        : 'กำลังใช้งาน',
+            'วันที่'        : json.tripDate
+          });
+        }
+        renderActiveTripsBanner();
+      }
+    } catch (_) {}
+  } else {
+    // หา tripId จาก mileHistory
     const activeTrip = mileHistory.find(r => {
-      const car = String(r['ทะเบียน/รถ'] || '');
-      return String(r['สถานะ']) === 'กำลังใช้งาน' && 
-             (car.includes(carType.split(' ')[0]) || carType.includes(car.split(' ')[0]));
+      const rowPlate = String(r['ทะเบียน/รถ'] || '').split(' ')[0].trim();
+      return String(r['สถานะ'] || '') === 'กำลังใช้งาน' && rowPlate === plate;
     });
     if (activeTrip) tripId = String(activeTrip['TripID'] || '');
   }
-  
-  // ถ้ายังไม่มี ให้ fetch จาก API (รองรับกรณี page refresh ก่อน loadMileHistory)
-  if (!odo) {
-    try {
-      const res  = await fetch(GAS_URL + '?action=getMileData');
-      const json = await res.json();
-      const rows = json.data || [];
-      const activeRow = rows.slice().reverse().find(r => {
-        const car = String(r['ทะเบียน/รถ'] || '');
-        return String(r['สถานะ']) === 'กำลังใช้งาน' &&
-               (car.includes(carType.split(' ')[0]) || carType.includes(car.split(' ')[0]));
-      });
-      if (activeRow) {
-        odo = activeRow['เลขไมล์ต้น'];
-        tripId = String(activeRow['TripID'] || '');
-        // อัปเดต startOdoMap และ mileHistory ด้วย
-        startOdoMap[carType] = odo;
-        mileHistory = rows;
-      }
-    } catch (_) {}
-  }
-  
+
   document.getElementById('e_startDisplay').textContent = odo ? Number(odo).toLocaleString() : '—';
-  
-  // อัปเดต tripId field
+
   const tripIdEl = document.getElementById('e_tripId');
   if (tripIdEl && tripId && !tripIdEl.value) {
     tripIdEl.value = tripId;
     tripIdEl.style.color = '#0a2540';
   }
-  
+
   calcDistance();
 }
 
@@ -1466,14 +1473,16 @@ function resetStatusBanner() {
 //  VALIDATION
 // ─────────────────────────────────────────────
 function validateStartOdo() {
-  const val  = Number(document.getElementById('s_odometerStart').value);
-  const last = parseInt(document.getElementById('lastOdoDisplay').textContent) || 0;
-  const hint = document.getElementById('startOdoHint');
+  const val   = Number(document.getElementById('s_odometerStart').value);
+  const hint  = document.getElementById('startOdoHint');
+  // แสดงเลขไมล์ล่าสุดจาก hint text
+  const lastText = document.getElementById('lastOdoDisplay').textContent || '';
+  const last  = parseInt(lastText.replace(/,/g, '')) || 0;
 
-  if (last && val < last) {
+  if (last && val && val < last) {
     hint.className = 'odo-hint err';
     document.getElementById('startAnomalyText').textContent =
-      `เลขไมล์ที่กรอก (${val.toLocaleString()} กม.) น้อยกว่าเลขไมล์ล่าสุด (${last.toLocaleString()} กม.) — กรุณาตรวจสอบ`;
+      'เลขไมล์ที่กรอก (' + val.toLocaleString() + ' กม.) น้อยกว่าเลขไมล์ล่าสุด (' + last.toLocaleString() + ' กม.) — กรุณาตรวจสอบ';
     document.getElementById('startAnomalyAlert').classList.add('show');
   } else {
     hint.className = 'odo-hint';
@@ -1484,12 +1493,10 @@ function validateStartOdo() {
 function calcDistance() {
   const endVal  = Number(document.getElementById('e_odometerEnd').value) || 0;
   const carType = document.getElementById('e_carType').value;
-  
-  // fuzzy match startOdoMap
-  const matchKey = Object.keys(startOdoMap).find(k => 
-    carType.includes(k.split(' ')[0]) || k.includes(carType.split(' ')[0])
-  );
-  const startVal = matchKey ? (startOdoMap[matchKey] || 0) : (startOdoMap[carType] || 0);
+  const plate   = carType.split(' ')[0].trim();
+
+  // ค้นหาด้วย short plate
+  const startVal = startOdoMap[plate] || 0;
 
   document.getElementById('e_endDisplay').textContent = endVal ? endVal.toLocaleString() : '—';
 
@@ -1499,12 +1506,14 @@ function calcDistance() {
     if (dist < 0 || dist > 500) {
       document.getElementById('endAnomalyText').textContent =
         dist < 0
-          ? `เลขไมล์ปลาย น้อยกว่าเลขไมล์ต้น — ตรวจสอบด้วย`
-          : `ระยะทาง ${dist.toLocaleString()} กม. สูงผิดปกติ — กรุณาตรวจสอบ`;
+          ? 'เลขไมล์ปลาย (' + endVal.toLocaleString() + ') น้อยกว่าเลขไมล์ต้น (' + startVal.toLocaleString() + ') — ตรวจสอบด้วย'
+          : 'ระยะทาง ' + dist.toLocaleString() + ' กม. สูงผิดปกติ — กรุณาตรวจสอบ';
       document.getElementById('endAnomalyAlert').classList.add('show');
     } else {
       document.getElementById('endAnomalyAlert').classList.remove('show');
     }
+  } else {
+    document.getElementById('e_distDisplay').textContent = '—';
   }
 }
 
@@ -1563,32 +1572,30 @@ document.getElementById('endForm').addEventListener('submit', (e) => {
 });
 
 function showConfirmModal(type, data) {
-  const modal = document.getElementById('modal');
+  const modal      = document.getElementById('modal');
   const confirmBtn = document.getElementById('modalConfirm');
 
   if (type === 'start') {
-    document.getElementById('modalIcon').textContent = '🚗';
+    document.getElementById('modalIcon').textContent  = '🚗';
     document.getElementById('modalTitle').textContent = 'ยืนยันการออกรถ';
     document.getElementById('modalBody').innerHTML =
-      `<strong>${data.carType}</strong><br>` +
-      `พขร.: ${data.driverName}<br>` +
-      `ปลายทาง: ${data.destination}<br>` +
-      `เลขไมล์ต้น: <strong>${Number(data.odometerStart).toLocaleString()} กม.</strong><br><br>` +
-      `สถานะรถจะอัปเดตเป็น <span style="color:#b45309;font-weight:700;">กำลังใช้งาน</span>`;
+      '<strong>' + data.carType + '</strong><br>' +
+      'พขร.: ' + data.driverName + '<br>' +
+      'ปลายทาง: ' + data.destination + '<br>' +
+      'เลขไมล์ต้น: <strong>' + Number(data.odometerStart).toLocaleString() + ' กม.</strong><br><br>' +
+      'สถานะรถจะอัปเดตเป็น <span style="color:#b45309;font-weight:700;">กำลังใช้งาน</span>';
     confirmBtn.className = 'modal-btn primary';
   } else {
-    const matchKey2 = Object.keys(startOdoMap).find(k => 
-      data.carType.includes(k.split(' ')[0]) || k.includes(data.carType.split(' ')[0])
-    );
-    const start = matchKey2 ? (startOdoMap[matchKey2] || 0) : (startOdoMap[data.carType] || 0);
+    const plate = data.carType.split(' ')[0].trim();
+    const start = startOdoMap[plate] || 0;
     const dist  = Number(data.odometerEnd) - start;
-    document.getElementById('modalIcon').textContent = '🏥';
+    document.getElementById('modalIcon').textContent  = '🏥';
     document.getElementById('modalTitle').textContent = 'ยืนยันการกลับถึงโรงพยาบาล';
     document.getElementById('modalBody').innerHTML =
-      `<strong>${data.carType}</strong><br>` +
-      `ไมล์ปลาย: <strong>${Number(data.odometerEnd).toLocaleString()} กม.</strong><br>` +
-      `ระยะทาง: <strong>${dist >= 0 ? dist.toLocaleString() : '?'} กม.</strong><br><br>` +
-      `สถานะรถจะอัปเดตเป็น <span style="color:#065f46;font-weight:700;">พร้อมใช้งาน</span>`;
+      '<strong>' + data.carType + '</strong><br>' +
+      'ไมล์ปลาย: <strong>' + Number(data.odometerEnd).toLocaleString() + ' กม.</strong><br>' +
+      'ระยะทาง: <strong>' + (dist >= 0 ? dist.toLocaleString() : '?') + ' กม.</strong><br><br>' +
+      'สถานะรถจะอัปเดตเป็น <span style="color:#065f46;font-weight:700;">พร้อมใช้งาน</span>';
     confirmBtn.className = 'modal-btn primary teal';
   }
   modal.classList.add('show');
@@ -1612,39 +1619,37 @@ async function confirmSubmit() {
       body   : 'payload=' + encodeURIComponent(JSON.stringify(data))
     });
 
-    await new Promise(r => setTimeout(r, 800));
+    await new Promise(r => setTimeout(r, 1000));
 
     if (type === 'start') {
-      showToast('บันทึกออกรถสำเร็จ — สถานะ: กำลังใช้งาน', 'success');
-      startOdoMap[data.carType] = Number(data.odometerStart);
+      showToast('✅ บันทึกออกรถสำเร็จ — สถานะ: กำลังใช้งาน', 'success');
+      const plate = data.carType.split(' ')[0].trim();
+      startOdoMap[plate] = Number(data.odometerStart);
       document.getElementById('startForm').reset();
       startFuelPhotos = [];
       renderStartFuelPreviews();
-      if(document.getElementById("fuelDropZone")) document.getElementById("fuelDropZone").classList.remove("has-photo");
+      if (document.getElementById('fuelDropZone')) {
+        document.getElementById('fuelDropZone').classList.remove('has-photo');
+      }
       setDateTimeDefaults();
+      // อัปเดต vehicle status ใน local array
+      const v = vehicles.find(x => (x['ทะเบียน'] || '').includes(plate) || plate.includes((x['ทะเบียน'] || '').split(' ')[0]));
+      if (v) v['สถานะ'] = 'กำลังใช้งาน';
+
     } else {
-      showToast('บันทึกกลับสำเร็จ — สถานะ: พร้อมใช้งาน', 'success');
-      // ลบ key จาก startOdoMap ด้วย fuzzy match
-      const delKey = Object.keys(startOdoMap).find(k => 
-        data.carType.includes(k.split(' ')[0]) || k.includes(data.carType.split(' ')[0])
-      );
-      if (delKey) delete startOdoMap[delKey];
-      else delete startOdoMap[data.carType];
+      showToast('✅ บันทึกกลับสำเร็จ — สถานะ: พร้อมใช้งาน', 'success');
+      const plate = data.carType.split(' ')[0].trim();
+      delete startOdoMap[plate];
       document.getElementById('endForm').reset();
       setDateTimeDefaults();
-    }
-
-    // รีโหลด history
-    await loadMileHistory();
-
-    // อัปเดต status banner
-    if (type === 'start') {
-      const v = vehicles.find(x => data.carType.includes(x['ทะเบียน']));
-      if (v) v['สถานะ'] = 'กำลังใช้งาน';
-    } else {
-      const v = vehicles.find(x => data.carType.includes(x['ทะเบียน']));
+      // อัปเดต vehicle status ใน local array
+      const v = vehicles.find(x => (x['ทะเบียน'] || '').includes(plate) || plate.includes((x['ทะเบียน'] || '').split(' ')[0]));
       if (v) v['สถานะ'] = 'พร้อมใช้งาน';
     }
+
+    // รีโหลด history + อัปเดต dropdown
+    await loadMileHistory();
+    populateCarSelects();
 
   } catch (err) {
     showToast('❌ เกิดข้อผิดพลาด: ' + err.message, 'error');
