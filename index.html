@@ -1073,15 +1073,24 @@ function fmtNow() {
 }
 
 async function initIndex() {
+  // สร้าง lookup จาก hardcoded list ไว้ก่อน เพื่อ fallback sys ที่ถูกต้อง
+  const HARDCODED_SYS = {};
+  ALL_VEHICLES.forEach(v => {
+    const key = v.plate.replace(/ ชม\.?.*/, '').trim();
+    HARDCODED_SYS[key] = v.sys;
+  });
+
   try {
     const res  = await fetch(GAS_URL + '?action=getVehicles');
     const json = await res.json();
     if (json.data && json.data.length) {
-      ALL_VEHICLES = json.data.map(v => ({
-        plate: String(v['ทะเบียน'] || '').trim(),
-        type : v['ประเภท']       || '',
-        sys  : v['ประเภทระบบ']  || 'ทั่วไป'
-      }));
+      ALL_VEHICLES = json.data.map(v => {
+        const plate = String(v['ทะเบียน'] || '').trim();
+        const key   = plate.replace(/ ชม\.?.*/, '').trim();
+        // ใช้ sys จาก hardcoded ก่อน ถ้าไม่มีค่อยใช้จาก API
+        const sys   = HARDCODED_SYS[key] || v['ประเภทระบบ'] || 'ทั่วไป';
+        return { plate, type: v['ประเภท'] || '', sys };
+      });
     }
   } catch (_) {}
   loadStatus();
