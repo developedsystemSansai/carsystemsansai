@@ -373,37 +373,88 @@
   #vehicleStatusWrap { margin-bottom: 28px; }
   .vehicle-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 9px;
   }
   .vehicle-mini {
     background: var(--card);
     border: 1px solid var(--border);
+    border-left: 4px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 11px 13px;
-    transition: box-shadow .15s;
+    padding: 11px 12px 10px;
+    transition: box-shadow .15s, transform .15s;
+    position: relative;
+    overflow: hidden;
   }
-  .vehicle-mini:hover { box-shadow: var(--shadow); }
+  .vehicle-mini::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+    opacity: 0;
+  }
+  .vehicle-mini:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+
+  /* ── Status variants — high contrast ── */
+  .vehicle-mini.vm-inuse {
+    border-left-color: var(--amber);
+    background: linear-gradient(135deg, #fffdf5 0%, #fff8e1 100%);
+  }
+  .vehicle-mini.vm-ready {
+    border-left-color: var(--success);
+    background: linear-gradient(135deg, #f6fef9 0%, #e9f9ee 100%);
+  }
+  .vehicle-mini.vm-wait {
+    border-left-color: var(--border-strong);
+    background: var(--card);
+  }
+
   .vehicle-mini .vm-plate {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 12px; font-weight: 600;
+    font-size: 12.5px; font-weight: 700;
     color: var(--navy); margin-bottom: 2px;
+    letter-spacing: .04em;
   }
   .vehicle-mini .vm-type {
     font-size: 10px; color: var(--text-light); margin-bottom: 8px;
   }
+  /* status chip replaces plain text */
   .vehicle-mini .vm-status {
-    font-size: 11.5px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 700;
+    padding: 3px 8px; border-radius: 4px;
+    letter-spacing: .2px;
+  }
+  .vm-status.st-inuse {
+    background: #fff3cd; color: #7a4800;
+    border: 1px solid rgba(192,122,0,.30);
+  }
+  .vm-status.st-ready {
+    background: #d1fae5; color: #065f3a;
+    border: 1px solid rgba(26,138,74,.30);
+  }
+  .vm-status.st-wait {
+    background: var(--bg2); color: var(--text-mid);
+    border: 1px solid var(--border);
+  }
+  .vm-status-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .vm-status-dot.inuse { background: var(--amber); animation: vm-pulse 1.8s ease-in-out infinite; }
+  .vm-status-dot.ready { background: var(--success); }
+  .vm-status-dot.wait  { background: var(--border-strong); }
+  @keyframes vm-pulse {
+    0%,100% { opacity:1; } 50% { opacity:.25; }
   }
   .vehicle-mini .vm-sub {
-    font-size: 10px; color: var(--text-light); margin-top: 3px;
+    font-size: 10px; color: var(--text-light); margin-top: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .ems-badge {
     font-size: 9px; font-weight: 700;
     background: var(--red-soft); color: var(--red);
     border-radius: 3px; padding: 1px 5px;
     margin-left: 5px; vertical-align: middle;
-    letter-spacing: .3px;
+    letter-spacing: .3px; border: 1px solid rgba(192,57,43,.18);
   }
 
   /* ── WORKFLOW ── */
@@ -606,46 +657,6 @@
     .vehicle-grid { grid-template-columns: repeat(2, 1fr); }
     .faq-btn span { display: none; }
   }
-  /* ── VEHICLE GROUP SECTIONS ── */
-  .vg-section { margin-bottom: 18px; }
-  .vg-section:last-child { margin-bottom: 0; }
-  .vg-label {
-    display: flex; align-items: center; gap: 7px;
-    font-size: 10.5px; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 1.2px;
-    padding: 5px 10px 5px 8px;
-    border-radius: 6px;
-    margin-bottom: 8px;
-  }
-  .vg-icon { font-size: 13px; }
-  .vg-count {
-    margin-left: auto;
-    font-size: 10px; font-weight: 600;
-    opacity: .7;
-  }
-  .vg-refer {
-    background: var(--red-soft); color: var(--red);
-    border: 1px solid rgba(192,57,43,.15);
-  }
-  .vg-van {
-    background: var(--blue-soft); color: var(--blue);
-    border: 1px solid rgba(29,111,181,.15);
-  }
-  .vg-gen {
-    background: var(--teal-soft); color: var(--teal);
-    border: 1px solid rgba(0,122,110,.15);
-  }
-
-  /* ── CARD GRID — Responsive: ประจำวัน/เฉพาะทาง พอดีหน้า ── */
-  .card-grid {
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  }
-  @media (min-width: 769px) {
-    /* ประจำวัน มี 2 การ์ด → 2 คอลัมน์ พอดีหน้า */
-    .card-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-
-
 </style>
 </head>
 <body>
@@ -732,14 +743,45 @@
     </div>
   </div>
 
-  <!-- Vehicle mini cards -->
+  <!-- Vehicle status section: loading bar + grouped cards -->
   <div id="vehicleStatusWrap" style="display:none;">
     <div class="section-head">
       <span class="sh-label">สถานะรถแต่ละคัน</span>
       <span class="sh-line"></span>
       <span class="sh-en">Live Vehicle Status</span>
     </div>
-    <div id="vehicleCards"></div>
+
+    <!-- Loading progress bar (visible while fetching) -->
+    <div id="vehicleLoadingBar" style="display:none;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:11px;font-weight:600;color:var(--text-mid);">กำลังโหลดสถานะ...</span>
+        <span id="vehicleLoadPct" style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--blue);font-weight:700;">0%</span>
+      </div>
+      <div style="height:5px;background:var(--border);border-radius:99px;overflow:hidden;">
+        <div id="vehicleLoadFill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--blue),var(--teal));border-radius:99px;transition:width .3s ease;"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text-light);margin-top:5px;" id="vehicleLoadSub">เชื่อมต่อระบบ...</div>
+    </div>
+
+    <!-- Group: ทั่วไป -->
+    <div style="margin-bottom:6px;">
+      <div style="font-size:10.5px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        รถทั่วไป
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+      <div class="vehicle-grid" id="vehicleCardsGeneral"></div>
+    </div>
+
+    <!-- Group: EMS / Refer -->
+    <div style="margin-top:16px;">
+      <div style="font-size:10.5px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        🚑 รถ Refer / EMS
+        <div style="flex:1;height:1px;background:rgba(192,57,43,.25);"></div>
+      </div>
+      <div class="vehicle-grid" id="vehicleCardsEMS"></div>
+    </div>
   </div>
 
   <!-- Notice -->
@@ -865,7 +907,7 @@
         </div>
         <div class="card-text">
           <div class="card-step">เฉพาะผู้มีสิทธิ์ · ต้องใช้รหัสผ่าน</div>
-          <div class="card-title">Dashboard ภาพรวมการใช้งานยานพาหนะ</div>
+          <div class="card-title">แผงควบคุมภาพรวม</div>
           <div class="card-desc">ดูสถานะรถทุกคัน วิเคราะห์ความผิดปกติ ตรวจสอบการใช้น้ำมัน แสดงผลแบบ Real-time ทุกระบบ</div>
         </div>
       </div>
@@ -1000,19 +1042,17 @@
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxL1ZYuJr_jtZtGB9oRS5HSO9lArCeqduleQOEli9Ctpv4tZGIiHrTXg-OqMGFvfQ/exec';
 
 let ALL_VEHICLES = [
-  // ── รถ Refer / EMS ──
-  { plate:'จย.1379 ชม.', type:'รถ Refer',           sys:'EMS',    group:'refer' },
-  { plate:'งบ.5466 ชม.', type:'รถ Refer',           sys:'EMS',    group:'refer' },
-  { plate:'ขษ.4361 ชม.', type:'รถ Refer',           sys:'EMS',    group:'refer' },
-  { plate:'ขร.501 ชม.',  type:'รถ Refer',           sys:'EMS',    group:'refer' },
-  { plate:'ขฉ.8407 ชม.', type:'รถ Refer',           sys:'EMS',    group:'refer' },
-  // ── รถตู้ ──
-  { plate:'นง.8781 ชม.', type:'รถตู้ฮุนได',         sys:'ทั่วไป', group:'van' },
-  { plate:'นง.86 ชม.',   type:'รถตู้',              sys:'ทั่วไป', group:'van' },
-  // ── รถทั่วไป / ปิ๊กอัพ ──
-  { plate:'ขธ.9302 ชม.', type:'รถปิ๊กอัพ 4 ประตู', sys:'ทั่วไป', group:'general' },
-  { plate:'ขค.9662 ชม.', type:'รถปิ๊กอัพ 4 ประตู', sys:'ทั่วไป', group:'general' },
-  { plate:'กล.9438 ชม.', type:'รถปิ๊กอัพ 4 ประตู', sys:'ทั่วไป', group:'general' },
+  { plate:'นจ.4919 ชม.', type:'รถตู้ฮุนได',         sys:'ทั่วไป' },
+  { plate:'นง.8781 ชม.', type:'รถตู้ฮุนได',         sys:'ทั่วไป' },
+  { plate:'นง.86 ชม.',   type:'รถตู้',              sys:'ทั่วไป' },
+  { plate:'จย.1379 ชม.', type:'รถ Refer',           sys:'EMS' },
+  { plate:'งบ.5466 ชม.', type:'รถ Refer',           sys:'EMS' },
+  { plate:'ขษ.4361 ชม.', type:'รถ Refer',           sys:'EMS' },
+  { plate:'ขร.501 ชม.',  type:'รถ Refer',           sys:'EMS' },
+  { plate:'ขธ.9302 ชม.', type:'รถปิ๊กอัพ 4 ประตู', sys:'ทั่วไป' },
+  { plate:'ขฉ.8407 ชม.', type:'รถ Refer',           sys:'EMS' },
+  { plate:'ขค.9662 ชม.', type:'รถปิ๊กอัพ 4 ประตู', sys:'ทั่วไป' },
+  { plate:'กล.9438 ชม.', type:'รถปิ๊กอัพ 4 ประตู', sys:'ทั่วไป' },
 ];
 
 /** extractTimeOnly — ดึงเฉพาะ HH:MM จาก string ที่อาจมี 1899 หรือเป็น Date.toString() */
@@ -1037,26 +1077,50 @@ async function initIndex() {
     const res  = await fetch(GAS_URL + '?action=getVehicles');
     const json = await res.json();
     if (json.data && json.data.length) {
-      const HIDDEN = ['นจ.4919'];
-      ALL_VEHICLES = json.data
-        .map(v => ({
-          plate: String(v['ทะเบียน'] || '').trim(),
-          type : v['ประเภท']       || '',
-          sys  : v['ประเภทระบบ']  || 'ทั่วไป',
-          group: v['กลุ่ม'] || (v['ประเภทระบบ']==='EMS' ? 'refer' :
-                 (String(v['ประเภท']||'').includes('ตู้') ? 'van' : 'general'))
-        }))
-        .filter(v => !HIDDEN.some(h => v.plate.includes(h)));
+      ALL_VEHICLES = json.data.map(v => ({
+        plate: String(v['ทะเบียน'] || '').trim(),
+        type : v['ประเภท']       || '',
+        sys  : v['ประเภทระบบ']  || 'ทั่วไป'
+      }));
     }
   } catch (_) {}
   loadStatus();
 }
 
 async function loadStatus() {
+  // Show loading bar
+  const lb   = document.getElementById('vehicleLoadingBar');
+  const fill = document.getElementById('vehicleLoadFill');
+  const pct  = document.getElementById('vehicleLoadPct');
+  const sub  = document.getElementById('vehicleLoadSub');
+  const wrap = document.getElementById('vehicleStatusWrap');
+  if (lb) { lb.style.display = 'block'; wrap.style.display = 'block'; }
+
+  // Animate progress bar during fetch
+  let prog = 0;
+  const steps = [
+    [300, 30, 'เชื่อมต่อเซิร์ฟเวอร์...'],
+    [600, 60, 'กำลังดึงข้อมูลสถานะรถ...'],
+    [900, 85, 'ประมวลผล...'],
+  ];
+  const timers = steps.map(([delay, val, msg]) =>
+    setTimeout(() => {
+      if (fill) { fill.style.width = val + '%'; }
+      if (pct)  pct.textContent = val + '%';
+      if (sub)  sub.textContent = msg;
+    }, delay)
+  );
+
   try {
     const res  = await fetch(GAS_URL + '?action=getStatusSummary');
     const json = await res.json();
     if (json.status !== 'ok') throw new Error('api error');
+
+    // Complete bar
+    timers.forEach(clearTimeout);
+    if (fill) fill.style.width = '100%';
+    if (pct)  pct.textContent = '100%';
+    if (sub)  sub.textContent = 'โหลดสำเร็จ';
 
     document.getElementById('sv-notchecked').textContent = json.notCheckedCount ?? '—';
     document.getElementById('sv-ready').textContent      = json.readyCount       ?? '—';
@@ -1067,47 +1131,12 @@ async function loadStatus() {
     const dotNc = document.getElementById('dot-nc');
     if (dotNc) dotNc.className = 'stat-dot ' + (nc === 0 ? 'green' : nc <= 3 ? 'yellow' : 'red');
 
-    renderVehicleCards(json);
+    setTimeout(() => renderVehicleCards(json), 200); // let bar show 100% briefly
   } catch (_) {
+    timers.forEach(clearTimeout);
     document.getElementById('statusUpdateTime').textContent = 'โหลดข้อมูลไม่สำเร็จ';
     renderVehicleCardsOffline();
   }
-}
-
-function buildVehicleCard(v, inUseMap, readyMap, checkedMap) {
-  const plateKey = v.plate.replace(/ ชม\.?.*/, '').trim();
-  const inUseKey  = Object.keys(inUseMap).find(k => k.includes(plateKey));
-  const readyKey  = Object.keys(readyMap).find(k  => k.includes(plateKey));
-  const chkKey    = Object.keys(checkedMap).find(k => k.includes(plateKey));
-  const isInUse   = !!inUseKey;
-  const isChecked = !!chkKey || !!readyKey;
-
-  let statusLabel, statusColor, borderLeft;
-  if (isInUse) {
-    const x = inUseMap[inUseKey];
-    statusLabel = 'กำลังใช้งาน' + (x?.destination ? ' — ' + x.destination : '');
-    statusColor = '#7a4f00'; borderLeft = '3px solid #f59e0b';
-  } else if (isChecked) {
-    statusLabel = 'พร้อมใช้งาน';
-    statusColor = '#0a4d26'; borderLeft = '3px solid #22c55e';
-  } else {
-    statusLabel = 'รอตรวจสภาพ';
-    statusColor = '#4a5f7a'; borderLeft = '3px solid var(--border)';
-  }
-
-  const chkInfo = chkKey ? checkedMap[chkKey] : null;
-  const chkSub = chkInfo
-    ? `ตรวจ ${extractTimeOnly(chkInfo.inspTime)||chkInfo.inspTime||''} · ${chkInfo.driverName||''}`
-    : isInUse && inUseKey ? `พขร. ${inUseMap[inUseKey]?.driver||''}`
-    : 'ยังไม่ได้ตรวจสภาพวันนี้';
-
-  const emsBadge = v.sys === 'EMS' ? `<span class="ems-badge">EMS</span>` : '';
-  return `<div class="vehicle-mini" style="border-left:${borderLeft};">
-    <div class="vm-plate">${plateKey}${emsBadge}</div>
-    <div class="vm-type">${v.type}</div>
-    <div class="vm-status" style="color:${statusColor};">${statusLabel}</div>
-    <div class="vm-sub">${chkSub}</div>
-  </div>`;
 }
 
 function renderVehicleCards(json) {
@@ -1116,56 +1145,73 @@ function renderVehicleCards(json) {
   (json.ready||[]).forEach(x => { readyMap[x.carType] = x; });
   (json.todayChecked||[]).forEach(x => { checkedMap[x.carType] = x; });
 
-  const groups = [
-    { key:'refer',   label:'รถ Refer / EMS', icon:'🚑', accentClass:'vg-refer' },
-    { key:'van',     label:'รถตู้',           icon:'🚐', accentClass:'vg-van'   },
-    { key:'general', label:'รถทั่วไป',        icon:'🚗', accentClass:'vg-gen'   },
-  ];
+  function buildCard(v) {
+    const plateKey = v.plate.replace(/ ชม\.?.*/, '').trim();
+    const inUseKey  = Object.keys(inUseMap).find(k  => k.includes(plateKey));
+    const readyKey  = Object.keys(readyMap).find(k  => k.includes(plateKey));
+    const chkKey    = Object.keys(checkedMap).find(k => k.includes(plateKey));
+    const isInUse   = !!inUseKey;
+    const isChecked = !!chkKey || !!readyKey;
 
-  let html = '';
-  groups.forEach(g => {
-    const vehicles = ALL_VEHICLES.filter(v => (v.group || 'general') === g.key);
-    if (!vehicles.length) return;
-    html += `<div class="vg-section">
-      <div class="vg-label ${g.accentClass}">
-        <span class="vg-icon">${g.icon}</span>${g.label}
-        <span class="vg-count">${vehicles.length} คัน</span>
-      </div>
-      <div class="vehicle-grid">
-        ${vehicles.map(v => buildVehicleCard(v, inUseMap, readyMap, checkedMap)).join('')}
-      </div>
+    let vmClass, statusHtml;
+    if (isInUse) {
+      const x = inUseMap[inUseKey];
+      vmClass = 'vm-inuse';
+      statusHtml = `<span class="vm-status st-inuse"><span class="vm-status-dot inuse"></span>กำลังใช้งาน${x?.destination ? ' — ' + x.destination : ''}</span>`;
+    } else if (isChecked) {
+      vmClass = 'vm-ready';
+      statusHtml = `<span class="vm-status st-ready"><span class="vm-status-dot ready"></span>พร้อมใช้งาน</span>`;
+    } else {
+      vmClass = 'vm-wait';
+      statusHtml = `<span class="vm-status st-wait"><span class="vm-status-dot wait"></span>รอตรวจสภาพ</span>`;
+    }
+
+    const chkInfo = chkKey ? checkedMap[chkKey] : null;
+    const chkSub = chkInfo
+      ? `ตรวจ ${extractTimeOnly(chkInfo.inspTime)||chkInfo.inspTime||''} · ${chkInfo.driverName||''}`
+      : isInUse && inUseKey ? `พขร. ${inUseMap[inUseKey]?.driver||''}`
+      : 'ยังไม่ได้ตรวจสภาพวันนี้';
+
+    const emsBadge = v.sys === 'EMS' ? `<span class="ems-badge">EMS</span>` : '';
+
+    return `<div class="vehicle-mini ${vmClass}">
+      <div class="vm-plate">${plateKey}${emsBadge}</div>
+      <div class="vm-type">${v.type}</div>
+      ${statusHtml}
+      <div class="vm-sub">${chkSub}</div>
     </div>`;
-  });
+  }
 
-  document.getElementById('vehicleCards').innerHTML = html;
+  const generalVehicles = ALL_VEHICLES.filter(v => v.sys !== 'EMS');
+  const emsVehicles     = ALL_VEHICLES.filter(v => v.sys === 'EMS');
+
+  const gEl = document.getElementById('vehicleCardsGeneral');
+  const eEl = document.getElementById('vehicleCardsEMS');
+  if (gEl) gEl.innerHTML = generalVehicles.map(buildCard).join('');
+  if (eEl) eEl.innerHTML = emsVehicles.map(buildCard).join('');
+
+  // Hide loading bar, show section
+  const lb = document.getElementById('vehicleLoadingBar');
+  if (lb) lb.style.display = 'none';
   document.getElementById('vehicleStatusWrap').style.display = 'block';
 }
 
 function renderVehicleCardsOffline() {
-  const groups = [
-    { key:'refer',   label:'รถ Refer / EMS', icon:'🚑', accentClass:'vg-refer' },
-    { key:'van',     label:'รถตู้',           icon:'🚐', accentClass:'vg-van'   },
-    { key:'general', label:'รถทั่วไป',        icon:'🚗', accentClass:'vg-gen'   },
-  ];
-  let html = '';
-  groups.forEach(g => {
-    const vehicles = ALL_VEHICLES.filter(v => (v.group||'general') === g.key);
-    if (!vehicles.length) return;
-    html += `<div class="vg-section">
-      <div class="vg-label ${g.accentClass}">
-        <span class="vg-icon">${g.icon}</span>${g.label}
-        <span class="vg-count">${vehicles.length} คัน</span>
-      </div>
-      <div class="vehicle-grid">
-        ${vehicles.map(v => `<div class="vehicle-mini">
-          <div class="vm-plate">${v.plate.replace(/ ชม\.?.*/, '')}</div>
-          <div class="vm-type">${v.type}</div>
-          <div class="vm-status" style="color:var(--text-light);">ไม่สามารถโหลดสถานะได้</div>
-        </div>`).join('')}
-      </div>
+  function buildOfflineCard(v) {
+    const plateKey = v.plate.replace(/ ชม\.?.*/, '');
+    const emsBadge = v.sys === 'EMS' ? `<span class="ems-badge">EMS</span>` : '';
+    return `<div class="vehicle-mini vm-wait">
+      <div class="vm-plate">${plateKey}${emsBadge}</div>
+      <div class="vm-type">${v.type}</div>
+      <span class="vm-status st-wait"><span class="vm-status-dot wait"></span>ไม่สามารถโหลดสถานะได้</span>
     </div>`;
-  });
-  document.getElementById('vehicleCards').innerHTML = html;
+  }
+  const gEl = document.getElementById('vehicleCardsGeneral');
+  const eEl = document.getElementById('vehicleCardsEMS');
+  if (gEl) gEl.innerHTML = ALL_VEHICLES.filter(v => v.sys !== 'EMS').map(buildOfflineCard).join('');
+  if (eEl) eEl.innerHTML = ALL_VEHICLES.filter(v => v.sys === 'EMS').map(buildOfflineCard).join('');
+  const lb = document.getElementById('vehicleLoadingBar');
+  if (lb) lb.style.display = 'none';
   document.getElementById('vehicleStatusWrap').style.display = 'block';
 }
 
