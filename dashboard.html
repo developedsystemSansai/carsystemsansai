@@ -2887,23 +2887,60 @@ async function loadLiveVehicleStatus() {
     console.warn('[Live] getStatusSummary ล้มเหลว:', e.message, '— ใช้ข้อมูลจาก CheckLog+MileLog ที่โหลดแล้วแทน');
     timeEl.textContent = 'จาก local data · ' + fmtNow24();
     // Fallback: ใช้ allData (CheckLog) + _mileLogToday สำหรับ fuel
+    // renderLiveVehicleGridFromCheckLog จะ populate sheetStatus ใน ALL_VEHICLES ก่อน
     renderLiveVehicleGridFromCheckLog();
+    // จากนั้นนับจาก sheetStatus ที่ถูก populate แล้ว
+    updateDailyStatusSummaryBar({});
     renderFuelTrackerFromMileLog();
   }
 }
 
-/** สร้างสถานะรถจาก allData (CheckLog) เมื่อ live API ใช้ไม่ได้ */
+/** สร้างสถานะรถจาก allData (CheckLog) เมื่อ live API ใช้ไม่ได้
+ *  ในกรณีนี้ ALL_VEHICLES.sheetStatus ยังไม่ถูก populate จาก getVehicles
+ *  จึงต้อง infer สถานะจาก CheckLog วันนี้ + MileLog วันนี้ แล้วอัปเดต sheetStatus ลงใน ALL_VEHICLES
+ */
 function renderLiveVehicleGridFromCheckLog() {
-  // ใช้ bkkDateStr() เพื่อให้ timezone ถูกต้อง (Asia/Bangkok)
   const todayStr = bkkDateStr();
   const todayRecords = (window.allData || []).filter(r => {
     const nd = r._normDate || normalizeInspDate(r.inspDate || r.timestamp || '');
     return nd === todayStr;
   });
 
+  // Build checked plate set จาก CheckLog
+  const checkedPlateSet = new Set(
+    todayRecords.map(r => String(r.carType || '').split(' ')[0].trim()).filter(Boolean)
+  );
+  // Build inUse plate set จาก MileLog วันนี้
+  const inUsePlateSet = new Set(
+    (_mileLogToday || [])
+      .filter(t => String(t['สถานะ']||'').trim() === 'กำลังใช้งาน')
+      .map(t => String(t['ทะเบียน/รถ']||'').split(' ')[0].trim())
+      .filter(Boolean)
+  );
+
+  // อัปเดต sheetStatus ใน ALL_VEHICLES เพื่อให้ updateDailyStatusSummaryBar นับถูก
+  ALL_VEHICLES.forEach(v => {
+    if (inUsePlateSet.has(v.plate)) {
+      v.sheetStatus = 'กำลังใช้งาน';
+    } else if (checkedPlateSet.has(v.plate)) {
+      v.sheetStatus = 'พร้อมใช้งาน';
+    } else {
+      v.sheetStatus = 'รอตรวจสภาพรถ';
+    }
+  });
+
   // สร้าง fake json ที่ renderLiveVehicleGrid รองรับ
+  // ส่ง inUse จาก MileLog วันนี้ด้วย เพื่อให้แสดง "กำลังใช้งาน" ถูกต้อง
+  const inUseFakeList = (_mileLogToday || [])
+    .filter(t => String(t['สถานะ']||'').trim() === 'กำลังใช้งาน')
+    .map(t => ({
+      carType    : String(t['ทะเบียน/รถ'] || ''),
+      driver     : String(t['พนักงานขับรถ'] || ''),
+      destination: String(t['ปลายทาง'] || ''),
+    }));
+
   const fakeJson = {
-    inUse: [],
+    inUse: inUseFakeList,
     ready: [],
     todayChecked: todayRecords.map(r => ({
       carType: r.carType || '',
@@ -3188,17 +3225,18 @@ function renderLiveVehicleGrid(json) {
     const hasIssue = latestRecord && Object.keys(latestRecord)
       .some(k => k.startsWith('chk_') && latestRecord[k] === 'ผิดปกติ');
 
-    // ── สถานะหลักจาก Vehicles sheet เป็น source of truth ──
+    // ── สถานะหลักจาก Vehicles sheet เป็น source of truth อย่างเคร่งครัด ──
     // MUST declare ก่อน liveVehicleDetailMap เพื่อป้องกัน TDZ ReferenceError
     const sheetSt = v.sheetStatus || '';  // 'กำลังใช้งาน' | 'พร้อมใช้งาน' | 'รอตรวจสภาพรถ'
 
-    // รายละเอียดวันนี้ยังคงดึงจาก CheckLog (chkData_/latestRecord)
-    // แต่ status chip ใช้ sheetStatus เป็นหลัก
-    const isInUseFinal   = sheetSt === 'กำลังใช้งาน'   || isInUse;
-    const isReadyFinal   = sheetSt === 'พร้อมใช้งาน'   && !isInUseFinal;
-    const isWaitFinal    = sheetSt === 'รอตรวจสภาพรถ'  && !isInUseFinal;
-    // fallback ถ้า Vehicles sheet ยังไม่ได้ reset (ค่าเก่า)
-    const isCheckedFinal = isReadyFinal || (isChecked && !isWaitFinal && !isInUseFinal);
+    // ใช้ sheetStatus จาก Vehicles sheet เป็น single source of truth เสมอ
+    // ไม่ fallback ด้วย MileLog/CheckLog เพื่อป้องกันการนับไม่ตรงกับชีท
+    const hasSheetSt     = sheetSt !== '';
+    const isInUseFinal   = hasSheetSt ? (sheetSt === 'กำลังใช้งาน')  : isInUse;
+    const isReadyFinal   = hasSheetSt ? (sheetSt === 'พร้อมใช้งาน')  : (isReady && !isInUse);
+    const isWaitFinal    = hasSheetSt ? (sheetSt === 'รอตรวจสภาพรถ') : (!isChecked && !isInUse);
+    // isCheckedFinal ใช้สำหรับแสดงรายละเอียด CheckLog เท่านั้น (ไม่ใช้ตัดสิน status chip)
+    const isCheckedFinal = isReadyFinal || isChecked;
 
     // ใช้ตัวแปร resolved สำหรับ template literal
     const chkData = chkData_;
@@ -3669,25 +3707,15 @@ function scheduleReloadAt3amDash() {
   }, ms);
 }
 
-// updateDailyStatusSummaryBar — นับจาก ALL_VEHICLES.sheetStatus เป็น source of truth
+// updateDailyStatusSummaryBar — นับจาก ALL_VEHICLES.sheetStatus (Vehicles sheet) อย่างเคร่งครัด
 function updateDailyStatusSummaryBar(json) {
   const vehicles = window.ALL_VEHICLES || [];
 
-  // นับจาก sheetStatus ถ้ามีข้อมูล (หลัง loadVehicleMaster โหลดแล้ว)
-  const hasSheetStatus = vehicles.some(v => v.sheetStatus);
-  let waiting, readyCount, inUseCount;
-
-  if (hasSheetStatus) {
-    inUseCount  = vehicles.filter(v => v.sheetStatus === 'กำลังใช้งาน').length;
-    readyCount  = vehicles.filter(v => v.sheetStatus === 'พร้อมใช้งาน').length;
-    waiting     = vehicles.filter(v => v.sheetStatus === 'รอตรวจสภาพรถ' || !v.sheetStatus).length;
-  } else {
-    // fallback: ใช้ getStatusSummary จาก API
-    inUseCount = (json.inUse || []).length;
-    const checked = (json.todayChecked || []).length;
-    readyCount = Math.max(0, checked - inUseCount);
-    waiting    = Math.max(0, vehicles.length - checked);
-  }
+  // นับจาก sheetStatus เสมอ — ตรงกับ Vehicles sheet โดยตรง
+  // ถ้ารถคันใดไม่มี sheetStatus (โหลดยังไม่สำเร็จ) ถือว่า "รอตรวจสภาพรถ"
+  const inUseCount = vehicles.filter(v => v.sheetStatus === 'กำลังใช้งาน').length;
+  const readyCount = vehicles.filter(v => v.sheetStatus === 'พร้อมใช้งาน').length;
+  const waiting    = vehicles.filter(v => v.sheetStatus === 'รอตรวจสภาพรถ' || !v.sheetStatus).length;
 
   // จำนวนรถที่มีปัญหา — ดูจาก CheckLog วันนี้ (latestRecord)
   const issues = Object.values(window.liveVehicleDetailMap || {})
