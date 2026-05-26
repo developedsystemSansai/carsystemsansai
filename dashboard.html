@@ -3192,6 +3192,21 @@ function renderLiveVehicleGrid(json) {
     const hasIssue = latestRecord && Object.keys(latestRecord)
       .some(k => k.startsWith('chk_') && latestRecord[k] === 'ผิดปกติ');
 
+    // ── สถานะหลักจาก Vehicles sheet เป็น source of truth ──
+    // MUST declare ก่อน liveVehicleDetailMap เพื่อป้องกัน TDZ ReferenceError
+    const sheetSt = v.sheetStatus || '';  // 'กำลังใช้งาน' | 'พร้อมใช้งาน' | 'รอตรวจสภาพรถ'
+
+    // รายละเอียดวันนี้ยังคงดึงจาก CheckLog (chkData_/latestRecord)
+    // แต่ status chip ใช้ sheetStatus เป็นหลัก
+    const isInUseFinal   = sheetSt === 'กำลังใช้งาน'   || isInUse;
+    const isReadyFinal   = sheetSt === 'พร้อมใช้งาน'   && !isInUseFinal;
+    const isWaitFinal    = sheetSt === 'รอตรวจสภาพรถ'  && !isInUseFinal;
+    // fallback ถ้า Vehicles sheet ยังไม่ได้ reset (ค่าเก่า)
+    const isCheckedFinal = isReadyFinal || (isChecked && !isWaitFinal && !isInUseFinal);
+
+    // ใช้ตัวแปร resolved สำหรับ template literal
+    const chkData = chkData_;
+
     // เก็บ detail สำหรับ popup (รายละเอียดจาก CheckLog + สถานะจาก Vehicles sheet)
     window.liveVehicleDetailMap[v.plate] = {
       plate       : v.plate,
@@ -3209,20 +3224,6 @@ function renderLiveVehicleGrid(json) {
       latestRecord,                   // ประวัติล่าสุดจาก CheckLog
       hasIssue
     };
-
-    // ใช้ตัวแปร resolved สำหรับ template literal
-    const chkData = chkData_;
-
-    // ── สถานะหลักจาก Vehicles sheet เป็น source of truth ──
-    const sheetSt = v.sheetStatus || '';  // 'กำลังใช้งาน' | 'พร้อมใช้งาน' | 'รอตรวจสภาพรถ'
-
-    // รายละเอียดวันนี้ยังคงดึงจาก CheckLog (chkData_/latestRecord)
-    // แต่ status chip ใช้ sheetStatus เป็นหลัก
-    const isInUseFinal   = sheetSt === 'กำลังใช้งาน'   || isInUse;
-    const isReadyFinal   = sheetSt === 'พร้อมใช้งาน'   && !isInUseFinal;
-    const isWaitFinal    = sheetSt === 'รอตรวจสภาพรถ'  && !isInUseFinal;
-    // fallback ถ้า Vehicles sheet ยังไม่ได้ reset (ค่าเก่า)
-    const isCheckedFinal = isReadyFinal || (isChecked && !isWaitFinal && !isInUseFinal);
 
     // Map status to CSS class keys
     let statusLabel, statusSub, stripeClass, chipClass, dotClass;
