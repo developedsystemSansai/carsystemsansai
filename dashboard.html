@@ -2398,7 +2398,11 @@ function renderRecentRecords(data) {
     const statusTag = issues === 0
       ? '<span class="tag ok">ปกติ</span>'
       : `<span class="tag bad">พบปัญหา ${issues} จุด</span>`;
-    const hasPhoto = (r.driveLinks||r.photoLinks||'').toString().trim().length > 0;
+    // แก้ไข v2.1: เช็ค driveUrls (array URL จริง) และ driveLinks (URL จาก formula)
+    // แทนที่จะเช็ค driveLinks ที่อาจเป็น text "ดูรูป (N)" ไม่ใช่ URL
+    const hasPhoto = (Array.isArray(r.driveUrls) && r.driveUrls.length > 0)
+      || (r.driveLinks && typeof r.driveLinks === 'string' && r.driveLinks.startsWith('http'))
+      || (r.hasPhotos && String(r.hasPhotos).includes('มีรูป'));
     const fuelFilled = r.fuelFill === 'เติม';
     const fuelPhotoIcon = fuelFilled
       ? `<span title="มีรูปบิลน้ำมัน" style="color:#0ea5e9;font-size:0.72rem;margin-left:4px;cursor:pointer;"
