@@ -3127,6 +3127,22 @@ function renderFuelTrackerOffline() {
 function renderLiveVehicleGrid(json) {
   const inUseMap={}, readyMap={}, checkedMap={}, fueledMap={};
 
+  // ── อัปเดต sheetStatus ใน ALL_VEHICLES จาก json.vehicles (Vehicles sheet ล่าสุดจาก GAS) ──
+  if (json.vehicles && json.vehicles.length) {
+    const sheetMap = {};
+    json.vehicles.forEach(sv => { if (sv.plate) sheetMap[sv.plate] = sv; });
+    ALL_VEHICLES.forEach(v => {
+      const sv = sheetMap[v.plate] ||
+        json.vehicles.find(sv2 => sv2.plate && (sv2.plate.includes(v.plate) || v.plate.includes(sv2.plate)));
+      if (sv) {
+        v.sheetStatus = (sv.sheetStatus || '').trim() || v.sheetStatus || '';
+        v.sheetDriver = (sv.sheetDriver || '').trim() || v.sheetDriver || '';
+        v.sheetDest   = (sv.sheetDest   || '').trim() || v.sheetDest   || '';
+      }
+    });
+    console.log('[renderLiveVehicleGrid] synced sheetStatus from Vehicles sheet');
+  }
+
   // Build lookup maps ด้วย short plate เพื่อ match แบบ robust
   (json.inUse||[]).forEach(x => {
     const p = (x.carType||'').split(' ')[0].trim();
@@ -3222,8 +3238,15 @@ function renderLiveVehicleGrid(json) {
     const displayOdoLabel = mileOdoLabel || (chkOdo ? chkOdo.toLocaleString() + ' กม.' : '');
     const displayOdoSub   = mileOdoLabel ? mileOdoSub
                             : (chkOdo && chkData_?.inspTime ? '🔍 ตรวจ ' + extractTimeOnly(chkData_.inspTime) : '');
-    const hasIssue = latestRecord && Object.keys(latestRecord)
-      .some(k => k.startsWith('chk_') && latestRecord[k] === 'ผิดปกติ');
+    // hasIssue: ดูเฉพาะ CheckLog วันนี้เท่านั้น ไม่นับประวัติเก่า
+    const todayStrHI = bkkDateStr();
+    const todayRecord = (window.allData||[]).filter(r => {
+      const ct = String(r.carType || '');
+      return (ct.includes(v.plate) || ct.split(' ')[0].trim() === v.plate) &&
+             (r._normDate || normalizeInspDate(r.inspDate || r.timestamp || '')) === todayStrHI;
+    }).sort((a, b) => (b.inspDate||'').localeCompare(a.inspDate||''))[0];
+    const hasIssue = todayRecord && Object.keys(todayRecord)
+      .some(k => k.startsWith('chk_') && todayRecord[k] === 'ผิดปกติ');
 
     // ── สถานะหลักจาก Vehicles sheet เป็น source of truth อย่างเคร่งครัด ──
     // MUST declare ก่อน liveVehicleDetailMap เพื่อป้องกัน TDZ ReferenceError
