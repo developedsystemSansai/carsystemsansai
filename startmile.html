@@ -708,13 +708,18 @@ input.odo-mismatch {
 
   <!-- Status Summary Banner -->
   <div class="status-summary-row" id="statusSummaryRow" style="display:none;">
+    <div class="summary-block" style="background:var(--warning-soft,#fef3c7);border:1.5px solid #fcd34d;" id="waitSummaryBlock">
+      <div class="summary-label" style="color:#92400e;">⏳ รอตรวจสภาพรถ</div>
+      <div class="summary-count" id="waitCount" style="color:#b45309;">0</div>
+      <div class="summary-chips" id="waitChips"></div>
+    </div>
     <div class="summary-block active-block" id="activeSummaryBlock">
       <div class="summary-label"> กำลังออกปฏิบัติงาน</div>
       <div class="summary-count" id="activeCount">0</div>
       <div class="summary-chips" id="activeChips"></div>
     </div>
     <div class="summary-block ready-block" id="readySummaryBlock">
-      <div class="summary-label"> พร้อมใช้งาน</div>
+      <div class="summary-label"> ตรวจแล้ว / พร้อมใช้งาน</div>
       <div class="summary-count" id="readyCount">0</div>
       <div class="summary-chips" id="readyChips"></div>
     </div>
@@ -1638,21 +1643,38 @@ function populateCarSelects() {
   const uncheckedV = [];   // ยังไม่ตรวจ
 
   vehicles.forEach(v => {
-    const plate = String(v['ทะเบียน'] || '').split(' ')[0].trim();
-    const isInUse = activePlates.some(ap =>
+    const plate       = String(v['ทะเบียน'] || '').split(' ')[0].trim();
+    const sheetStatus = String(v['สถานะ'] || '').trim();
+
+    // ── ตรวจสอบจาก activeTripMap (MileLog วันนี้) ก่อน ──
+    const isInUseByTrip = activePlates.some(ap =>
       ap === plate || ap.includes(plate) || plate.includes(ap)
     );
+
+    // ── ตรวจสอบจาก CheckLog วันนี้ ──
+    const isCheckedToday = todayCheckedSet.size > 0 &&
+      [...todayCheckedSet].some(cp =>
+        cp === plate || cp.includes(plate) || plate.includes(cp)
+      );
+
+    // ── ตรวจสอบจาก Vehicles sheet (สถานะปัจจุบัน) ──
+    const isInUseBySheet  = sheetStatus === 'กำลังใช้งาน';
+    const isReadyBySheet  = sheetStatus === 'พร้อมใช้งาน';
+    const isWaitBySheet   = sheetStatus === 'รอตรวจสภาพรถ';
+
+    // รวม logic: MileLog active หรือ sheet บอก active → inUse
+    const isInUse = isInUseByTrip || isInUseBySheet;
     if (isInUse) {
       inUseV.push(v);
       return;
     }
-    const inChecked = todayCheckedSet.size === 0 ? true
-      : [...todayCheckedSet].some(cp =>
-          cp === plate || cp.includes(plate) || plate.includes(cp)
-        );
-    if (inChecked) {
+
+    // ตรวจแล้ว = CheckLog วันนี้ผ่าน หรือ sheet บอก พร้อมใช้งาน
+    // รอตรวจ = sheet บอกรอตรวจ หรือ (ไม่มีข้อมูล CheckLog และ sheet ไม่ได้บอกพร้อม)
+    if (isCheckedToday || isReadyBySheet) {
       readyV.push(v);
     } else {
+      // รอตรวจสภาพ: sheet บอกรอ หรือ ไม่มีการตรวจวันนี้เลย
       uncheckedV.push(v);
     }
   });
@@ -1771,17 +1793,37 @@ function renderStatusSummary() {
   const trips      = Object.values(activeTripMap);
   const activePlates = new Set(trips.map(t => String(t.carType||'').split(' ')[0].trim()));
 
-  // รถพร้อมใช้งาน = ตรวจแล้ว + ไม่ได้กำลังออก
+  // รถพร้อมใช้งาน = ตรวจแล้ว (CheckLog หรือ Vehicles sheet) + ไม่ได้กำลังออก
   const readyVehicles = vehicles.filter(v => {
-    const plate = String(v['ทะเบียน']||'').split(' ')[0].trim();
-    const checked = todayCheckedSet.size === 0 ? true
-      : [...todayCheckedSet].some(cp => cp===plate || cp.includes(plate) || plate.includes(cp));
-    return checked && !activePlates.has(plate);
+    const plate       = String(v['ทะเบียน']||'').split(' ')[0].trim();
+    const sheetStatus = String(v['สถานะ']||'').trim();
+    if (activePlates.has(plate)) return false;
+    const checkedToday = todayCheckedSet.size > 0 &&
+      [...todayCheckedSet].some(cp => cp===plate || cp.includes(plate) || plate.includes(cp));
+    return checkedToday || sheetStatus === 'พร้อมใช้งาน';
   });
 
   // แสดง row เสมอถ้ามีข้อมูล
-  const hasData = trips.length > 0 || readyVehicles.length > 0 || todayCheckedSet.size > 0;
+  const hasData = vehicles.length > 0;
   row.style.display = hasData ? 'grid' : 'none';
+
+  // Wait (รอตรวจสภาพ) count + chips
+  const waitVehicles = vehicles.filter(v => {
+    const plate       = String(v['ทะเบียน']||'').split(' ')[0].trim();
+    const sheetStatus = String(v['สถานะ']||'').trim();
+    if (activePlates.has(plate)) return false;
+    const checkedToday = todayCheckedSet.size > 0 &&
+      [...todayCheckedSet].some(cp => cp===plate || cp.includes(plate) || plate.includes(cp));
+    if (checkedToday || sheetStatus === 'พร้อมใช้งาน') return false;
+    return true;  // รอตรวจ
+  });
+  const wEl = document.getElementById('waitCount');
+  const wChip = document.getElementById('waitChips');
+  if (wEl) wEl.textContent = waitVehicles.length + ' คัน';
+  if (wChip) wChip.innerHTML = waitVehicles.map(v => {
+    const plate = String(v['ทะเบียน']||'').split(' ')[0];
+    return `<span class="s-chip" style="background:#fef3c7;color:#92400e;border:1px solid #fcd34d;">${plate}</span>`;
+  }).join('');
 
   // Active count + chips
   document.getElementById('activeCount').textContent = trips.length + ' คัน';
