@@ -1127,34 +1127,6 @@ document.addEventListener('DOMContentLoaded', function() {
       <h2>สถานะรถแต่ละคัน — อัปเดตล่าสุด</h2>
       <span class="badge" id="vehicleLiveTime">กำลังโหลด...</span>
     </div>
-    <!-- ── แถบแจ้งเตือนรีเซตประจำวัน ── -->
-    <div id="dailyResetBanner" style="display:none;margin:0 20px 12px 20px;padding:10px 14px;border-radius:10px;font-size:0.82rem;align-items:center;gap:10px;flex-wrap:wrap;"></div>
-
-    <!-- ── สรุปสถานะวันนี้ ── -->
-    <div id="dailyStatusSummaryBar" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;padding:14px 20px 4px 20px;">
-      <div style="background:var(--warning-soft,#fef3c7);border-radius:10px;padding:10px 14px;text-align:center;">
-        <div style="font-size:1.5rem;font-weight:700;color:#b45309;" id="dss-wait">—</div>
-        <div style="font-size:0.72rem;color:#92400e;margin-top:2px;">⏳ รอตรวจสภาพ</div>
-      </div>
-      <div style="background:var(--success-soft,#d1fae5);border-radius:10px;padding:10px 14px;text-align:center;">
-        <div style="font-size:1.5rem;font-weight:700;color:#065f46;" id="dss-ready">—</div>
-        <div style="font-size:0.72rem;color:#065f46;margin-top:2px;">✅ ตรวจแล้ว / พร้อมใช้</div>
-      </div>
-      <div style="background:rgba(59,130,246,.1);border-radius:10px;padding:10px 14px;text-align:center;">
-        <div style="font-size:1.5rem;font-weight:700;color:#1d4ed8;" id="dss-inuse">—</div>
-        <div style="font-size:0.72rem;color:#1e3a8a;margin-top:2px;">🚗 กำลังใช้งาน</div>
-      </div>
-      <div style="background:rgba(239,68,68,.08);border-radius:10px;padding:10px 14px;text-align:center;">
-        <div style="font-size:1.5rem;font-weight:700;color:#b91c1c;" id="dss-issue">—</div>
-        <div style="font-size:0.72rem;color:#7f1d1d;margin-top:2px;">⚠️ พบปัญหา</div>
-      </div>
-      <div style="background:rgba(107,114,128,.08);border-radius:10px;padding:10px 14px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-        <div style="font-size:0.72rem;color:var(--text-light);margin-bottom:4px;">🔄 รีเซตล่าสุด</div>
-        <div style="font-size:0.78rem;font-weight:600;color:var(--text);" id="dss-resetTime">—</div>
-        <div style="font-size:0.65rem;color:var(--text-light);margin-top:1px;">ตี 3 ทุกวัน</div>
-      </div>
-    </div>
-
     <div class="card-body" style="padding:20px;">
       <div id="liveVehicleGrid" class="live-veh-grid">
         <div style="text-align:center;padding:30px;color:var(--text-light);grid-column:1/-1;">
@@ -2870,8 +2842,6 @@ async function loadLiveVehicleStatus() {
     // ── สถานะรถแต่ละคัน (จาก Vehicles sheet + MileLog) ──
     renderLiveVehicleGrid(json);
 
-    // ── อัปเดตแถบสรุปสถานะประจำวัน ──
-    updateDailyStatusSummaryBar(json);
 
     // ── การเติมน้ำมันวันนี้ (จาก MileLog todayFueled) ──
     renderFuelTracker(json);
@@ -2890,7 +2860,6 @@ async function loadLiveVehicleStatus() {
     // renderLiveVehicleGridFromCheckLog จะ populate sheetStatus ใน ALL_VEHICLES ก่อน
     renderLiveVehicleGridFromCheckLog();
     // จากนั้นนับจาก sheetStatus ที่ถูก populate แล้ว
-    updateDailyStatusSummaryBar({});
     renderFuelTrackerFromMileLog();
   }
 }
@@ -2918,7 +2887,6 @@ function renderLiveVehicleGridFromCheckLog() {
       .filter(Boolean)
   );
 
-  // อัปเดต sheetStatus ใน ALL_VEHICLES เพื่อให้ updateDailyStatusSummaryBar นับถูก
   ALL_VEHICLES.forEach(v => {
     if (inUsePlateSet.has(v.plate)) {
       v.sheetStatus = 'กำลังใช้งาน';
@@ -3594,8 +3562,6 @@ function showMockToast(msg) {
 // ── เพิ่มปุ่ม Mockup เข้า filter bar ──
 document.addEventListener('DOMContentLoaded', async () => {
   // ⓪ ตรวจสอบ / trigger daily reset (ตี 3 ทุกวัน)
-  checkAndHandleDailyResetDash();
-
   // ① โหลดรายการรถก่อน (เพื่อให้ dropdown + ALL_VEHICLES พร้อม)
   await loadVehicleMaster();
 
@@ -3638,118 +3604,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 //  DAILY RESET — Dashboard (ตี 3 ทุกวัน)
 // ════════════════════════════════════════════════════════════
 
-function bkkNowDash() {
-  return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
-}
-
-function checkAndHandleDailyResetDash() {
-  const now      = bkkNowDash();
-  const todayKey = now.getFullYear() + '-' + (now.getMonth()+1) + '-' + now.getDate();
-  const lastReset = localStorage.getItem('dailyResetDate');
-
-  // แสดงเวลา reset ล่าสุดใน UI
-  const lastResetRaw = localStorage.getItem('dailyResetTimestamp');
-  const el = document.getElementById('dss-resetTime');
-  if (el) {
-    el.textContent = lastResetRaw
-      ? lastResetRaw
-      : (lastReset ? lastReset + ' ตี 3' : 'ยังไม่เคยรีเซต');
-  }
-
-  // ถ้ายังไม่ได้ reset วันนี้ และเป็นหลังตี 3
-  if (lastReset !== todayKey && now.getHours() >= 3) {
-    showDailyResetBanner('loading');
-    fetch(GAS_URL + '?action=resetDailyStatus', { cache: 'no-cache' })
-      .then(r => r.json())
-      .then(data => {
-        const ts = bkkNowDash();
-        const tsStr = String(ts.getHours()).padStart(2,'0') + ':' +
-                      String(ts.getMinutes()).padStart(2,'0');
-        localStorage.setItem('dailyResetDate', todayKey);
-        localStorage.setItem('dailyResetTimestamp', tsStr);
-        const el2 = document.getElementById('dss-resetTime');
-        if (el2) el2.textContent = tsStr;
-        showDailyResetBanner('done', data.closedTrips || 0);
-        console.log('[DashReset] reset done:', data);
-      })
-      .catch(err => {
-        console.warn('[DashReset] reset error:', err);
-        showDailyResetBanner('error');
-      });
-  } else {
-    showDailyResetBanner('already', 0);
-  }
-
-  // schedule auto-reload ตี 3 คืนนี้
-  scheduleReloadAt3amDash();
-}
-
-function showDailyResetBanner(state, closedCount) {
-  const el = document.getElementById('dailyResetBanner');
-  if (!el) return;
-  const styles = {
-    loading : 'background:#fef3c7;border:1px solid #fcd34d;color:#92400e;',
-    done    : 'background:#d1fae5;border:1px solid #6ee7b7;color:#065f46;',
-    already : 'background:rgba(107,114,128,.07);border:1px dashed #d1d5db;color:var(--text-light);',
-    error   : 'background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;'
-  };
-  const msgs = {
-    loading : '🔄 กำลังรีเซตสถานะรถประจำวัน...',
-    done    : '✅ รีเซตสถานะรถเรียบร้อยแล้ว' + (closedCount > 0 ? ` — ปิด ${closedCount} trip ข้ามวันอัตโนมัติ` : ''),
-    already : '🔵 สถานะรถได้รับการรีเซตแล้วในวันนี้ — รถทุกคันต้องผ่านการตรวจสภาพก่อนใช้งาน',
-    error   : '⚠️ รีเซตสถานะไม่สำเร็จ — กรุณาตรวจสอบการเชื่อมต่อ'
-  };
-  el.style.cssText = 'margin:0 20px 12px 20px;padding:10px 14px;border-radius:10px;font-size:0.82rem;display:flex;align-items:center;gap:10px;flex-wrap:wrap;' + styles[state];
-  el.innerHTML = msgs[state];
-
-  // ซ่อน banner "already" หลัง 6 วินาที
-  if (state === 'already') {
-    setTimeout(() => { el.style.display = 'none'; }, 6000);
-  } else {
-    el.style.display = 'flex';
-  }
-}
-
-function scheduleReloadAt3amDash() {
-  const now     = bkkNowDash();
-  const next3am = bkkNowDash();
-  next3am.setHours(3, 0, 10, 0);
-  if (next3am <= now) next3am.setDate(next3am.getDate() + 1);
-  const ms = next3am - now;
-  console.log('[DashReset] next auto-reset in', Math.round(ms/60000), 'min');
-  setTimeout(() => {
-    fetch(GAS_URL + '?action=resetDailyStatus', { cache: 'no-cache' })
-      .finally(() => {
-        const d = bkkNowDash();
-        const key = d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
-        const ts  = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
-        localStorage.setItem('dailyResetDate', key);
-        localStorage.setItem('dailyResetTimestamp', ts);
-        location.reload();
-      });
-  }, ms);
-}
-
-// updateDailyStatusSummaryBar — นับจาก ALL_VEHICLES.sheetStatus (Vehicles sheet) อย่างเคร่งครัด
-function updateDailyStatusSummaryBar(json) {
-  const vehicles = window.ALL_VEHICLES || [];
-
-  // นับจาก sheetStatus เสมอ — ตรงกับ Vehicles sheet โดยตรง
-  // ถ้ารถคันใดไม่มี sheetStatus (โหลดยังไม่สำเร็จ) ถือว่า "รอตรวจสภาพรถ"
-  const inUseCount = vehicles.filter(v => v.sheetStatus === 'กำลังใช้งาน').length;
-  const readyCount = vehicles.filter(v => v.sheetStatus === 'พร้อมใช้งาน').length;
-  const waiting    = vehicles.filter(v => v.sheetStatus === 'รอตรวจสภาพรถ' || !v.sheetStatus).length;
-
-  // จำนวนรถที่มีปัญหา — ดูจาก CheckLog วันนี้ (latestRecord)
-  const issues = Object.values(window.liveVehicleDetailMap || {})
-    .filter(d => d.hasIssue).length;
-
-  const set = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
-  set('dss-wait',  waiting   || '0');
-  set('dss-ready', readyCount || '0');
-  set('dss-inuse', inUseCount || '0');
-  set('dss-issue', issues     || '0');
-}
 
 // ════════════════════════════════════════════════════════════
 // ══════ LIVE VEHICLE DETAIL POPUP ══════
