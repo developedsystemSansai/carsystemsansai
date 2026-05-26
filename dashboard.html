@@ -519,7 +519,7 @@ body {
 .status-dot.live   { background: var(--success); animation: pulse 2s infinite; }
 
 /* ── TABLE STYLES ── */
-.odo-table, .records-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.odo-table, .records-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 600px; }
 .odo-table thead th, .records-table thead th {
   background: var(--bg);
   padding: 8px 10px;
@@ -537,6 +537,10 @@ body {
 .odo-table tbody tr:last-child, .records-table tbody tr:last-child { border-bottom: none; }
 .odo-table td, .records-table td { padding: 8px 10px; vertical-align: middle; }
 .odo-table td.col-group-start { border-left: 2px solid var(--border); }
+
+/* ── ODO TRACKER CARD full-width ── */
+#odoTrackerCard { margin-bottom: 16px; }
+#odoTrackerCard .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 .mileage { font-family: 'IBM Plex Mono', monospace; font-weight: 600; font-size: 13px; color: var(--navy); }
 .mileage-bar { height: 3px; background: var(--border); border-radius: 99px; margin-top: 3px; overflow: hidden; }
@@ -926,19 +930,33 @@ body {
   .modal-status-row { flex-wrap: wrap; }
   .modal-status-item { min-width: 50%; }
   .check-grid { grid-template-columns: 1fr; }
-  .dash-wrapper { padding: 16px 14px 60px; }
+  .dash-wrapper { padding: 14px 12px 60px; }
   .breadcrumb-bar { display: none; }
   .footer-divider { display: none; }
   .footer-left { flex-basis: 100%; }
   .footer-right { width: 100%; }
   .footer-org-sub { display: none; }
+  /* odo table: smaller text on mobile */
+  .odo-table, .records-table { font-size: 11.5px; }
+  .odo-table thead th, .records-table thead th { font-size: 9.5px; padding: 7px 8px; }
+  .odo-table td, .records-table td { padding: 7px 8px; }
+  .mile-num { font-size: 11.5px; }
+  .mileage { font-size: 11.5px; }
+  /* fuel tracker grid on mobile */
+  #fuelTrackerGrid { grid-template-columns: 1fr !important; }
+  /* card-body padding reduction */
+  .card-body { padding: 12px; }
 }
 @media(max-width:480px) {
   .kpi-grid { grid-template-columns: 1fr 1fr; }
   .live-veh-grid { grid-template-columns: 1fr 1fr; }
+  .filter-bar { padding: 10px 12px; gap: 6px; }
+  .filter-bar select, .filter-bar input { font-size: 12px; }
+  .filter-actions { width: 100%; }
 }
 @media(max-width:360px) {
   .live-veh-grid { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: 1fr 1fr; }
 }
 
 /* ── PRINT ── */
@@ -1136,66 +1154,71 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
   </div>
 
-  <!-- FUEL TRACKER TODAY -->
-  <div class="card" id="fuelTrackerCard" style="margin-bottom:16px;">
-    <div class="card-header" >
-      <span class="icon">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14M3 22h14M9 22v-6h6v6M19 5l2 2-2 2M21 7H17"/>
-        </svg>
+  <!-- ══════ ติดตามเลขไมล์รถ (ODOMETER) — ลำดับ 2 ══════ -->
+  <div class="card" id="odoTrackerCard" style="margin-bottom:16px;">
+    <div class="card-header">
+      <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l3-10 3 10M17 7l3 10-3 0"/><line x1="9" y1="12" x2="15" y2="12"/></svg></span>
+      <h2>ติดตามเลขไมล์รถ</h2>
+      <span class="badge" id="odoUpdate" style="display:flex;align-items:center;gap:4px;">
+        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;margin-right:2px;animation:blink 1.4s ease-in-out infinite;"></span>Real-time
       </span>
-      <h2>การเติมน้ำมันวันนี้</h2>
-      <span class="badge" id="fuelTrackerBadge" style="background:rgba(255,255,255,0.25);color:#fff;">กำลังโหลด...</span>
     </div>
-    <div class="card-body" style="padding:20px;">
-      <div id="fuelTrackerGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">
-        <div style="text-align:center;padding:20px;color:var(--text-light);grid-column:1/-1;font-size:0.85rem;">กำลังโหลด...</div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-scroll">
+        <table class="odo-table">
+          <thead>
+            <tr>
+              <th style="width:28px;">#</th>
+              <th>ทะเบียน / ประเภท</th>
+              <th>เริ่มต้นไมล์วันนี้<br><span style="font-size:0.65rem;font-weight:500;color:#8898aa;">(จากตรวจเช็ค)</span></th>
+              <th class="col-group-start">การใช้งานวันนี้</th>
+              <th>ไมล์ต้น</th>
+              <th>ไมล์ปลาย</th>
+              <th>ระยะทาง</th>
+              <th>ปลายทาง / คนขับ</th>
+            </tr>
+          </thead>
+          <tbody id="odoTableBody">
+            <tr><td colspan="8" class="loading-state"><div class="spinner-sm"></div><br>กำลังโหลด...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:8px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+        <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--success);margin-right:5px;animation:blink 1.4s ease-in-out infinite;"></span>อัปเดตอัตโนมัติทุก 60 วินาที</span>
+        <span id="odoLastRefresh">—</span>
       </div>
     </div>
   </div>
 
-  <!-- ODOMETER + STATUS -->
-  <div class="main-grid wide">
-    <div class="card">
-      <div class="card-header">
-        <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l3-10 3 10M17 7l3 10-3 0"/><line x1="9" y1="12" x2="15" y2="12"/></svg></span>
-        <h2>ติดตามเลขไมล์รถ</h2>
-        <span class="badge" id="odoUpdate" style="display:flex;align-items:center;gap:4px;">
-          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ade80;margin-right:2px;animation:blink 1.4s ease-in-out infinite;"></span>Real-time
+  <!-- FUEL TRACKER TODAY + STATUS ROW -->
+  <div class="main-grid wide" style="margin-bottom:16px;">
+
+    <!-- การเติมน้ำมันวันนี้ -->
+    <div class="card" id="fuelTrackerCard">
+      <div class="card-header" >
+        <span class="icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14M3 22h14M9 22v-6h6v6M19 5l2 2-2 2M21 7H17"/>
+          </svg>
         </span>
+        <h2>การเติมน้ำมันวันนี้</h2>
+        <span class="badge" id="fuelTrackerBadge" style="background:rgba(255,255,255,0.25);color:#fff;">กำลังโหลด...</span>
       </div>
-      <div class="card-body" style="padding:0;">
-        <div class="table-scroll">
-          <table class="odo-table">
-            <thead>
-              <tr>
-                <th style="width:28px;">#</th>
-                <th>ทะเบียน / ประเภท</th>
-                <th>เริ่มต้นไมล์วันนี้<br><span style="font-size:0.65rem;font-weight:500;color:#8898aa;">(จากตรวจเช็ค)</span></th>
-                <th class="col-group-start">การใช้งานวันนี้</th>
-                <th>ไมล์ต้น</th>
-                <th>ไมล์ปลาย</th>
-                <th>ระยะทาง</th>
-                <th>ปลายทาง / คนขับ</th>
-              </tr>
-            </thead>
-            <tbody id="odoTableBody">
-              <tr><td colspan="8" class="loading-state"><div class="spinner-sm"></div><br>กำลังโหลด...</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div style="padding:8px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px;">
-          <span><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--success);margin-right:5px;animation:blink 1.4s ease-in-out infinite;"></span>อัปเดตอัตโนมัติทุก 60 วินาที</span>
-          <span id="odoLastRefresh">—</span>
+      <div class="card-body" style="padding:16px;">
+        <div id="fuelTrackerGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;">
+          <div style="text-align:center;padding:20px;color:var(--text-light);grid-column:1/-1;font-size:0.85rem;">กำลังโหลด...</div>
         </div>
       </div>
     </div>
+
+    <!-- สรุปสภาพระบบ -->
     <div class="card">
       <div class="card-header"><span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span><h2>สรุปสภาพระบบ</h2></div>
       <div class="card-body">
         <div class="status-list" id="statusSummary"><div class="loading-state"><div class="spinner-sm"></div></div></div>
       </div>
     </div>
+
   </div>
 
   <!-- CHARTS ROW -->
