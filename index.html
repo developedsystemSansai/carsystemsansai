@@ -255,9 +255,17 @@
   /* ── CARD GRID ── */
   .card-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
     margin-bottom: 8px;
+  }
+  /* ระบบประจำวัน: 2 card พอดี */
+  .card-grid.daily-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  /* ระบบเฉพาะทาง: 2 card พอดี */
+  .card-grid.special-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .nav-card {
@@ -642,7 +650,9 @@
   /* ── RESPONSIVE ── */
   @media (max-width: 768px) {
     .status-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .card-grid  { grid-template-columns: 1fr; }
+    .card-grid,
+    .card-grid.daily-grid,
+    .card-grid.special-grid { grid-template-columns: repeat(2, 1fr); }
     .header-chip { display: none; }
     .band-icon { display: none; }
   }
@@ -656,6 +666,10 @@
     .workflow-card { padding: 16px; }
     .vehicle-grid { grid-template-columns: repeat(2, 1fr); }
     .faq-btn span { display: none; }
+    /* mobile: card เต็มแถว */
+    .card-grid,
+    .card-grid.daily-grid,
+    .card-grid.special-grid { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -799,10 +813,7 @@
     <span class="sh-en">Daily Operations</span>
   </div>
 
-  <div class="card-grid">
-
-    <!-- Check -->
-    <a class="nav-card c-teal" href="check.html">
+  <div class="card-grid daily-grid">
       <div class="card-stripe"></div>
       <div class="card-content">
         <div class="card-icon">
@@ -864,7 +875,7 @@
     <span class="sh-en">Specialized Systems</span>
   </div>
 
-  <div class="card-grid">
+  <div class="card-grid special-grid">
 
     <!-- EMS Check -->
     <a class="nav-card c-amber" href="EMScheck.html">
