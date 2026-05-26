@@ -564,11 +564,6 @@ input.odo-mismatch {
   word-break: break-all;
 }
 .fuel-link-box a:hover { text-decoration: underline; }
-.fuel-uploading {
-  display: none; align-items: center; gap: 8px;
-  font-size: 12px; color: var(--teal); margin-top: 8px;
-}
-.fuel-uploading.show { display: flex; }
 .fuel-req-note {
   font-size: 11px; color: #059669; margin-top: 6px; margin-bottom: 0;
   display: flex; align-items: center; gap: 5px;
@@ -602,6 +597,59 @@ input.odo-mismatch {
 .photo-thumb-sm .up-badge.uploading  { background:var(--blue); color:#fff; animation: spin .7s linear infinite; }
 .photo-thumb-sm .up-badge.ok         { background:var(--success); color:#fff; }
 .photo-thumb-sm .up-badge.err        { background:var(--danger); color:#fff; }
+
+/* ── UPLOAD PROGRESS BAR (shared component) ── */
+.upload-progress-wrap {
+  display: none; flex-direction: column; gap: 6px;
+  margin-top: 10px; padding: 10px 14px;
+  background: var(--blue-soft, #e8f1fb); border: 1px solid #bfdbfe;
+  border-radius: 10px; font-size: 12px; color: var(--navy, #0d2137);
+}
+.upload-progress-wrap.show { display: flex; }
+.upload-progress-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.upload-progress-label {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 600; font-size: 12px; color: var(--blue, #1d6fb5);
+}
+.upload-progress-label .up-spin {
+  width: 13px; height: 13px;
+  border: 2px solid rgba(29,111,181,.25); border-top-color: var(--blue, #1d6fb5);
+  border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
+}
+.upload-progress-pct {
+  font-size: 11px; font-weight: 700; color: var(--blue, #1d6fb5);
+  min-width: 34px; text-align: right;
+}
+.upload-progress-file {
+  font-size: 11px; color: var(--text-mid, #3d5168);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.upload-progress-bar-track {
+  height: 6px; background: rgba(29,111,181,.15); border-radius: 99px; overflow: hidden;
+}
+.upload-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue, #1d6fb5) 0%, #38bdf8 100%);
+  border-radius: 99px; width: 0%; transition: width .3s ease;
+}
+.upload-progress-wrap.state-ok {
+  background: var(--success-soft, #e4f5eb); border-color: #a7f3d0;
+}
+.upload-progress-wrap.state-ok .upload-progress-label { color: var(--success, #1a8a4a); }
+.upload-progress-wrap.state-ok .upload-progress-pct   { color: var(--success, #1a8a4a); }
+.upload-progress-wrap.state-ok .upload-progress-bar-fill {
+  background: linear-gradient(90deg, var(--success, #1a8a4a) 0%, #34d399 100%); width: 100% !important;
+}
+.upload-progress-wrap.state-ok .up-spin { display: none; }
+.upload-progress-wrap.state-err {
+  background: var(--danger-soft, #fdecea); border-color: #fca5a5;
+}
+.upload-progress-wrap.state-err .upload-progress-label { color: var(--danger, #c0392b); }
+.upload-progress-wrap.state-err .upload-progress-bar-fill { background: var(--danger, #c0392b); }
+.upload-progress-wrap.state-err .up-spin { display: none; }
+
 .photo-thumb-sm .vw-btn {
   position: absolute; bottom: 3px; left: 3px;
   padding: 1px 6px; border-radius: 4px;
@@ -829,6 +877,20 @@ input.odo-mismatch {
           </button>
           <!-- Photo grid -->
           <div class="photo-grid" id="tripPhotoGrid"></div>
+          <!-- UPLOAD PROGRESS BAR — Trip Photos -->
+          <div class="upload-progress-wrap" id="tripUploadProgress">
+            <div class="upload-progress-header">
+              <div class="upload-progress-label">
+                <div class="up-spin"></div>
+                <span id="tripUploadMsg">กำลังอัปโหลดรูปสภาพรถ...</span>
+              </div>
+              <span class="upload-progress-pct" id="tripUploadPct">0%</span>
+            </div>
+            <div class="upload-progress-file" id="tripUploadFile"></div>
+            <div class="upload-progress-bar-track">
+              <div class="upload-progress-bar-fill" id="tripUploadFill"></div>
+            </div>
+          </div>
           <!-- Drive links panel -->
           <div class="drive-mini-panel" id="tripDrivePanel">
             <div class="dmp-title">✓ อัปโหลดสำเร็จ — ลิ้งค์บน Google Drive</div>
@@ -890,10 +952,19 @@ input.odo-mismatch {
               </div>
             </div>
 
-            <!-- กำลัง upload -->
-            <div class="fuel-uploading" id="fuelUploading">
-              <div class="skeleton-spinner"></div>
-              กำลังอัปโหลดรูปไปยัง Google Drive...
+            <!-- กำลัง upload — PROGRESS BAR -->
+            <div class="upload-progress-wrap" id="fuelUploading">
+              <div class="upload-progress-header">
+                <div class="upload-progress-label">
+                  <div class="up-spin"></div>
+                  <span id="fuelUploadMsg">กำลังอัปโหลดรูปบิล...</span>
+                </div>
+                <span class="upload-progress-pct" id="fuelUploadPct">0%</span>
+              </div>
+              <div class="upload-progress-file" id="fuelUploadFile"></div>
+              <div class="upload-progress-bar-track">
+                <div class="upload-progress-bar-fill" id="fuelUploadFill"></div>
+              </div>
             </div>
 
             <!-- Link หลัง upload สำเร็จ -->
@@ -2445,15 +2516,59 @@ function onFuelPhotoSelected() {
   uploadFuelPhoto(file);
 }
 
+// ── FUEL UPLOAD PROGRESS HELPERS ─────────────────────────
+function fuelProgressStart(fileName) {
+  const wrap = document.getElementById('fuelUploading');
+  if (!wrap) return;
+  wrap.className = 'upload-progress-wrap show';
+  const msg  = document.getElementById('fuelUploadMsg');
+  const pct  = document.getElementById('fuelUploadPct');
+  const file = document.getElementById('fuelUploadFile');
+  const fill = document.getElementById('fuelUploadFill');
+  if (msg)  msg.textContent  = 'กำลังอัปโหลดรูปบิลน้ำมัน...';
+  if (pct)  pct.textContent  = '0%';
+  if (file) file.textContent = fileName || '';
+  if (fill) { fill.style.width = '0%'; }
+  // animate indeterminate ด้วย 10% → 85% ในช่วง wait
+  let _pct = 0;
+  wrap._progressInterval = setInterval(() => {
+    _pct = Math.min(_pct + (Math.random() * 8 + 3), 85);
+    if (fill) fill.style.width = _pct + '%';
+    if (pct)  pct.textContent  = Math.round(_pct) + '%';
+  }, 400);
+}
+function fuelProgressEnd(ok, fileName) {
+  const wrap = document.getElementById('fuelUploading');
+  if (!wrap) return;
+  clearInterval(wrap._progressInterval);
+  const msg  = document.getElementById('fuelUploadMsg');
+  const pct  = document.getElementById('fuelUploadPct');
+  const file = document.getElementById('fuelUploadFile');
+  const fill = document.getElementById('fuelUploadFill');
+  wrap.classList.remove('state-ok','state-err');
+  if (ok) {
+    wrap.classList.add('state-ok');
+    if (msg)  msg.textContent  = '✓ อัปโหลดสำเร็จ — บันทึกลง Drive แล้ว';
+    if (pct)  pct.textContent  = '100%';
+    if (file) file.textContent = fileName || '';
+    if (fill) fill.style.width = '100%';
+    setTimeout(() => { if (wrap) wrap.classList.remove('show'); }, 4000);
+  } else {
+    wrap.classList.add('state-err');
+    if (msg)  msg.textContent  = 'บันทึกรูปไว้ในเครื่อง (จะส่งพร้อมบันทึก)';
+    if (pct)  pct.textContent  = '';
+    if (fill) fill.style.width = '100%';
+    setTimeout(() => { if (wrap) wrap.classList.remove('show'); }, 5000);
+  }
+}
+
 async function uploadFuelPhoto(file) {
-  const uploading = document.getElementById('fuelUploading');
-  const linkBox   = document.getElementById('fuelLinkBox');
-  uploading.classList.add('show');
-  linkBox.classList.remove('show');
+  fuelProgressStart(file.name);
+  const linkBox = document.getElementById('fuelLinkBox');
+  if (linkBox) linkBox.classList.remove('show');
   fuelPhotoUrl = '';
 
   try {
-    // แปลง File → full base64 dataURL (รวม prefix)
     const dataUrl = await new Promise((res, rej) => {
       const r = new FileReader();
       r.onload  = () => res(r.result);
@@ -2463,7 +2578,6 @@ async function uploadFuelPhoto(file) {
     const b64 = dataUrl.split(',')[1];
 
     // ── ใช้ POST แทน GET เพื่อรองรับรูปขนาดใหญ่ ──
-    // GAS รองรับ fetch POST แบบ cors เมื่อ access=ANYONE_ANONYMOUS
     const payload = JSON.stringify({
       action    : 'uploadPhotoPost',
       subFolder : 'FuelReceipts',
@@ -2484,20 +2598,17 @@ async function uploadFuelPhoto(file) {
         fuelPhotoUrl = data.url;
         const linkEl = document.getElementById('fuelPhotoLink');
         if (linkEl) linkEl.href = data.url;
-        linkBox.classList.add('show');
-        showToast('✓ อัปโหลดรูปบิลสำเร็จ — บันทึก URL ลง Drive แล้ว', 'success');
+        if (linkBox) linkBox.classList.add('show');
+        fuelProgressEnd(true, file.name);
         return;
       }
     }
-    // fallback: เก็บ base64 ไว้ส่งพร้อม startMile
     fuelPhotoUrl = '';
-    showToast('บันทึกรูปไว้ในเครื่อง — จะส่งพร้อมบันทึกออกรถ', '');
+    fuelProgressEnd(false, file.name);
   } catch(err) {
     console.warn('uploadFuelPhoto error:', err);
     fuelPhotoUrl = '';
-    showToast('บันทึกรูปไว้ในเครื่อง — จะส่งพร้อมบันทึกออกรถ', '');
-  } finally {
-    uploading.classList.remove('show');
+    fuelProgressEnd(false, file.name);
   }
 }
 
@@ -2550,22 +2661,81 @@ function showToast(msg, type = '') {
 // ════════════════════════════════════════════════════════
 let tripPhotos = [];   // { name, data, type, driveUrl, status }
 
+// ── TRIP PHOTO UPLOAD PROGRESS HELPERS ───────────────────
+let _tripUploadTotal = 0;
+let _tripUploadDone  = 0;
+
+function tripProgressShow(fileName) {
+  const wrap = document.getElementById('tripUploadProgress');
+  if (!wrap) return;
+  wrap.className = 'upload-progress-wrap show';
+  const msg  = document.getElementById('tripUploadMsg');
+  const pct  = document.getElementById('tripUploadPct');
+  const file = document.getElementById('tripUploadFile');
+  const fill = document.getElementById('tripUploadFill');
+  if (msg)  msg.textContent  = 'กำลังอัปโหลดรูปสภาพรถ...';
+  if (pct)  pct.textContent  = Math.round((_tripUploadDone/_tripUploadTotal||0)*100) + '%';
+  if (file) file.textContent = fileName || '';
+  if (fill) fill.style.width = (_tripUploadDone/_tripUploadTotal*100||0) + '%';
+}
+function tripProgressDone(ok, fileName) {
+  _tripUploadDone++;
+  const wrap = document.getElementById('tripUploadProgress');
+  if (!wrap) return;
+  const pct  = document.getElementById('tripUploadPct');
+  const fill = document.getElementById('tripUploadFill');
+  const done = _tripUploadDone;
+  const total = _tripUploadTotal;
+  const pctVal = Math.round((done / total) * 100);
+  if (fill) fill.style.width = pctVal + '%';
+  if (pct)  pct.textContent  = pctVal + '%';
+  if (done >= total) {
+    const hasErr = tripPhotos.some(p => p.status === 'err');
+    wrap.classList.remove('state-ok','state-err');
+    const msg = document.getElementById('tripUploadMsg');
+    const f   = document.getElementById('tripUploadFile');
+    if (hasErr) {
+      wrap.classList.add('state-err');
+      if (msg) msg.textContent = 'อัปโหลดบางรูปไม่สำเร็จ';
+    } else {
+      wrap.classList.add('state-ok');
+      if (msg) msg.textContent = '✓ อัปโหลดสำเร็จ ' + done + ' รูป';
+    }
+    if (f) f.textContent = '';
+    setTimeout(() => { if (wrap) wrap.classList.remove('show'); }, 4000);
+  } else {
+    const f = document.getElementById('tripUploadFile');
+    if (f) f.textContent = fileName || '';
+  }
+}
+
 function handleTripPhotos(files) {
-  Array.from(files).forEach(file => {
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB', 'error'); return; }
+  const newFiles = Array.from(files).filter(f => {
+    if (!f.type.startsWith('image/')) return false;
+    if (f.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB', 'error'); return false; }
+    return true;
+  });
+  if (!newFiles.length) return;
+
+  if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
+    _tripUploadTotal += newFiles.length;
+    const wrap = document.getElementById('tripUploadProgress');
+    if (wrap) wrap.classList.remove('state-ok','state-err');
+  }
+
+  newFiles.forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
       const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
       tripPhotos.push(photo);
       renderTripPhotoGrid();
       if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
+        tripProgressShow(file.name);
         uploadTripPhoto(photo);
       }
     };
     reader.readAsDataURL(file);
   });
-  // reset inputs
   document.getElementById('s_tripPhoto').value = '';
   document.getElementById('s_tripPhotoGallery').value = '';
 }
@@ -2599,6 +2769,7 @@ async function uploadTripPhoto(photo) {
         showToast('✓ อัปโหลดรูปสภาพรถสำเร็จ', 'success');
         renderTripPhotoGrid();
         renderTripDriveLinks();
+        tripProgressDone(true, photo.name);
         return;
       }
     }
@@ -2608,6 +2779,7 @@ async function uploadTripPhoto(photo) {
     console.warn('uploadTripPhoto:', e);
   }
   renderTripPhotoGrid();
+  tripProgressDone(false, photo.name);
 }
 
 function renderTripPhotoGrid() {
