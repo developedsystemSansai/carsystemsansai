@@ -1021,7 +1021,7 @@ textarea { resize: vertical; min-height: 80px; }
 // ============================================================
 // CONFIG — แก้ไข URL ตรงนี้หลัง deploy Google Apps Script
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxL1ZYuJr_jtZtGB9oRS5HSO9lArCeqduleQOEli9Ctpv4tZGIiHrTXg-OqMGFvfQ/exec';
 
 // ============================================================
 // LOAD MASTER DATA FROM GOOGLE SHEETS (Vehicles + Drivers)
@@ -1316,95 +1316,13 @@ function setCheckProgress(current, total, filename, state) {
   }
 }
 
-async function uploadSingleCheckPhoto(photo, idx) {
-  photo.status = 'uploading';
+// รูปจะถูกส่งพร้อมฟอร์ม submit ในคราวเดียวกัน (ไม่ pre-upload แยก)
+// ฟังก์ชันนี้แค่ mark status เป็น 'ok' เพื่อแสดง preview
+function uploadSingleCheckPhoto(photo, idx) {
+  photo.status = 'ok';   // แสดง thumbnail ได้ทันที
+  photo.driveUrl = '';   // URL จะได้จาก GAS หลัง submit
   renderPreviews();
-  _uploadTotal = Math.max(_uploadTotal, idx + 1);
-  setUploadGuard(true);
-  setCheckProgress(_uploadDone, _uploadTotal, photo.name, 'loading');
-  try {
-    const carType  = document.getElementById('carType')?.value  || '';
-    const inspDate = document.getElementById('inspDate')?.value || '';
-    const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
-    const uploadPayload = JSON.stringify({
-      action    : 'uploadPhotoPost',
-      subFolder : 'CheckPhotos',
-      fileName  : photo.name || ('check_' + Date.now() + '.jpg'),
-      mimeType  : photo.type || 'image/jpeg',
-      base64Data: b64,
-      carType   : carType,
-      inspDate  : inspDate
-    });
-
-    // ── GAS Upload: ลอง fetch แบบปกติก่อน (อ่าน JSON ได้)
-    // ถ้า CORS/redirect ขัด → fallback ส่ง no-cors (GAS บันทึก URL ลง Sheet เอง)
-    let uploadOk = false;
-    let driveUrl = '';
-
-    try {
-      const resp = await fetch(GAS_URL, {
-        method : 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body   : 'payload=' + encodeURIComponent(uploadPayload)
-      });
-      if (resp.ok && resp.type !== 'opaque') {
-        const data = await resp.json();
-        if (data.status === 'ok' && data.url) {
-          driveUrl  = data.url;
-          uploadOk  = true;
-        }
-      }
-    } catch(corsErr) {
-      console.warn('uploadSingleCheckPhoto: CORS fetch ล้มเหลว — fallback no-cors', corsErr.message);
-    }
-
-    // fallback: no-cors (ไฟล์จะขึ้น Drive + GAS บันทึก URL ลง Sheet แต่ frontend ไม่รู้ URL)
-    if (!uploadOk) {
-      await fetch(GAS_URL, {
-        method : 'POST',
-        mode   : 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body   : 'payload=' + encodeURIComponent(uploadPayload)
-      });
-      // รอ 2 วิ แล้วลองดึง URL จาก GAS (query กลับ)
-      await new Promise(r => setTimeout(r, 2000));
-      try {
-        const qResp = await fetch(
-          GAS_URL + '?action=getLatestPhotoUrl'
-          + '&carType=' + encodeURIComponent(carType)
-          + '&inspDate=' + encodeURIComponent(inspDate),
-          { cache: 'no-cache' }
-        );
-        if (qResp.ok) {
-          const qData = await qResp.json();
-          if (qData.status === 'ok' && qData.url) driveUrl = qData.url;
-        }
-      } catch(_) {}
-      uploadOk = true; // ถือว่าส่งสำเร็จ (GAS บันทึกเอง)
-    }
-
-    photo.driveUrl = driveUrl;
-    photo.status   = 'ok';
-    _uploadDone++;
-    const allDone = photos.every(p => p.status === 'ok' || p.status === 'err');
-    if (allDone) {
-      setCheckProgress(_uploadDone, _uploadTotal, '', 'ok');
-      setUploadGuard(false);
-    } else {
-      setCheckProgress(_uploadDone, _uploadTotal, '', 'loading');
-    }
-    renderPreviews();
-    renderDriveLinksPanel();
-    return;
-
-  } catch(e) {
-    photo.status = 'err';
-    console.warn('uploadSingleCheckPhoto:', e);
-  }
-  setCheckProgress(_uploadDone, _uploadTotal, photo.name, 'err');
-  const allDone = photos.every(p => p.status === 'ok' || p.status === 'err');
-  if (allDone) setUploadGuard(false);
-  renderPreviews();
+  renderDriveLinksPanel();
 }
 
 function renderPreviews() {
@@ -1568,45 +1486,75 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
   btn.disabled = true;
   
   try {
-    const payload = collectData();
-    
+    const payload = collectData();  // รวม photos: [{name, data, type}] อยู่แล้ว
+
     if (!GAS_URL || GAS_URL.includes('YOUR_GOOGLE')) {
-      // DEMO MODE
       await new Promise(r => setTimeout(r, 1500));
-      showModal(`บันทึกข้อมูลสำเร็จ!<br><small style="color:var(--text-light)">(Demo mode — กรุณาตั้งค่า GAS_URL ก่อนใช้งานจริง)</small>`);
+      showModal('บันทึกข้อมูลสำเร็จ! (Demo mode)');
       resetForm();
       return;
     }
-    
-    // GAS CORS FIX: ส่งเป็น application/x-www-form-urlencoded + mode: 'no-cors'
-    const photosData = payload.photos || [];
-    const payloadNoPhotos = { ...payload, photos: [] };
-    
-    // --- ส่งข้อมูลหลักก่อน (ไม่มีรูป) ---
-    await fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'payload=' + encodeURIComponent(JSON.stringify(payloadNoPhotos))
-    });
-    
-    if (photosData.length > 0) {
-      showModal(`บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--text-light)">กำลังอัปโหลดรูป ${photosData.length} รูปไปยัง Drive…</small>`);
-      try {
-        await uploadCheckPhotos(payload.carType, payload.inspDate, payload.driverName, photosData, 'CheckPhotos');
-        document.getElementById('modalMsg').innerHTML = `บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--success)">✓ อัปโหลดรูป ${photosData.length} รูปสำเร็จ</small>`;
-      } catch(uploadErr) {
-        console.warn('Upload error:', uploadErr);
-        document.getElementById('modalMsg').innerHTML = `บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--warning)">⚠ รูปอาจอัปโหลดไม่สมบูรณ์</small>`;
-      }
-    } else {
-      showModal('บันทึกข้อมูลเรียบร้อยแล้ว');
+
+    const photoCount = (payload.photos || []).length;
+    if (photoCount > 0) {
+      showModal(`<span style="color:var(--text-light)">กำลังบันทึกและอัปโหลดรูป ${photoCount} รูป…</span>`);
     }
+
+    // ── ส่งทุกอย่างใน POST เดียว (ฟอร์ม + รูป base64) ──
+    // GAS จะบันทึก row + อัพโหลดรูป + เขียน URL ลง sheet ในคราวเดียว
+    const resp = await fetch(GAS_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body   : 'payload=' + encodeURIComponent(JSON.stringify(payload))
+    });
+
+    let result = {};
+    try { result = await resp.json(); } catch(_) {}
+
+    if (result.status === 'duplicate') {
+      showToast('รถคันนี้ตรวจสภาพไปแล้ววันนี้', 'error');
+      btn.classList.remove('loading');
+      btn.disabled = false;
+      return;
+    }
+
+    // แสดง URL รูปที่ได้จาก GAS
+    const urls = result.photoUrls || [];
+    if (urls.length > 0) {
+      // อัปเดต driveUrl ใน photos array เพื่อแสดง links
+      photos.forEach((p, i) => { if (urls[i]) p.driveUrl = urls[i]; });
+      renderDriveLinksPanel();
+      showModal(
+        `✅ บันทึกข้อมูลเรียบร้อยแล้ว<br>` +
+        `<small style="color:var(--success)">อัปโหลดรูป ${urls.length} รูปสำเร็จ</small><br>` +
+        urls.map((u, i) =>
+          `<a href="${u}" target="_blank" rel="noopener" style="font-size:0.8rem;color:var(--blue);">🔗 ดูรูปที่ ${i+1}</a>`
+        ).join('&nbsp;&nbsp;')
+      );
+    } else {
+      showModal('✅ บันทึกข้อมูลเรียบร้อยแล้ว' +
+        (photoCount > 0 ? '<br><small style="color:var(--text-light)">รูปถูกบันทึกไว้ใน Drive แล้ว</small>' : ''));
+    }
+
     resetForm();
-    
+
   } catch (err) {
-    showToast('ไม่สามารถส่งข้อมูลได้: ' + err.message, 'error');
-    console.error('Submit error:', err);
+    // Fallback: ถ้า fetch ล้มเหลว (เช่น CORS redirect) ลอง no-cors
+    console.warn('Submit with response failed, trying no-cors fallback:', err.message);
+    try {
+      const payload2 = collectData();
+      await fetch(GAS_URL, {
+        method : 'POST',
+        mode   : 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body   : 'payload=' + encodeURIComponent(JSON.stringify(payload2))
+      });
+      showModal('✅ บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--text-light)">URL รูปจะอัปเดตใน Sheet ภายหลัง</small>');
+      resetForm();
+    } catch(err2) {
+      showToast('ไม่สามารถส่งข้อมูลได้: ' + err2.message, 'error');
+      console.error('Submit fallback error:', err2);
+    }
   } finally {
     btn.classList.remove('loading');
     btn.disabled = false;
