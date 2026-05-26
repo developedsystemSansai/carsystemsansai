@@ -1122,6 +1122,9 @@ let apiLoaded       = false;
 document.addEventListener('DOMContentLoaded', () => {
   setDateTimeDefaults();
 
+  // ── ตรวจสอบการข้ามวัน (Daily Reset Guard) ──────────────
+  checkAndHandleDailyReset();
+
   // แสดง skeleton overlay ทันทีขณะรอโหลด API
   showFormSkeletons();
 
@@ -1133,6 +1136,55 @@ document.addEventListener('DOMContentLoaded', () => {
   // โหลดข้อมูลจาก Google Sheets แบบ parallel
   loadAllData();
 });
+
+// ── DAILY RESET GUARD ─────────────────────────────────
+// ตรวจสอบว่าหน้านี้ถูกโหลดหลังตี 3 ของวันใหม่หรือไม่
+// ถ้าใช่และยังไม่เคย reset วันนี้ → เรียก GAS resetDailyStatus
+// และ schedule auto-reload ให้ตรงตี 3 ทุกคืน
+function checkAndHandleDailyReset() {
+  const now       = bkkNow();
+  const todayKey  = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
+  const lastReset = localStorage.getItem('dailyResetDate');
+
+  // ถ้ายังไม่เคย reset วันนี้ (หลังตี 3) → เรียก GAS
+  if (lastReset !== todayKey && now.getHours() >= 3) {
+    console.log('[DailyReset] triggering reset for', todayKey);
+    fetch(GAS_URL + '?action=resetDailyStatus', { cache: 'no-cache' })
+      .then(r => r.json())
+      .then(data => {
+        console.log('[DailyReset] result:', data);
+        localStorage.setItem('dailyResetDate', todayKey);
+      })
+      .catch(err => console.warn('[DailyReset] error:', err));
+  }
+
+  // ── Schedule auto-reload ให้ตรงตี 3 ทุกคืน ──
+  scheduleReloadAt3am();
+}
+
+function scheduleReloadAt3am() {
+  const now     = bkkNow();
+  const next3am = bkkNow();
+  next3am.setHours(3, 0, 5, 0);   // ตี 3 พอดี + 5 วินาที
+  if (next3am <= now) {
+    next3am.setDate(next3am.getDate() + 1);  // ถ้าเลยตี 3 แล้ว → ตี 3 พรุ่งนี้
+  }
+  const msUntil3am = next3am - now;
+  console.log('[DailyReset] next reset in', Math.round(msUntil3am / 60000), 'minutes');
+
+  setTimeout(() => {
+    // เรียก GAS reset แล้วค่อย reload หน้า
+    fetch(GAS_URL + '?action=resetDailyStatus', { cache: 'no-cache' })
+      .finally(() => {
+        const todayKey = (() => {
+          const d = bkkNow();
+          return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+        })();
+        localStorage.setItem('dailyResetDate', todayKey);
+        location.reload();
+      });
+  }, msUntil3am);
+}
 
 // ── DATETIME HELPERS ──────────────────────────────────
 // คืน Date object ตาม timezone Bangkok
