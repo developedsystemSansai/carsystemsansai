@@ -411,6 +411,17 @@ textarea { resize: vertical; min-height: 80px; }
   cursor: pointer; transition: background .2s;
 }
 .photo-thumb .view-btn:hover { background: var(--blue); }
+/* DRIVE BUTTON on thumbnail */
+.photo-thumb .drive-btn {
+  position: absolute; bottom: 4px; right: 24px;
+  padding: 2px 6px; border-radius: 5px;
+  background: rgba(0,122,110,0.85);
+  border: none; color: #fff; font-size: 9px; font-weight: 700;
+  cursor: pointer; transition: background .2s; text-decoration: none;
+  display: none;
+}
+.photo-thumb .drive-btn.show { display: block; }
+.photo-thumb .drive-btn:hover { background: var(--teal); }
 /* PHOTO THUMB — UPLOAD STATUS BADGE */
 .photo-thumb .upload-badge {
   position: absolute; top: 4px; left: 4px;
@@ -1248,8 +1259,11 @@ let lbPhotos = [];        // array สำหรับ lightbox (รวม check 
 let lbIndex  = 0;
 
 function handleFiles(files) {
-  _uploadTotal = 0;
-  _uploadDone  = 0;
+  const newFiles = Array.from(files).filter(f => f.type.startsWith('image/') && f.size <= 15*1024*1024);
+  if (!newFiles.length) return;
+  _uploadTotal += newFiles.length;
+  const wrap = document.getElementById('checkUploadProgress');
+  if (wrap) wrap.classList.remove('state-ok','state-err');
   Array.from(files).forEach(file => {
     if (!file.type.startsWith('image/')) return;
     if (file.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB: ' + file.name, 'error'); return; }
@@ -1316,11 +1330,78 @@ function setCheckProgress(current, total, filename, state) {
   }
 }
 
-// รูปจะถูกส่งพร้อมฟอร์ม submit ในคราวเดียวกัน (ไม่ pre-upload แยก)
-// ฟังก์ชันนี้แค่ mark status เป็น 'ok' เพื่อแสดง preview
-function uploadSingleCheckPhoto(photo, idx) {
-  photo.status = 'ok';   // แสดง thumbnail ได้ทันที
-  photo.driveUrl = '';   // URL จะได้จาก GAS หลัง submit
+// อัพโหลดรูปทีละรูปหลังจากเลือก — แสดง progress bar และ Drive link
+async function uploadSingleCheckPhoto(photo, idx) {
+  photo.status = 'uploading';
+  renderPreviews();
+
+  // ── PROGRESS BAR ──
+  _uploadTotal = Math.max(_uploadTotal, photos.length);
+  setCheckProgress(idx + 1, _uploadTotal, photo.name, 'loading');
+  setUploadGuard(true);
+
+  try {
+    const carType  = document.getElementById('carType').value || '';
+    const inspDate = document.getElementById('inspDate').value || new Date().toISOString().slice(0,10);
+    const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
+    const uploadPayload = JSON.stringify({
+      action    : 'uploadPhotoPost',
+      subFolder : 'CheckPhotos',
+      fileName  : photo.name || ('check_' + Date.now() + '_' + idx + '.jpg'),
+      mimeType  : photo.type || 'image/jpeg',
+      base64Data: b64,
+      carType   : carType,
+      inspDate  : inspDate
+    });
+
+    let gotUrl = '';
+    try {
+      const resp = await fetch(GAS_URL, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body   : 'payload=' + encodeURIComponent(uploadPayload)
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.status === 'ok' && data.url) gotUrl = data.url;
+      }
+    } catch(corsErr) {
+      console.warn('uploadSingleCheckPhoto CORS fallback:', corsErr.message);
+      await fetch(GAS_URL, {
+        method : 'POST', mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body   : 'payload=' + encodeURIComponent(uploadPayload)
+      });
+      gotUrl = 'pending';
+    }
+
+    _uploadDone++;
+    if (gotUrl && gotUrl !== 'pending') {
+      photo.driveUrl = gotUrl;
+      photo.status   = 'ok';
+      showToast('✓ อัปโหลดรูปสำเร็จ', 'success');
+    } else {
+      photo.status = gotUrl === 'pending' ? 'ok' : 'err';
+    }
+
+    // อัปเดต progress
+    const allDone = photos.every(p => p.status === 'ok' || p.status === 'err');
+    if (allDone) {
+      const hasErr = photos.some(p => p.status === 'err');
+      setCheckProgress(_uploadDone, _uploadTotal, '', hasErr ? 'err' : 'ok');
+      setUploadGuard(false);
+    } else {
+      setCheckProgress(_uploadDone, _uploadTotal, photo.name, 'loading');
+    }
+
+  } catch(e) {
+    photo.status = 'err';
+    _uploadDone++;
+    setCheckProgress(_uploadDone, _uploadTotal, photo.name, 'err');
+    setUploadGuard(false);
+    console.warn('uploadSingleCheckPhoto error:', e);
+  }
+
   renderPreviews();
   renderDriveLinksPanel();
 }
@@ -1333,10 +1414,14 @@ function renderPreviews() {
     thumb.className = 'photo-thumb';
     const badgeClass = p.status === 'ok' ? 'ok' : p.status === 'uploading' ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
     const badgeIcon  = p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '✕' : '…';
+    const driveBtnHtml = p.driveUrl
+      ? `<a href="${p.driveUrl}" target="_blank" rel="noopener" class="drive-btn show" title="เปิดใน Drive">Drive</a>`
+      : `<a class="drive-btn" title="เปิดใน Drive">Drive</a>`;
     thumb.innerHTML = `
       <img src="${p.data}" alt="รูปที่ ${i+1}" style="cursor:pointer;" onclick="openLightbox('check',${i})">
       <span class="upload-badge ${badgeClass}" title="${p.status}">${badgeIcon}</span>
       <button type="button" class="view-btn" onclick="openLightbox('check',${i})">ดูรูป</button>
+      ${driveBtnHtml}
       <button type="button" class="remove-btn" onclick="removePhoto(${i})" title="ลบ">✕</button>
     `;
     preview.appendChild(thumb);
@@ -1374,7 +1459,7 @@ function removePhoto(i) {
 // ── LIGHTBOX ────────────────────────────────────────────────
 function openLightbox(source, idx) {
   lbPhotos = photos;
-  lbIndex  = idx;
+  lbIndex  = Math.max(0, Math.min(idx, lbPhotos.length - 1));
   updateLightbox();
   document.getElementById('lightbox').classList.add('show');
   document.body.style.overflow = 'hidden';
