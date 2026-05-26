@@ -1202,7 +1202,7 @@ input.odo-mismatch {
 // ════════════════════════════════════════════════════════
 //  CONFIG — แก้ URL นี้ถ้า deploy GAS ใหม่
 // ════════════════════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxL1ZYuJr_jtZtGB9oRS5HSO9lArCeqduleQOEli9Ctpv4tZGIiHrTXg-OqMGFvfQ/exec';
 
 // ════════════════════════════════════════════════════════
 //  DEFAULT DATA (แสดงทันทีถ้า API ช้า / ออฟไลน์)
@@ -2177,8 +2177,10 @@ function submitStart() {
     hasFuel: hasFuel ? 'ใช่' : '',
     fuelLiters: hasFuel ? (document.getElementById('s_fuelLiters').value.trim() || '') : '',
     fuelPrice:  hasFuel ? (document.getElementById('s_fuelPrice').value.trim()  || '') : '',
-    fuelPhotoUrl: fuelPhotoUrl || '',
-    fuelPhotoB64: (hasFuel && !fuelPhotoUrl && fuelPhotoB64) ? fuelPhotoB64 : ''
+    fuelPhotoUrl  : fuelPhotoUrl || '',
+    fuelPhotoB64  : (hasFuel && fuelPhotoB64) ? fuelPhotoB64 : '',
+    fuelPhotoMime : (hasFuel && fuelPhotoB64) ? (fuelPhotoMime || 'image/jpeg') : '',
+    fuelPhotoName : (hasFuel && fuelPhotoB64) ? (fuelPhotoName || ('fuel_' + Date.now() + '.jpg')) : ''
   } };
 
   const modalDetails = { 'ทะเบียน': plate, 'พขร.': driverName, 'วันที่/เวลา': displayDT,
@@ -2255,39 +2257,37 @@ async function doConfirm() {
   try {
     const payloadObj = { action: type === 'start' ? 'startMile' : 'endMile', ...data };
 
-    // startMile: ใช้ cors เพื่อรับ tripId กลับมา (เผื่อ upload รูปใน GAS)
-    // endMile: ใช้ no-cors ปกติ (ไม่ต้องการ response)
+    // ── ส่งทั้ง startMile และ endMile พร้อม CORS เพื่ออ่าน response ──
+    // GAS จะอัพโหลดรูปบิล + เขียน URL ลง Sheet และ return URL กลับมา
     let respOk = false;
-    if (type === 'start') {
-      try {
-        const resp = await fetch(GAS_URL, {
-          method : 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body   : 'payload=' + encodeURIComponent(JSON.stringify(payloadObj))
-        });
-        if (resp.ok) {
-          const json = await resp.json().catch(() => ({}));
-          if (json.status === 'ok') respOk = true;
-          // ถ้า GAS upload รูปสำเร็จและคืน URL ใหม่ — อัปเดต fuelPhotoUrl
-          if (json.fuelPhotoUrl && !data.fuelPhotoUrl) {
-            // store ไว้แสดงใน toast
-            data.fuelPhotoUrl = json.fuelPhotoUrl;
-          }
+    let gasJson = {};
+    try {
+      const resp = await fetch(GAS_URL, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body   : 'payload=' + encodeURIComponent(JSON.stringify(payloadObj))
+      });
+      if (resp.ok) {
+        gasJson = await resp.json().catch(() => ({}));
+        if (gasJson.status === 'ok') respOk = true;
+        // รับ URL รูปบิลที่ GAS อัพโหลดสำเร็จ
+        if (gasJson.fuelPhotoUrl) {
+          data.fuelPhotoUrl = gasJson.fuelPhotoUrl;
+          fuelPhotoUrl = gasJson.fuelPhotoUrl;
+          // แสดง link กดได้
+          const linkEl  = document.getElementById('fuelPhotoLink');
+          const linkBox = document.getElementById('fuelLinkBox');
+          if (linkEl)  linkEl.href = gasJson.fuelPhotoUrl;
+          if (linkBox) linkBox.classList.add('show');
         }
-      } catch(_) {
-        // CORS error — fallback no-cors
-        await fetch(GAS_URL, {
-          method: 'POST', mode: 'no-cors',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body   : 'payload=' + encodeURIComponent(JSON.stringify(payloadObj))
-        });
-        respOk = true;
       }
-    } else {
+    } catch(corsErr) {
+      console.warn('doConfirm CORS error, fallback no-cors:', corsErr.message);
+      // fallback no-cors (ข้อมูลถูกบันทึกแต่ไม่รู้ URL รูป)
       await fetch(GAS_URL, {
         method: 'POST', mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'payload=' + encodeURIComponent(JSON.stringify(payloadObj))
+        body   : 'payload=' + encodeURIComponent(JSON.stringify(payloadObj))
       });
       respOk = true;
     }
@@ -2299,12 +2299,16 @@ async function doConfirm() {
     if (type === 'start') {
       msg = `✅ บันทึกออกรถสำเร็จ — ${plate} ไปยัง ${data.destination}`;
       if (data.hasFuel === 'ใช่' || data.hasFuel) {
-        msg += data.fuelPhotoUrl ? ' · 🧾 บิลน้ำมันบันทึกแล้ว' : ' · ⛽ บันทึกการเติมน้ำมัน';
+        if (data.fuelPhotoUrl) {
+          msg += ` · <a href="${data.fuelPhotoUrl}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;">🧾 ดูบิลน้ำมัน</a>`;
+        } else {
+          msg += ' · ⛽ บันทึกการเติมน้ำมัน';
+        }
       }
     } else {
       msg = `✅ บันทึกกลับ รพ. สำเร็จ`;
     }
-    showToast(msg, 'success');
+    showToast(msg, 'success', 8000);
 
     // รีเซ็ตฟอร์ม
     if (type === 'start') {
@@ -2521,8 +2525,10 @@ function hideFormSkeletons() {
 //  เติมน้ำมัน + อัปโหลดรูปบิล
 // ════════════════════════════════════════════════════════
 let fuelPhotoFile   = null;   // File object ที่เลือก
-let fuelPhotoUrl    = '';     // URL หลัง upload สำเร็จ
-let fuelPhotoB64    = '';     // base64 สำหรับ preview local
+let fuelPhotoUrl    = '';     // URL หลัง upload สำเร็จ (ได้จาก GAS หลัง startMile)
+let fuelPhotoB64    = '';     // base64 เต็ม (data:image/...;base64,...) ส่งพร้อม startMile
+let fuelPhotoMime   = 'image/jpeg';
+let fuelPhotoName   = '';
 
 function toggleFuelUpload() {
   const checked = document.getElementById('s_hasFuel').checked;
@@ -2614,10 +2620,12 @@ function fuelProgressEnd(ok, fileName) {
 }
 
 async function uploadFuelPhoto(file) {
+  // อ่านไฟล์เป็น base64 เพื่อ preview + เก็บไว้ส่งพร้อม startMile
+  // ไม่ pre-upload ก่อน — GAS จะอัพโหลดและเขียน URL ลง sheet พร้อม startMile
+  fuelPhotoUrl = '';
   fuelProgressStart(file.name);
   const linkBox = document.getElementById('fuelLinkBox');
   if (linkBox) linkBox.classList.remove('show');
-  fuelPhotoUrl = '';
 
   try {
     const dataUrl = await new Promise((res, rej) => {
@@ -2626,39 +2634,22 @@ async function uploadFuelPhoto(file) {
       r.onerror = rej;
       r.readAsDataURL(file);
     });
-    const b64 = dataUrl.split(',')[1];
+    fuelPhotoB64  = dataUrl;   // base64 เต็ม (รวม data:image/...;base64,)
+    fuelPhotoFile = file;
+    fuelPhotoMime = file.type || 'image/jpeg';
+    fuelPhotoName = file.name || ('fuel_' + Date.now() + '.jpg');
 
-    // ── ใช้ POST แทน GET เพื่อรองรับรูปขนาดใหญ่ ──
-    const payload = JSON.stringify({
-      action    : 'uploadPhotoPost',
-      subFolder : 'FuelReceipts',
-      fileName  : file.name || ('fuel_' + Date.now() + '.jpg'),
-      mimeType  : file.type || 'image/jpeg',
-      base64Data: b64
-    });
+    // แสดง preview local
+    const preview = document.getElementById('fuelPhotoPreview');
+    const img     = document.getElementById('fuelPhotoImg');
+    if (img) img.src = dataUrl;
+    if (preview) preview.classList.add('show');
 
-    const resp = await fetch(GAS_URL, {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body   : 'payload=' + encodeURIComponent(payload)
-    });
-
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.status === 'ok' && data.url) {
-        fuelPhotoUrl = data.url;
-        const linkEl = document.getElementById('fuelPhotoLink');
-        if (linkEl) linkEl.href = data.url;
-        if (linkBox) linkBox.classList.add('show');
-        fuelProgressEnd(true, file.name);
-        return;
-      }
-    }
-    fuelPhotoUrl = '';
-    fuelProgressEnd(false, file.name);
+    fuelProgressEnd(true, file.name);   // แสดง ✓ พร้อมแนบรูป
+    console.log('[FuelPhoto] ready to upload with startMile:', file.name);
   } catch(err) {
-    console.warn('uploadFuelPhoto error:', err);
-    fuelPhotoUrl = '';
+    console.warn('uploadFuelPhoto read error:', err);
+    fuelPhotoB64 = '';
     fuelProgressEnd(false, file.name);
   }
 }
@@ -2684,6 +2675,8 @@ function removeFuelPhoto() {
   fuelPhotoFile = null;
   fuelPhotoUrl  = '';
   fuelPhotoB64  = '';
+  fuelPhotoMime = 'image/jpeg';
+  fuelPhotoName = '';
   const fileInput = document.getElementById('s_fuelPhoto');
   if (fileInput) fileInput.value = '';
   const preview = document.getElementById('fuelPhotoPreview');
