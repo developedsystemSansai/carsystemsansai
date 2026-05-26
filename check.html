@@ -422,6 +422,59 @@ textarea { resize: vertical; min-height: 80px; }
 .photo-thumb .upload-badge.uploading{ background: var(--blue); color:#fff; animation: spin .7s linear infinite; }
 .photo-thumb .upload-badge.ok       { background: var(--success); color:#fff; }
 .photo-thumb .upload-badge.err      { background: var(--danger); color:#fff; }
+
+/* ── UPLOAD PROGRESS BAR (shared component) ── */
+.upload-progress-wrap {
+  display: none; flex-direction: column; gap: 6px;
+  margin-top: 10px; padding: 10px 14px;
+  background: var(--blue-soft); border: 1px solid #bfdbfe;
+  border-radius: 10px; font-size: 12px; color: var(--navy);
+}
+.upload-progress-wrap.show { display: flex; }
+.upload-progress-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+}
+.upload-progress-label {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 600; font-size: 12px; color: var(--blue);
+}
+.upload-progress-label .up-spin {
+  width: 13px; height: 13px;
+  border: 2px solid rgba(29,111,181,.25); border-top-color: var(--blue);
+  border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
+}
+.upload-progress-pct {
+  font-size: 11px; font-weight: 700; color: var(--blue);
+  min-width: 34px; text-align: right;
+}
+.upload-progress-file {
+  font-size: 11px; color: var(--text-mid);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.upload-progress-bar-track {
+  height: 6px; background: rgba(29,111,181,.15); border-radius: 99px; overflow: hidden;
+}
+.upload-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue) 0%, #38bdf8 100%);
+  border-radius: 99px; width: 0%; transition: width .3s ease;
+}
+.upload-progress-wrap.state-ok {
+  background: var(--success-soft); border-color: #a7f3d0;
+}
+.upload-progress-wrap.state-ok .upload-progress-label { color: var(--success); }
+.upload-progress-wrap.state-ok .upload-progress-pct   { color: var(--success); }
+.upload-progress-wrap.state-ok .upload-progress-bar-fill {
+  background: linear-gradient(90deg, var(--success) 0%, #34d399 100%); width: 100% !important;
+}
+.upload-progress-wrap.state-ok .up-spin { display: none; }
+.upload-progress-wrap.state-err {
+  background: var(--danger-soft); border-color: #fca5a5;
+}
+.upload-progress-wrap.state-err .upload-progress-label { color: var(--danger); }
+.upload-progress-wrap.state-err .upload-progress-bar-fill { background: var(--danger); }
+.upload-progress-wrap.state-err .up-spin { display: none; }
+
 /* DRIVE LINKS PANEL */
 .drive-links-panel {
   margin-top: 12px; padding: 12px 14px;
@@ -873,6 +926,22 @@ textarea { resize: vertical; min-height: 80px; }
           <input type="file" id="galleryInput" accept="image/*" multiple style="display:none">
         </div>
         <div class="photo-preview" id="photoPreview"></div>
+
+        <!-- UPLOAD PROGRESS BAR -->
+        <div class="upload-progress-wrap" id="checkUploadProgress">
+          <div class="upload-progress-header">
+            <div class="upload-progress-label">
+              <div class="up-spin"></div>
+              <span id="checkUploadProgressMsg">กำลังอัปโหลด...</span>
+            </div>
+            <span class="upload-progress-pct" id="checkUploadProgressPct">0%</span>
+          </div>
+          <div class="upload-progress-file" id="checkUploadProgressFile"></div>
+          <div class="upload-progress-bar-track">
+            <div class="upload-progress-bar-fill" id="checkUploadProgressFill"></div>
+          </div>
+        </div>
+
         <!-- DRIVE LINKS PANEL (แสดงหลัง upload สำเร็จ) -->
         <div class="drive-links-panel" id="driveLinksPanel">
           <div class="dl-title">
@@ -1154,17 +1223,80 @@ let photos = [];          // { name, data, type, driveUrl, status }
 let lbPhotos = [];        // array สำหรับ lightbox (รวม check + fuel)
 let lbIndex  = 0;
 
+// ── UPLOAD PROGRESS HELPERS (check.html) ──────────────────
+let _chkUploadTotal   = 0;
+let _chkUploadDone    = 0;
+
+function chkProgressShow(fileName) {
+  const wrap = document.getElementById('checkUploadProgress');
+  if (!wrap) return;
+  wrap.className = 'upload-progress-wrap show';
+  document.getElementById('checkUploadProgressMsg').textContent  = 'กำลังอัปโหลด...';
+  document.getElementById('checkUploadProgressFile').textContent = fileName || '';
+  _updateChkPct();
+}
+function chkProgressDone(ok, fileName) {
+  _chkUploadDone++;
+  const wrap = document.getElementById('checkUploadProgress');
+  if (!wrap) return;
+  _updateChkPct();
+  if (_chkUploadDone >= _chkUploadTotal) {
+    // ทุกรูปเสร็จแล้ว
+    const hasErr = photos.some(p => p.status === 'err');
+    wrap.classList.remove('state-ok','state-err');
+    if (hasErr) {
+      wrap.classList.add('state-err');
+      document.getElementById('checkUploadProgressMsg').textContent = 'อัปโหลดบางรูปไม่สำเร็จ';
+    } else {
+      wrap.classList.add('state-ok');
+      document.getElementById('checkUploadProgressMsg').textContent =
+        '✓ อัปโหลดสำเร็จ ' + _chkUploadDone + ' รูป';
+    }
+    document.getElementById('checkUploadProgressFile').textContent = '';
+    // ซ่อนอัตโนมัติ 4 วินาที
+    setTimeout(() => { if (wrap) wrap.classList.remove('show'); }, 4000);
+  } else {
+    document.getElementById('checkUploadProgressFile').textContent = fileName || '';
+  }
+}
+function _updateChkPct() {
+  const pct  = _chkUploadTotal ? Math.round((_chkUploadDone / _chkUploadTotal) * 100) : 0;
+  const fill = document.getElementById('checkUploadProgressFill');
+  const pctEl= document.getElementById('checkUploadProgressPct');
+  // animate bar: pending = 10% per file ที่ยังไม่เสร็จ, done = exact
+  const barPct = _chkUploadTotal
+    ? Math.round(((_chkUploadDone + (_chkUploadTotal - _chkUploadDone) * 0.1)) / _chkUploadTotal * 100)
+    : 10;
+  if (fill) fill.style.width = Math.min(barPct, 95) + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+}
+
+// ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ── ──
+
 function handleFiles(files) {
-  Array.from(files).forEach(file => {
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB: ' + file.name, 'error'); return; }
+  const newFiles = Array.from(files).filter(f => {
+    if (!f.type.startsWith('image/')) return false;
+    if (f.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB: ' + f.name, 'error'); return false; }
+    return true;
+  });
+  if (!newFiles.length) return;
+
+  // นับรูปที่ต้องอัพโหลดทั้งหมดในชุดนี้
+  if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
+    _chkUploadTotal += newFiles.length;
+    // reset state-ok/err ถ้ามีรูปชุดใหม่เข้ามา
+    const wrap = document.getElementById('checkUploadProgress');
+    if (wrap) wrap.classList.remove('state-ok','state-err');
+  }
+
+  newFiles.forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
       const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
       photos.push(photo);
       renderPreviews();
-      // อัปโหลดทันทีหากมี GAS_URL
       if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
+        chkProgressShow(file.name);
         uploadSingleCheckPhoto(photo, photos.length - 1);
       }
     };
@@ -1201,6 +1333,7 @@ async function uploadSingleCheckPhoto(photo, idx) {
         showToast('✓ อัปโหลดรูปสำเร็จ: ' + photo.name, 'success');
         renderPreviews();
         renderDriveLinksPanel();
+        chkProgressDone(true, photo.name);
         return;
       }
     }
@@ -1210,6 +1343,7 @@ async function uploadSingleCheckPhoto(photo, idx) {
     console.warn('uploadSingleCheckPhoto:', e);
   }
   renderPreviews();
+  chkProgressDone(false, photo.name);
 }
 
 function renderPreviews() {
