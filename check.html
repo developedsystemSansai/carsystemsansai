@@ -1347,7 +1347,8 @@ function collectData() {
     eq_tire: getRadio('eq_tire'),
     fuelLevel: getRadio('fuelLevel'),
     remarks: get('remarks'),
-    photos: photos.map(p => ({ name: p.name, data: p.data, type: p.type }))
+    photos: photos.map(p => ({ name: p.name, data: p.data, type: p.type })),
+    driveUrls: photos.filter(p => p.driveUrl).map(p => p.driveUrl)
   };
   
   checkItems.forEach(item => {
@@ -1383,30 +1384,39 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
       return;
     }
     
-    // GAS CORS FIX: ส่งเป็น application/x-www-form-urlencoded + mode: 'no-cors'
-    const photosData = payload.photos || [];
-    const payloadNoPhotos = { ...payload, photos: [] };
-    
-    // --- ส่งข้อมูลหลักก่อน (ไม่มีรูป) ---
-    await fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'payload=' + encodeURIComponent(JSON.stringify(payloadNoPhotos))
-    });
-    
-    if (photosData.length > 0) {
-      showModal(`บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--text-light)">กำลังอัปโหลดรูป ${photosData.length} รูปไปยัง Drive…</small>`);
-      try {
-        await uploadCheckPhotos(payload.carType, payload.inspDate, payload.driverName, photosData, 'CheckPhotos');
-        document.getElementById('modalMsg').innerHTML = `บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--success)">✓ อัปโหลดรูป ${photosData.length} รูปสำเร็จ</small>`;
-      } catch(uploadErr) {
-        console.warn('Upload error:', uploadErr);
-        document.getElementById('modalMsg').innerHTML = `บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--warning)">⚠ รูปอาจอัปโหลดไม่สมบูรณ์</small>`;
-      }
-    } else {
-      showModal('บันทึกข้อมูลเรียบร้อยแล้ว');
+    // รอให้รูปที่ยัง uploading เสร็จก่อน (กรณีกด submit เร็วเกิน)
+    if (photos.some(p => p.status === 'uploading')) {
+      showToast('กรุณารอให้รูปอัพโหลดเสร็จก่อน...', '');
+      await new Promise(resolve => {
+        const check = setInterval(() => {
+          if (!photos.some(p => p.status === 'uploading')) {
+            clearInterval(check); resolve();
+          }
+        }, 500);
+        setTimeout(() => { clearInterval(check); resolve(); }, 15000);
+      });
     }
+
+    // รวม driveUrls ที่อัพโหลดสำเร็จแล้ว (uploadSingleCheckPhoto เติม driveUrl ไว้แล้ว)
+    const driveUrls = photos.filter(p => p.driveUrl).map(p => p.driveUrl);
+    const payloadFinal = { ...payload, photos: [], driveUrls: driveUrls };
+
+    // ส่งข้อมูลหลักพร้อม driveUrls ในคำขอเดียว (ไม่ใช้ no-cors เพื่อให้อ่าน response ได้)
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'payload=' + encodeURIComponent(JSON.stringify(payloadFinal))
+    });
+    const result = await resp.json().catch(() => ({ status: 'ok' }));
+
+    if (result.status === 'duplicate') {
+      showToast('รถคันนี้ตรวจสภาพไปแล้ววันนี้', 'error');
+      return;
+    }
+
+    showModal(driveUrls.length > 0
+      ? `บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--success)">✓ แนบรูป ${driveUrls.length} รูปสำเร็จ</small>`
+      : 'บันทึกข้อมูลเรียบร้อยแล้ว');
     resetForm();
     
   } catch (err) {
