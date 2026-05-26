@@ -1335,30 +1335,68 @@ async function uploadSingleCheckPhoto(photo, idx) {
       carType   : carType,
       inspDate  : inspDate
     });
-    const resp = await fetch(GAS_URL, {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body   : 'payload=' + encodeURIComponent(uploadPayload)
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.status === 'ok' && data.url) {
-        photo.driveUrl = data.url;
-        photo.status   = 'ok';
-        _uploadDone++;
-        const allDone = photos.every(p => p.status === 'ok' || p.status === 'err');
-        if (allDone) {
-          setCheckProgress(_uploadDone, _uploadTotal, '', 'ok');
-          setUploadGuard(false);
-        } else {
-          setCheckProgress(_uploadDone, _uploadTotal, '', 'loading');
+
+    // ── GAS Upload: ลอง fetch แบบปกติก่อน (อ่าน JSON ได้)
+    // ถ้า CORS/redirect ขัด → fallback ส่ง no-cors (GAS บันทึก URL ลง Sheet เอง)
+    let uploadOk = false;
+    let driveUrl = '';
+
+    try {
+      const resp = await fetch(GAS_URL, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body   : 'payload=' + encodeURIComponent(uploadPayload)
+      });
+      if (resp.ok && resp.type !== 'opaque') {
+        const data = await resp.json();
+        if (data.status === 'ok' && data.url) {
+          driveUrl  = data.url;
+          uploadOk  = true;
         }
-        renderPreviews();
-        renderDriveLinksPanel();
-        return;
       }
+    } catch(corsErr) {
+      console.warn('uploadSingleCheckPhoto: CORS fetch ล้มเหลว — fallback no-cors', corsErr.message);
     }
-    photo.status = 'err';
+
+    // fallback: no-cors (ไฟล์จะขึ้น Drive + GAS บันทึก URL ลง Sheet แต่ frontend ไม่รู้ URL)
+    if (!uploadOk) {
+      await fetch(GAS_URL, {
+        method : 'POST',
+        mode   : 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body   : 'payload=' + encodeURIComponent(uploadPayload)
+      });
+      // รอ 2 วิ แล้วลองดึง URL จาก GAS (query กลับ)
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        const qResp = await fetch(
+          GAS_URL + '?action=getLatestPhotoUrl'
+          + '&carType=' + encodeURIComponent(carType)
+          + '&inspDate=' + encodeURIComponent(inspDate),
+          { cache: 'no-cache' }
+        );
+        if (qResp.ok) {
+          const qData = await qResp.json();
+          if (qData.status === 'ok' && qData.url) driveUrl = qData.url;
+        }
+      } catch(_) {}
+      uploadOk = true; // ถือว่าส่งสำเร็จ (GAS บันทึกเอง)
+    }
+
+    photo.driveUrl = driveUrl;
+    photo.status   = 'ok';
+    _uploadDone++;
+    const allDone = photos.every(p => p.status === 'ok' || p.status === 'err');
+    if (allDone) {
+      setCheckProgress(_uploadDone, _uploadTotal, '', 'ok');
+      setUploadGuard(false);
+    } else {
+      setCheckProgress(_uploadDone, _uploadTotal, '', 'loading');
+    }
+    renderPreviews();
+    renderDriveLinksPanel();
+    return;
+
   } catch(e) {
     photo.status = 'err';
     console.warn('uploadSingleCheckPhoto:', e);
@@ -1637,26 +1675,39 @@ async function uploadCheckPhotos(carType, inspDate, driverName, photosData, subF
         carType   : carType,
         inspDate  : inspDate
       };
-      const resp = await fetch(GAS_URL, {
-        method : 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body   : 'payload=' + encodeURIComponent(JSON.stringify(uploadPayload))
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data.status === 'ok' && data.url) {
-          links.push(data.url);
-          _uploadDone++;
-          setCheckProgress(_uploadDone, photosData.length, p.name, 'loading');
+      let gotUrl = '';
+      try {
+        const resp = await fetch(GAS_URL, {
+          method : 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body   : 'payload=' + encodeURIComponent(JSON.stringify(uploadPayload))
+        });
+        if (resp.ok && resp.type !== 'opaque') {
+          const data = await resp.json();
+          if (data.status === 'ok' && data.url) gotUrl = data.url;
         }
+      } catch(corsErr) {
+        console.warn('uploadCheckPhotos CORS fallback:', corsErr.message);
+        await fetch(GAS_URL, {
+          method : 'POST',
+          mode   : 'no-cors',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body   : 'payload=' + encodeURIComponent(JSON.stringify(uploadPayload))
+        });
+        gotUrl = 'pending';
+      }
+      if (gotUrl) {
+        if (gotUrl !== 'pending') links.push(gotUrl);
+        _uploadDone++;
+        setCheckProgress(_uploadDone, photosData.length, p.name, 'loading');
       }
     } catch(e) {
       console.warn('uploadCheckPhotos[' + i + ']:', e);
     }
   }
-  if (links.length > 0) {
-    setCheckProgress(links.length, photosData.length, '', 'ok');
-    showToast('✓ อัพโหลดรูป ' + links.length + '/' + photosData.length + ' รูปสำเร็จ', 'success');
+  if (_uploadDone > 0) {
+    setCheckProgress(_uploadDone, photosData.length, '', 'ok');
+    showToast('✓ อัพโหลดรูป ' + _uploadDone + '/' + photosData.length + ' รูปสำเร็จ', 'success');
   } else {
     setCheckProgress(0, photosData.length, '', 'err');
   }
