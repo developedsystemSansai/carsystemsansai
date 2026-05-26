@@ -411,17 +411,6 @@ textarea { resize: vertical; min-height: 80px; }
   cursor: pointer; transition: background .2s;
 }
 .photo-thumb .view-btn:hover { background: var(--blue); }
-/* DRIVE BUTTON on thumbnail */
-.photo-thumb .drive-btn {
-  position: absolute; bottom: 4px; right: 24px;
-  padding: 2px 6px; border-radius: 5px;
-  background: rgba(0,122,110,0.85);
-  border: none; color: #fff; font-size: 9px; font-weight: 700;
-  cursor: pointer; transition: background .2s; text-decoration: none;
-  display: none;
-}
-.photo-thumb .drive-btn.show { display: block; }
-.photo-thumb .drive-btn:hover { background: var(--teal); }
 /* PHOTO THUMB — UPLOAD STATUS BADGE */
 .photo-thumb .upload-badge {
   position: absolute; top: 4px; left: 4px;
@@ -1259,22 +1248,31 @@ let lbPhotos = [];        // array สำหรับ lightbox (รวม check 
 let lbIndex  = 0;
 
 function handleFiles(files) {
-  const newFiles = Array.from(files).filter(f => f.type.startsWith('image/') && f.size <= 15*1024*1024);
+  const newFiles = Array.from(files).filter(f => {
+    if (!f.type.startsWith('image/')) return false;
+    if (f.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB: ' + f.name, 'error'); return false; }
+    return true;
+  });
   if (!newFiles.length) return;
-  _uploadTotal += newFiles.length;
-  const wrap = document.getElementById('checkUploadProgress');
-  if (wrap) wrap.classList.remove('state-ok','state-err');
-  Array.from(files).forEach(file => {
-    if (!file.type.startsWith('image/')) return;
-    if (file.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB: ' + file.name, 'error'); return; }
+
+  // นับรูปชุดใหม่เพิ่มเข้า total และ reset state
+  if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
+    _uploadTotal += newFiles.length;
+    const wrap = document.getElementById('checkUploadProgress');
+    if (wrap) wrap.classList.remove('state-ok','state-err');
+  }
+
+  newFiles.forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
       const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
       photos.push(photo);
       renderPreviews();
-      // อัปโหลดทันทีหากมี GAS_URL
       if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
-        uploadSingleCheckPhoto(photo, photos.length - 1);
+        uploadSingleCheckPhoto(photo);
+      } else {
+        photo.status = 'ok';
+        renderPreviews();
       }
     };
     reader.readAsDataURL(file);
@@ -1300,7 +1298,7 @@ window.addEventListener('beforeunload', function(e) {
   }
 });
 
-// ── UPLOAD PROGRESS HELPERS ──
+// ── UPLOAD PROGRESS ──
 function setCheckProgress(current, total, filename, state) {
   const wrap = document.getElementById('checkUploadProgress');
   const msg  = document.getElementById('checkUploadMsg');
@@ -1312,98 +1310,90 @@ function setCheckProgress(current, total, filename, state) {
   wrap.classList.remove('state-ok','state-err');
   if (state === 'ok') {
     wrap.classList.add('state-ok');
-    msg.textContent  = `✓ อัปโหลดรูปสำเร็จ ${total} รูป`;
-    pct.textContent  = '100%';
-    file.textContent = '';
-    fill.style.width = '100%';
+    if (msg)  msg.textContent  = `✓ อัปโหลดสำเร็จ ${total} รูป — บันทึก Drive แล้ว`;
+    if (pct)  pct.textContent  = '100%';
+    if (file) file.textContent = '';
+    if (fill) fill.style.width = '100%';
+    setTimeout(() => { if (wrap) wrap.classList.remove('show'); }, 5000);
   } else if (state === 'err') {
     wrap.classList.add('state-err');
-    msg.textContent  = 'เกิดข้อผิดพลาดระหว่างอัปโหลด';
-    pct.textContent  = '--';
-    file.textContent = filename || '';
+    if (msg)  msg.textContent  = 'อัปโหลดไม่สำเร็จ — กรุณาลองใหม่';
+    if (pct)  pct.textContent  = '--';
+    if (file) file.textContent = filename || '';
   } else {
     const pctVal = total ? Math.round((current / total) * 100) : 0;
-    msg.textContent  = `กำลังอัปโหลด ${current}/${total} รูป`;
-    pct.textContent  = pctVal + '%';
-    file.textContent = filename || '';
-    fill.style.width = pctVal + '%';
+    if (msg)  msg.textContent  = `กำลังอัปโหลด ${current}/${total} รูป`;
+    if (pct)  pct.textContent  = pctVal + '%';
+    if (file) file.textContent = filename || '';
+    if (fill) fill.style.width = pctVal + '%';
   }
 }
 
-// อัพโหลดรูปทีละรูปหลังจากเลือก — แสดง progress bar และ Drive link
-async function uploadSingleCheckPhoto(photo, idx) {
+// ── อัปโหลดรูปไป Google Drive ทีละรูป — เหมือน uploadTripPhoto ใน startmile.html ──
+async function uploadSingleCheckPhoto(photo) {
   photo.status = 'uploading';
   renderPreviews();
-
-  // ── PROGRESS BAR ──
-  _uploadTotal = Math.max(_uploadTotal, photos.length);
-  setCheckProgress(idx + 1, _uploadTotal, photo.name, 'loading');
   setUploadGuard(true);
+  setCheckProgress(_uploadDone, _uploadTotal, photo.name, 'loading');
 
   try {
-    const carType  = document.getElementById('carType').value || '';
-    const inspDate = document.getElementById('inspDate').value || new Date().toISOString().slice(0,10);
+    const carType  = document.getElementById('carType')?.value  || '';
+    const inspDate = document.getElementById('inspDate')?.value || '';
+
     const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
     const uploadPayload = JSON.stringify({
       action    : 'uploadPhotoPost',
       subFolder : 'CheckPhotos',
-      fileName  : photo.name || ('check_' + Date.now() + '_' + idx + '.jpg'),
+      fileName  : photo.name || ('check_' + Date.now() + '.jpg'),
       mimeType  : photo.type || 'image/jpeg',
       base64Data: b64,
       carType   : carType,
       inspDate  : inspDate
     });
 
-    let gotUrl = '';
-    try {
-      const resp = await fetch(GAS_URL, {
-        method : 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body   : 'payload=' + encodeURIComponent(uploadPayload)
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data.status === 'ok' && data.url) gotUrl = data.url;
+    const resp = await fetch(GAS_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body   : 'payload=' + encodeURIComponent(uploadPayload)
+    });
+
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.status === 'ok' && data.url) {
+        photo.driveUrl = data.url;
+        photo.status   = 'ok';
+        _uploadDone++;
+        renderPreviews();
+        renderDriveLinksPanel();
+        showToast('✓ อัปโหลดสำเร็จ: ' + photo.name, 'success');
+
+        if (_uploadDone >= _uploadTotal) {
+          setCheckProgress(_uploadDone, _uploadTotal, '', 'ok');
+          setUploadGuard(false);
+        } else {
+          setCheckProgress(_uploadDone, _uploadTotal, photo.name, 'loading');
+        }
+        return;
       }
-    } catch(corsErr) {
-      console.warn('uploadSingleCheckPhoto CORS fallback:', corsErr.message);
-      await fetch(GAS_URL, {
-        method : 'POST', mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body   : 'payload=' + encodeURIComponent(uploadPayload)
-      });
-      gotUrl = 'pending';
     }
-
-    _uploadDone++;
-    if (gotUrl && gotUrl !== 'pending') {
-      photo.driveUrl = gotUrl;
-      photo.status   = 'ok';
-      showToast('✓ อัปโหลดรูปสำเร็จ', 'success');
-    } else {
-      photo.status = gotUrl === 'pending' ? 'ok' : 'err';
-    }
-
-    // อัปเดต progress
-    const allDone = photos.every(p => p.status === 'ok' || p.status === 'err');
-    if (allDone) {
-      const hasErr = photos.some(p => p.status === 'err');
-      setCheckProgress(_uploadDone, _uploadTotal, '', hasErr ? 'err' : 'ok');
-      setUploadGuard(false);
-    } else {
-      setCheckProgress(_uploadDone, _uploadTotal, photo.name, 'loading');
-    }
-
+    photo.status = 'err';
+    _uploadTotal = Math.max(0, _uploadTotal - 1);
   } catch(e) {
     photo.status = 'err';
-    _uploadDone++;
-    setCheckProgress(_uploadDone, _uploadTotal, photo.name, 'err');
-    setUploadGuard(false);
+    _uploadTotal = Math.max(0, _uploadTotal - 1);
     console.warn('uploadSingleCheckPhoto error:', e);
   }
 
   renderPreviews();
-  renderDriveLinksPanel();
+  showToast('อัปโหลดไม่สำเร็จ: ' + photo.name, 'error');
+
+  if (_uploadDone < _uploadTotal) {
+    setCheckProgress(_uploadDone, _uploadTotal, photo.name, 'loading');
+  } else {
+    const hasOk = photos.some(p => p.status === 'ok');
+    setCheckProgress(_uploadDone, _uploadTotal, '', hasOk ? 'ok' : 'err');
+    setUploadGuard(false);
+  }
 }
 
 function renderPreviews() {
@@ -1414,14 +1404,10 @@ function renderPreviews() {
     thumb.className = 'photo-thumb';
     const badgeClass = p.status === 'ok' ? 'ok' : p.status === 'uploading' ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
     const badgeIcon  = p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '✕' : '…';
-    const driveBtnHtml = p.driveUrl
-      ? `<a href="${p.driveUrl}" target="_blank" rel="noopener" class="drive-btn show" title="เปิดใน Drive">Drive</a>`
-      : `<a class="drive-btn" title="เปิดใน Drive">Drive</a>`;
     thumb.innerHTML = `
       <img src="${p.data}" alt="รูปที่ ${i+1}" style="cursor:pointer;" onclick="openLightbox('check',${i})">
       <span class="upload-badge ${badgeClass}" title="${p.status}">${badgeIcon}</span>
       <button type="button" class="view-btn" onclick="openLightbox('check',${i})">ดูรูป</button>
-      ${driveBtnHtml}
       <button type="button" class="remove-btn" onclick="removePhoto(${i})" title="ลบ">✕</button>
     `;
     preview.appendChild(thumb);
@@ -1459,7 +1445,7 @@ function removePhoto(i) {
 // ── LIGHTBOX ────────────────────────────────────────────────
 function openLightbox(source, idx) {
   lbPhotos = photos;
-  lbIndex  = Math.max(0, Math.min(idx, lbPhotos.length - 1));
+  lbIndex  = idx;
   updateLightbox();
   document.getElementById('lightbox').classList.add('show');
   document.body.style.overflow = 'hidden';
@@ -1545,7 +1531,9 @@ function collectData() {
     eq_tire: getRadio('eq_tire'),
     fuelLevel: getRadio('fuelLevel'),
     remarks: get('remarks'),
-    photos: photos.map(p => ({ name: p.name, data: p.data, type: p.type }))
+    // รูปถูกอัปโหลดไป Drive ก่อนแล้วทีละรูป ไม่ต้องส่ง base64 อีกรอบ
+    // แต่ส่ง driveUrls ที่ได้มาแล้วเพื่อ GAS จะได้ flush buffer ถ้า uploadPhotoPost buffer ไว้
+    driveUrls: photos.filter(p => p.driveUrl).map(p => p.driveUrl)
   };
   
   checkItems.forEach(item => {
@@ -1580,13 +1568,19 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
       return;
     }
 
-    const photoCount = (payload.photos || []).length;
-    if (photoCount > 0) {
-      showModal(`<span style="color:var(--text-light)">กำลังบันทึกและอัปโหลดรูป ${photoCount} รูป…</span>`);
+    // ── ตรวจสอบรูปที่ยังอัพโหลดไม่เสร็จ ──
+    const pendingPhotos = photos.filter(p => p.status === 'uploading' || p.status === 'pending');
+    if (pendingPhotos.length > 0) {
+      showToast('กรุณารอให้รูปอัพโหลดเสร็จก่อน (' + pendingPhotos.length + ' รูปยังอยู่ระหว่างอัพโหลด)', 'error');
+      btn.classList.remove('loading');
+      btn.disabled = false;
+      return;
     }
 
-    // ── ส่งทุกอย่างใน POST เดียว (ฟอร์ม + รูป base64) ──
-    // GAS จะบันทึก row + อัพโหลดรูป + เขียน URL ลง sheet ในคราวเดียว
+    const uploadedUrls  = photos.filter(p => p.driveUrl).map(p => p.driveUrl);
+    const uploadedCount = uploadedUrls.length;
+
+    // ── ส่งแค่ form data + driveUrls ที่อัพโหลดไปแล้ว (ไม่ส่ง base64 ซ้ำ) ──
     const resp = await fetch(GAS_URL, {
       method : 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -1603,29 +1597,25 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
       return;
     }
 
-    // แสดง URL รูปที่ได้จาก GAS
-    const urls = result.photoUrls || [];
-    if (urls.length > 0) {
-      // อัปเดต driveUrl ใน photos array เพื่อแสดง links
-      photos.forEach((p, i) => { if (urls[i]) p.driveUrl = urls[i]; });
+    // ── แสดง Drive links ที่อัพโหลดไปก่อน submit ──
+    if (uploadedCount > 0) {
       renderDriveLinksPanel();
+      const linkList = uploadedUrls.map((u, i) =>
+        `<a href="${u}" target="_blank" rel="noopener" style="font-size:0.8rem;color:var(--blue);display:block;margin-top:4px;">🔗 รูปที่ ${i+1}: ${u.split('/d/')[1]?.slice(0,20) || 'ดูรูป'}</a>`
+      ).join('');
       showModal(
         `✅ บันทึกข้อมูลเรียบร้อยแล้ว<br>` +
-        `<small style="color:var(--success)">อัปโหลดรูป ${urls.length} รูปสำเร็จ</small><br>` +
-        urls.map((u, i) =>
-          `<a href="${u}" target="_blank" rel="noopener" style="font-size:0.8rem;color:var(--blue);">🔗 ดูรูปที่ ${i+1}</a>`
-        ).join('&nbsp;&nbsp;')
+        `<small style="color:var(--success)">อัปโหลดรูป ${uploadedCount} รูปสำเร็จ</small>` +
+        linkList
       );
     } else {
-      showModal('✅ บันทึกข้อมูลเรียบร้อยแล้ว' +
-        (photoCount > 0 ? '<br><small style="color:var(--text-light)">รูปถูกบันทึกไว้ใน Drive แล้ว</small>' : ''));
+      showModal('✅ บันทึกข้อมูลเรียบร้อยแล้ว');
     }
 
     resetForm();
 
   } catch (err) {
-    // Fallback: ถ้า fetch ล้มเหลว (เช่น CORS redirect) ลอง no-cors
-    console.warn('Submit with response failed, trying no-cors fallback:', err.message);
+    console.warn('Submit failed:', err.message);
     try {
       const payload2 = collectData();
       await fetch(GAS_URL, {
@@ -1634,7 +1624,7 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body   : 'payload=' + encodeURIComponent(JSON.stringify(payload2))
       });
-      showModal('✅ บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--text-light)">URL รูปจะอัปเดตใน Sheet ภายหลัง</small>');
+      showModal('✅ บันทึกข้อมูลเรียบร้อยแล้ว<br><small style="color:var(--text-light)">รูปถูกบันทึกลง Drive แล้ว</small>');
       resetForm();
     } catch(err2) {
       showToast('ไม่สามารถส่งข้อมูลได้: ' + err2.message, 'error');
