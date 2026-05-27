@@ -427,7 +427,81 @@
   }
 </style>
 </head>
+<style>
+/* ── INVALID TOKEN PAGE ── */
+.invalid-wrap {
+  display: none;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  flex-direction: column;
+  text-align: center;
+}
+.invalid-wrap.show { display: flex; }
+.invalid-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px 32px;
+  max-width: 400px;
+  width: 100%;
+  box-shadow: 0 6px 36px rgba(13,33,55,.13);
+  border: 1px solid #d5dce8;
+}
+.invalid-icon {
+  width: 64px; height: 64px;
+  background: #fdecea;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 20px;
+}
+.invalid-icon svg { color: #c0392b; }
+.invalid-title {
+  font-size: 18px; font-weight: 700;
+  color: #182332; margin-bottom: 10px;
+}
+.invalid-desc {
+  font-size: 13px; color: #7a8ea5;
+  line-height: 1.7; margin-bottom: 24px;
+}
+.invalid-close-btn {
+  display: inline-block;
+  background: #c0392b;
+  color: #fff;
+  font-size: 13px; font-weight: 600;
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: none; cursor: pointer;
+  font-family: inherit;
+  transition: background .15s;
+}
+.invalid-close-btn:hover { background: #a93226; }
+</style>
+
 <body>
+
+<!-- ── INVALID TOKEN PAGE (hidden by default) ── -->
+<div class="invalid-wrap" id="invalidWrap">
+  <div class="invalid-card">
+    <div class="invalid-icon">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <line x1="15" y1="9" x2="9" y2="15"/>
+        <line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
+    </div>
+    <div class="invalid-title">ไม่สามารถเข้าถึงหน้านี้ได้</div>
+    <div class="invalid-desc">
+      ลิงก์นี้ไม่ถูกต้อง หมดอายุ หรือถูกใช้งานไปแล้ว<br>
+      กรุณากดปุ่ม <strong>"ประเมินความพึงพอใจ"</strong><br>
+      ที่หน้าหลักของระบบอีกครั้ง
+    </div>
+    <button class="invalid-close-btn" onclick="window.close()">ปิดหน้าต่างนี้</button>
+  </div>
+</div>
+
+<!-- ── MAIN CONTENT (hidden until token validated) ── -->
+<div id="mainContent" style="display:none;">
 
 <!-- ── HEADER ── -->
 <header class="site-header">
@@ -547,6 +621,46 @@
   </div>
 
 </div><!-- /page-wrap -->
+</div><!-- /mainContent -->
+
+<script>
+// ── TOKEN VALIDATION ─────────────────────────────────────────────────────
+(function() {
+  function showInvalid() {
+    document.getElementById('invalidWrap').classList.add('show');
+    history.pushState(null, '', location.href);
+    window.addEventListener('popstate', function() {
+      history.pushState(null, '', location.href);
+    });
+  }
+
+  function validateToken() {
+    var params = new URLSearchParams(window.location.search);
+    var urlToken = params.get('token');
+    if (!urlToken) { showInvalid(); return; }
+    try {
+      var stored = localStorage.getItem('sat_token_pending');
+      if (!stored) { showInvalid(); return; }
+      var tokenData = JSON.parse(stored);
+      var AGE_LIMIT = 15 * 60 * 1000;
+      var isValid = tokenData.token === urlToken
+                 && tokenData.used === false
+                 && (Date.now() - tokenData.created) < AGE_LIMIT;
+      if (!isValid) { showInvalid(); return; }
+      tokenData.used = true;
+      localStorage.setItem('sat_token_pending', JSON.stringify(tokenData));
+      document.getElementById('mainContent').style.display = 'block';
+      history.pushState(null, '', location.href);
+      window.addEventListener('popstate', function() {
+        history.pushState(null, '', location.href);
+      });
+    } catch(e) {
+      showInvalid();
+    }
+  }
+  validateToken();
+})();
+</script>
 
 <script>
 // ── CONFIG ────────────────────────────────────────────
