@@ -1321,13 +1321,19 @@ function removePhoto(i) {
 
 async function uploadPhoto(entry) {
   const st = document.getElementById('uploadStatus');
-  st.className = 'upload-status show uploading';
-  st.innerHTML = '<div style="width:14px;height:14px;border:2px solid rgba(29,111,181,.25);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;"></div> กำลังอัพโหลด...';
+  const spinnerHtml = '<div style="width:14px;height:14px;border:2px solid rgba(29,111,181,.25);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;"></div>';
+
+  const updateStatus = (type, html) => {
+    st.className = 'upload-status show ' + type;
+    st.innerHTML = html;
+  };
+
+  updateStatus('uploading', spinnerHtml + ' กำลังอัพโหลด...');
 
   const car   = document.getElementById('carType').value;
   const date  = document.getElementById('inspDate').value;
   const fname = 'check_' + car.split(' ')[0] + '_' + date + '_' + Date.now() + '.jpg';
-  const body  = 'payload=' + encodeURIComponent(JSON.stringify({
+  const payload = {
     action: 'uploadPhotoPost',
     base64Data: entry.dataUrl,
     mimeType: entry.file.type || 'image/jpeg',
@@ -1335,74 +1341,110 @@ async function uploadPhoto(entry) {
     subFolder: 'CheckPhotos',
     carType: car,
     inspDate: date
-  }));
+  };
+  const body = 'payload=' + encodeURIComponent(JSON.stringify(payload));
 
-  // ─── attempt 1: normal fetch (with CORS) ───
+  // helper: บันทึก URL สำเร็จ
+  const applyUrl = (url) => {
+    entry.driveUrl = url;
+    if (!uploadedUrls.includes(url)) uploadedUrls.push(url);
+    renderDriveLinks();
+    updateStatus('done', '✅ อัพโหลดสำเร็จ ' + uploadedUrls.length + ' รูป');
+  };
+
+  // helper: poll GAS หา URL ที่เพิ่งอัพโหลด (retry สูงสุด 5 ครั้ง, ทุก 3s)
+  const pollForUrl = async () => {
+    for (let i = 0; i < 5; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      updateStatus('uploading', spinnerHtml + ' กำลังยืนยัน URL... (' + (i+1) + '/5)');
+      try {
+        const r = await fetch(GAS_URL + '?action=getLatestPhotoUrl' +
+          '&carType=' + encodeURIComponent(car) +
+          '&inspDate=' + encodeURIComponent(date));
+        if (!r.ok) continue;
+        const ck = await r.json();
+        // ยืนยัน: URL ต้องเป็น URL ใหม่ที่ยังไม่มีใน uploadedUrls
+        if (ck.status === 'ok' && ck.url && !uploadedUrls.includes(ck.url)) {
+          return ck.url;
+        }
+        // ถ้า url ซ้ำกับที่มีอยู่แล้ว ให้รอต่อ (GAS buffer อาจยังไม่ flush)
+      } catch(_) {}
+    }
+    return null;
+  };
+
+  // ══════════════════════════════════════════
+  //  attempt 1: normal POST (รับ JSON response)
+  // ══════════════════════════════════════════
   try {
-    const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 30000); // 30s timeout
-    const resp = await fetch(GAS_URL, {
+    const ctrl  = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 35000);
+    const resp  = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body,
       signal: ctrl.signal
     });
     clearTimeout(timer);
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.status === 'ok' && data.url) {
-        entry.driveUrl = data.url;
-        if (!uploadedUrls.includes(data.url)) uploadedUrls.push(data.url);
-        renderDriveLinks();
-        st.className = 'upload-status show done';
-        st.innerHTML = '✅ อัพโหลดสำเร็จ ' + uploadedUrls.length + ' รูป';
-        return;
-      }
-      throw new Error((await resp.json().catch(()=>({}))).message || 'GAS error');
+
+    // อ่าน body ครั้งเดียว — หลีกเลี่ยง "body already consumed"
+    let data = {};
+    try { data = await resp.json(); } catch(_) {}
+
+    if (data.status === 'ok' && data.url) {
+      applyUrl(data.url);
+      return;
     }
-    throw new Error('HTTP ' + resp.status);
+    // GAS ตอบ ok แต่ไม่มี url (ไม่ควรเกิด) → log แล้วไป attempt 2
+    console.warn('uploadPhoto attempt1: resp ok but no url. data=', JSON.stringify(data));
   } catch(e1) {
-    if (e1.name === 'AbortError') {
-      console.warn('uploadPhoto: attempt 1 timeout');
-    } else {
-      console.warn('uploadPhoto: attempt 1 failed:', e1.message);
-    }
+    console.warn('uploadPhoto attempt1 failed:', e1.name === 'AbortError' ? 'timeout 35s' : e1.message);
   }
 
-  // ─── attempt 2: no-cors fire-and-forget ───
+  // ══════════════════════════════════════════
+  //  attempt 2: no-cors (ไม่มี response) → poll
+  // ══════════════════════════════════════════
+  updateStatus('uploading', spinnerHtml + ' ส่งรูปผ่าน fallback...');
   try {
     await fetch(GAS_URL, {
-      method: 'POST',
-      mode: 'no-cors',
+      method : 'POST',
+      mode   : 'no-cors',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body
     });
-    // no-cors ไม่มี response body → poll GAS เพื่อยืนยัน URL
-    await new Promise(r => setTimeout(r, 3000));
-    try {
-      const check = await fetch(GAS_URL + '?action=getLatestPhotoUrl&carType=' +
-        encodeURIComponent(car) + '&inspDate=' + encodeURIComponent(date));
-      if (check.ok) {
-        const ck = await check.json();
-        if (ck.status === 'ok' && ck.url) {
-          entry.driveUrl = ck.url;
-          if (!uploadedUrls.includes(ck.url)) uploadedUrls.push(ck.url);
-          renderDriveLinks();
-          st.className = 'upload-status show done';
-          st.innerHTML = '✅ อัพโหลดสำเร็จ (ยืนยันแล้ว) ' + uploadedUrls.length + ' รูป';
-          return;
-        }
-      }
-    } catch(_) {}
-    // no-cors ส่งไปแล้ว แต่ยังยืนยัน URL ไม่ได้ → แจ้งว่าส่งแล้วรอ
+    console.log('uploadPhoto attempt2 (no-cors): fired, polling GAS...');
+    const url = await pollForUrl();
+    if (url) {
+      applyUrl(url);
+      updateStatus('done', '✅ อัพโหลดสำเร็จ (ยืนยันแล้ว) ' + uploadedUrls.length + ' รูป');
+      return;
+    }
+    // poll หมดแล้วยังไม่เจอ url → mark ว่าส่งไปแล้ว รอ saveCheck flush
     entry.noCorsSubmitted = true;
-    st.className = 'upload-status show uploading';
-    st.innerHTML = '📤 ส่งรูปไปแล้ว — รอยืนยัน URL...';
+    updateStatus('uploading', '📤 รูปส่งไปแล้ว — URL จะปรากฏหลังบันทึก');
   } catch(e2) {
-    console.warn('uploadPhoto: attempt 2 failed:', e2.message);
-    st.className = 'upload-status show err';
-    st.innerHTML = '⚠️ อัพโหลดไม่สำเร็จ — รูปจะส่งพร้อมบันทึกข้อมูล';
+    console.warn('uploadPhoto attempt2 failed:', e2.message);
+    updateStatus('err', '⚠️ อัพโหลดไม่สำเร็จ — รูปจะส่งพร้อมบันทึกข้อมูล');
   }
+}
+
+// ── หลัง submit สำเร็จ: ดึง URL ที่ GAS buffer ไว้มาแสดง (กรณี no-cors) ──
+async function fetchAndDisplayPostedUrls(car, date) {
+  try {
+    const r = await fetch(GAS_URL + '?action=getLatestPhotoUrl' +
+      '&carType=' + encodeURIComponent(car) +
+      '&inspDate=' + encodeURIComponent(date));
+    if (!r.ok) return;
+    const ck = await r.json();
+    if (ck.status === 'ok' && ck.url) {
+      // อัพเดต uploadedUrls ถ้ายังไม่มี
+      const urls = ck.count > 1
+        ? (ck.urls || [ck.url])   // ถ้า GAS คืนหลาย url
+        : [ck.url];
+      urls.forEach(u => { if (!uploadedUrls.includes(u)) uploadedUrls.push(u); });
+      renderDriveLinks();
+    }
+  } catch(_) {}
 }
 
 function renderDriveLinks() {
@@ -1486,6 +1528,10 @@ async function doSubmit() {
     if (data.status === 'ok' || resp.ok) {
       hideBanner();
       const n = (data.photoUrls||uploadedUrls).length;
+      // ดึง URL รูปที่อาจ buffer ใน GAS (กรณี no-cors)
+      if (photos.some(p => p.noCorsSubmitted && !p.driveUrl)) {
+        await fetchAndDisplayPostedUrls(car, date);
+      }
       showToast('✅ บันทึกสำเร็จ — ' + car.split(' ')[0] + (n ? ` · 📷 ${n} รูป` : ''), 'success', 7000);
       resetForm();
     } else {
