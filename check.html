@@ -1331,53 +1331,87 @@ function removePhoto(i) {
 
 async function uploadPhoto(entry) {
   const st = document.getElementById('uploadStatus');
-  const updateStatus = (type, msg) => {
+  const spinnerHtml = '<div style="width:14px;height:14px;border:2px solid rgba(29,111,181,.25);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;"></div>';
+  
+  const updateStatus = (type, html) => {
     st.className = 'upload-status show ' + type;
-    st.innerHTML = msg;
+    st.innerHTML = html;
   };
 
-  const spinner = '<div style="width:14px;height:14px;border:2px solid rgba(29,111,181,.25);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;"></div>';
-  updateStatus('uploading', spinner + ' กำลังอัพโหลด...');
+  updateStatus('uploading', spinnerHtml + ' กำลังอัพโหลด...');
 
   const car   = document.getElementById('carType').value;
   const date  = document.getElementById('inspDate').value;
-  const plate = (car || 'unknown').split(' ')[0];
-  const fname = `check_${plate}_${date}_${Date.now()}.jpg`;
-
+  const fname = 'check_' + car.split(' ')[0] + '_' + date + '_' + Date.now() + '.jpg';
+  
   const payload = {
-    action: 'uploadPhoto',
+    action: 'uploadPhotoPost',
     base64Data: entry.dataUrl,
     mimeType: entry.file.type || 'image/jpeg',
     fileName: fname,
+    subFolder: 'CheckPhotos',
     carType: car,
     inspDate: date
   };
-
   const body = 'payload=' + encodeURIComponent(JSON.stringify(payload));
 
+  const applyUrl = (url) => {
+    entry.driveUrl = url;
+    if (!uploadedUrls.includes(url)) uploadedUrls.push(url);
+    renderDriveLinks();
+    updateStatus('done', '✅ อัพโหลดสำเร็จ ' + uploadedUrls.length + ' รูป');
+  };
+
+  const pollForUrl = async () => {
+    for (let i = 0; i < 5; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      updateStatus('uploading', spinnerHtml + ' กำลังยืนยัน URL... (' + (i+1) + '/5)');
+      try {
+        const r = await fetch(GAS_URL + '?action=getLatestPhotoUrl&carType=' + encodeURIComponent(car) + '&inspDate=' + encodeURIComponent(date));
+        if (!r.ok) continue;
+        const ck = await r.json();
+        if (ck.status === 'ok' && ck.url && !uploadedUrls.includes(ck.url)) return ck.url;
+      } catch(_) {}
+    }
+    return null;
+  };
+
+  // ═══ attempt 1: normal POST ═══
   try {
-    const resp = await fetch(GAS_URL, {
+    const ctrl  = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 35000);
+    const resp  = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body
+      body,
+      signal: ctrl.signal
     });
+    clearTimeout(timer);
+    let data = {};
+    try { data = await resp.json(); } catch(_) {}
+    if (data.status === 'ok' && data.url) { applyUrl(data.url); return; }
+    console.warn('uploadPhoto attempt1: resp ok but no url. data=', JSON.stringify(data));
+  } catch(e1) {
+    console.warn('uploadPhoto attempt1 failed:', e1.name === 'AbortError' ? 'timeout 35s' : e1.message);
+  }
 
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-
-    const data = await resp.json().catch(() => ({}));
-
-    if (data.status === 'ok' && data.url) {
-      entry.driveUrl = data.url;
-      if (!uploadedUrls.includes(data.url)) uploadedUrls.push(data.url);
-      renderDriveLinks();
-      updateStatus('done', '✅ อัพโหลดสำเร็จ (' + uploadedUrls.length + ' รูป)');
-    } else {
-      throw new Error(data.message || 'Server returned error');
-    }
-  } catch (err) {
-    console.error('uploadPhoto failed:', err);
-    entry.driveUrl = null;
-    updateStatus('err', '⚠️ อัพโหลดไม่สำเร็จ: ' + (err.message || 'โปรดลองอีกครั้ง'));
+  // ═══ attempt 2: no-cors fallback ═══
+  updateStatus('uploading', spinnerHtml + ' ส่งรูปผ่าน fallback...');
+  try {
+    await fetch(GAS_URL, {
+      method : 'POST',
+      mode   : 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    });
+    console.log('uploadPhoto attempt2 (no-cors): fired, polling GAS...');
+    const url = await pollForUrl();
+    if (url) { applyUrl(url); return; }
+    entry.noCorsSubmitted = true;
+    updateStatus('uploading', '📤 รูปส่งไปแล้ว — URL จะปรากฏหลังบันทึก');
+  } catch(e2) {
+    console.warn('uploadPhoto attempt2 failed:', e2.message);
+    updateStatus('err', '⚠️ อัพโหลดไม่สำเร็จ — รูปจะส่งพร้อมบันทึกข้อมูล');
   }
 }
 
