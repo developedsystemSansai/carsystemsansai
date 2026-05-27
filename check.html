@@ -1332,53 +1332,24 @@ function removePhoto(i) {
 async function uploadPhoto(entry) {
   const st = document.getElementById('uploadStatus');
   const spinner = '<div style="width:14px;height:14px;border:2px solid rgba(29,111,181,.25);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;"></div>';
-  
+
   const updateStatus = (type, msg) => {
-    st.className = 'upload-status show ' + type;
-    st.innerHTML = msg;
-  };
-
-  updateStatus('uploading', spinner + ' กำลังอัพโหลด...');
-
-  const car   = document.getElementById('carType').value;
-  const date  = document.getElementById('inspDate').value;
-  const fname = `check_${car.split(' ')[0]}_${date}_${Date.now()}.jpg`;
-
-  const payload = {
-    action: 'uploadPhotoPost',
-    base64Data: entry.dataUrl,
-    mimeType: entry.file.type || 'image/jpeg',
-    fileName: fname,
-    carType: car,
-    inspDate: date
-  };
-
-  const body = 'payload=' + encodeURIComponent(JSON.stringify(payload));
-
-  try {
-    const resp = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body
-    });
-
-    if (!resp.ok) throw new Error('HTTP ' + resp.status);
-
-    const data = await resp.json().catch(() => ({}));
-
-    if (data.status === 'ok' && data.url) {
-      entry.driveUrl = data.url;
-      if (!uploadedUrls.includes(data.url)) uploadedUrls.push(data.url);
-      renderDriveLinks();
-      updateStatus('done', '✅ อัพโหลดสำเร็จ (' + uploadedUrls.length + ' รูป)');
-    } else {
-      throw new Error(data.message || 'เซิร์ฟเวอร์ตอบกลับไม่ถูกต้อง');
+    if (msg !== undefined) { st.className = 'upload-status show ' + (type||''); st.innerHTML = msg; }
+    else {
+      const done = photos.filter(p=>p.status==='done').length;
+      const tot  = photos.length;
+      const errs = photos.filter(p=>p.status==='error'||p.noCorsSubmitted).length;
+      if (!tot) { st.className='upload-status'; return; }
+      if (errs)  st.className='upload-status show err';
+      else if (done===tot) st.className='upload-status show done';
+      else st.className='upload-status show uploading';
+      st.innerHTML = done===tot
+        ? '✅ อัพโหลดสำเร็จทั้งหมด (' + done + ' รูป)'
+        : errs
+          ? `⚠️ อัพโหลดสำเร็จ ${done}/${tot} (ล้มเหลว ${errs})`
+          : spinner + ` กำลังอัพโหลด... (${done}/${tot})`;
     }
-  } catch (err) {
-    console.error('uploadPhoto failed:', err);
-    updateStatus('err', '⚠️ อัพโหลดไม่สำเร็จ: ' + (err.message || 'โปรดลองอีกครั้ง'));
-  }
-}
+  };
 
   // mark uploading
   entry.status = 'uploading';
@@ -1431,41 +1402,35 @@ async function uploadPhoto(entry) {
   // ══════════════════════════════════════════
   //  attempt 1: normal POST (รับ JSON response)
   // ══════════════════════════════════════════
-// ══════════════════════════════════════════
-//  attempt 1: normal POST (รับ JSON response)
-// ══════════════════════════════════════════
-// ══════════════════════════════════════════
-//  attempt 1: normal POST (รับ JSON response)
-// ══════════════════════════════════════════
-try {
-  const ctrl  = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 35000);
-  
-  const resp = await fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },  // ← แก้ตรงนี้
-    body: body,
-    signal: ctrl.signal
-  });
-  
-  clearTimeout(timer);
+  try {
+    const ctrl  = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 35000);
 
-  // อ่าน body ครั้งเดียว — หลีกเลี่ยง "body already consumed"
-  let data = {};
-  try { data = await resp.json().catch(()=>({})); } catch(_) {}
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body,
+      signal: ctrl.signal
+    });
 
-  if (data.status === 'ok' && data.url) {
-    applyUrl(data.url);
-    _uploadingCount = Math.max(0, _uploadingCount - 1);
-    return;
+    clearTimeout(timer);
+
+    // อ่าน body ครั้งเดียว — หลีกเลี่ยง "body already consumed"
+    let data = {};
+    try { data = await resp.json().catch(()=>({})); } catch(_) {}
+
+    if (data.status === 'ok' && data.url) {
+      applyUrl(data.url);
+      _uploadingCount = Math.max(0, _uploadingCount - 1);
+      return;
+    }
+
+    // GAS ตอบ ok แต่ไม่มี url (ไม่ควรเกิด) → log แล้วไป attempt 2
+    console.warn('uploadPhoto attempt1: resp ok but no url. data=', JSON.stringify(data));
+
+  } catch(e1) {
+    console.warn('uploadPhoto attempt1 failed:', e1.name === 'AbortError' ? 'timeout 35s' : e1.message);
   }
-  
-  // GAS ตอบ ok แต่ไม่มี url (ไม่ควรเกิด) → log แล้วไป attempt 2
-  console.warn('uploadPhoto attempt1: resp ok but no url. data=', JSON.stringify(data));
-  
-} catch(e1) {
-  console.warn('uploadPhoto attempt1 failed:', e1.name === 'AbortError' ? 'timeout 35s' : e1.message);
-}
 
   // ══════════════════════════════════════════
   //  attempt 2: no-cors (ไม่มี response) → poll
