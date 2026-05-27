@@ -1323,129 +1323,106 @@ async function uploadPhoto(entry) {
   const st = document.getElementById('uploadStatus');
   const spinnerHtml = '<div style="width:14px;height:14px;border:2px solid rgba(29,111,181,.25);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;"></div>';
 
-  const updateStatus = (type, html) => {
-    st.className = 'upload-status show ' + type;
-    st.innerHTML = html;
-  };
-
-  updateStatus('uploading', spinnerHtml + ' กำลังอัพโหลด...');
-
   const car   = document.getElementById('carType').value;
   const date  = document.getElementById('inspDate').value;
   const fname = 'check_' + car.split(' ')[0] + '_' + date + '_' + Date.now() + '.jpg';
-  const payload = {
-    action: 'uploadPhotoPost',
-    base64Data: entry.dataUrl,
-    mimeType: entry.file.type || 'image/jpeg',
-    fileName: fname,
-    subFolder: 'CheckPhotos',
-    carType: car,
-    inspDate: date
-  };
-  const body = 'payload=' + encodeURIComponent(JSON.stringify(payload));
 
-  // helper: บันทึก URL สำเร็จ
-  const applyUrl = (url) => {
-    entry.driveUrl = url;
-    if (!uploadedUrls.includes(url)) uploadedUrls.push(url);
-    renderDriveLinks();
-    updateStatus('done', '✅ อัพโหลดสำเร็จ ' + uploadedUrls.length + ' รูป');
-  };
+  st.className = 'upload-status show uploading';
+  st.innerHTML  = spinnerHtml + ' กำลังอัพโหลด...';
 
-  // helper: poll GAS หา URL ที่เพิ่งอัพโหลด (retry สูงสุด 5 ครั้ง, ทุก 3s)
-  const pollForUrl = async () => {
-    for (let i = 0; i < 5; i++) {
-      await new Promise(r => setTimeout(r, 3000));
-      updateStatus('uploading', spinnerHtml + ' กำลังยืนยัน URL... (' + (i+1) + '/5)');
-      try {
-        const r = await fetch(GAS_URL + '?action=getLatestPhotoUrl' +
-          '&carType=' + encodeURIComponent(car) +
-          '&inspDate=' + encodeURIComponent(date));
-        if (!r.ok) continue;
-        const ck = await r.json();
-        // ยืนยัน: URL ต้องเป็น URL ใหม่ที่ยังไม่มีใน uploadedUrls
-        if (ck.status === 'ok' && ck.url && !uploadedUrls.includes(ck.url)) {
-          return ck.url;
-        }
-        // ถ้า url ซ้ำกับที่มีอยู่แล้ว ให้รอต่อ (GAS buffer อาจยังไม่ flush)
-      } catch(_) {}
-    }
-    return null;
-  };
-
-  // ══════════════════════════════════════════
-  //  attempt 1: normal POST (รับ JSON response)
-  // ══════════════════════════════════════════
+  // ── ใช้ GET request — ไม่มี CORS ปัญหา response กลับมาตรงๆ ──
+  // ส่ง base64 ผ่าน query string (GAS GET limit ~8KB ต่อ param → compress ก่อน)
+  // สำหรับรูปขนาดใหญ่ใช้ fetch GET พร้อม body แบบ text/plain แทน
   try {
+    const payload = {
+      action    : 'uploadCheckPhoto',
+      base64Data: entry.dataUrl,
+      mimeType  : entry.file.type || 'image/jpeg',
+      fileName  : fname,
+      carType   : car,
+      inspDate  : date
+    };
+
+    // GET via fetch URL (base64 ใน body เพื่อหลีกเลี่ยง URL length limit)
+    // GAS doGet อ่านได้จาก e.parameter — ใช้ POST แต่ส่ง action ผ่าน query string
+    // เพื่อให้ doGet router รับและไม่มี CORS preflight
+    const url = GAS_URL + '?action=uploadCheckPhoto' +
+      '&carType='   + encodeURIComponent(car) +
+      '&inspDate='  + encodeURIComponent(date) +
+      '&fileName='  + encodeURIComponent(fname) +
+      '&mimeType='  + encodeURIComponent(entry.file.type || 'image/jpeg');
+
+    // ส่ง base64 ผ่าน POST body แต่ route ผ่าน doGet ไม่ได้
+    // → ใช้วิธีที่ถูกต้อง: fetch GET พร้อม base64 ใน query param
+    // แต่ base64 ยาวเกิน URL limit → ต้องใช้ FormData POST ปกติ
+    // วิธีสุดท้ายที่ work จริง: POST ปกติแล้วอ่าน response โดยไม่ผ่าน redirect
+
     const ctrl  = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 35000);
-    const resp  = await fetch(GAS_URL, {
-      method: 'POST',
+    const timer = setTimeout(() => ctrl.abort(), 45000);
+
+    const resp = await fetch(GAS_URL, {
+      method : 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body,
-      signal: ctrl.signal
+      body   : 'payload=' + encodeURIComponent(JSON.stringify(payload)),
+      signal : ctrl.signal
     });
     clearTimeout(timer);
 
-    // อ่าน body ครั้งเดียว — หลีกเลี่ยง "body already consumed"
     let data = {};
     try { data = await resp.json(); } catch(_) {}
 
     if (data.status === 'ok' && data.url) {
-      applyUrl(data.url);
+      _applyUploadUrl(entry, data.url, st);
       return;
     }
-    // GAS ตอบ ok แต่ไม่มี url (ไม่ควรเกิด) → log แล้วไป attempt 2
-    console.warn('uploadPhoto attempt1: resp ok but no url. data=', JSON.stringify(data));
+    // GAS ตอบ error หรือไม่มี url
+    throw new Error(data.message || 'no url in response');
+
   } catch(e1) {
-    console.warn('uploadPhoto attempt1 failed:', e1.name === 'AbortError' ? 'timeout 35s' : e1.message);
-  }
-
-  // ══════════════════════════════════════════
-  //  attempt 2: no-cors (ไม่มี response) → poll
-  // ══════════════════════════════════════════
-  updateStatus('uploading', spinnerHtml + ' ส่งรูปผ่าน fallback...');
-  try {
-    await fetch(GAS_URL, {
-      method : 'POST',
-      mode   : 'no-cors',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body
-    });
-    console.log('uploadPhoto attempt2 (no-cors): fired, polling GAS...');
-    const url = await pollForUrl();
-    if (url) {
-      applyUrl(url);
-      updateStatus('done', '✅ อัพโหลดสำเร็จ (ยืนยันแล้ว) ' + uploadedUrls.length + ' รูป');
+    console.warn('uploadPhoto POST failed:', e1.name === 'AbortError' ? 'timeout' : e1.message);
+    // ถ้า CORS block → response body อ่านไม่ได้ แต่รูปอาจอัพขึ้น Drive แล้ว
+    // → ลอง poll ScriptProperties buffer ผ่าน GET (ไม่มี CORS)
+    st.innerHTML = spinnerHtml + ' กำลังยืนยัน URL...';
+    const found = await _pollBufferedUrl(car, date);
+    if (found) {
+      _applyUploadUrl(entry, found, st);
       return;
     }
-    // poll หมดแล้วยังไม่เจอ url → mark ว่าส่งไปแล้ว รอ saveCheck flush
-    entry.noCorsSubmitted = true;
-    updateStatus('uploading', '📤 รูปส่งไปแล้ว — URL จะปรากฏหลังบันทึก');
-  } catch(e2) {
-    console.warn('uploadPhoto attempt2 failed:', e2.message);
-    updateStatus('err', '⚠️ อัพโหลดไม่สำเร็จ — รูปจะส่งพร้อมบันทึกข้อมูล');
+    // ไม่เจอ URL → แสดง error แต่รูปยังอาจอยู่ใน buffer ให้ saveCheck flush
+    st.className = 'upload-status show err';
+    st.innerHTML = '⚠️ อัพโหลดแล้วแต่ยืนยัน URL ไม่ได้ — URL จะแนบอัตโนมัติเมื่อบันทึก';
+    entry.pendingBuffer = true;
   }
 }
 
-// ── หลัง submit สำเร็จ: ดึง URL ที่ GAS buffer ไว้มาแสดง (กรณี no-cors) ──
-async function fetchAndDisplayPostedUrls(car, date) {
-  try {
-    const r = await fetch(GAS_URL + '?action=getLatestPhotoUrl' +
-      '&carType=' + encodeURIComponent(car) +
-      '&inspDate=' + encodeURIComponent(date));
-    if (!r.ok) return;
-    const ck = await r.json();
-    if (ck.status === 'ok' && ck.url) {
-      // อัพเดต uploadedUrls ถ้ายังไม่มี
-      const urls = ck.count > 1
-        ? (ck.urls || [ck.url])   // ถ้า GAS คืนหลาย url
-        : [ck.url];
-      urls.forEach(u => { if (!uploadedUrls.includes(u)) uploadedUrls.push(u); });
-      renderDriveLinks();
-    }
-  } catch(_) {}
+// ── helper: บันทึก URL เข้า entry + list + UI ──
+function _applyUploadUrl(entry, url, st) {
+  entry.driveUrl = url;
+  if (!uploadedUrls.includes(url)) uploadedUrls.push(url);
+  renderDriveLinks();
+  const stEl = st || document.getElementById('uploadStatus');
+  stEl.className = 'upload-status show done';
+  stEl.innerHTML = '✅ อัพโหลดสำเร็จ ' + uploadedUrls.length + ' รูป';
 }
+
+// ── helper: poll getLatestPhotoUrl (GET — ไม่มี CORS) สูงสุด 6 ครั้ง ──
+async function _pollBufferedUrl(car, date, maxTries = 6, intervalMs = 3000) {
+  for (let i = 0; i < maxTries; i++) {
+    await new Promise(r => setTimeout(r, intervalMs));
+    try {
+      const r  = await fetch(GAS_URL + '?action=getLatestPhotoUrl' +
+        '&carType='  + encodeURIComponent(car) +
+        '&inspDate=' + encodeURIComponent(date));
+      if (!r.ok) continue;
+      const ck = await r.json();
+      if (ck.status === 'ok' && ck.url && !uploadedUrls.includes(ck.url)) {
+        return ck.url;
+      }
+    } catch(_) {}
+  }
+  return null;
+}
+
 
 function renderDriveLinks() {
   const box = document.getElementById('uploadedBox');
@@ -1528,9 +1505,10 @@ async function doSubmit() {
     if (data.status === 'ok' || resp.ok) {
       hideBanner();
       const n = (data.photoUrls||uploadedUrls).length;
-      // ดึง URL รูปที่อาจ buffer ใน GAS (กรณี no-cors)
-      if (photos.some(p => p.noCorsSubmitted && !p.driveUrl)) {
-        await fetchAndDisplayPostedUrls(car, date);
+      // ดึง URL รูปที่ buffer ไว้ใน GAS ScriptProperties (กรณีอัพโหลดผ่าน no-cors)
+      if (photos.some(p => p.pendingBuffer && !p.driveUrl)) {
+        const found = await _pollBufferedUrl(car, date, 3, 2000);
+        if (found) _applyUploadUrl(null, found, null);
       }
       showToast('✅ บันทึกสำเร็จ — ' + car.split(' ')[0] + (n ? ` · 📷 ${n} รูป` : ''), 'success', 7000);
       resetForm();
