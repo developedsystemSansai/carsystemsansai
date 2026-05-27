@@ -1331,26 +1331,55 @@ function removePhoto(i) {
 
 async function uploadPhoto(entry) {
   const st = document.getElementById('uploadStatus');
-  const spinnerHtml = '<div style="width:14px;height:14px;border:2px solid rgba(29,111,181,.25);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;"></div>';
-
-  const updateStatus = () => {
-    const uploading = photos.filter(p => p.status === 'uploading').length;
-    const done      = photos.filter(p => p.status === 'done').length;
-    const err       = photos.filter(p => p.status === 'error').length;
-    const pending   = photos.filter(p => p.status === 'pending').length;
-    if (uploading + pending > 0) {
-      st.className = 'upload-status show uploading';
-      st.innerHTML = spinnerHtml + ` กำลังอัพโหลด${uploading + pending > 1 ? ' ' + (uploading + pending) + ' รูป' : ''}...`;
-    } else if (err > 0) {
-      st.className = 'upload-status show err';
-      st.innerHTML = `⚠️ อัพโหลดไม่สำเร็จ ${err} รูป (ข้อมูลจะส่งพร้อมบันทึก)`;
-    } else if (done > 0) {
-      st.className = 'upload-status show done';
-      st.innerHTML = `✅ อัพโหลดสำเร็จ ${done} รูป`;
-    } else {
-      st.className = 'upload-status';
-    }
+  const updateStatus = (type, msg) => {
+    st.className = 'upload-status show ' + type;
+    st.innerHTML = msg;
   };
+
+  const spinner = '<div style="width:14px;height:14px;border:2px solid rgba(29,111,181,.25);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;display:inline-block;vertical-align:middle;margin-right:6px;"></div>';
+  updateStatus('uploading', spinner + ' กำลังอัพโหลด...');
+
+  const car   = document.getElementById('carType').value;
+  const date  = document.getElementById('inspDate').value;
+  const plate = (car || 'unknown').split(' ')[0];
+  const fname = `check_${plate}_${date}_${Date.now()}.jpg`;
+
+  const payload = {
+    action: 'uploadPhoto',
+    base64Data: entry.dataUrl,
+    mimeType: entry.file.type || 'image/jpeg',
+    fileName: fname,
+    carType: car,
+    inspDate: date
+  };
+
+  const body = 'payload=' + encodeURIComponent(JSON.stringify(payload));
+
+  try {
+    const resp = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body
+    });
+
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+    const data = await resp.json().catch(() => ({}));
+
+    if (data.status === 'ok' && data.url) {
+      entry.driveUrl = data.url;
+      if (!uploadedUrls.includes(data.url)) uploadedUrls.push(data.url);
+      renderDriveLinks();
+      updateStatus('done', '✅ อัพโหลดสำเร็จ (' + uploadedUrls.length + ' รูป)');
+    } else {
+      throw new Error(data.message || 'Server returned error');
+    }
+  } catch (err) {
+    console.error('uploadPhoto failed:', err);
+    entry.driveUrl = null;
+    updateStatus('err', '⚠️ อัพโหลดไม่สำเร็จ: ' + (err.message || 'โปรดลองอีกครั้ง'));
+  }
+}
 
   // mark uploading
   entry.status = 'uploading';
