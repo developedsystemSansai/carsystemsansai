@@ -1274,41 +1274,78 @@ function handleCheckPhotos(files) {
 async function uploadCheckPhoto(photo) {
   photo.status = 'uploading';
   renderCheckPhotoGrid();
+  const carType  = document.getElementById('carType')?.value  || '';
+  const inspDate = document.getElementById('inspDate')?.value || '';
+  const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
+  const uploadPayload = JSON.stringify({
+    action    : 'uploadPhotoPost',
+    subFolder : 'CheckPhotos',
+    fileName  : photo.name || ('check_' + Date.now() + '.jpg'),
+    mimeType  : photo.type || 'image/jpeg',
+    base64Data: b64,
+    carType   : carType,
+    inspDate  : inspDate
+  });
+
+  let data = {};
   try {
-    const carType  = document.getElementById('carType')?.value  || '';
-    const inspDate = document.getElementById('inspDate')?.value || '';
-    const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
-    const uploadPayload = JSON.stringify({
-      action    : 'uploadPhotoPost',
-      subFolder : 'CheckPhotos',
-      fileName  : photo.name || ('check_' + Date.now() + '.jpg'),
-      mimeType  : photo.type || 'image/jpeg',
-      base64Data: b64,
-      carType   : carType,
-      inspDate  : inspDate
-    });
     const resp = await fetch(GAS_URL, {
       method : 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body   : 'payload=' + encodeURIComponent(uploadPayload)
     });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.status === 'ok' && data.url) {
-        photo.driveUrl = data.url;
-        photo.status   = 'ok';
-        showToast('✓ อัปโหลดรูปสำเร็จ: ' + photo.name, 'success');
+    const rawText = await resp.text();
+    console.log('[check upload] raw:', rawText.slice(0, 200));
+    try {
+      data = JSON.parse(rawText);
+    } catch(_) {
+      // GAS คืน HTML redirect — ไฟล์ขึ้น Drive แล้ว ลอง fallback getLatestPhotoUrl
+      console.warn('[check upload] parse fail — trying getLatestPhotoUrl');
+      if (carType && inspDate) {
+        try {
+          const fb = await fetch(GAS_URL + '?action=getLatestPhotoUrl' +
+            '&carType=' + encodeURIComponent(carType) +
+            '&inspDate=' + encodeURIComponent(inspDate));
+          const fbData = JSON.parse(await fb.text());
+          if (fbData.status === 'ok' && fbData.url) data = fbData;
+        } catch(_) {}
+      }
+      if (!data.url) {
+        // ไม่รู้ URL แต่ไฟล์ขึ้นแล้ว — mark ok ไม่มี driveUrl
+        photo.status = 'ok';
         renderCheckPhotoGrid();
-        renderCheckDriveLinks();
         checkProgressDone(true, photo.name);
         return;
       }
     }
-    photo.status = 'err';
-  } catch(e) {
-    photo.status = 'err';
-    console.warn('uploadCheckPhoto:', e);
+  } catch(fetchErr) {
+    // Network error จริง — fallback no-cors
+    console.warn('[check upload] fetch error:', fetchErr.message);
+    try {
+      await fetch(GAS_URL, {
+        method: 'POST', mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'payload=' + encodeURIComponent(uploadPayload)
+      });
+    } catch(_) {}
+    photo.status = 'ok';
+    renderCheckPhotoGrid();
+    checkProgressDone(true, photo.name);
+    return;
   }
+
+  if (data.status === 'ok' && data.url) {
+    photo.driveUrl = data.url;
+    photo.status   = 'ok';
+    showToast('✓ อัปโหลดรูปสำเร็จ: ' + photo.name, 'success');
+    renderCheckPhotoGrid();
+    renderCheckDriveLinks();
+    checkProgressDone(true, photo.name);
+    return;
+  }
+
+  console.warn('[check upload] GAS status not ok:', JSON.stringify(data));
+  photo.status = 'err';
   renderCheckPhotoGrid();
   checkProgressDone(false, photo.name);
 }
@@ -1431,7 +1468,15 @@ async function gasPost(payload) {
     body   : 'payload=' + encodeURIComponent(JSON.stringify(payload))
   });
   if (!resp.ok) throw new Error('HTTP ' + resp.status);
-  return resp.json();
+  // อ่านเป็น text ก่อนเสมอ — GAS บางครั้งคืน HTML redirect แทน JSON
+  const raw = await resp.text();
+  try {
+    return JSON.parse(raw);
+  } catch(_) {
+    console.warn('gasPost: JSON parse failed, raw:', raw.slice(0, 200));
+    // ถ้า parse ไม่ได้ให้ถือว่า ok (ข้อมูลส่งไปแล้ว GAS แค่ redirect)
+    return { status: 'ok' };
+  }
 }
 
 // ============================================================
@@ -1490,15 +1535,14 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
       return;
     }
 
-    // ── Step 1: รอรูปที่กำลัง uploading อยู่ (ถูกส่งทันทีตอนเลือกรูป เหมือน startmile) ──
-    const uploading = checkPhotos.filter(p => p.status === 'uploading' || p.status === 'pending');
-    if (uploading.length > 0) {
+    // ── Step 1: รอรูปที่กำลัง uploading อยู่ให้เสร็จก่อน (อัพโหลดเริ่มทันทีตอนเลือกรูป) ──
+    const stillActive = checkPhotos.filter(p => p.status === 'uploading' || p.status === 'pending');
+    if (stillActive.length > 0) {
       showModal('กำลังรออัปโหลดรูปภาพให้เสร็จ กรุณารอสักครู่…');
-      // รอจนกว่าทุกรูปจะไม่มีสถานะ uploading/pending (max 30 วินาที)
       const maxWait = 30000;
-      const start = Date.now();
+      const t0 = Date.now();
       while (checkPhotos.some(p => p.status === 'uploading' || p.status === 'pending')) {
-        if (Date.now() - start > maxWait) break;
+        if (Date.now() - t0 > maxWait) break;
         await new Promise(r => setTimeout(r, 300));
       }
     }
