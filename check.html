@@ -1490,39 +1490,17 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
       return;
     }
 
-    // ── Step 1: อัพโหลดรูปที่ยังค้าง (pending) ทีละรูป ──
-    const pending = checkPhotos.filter(p => !p.driveUrl && p.status !== 'err');
-    if (pending.length > 0) {
-      showModal('กำลังอัปโหลดรูปภาพ ' + pending.length + ' รูป กรุณารอสักครู่…');
-      _checkUploadTotal += pending.length;
-      const wrap = document.getElementById('checkUploadProgress');
-      if (wrap) { wrap.classList.remove('state-ok','state-err'); }
-      for (let i = 0; i < pending.length; i++) {
-        const p = pending[i];
-        checkProgressShow(p.name);
-        p.status = 'uploading';
-        renderCheckPhotoGrid();
-        try {
-          const b64 = p.data.replace(/^data:[^;]+;base64,/, '');
-          const res = await gasPost({
-            action    : 'uploadPhotoPost',
-            subFolder : 'CheckPhotos',
-            fileName  : p.name  || ('check_' + Date.now() + '_' + i + '.jpg'),
-            mimeType  : p.type  || 'image/jpeg',
-            base64Data: b64,
-            carType   : payload.carType,
-            inspDate  : payload.inspDate
-          });
-          p.driveUrl = (res.status === 'ok' && res.url) ? res.url : '';
-          p.status   = p.driveUrl ? 'ok' : 'err';
-        } catch(ue) {
-          p.status = 'err';
-          console.warn('upload[' + i + '] error:', ue);
-        }
-        renderCheckPhotoGrid();
-        checkProgressDone(p.status === 'ok', p.name);
+    // ── Step 1: รอรูปที่กำลัง uploading อยู่ (ถูกส่งทันทีตอนเลือกรูป เหมือน startmile) ──
+    const uploading = checkPhotos.filter(p => p.status === 'uploading' || p.status === 'pending');
+    if (uploading.length > 0) {
+      showModal('กำลังรออัปโหลดรูปภาพให้เสร็จ กรุณารอสักครู่…');
+      // รอจนกว่าทุกรูปจะไม่มีสถานะ uploading/pending (max 30 วินาที)
+      const maxWait = 30000;
+      const start = Date.now();
+      while (checkPhotos.some(p => p.status === 'uploading' || p.status === 'pending')) {
+        if (Date.now() - start > maxWait) break;
+        await new Promise(r => setTimeout(r, 300));
       }
-      renderCheckDriveLinks();
     }
 
     // ── Step 2: รวม URL ทั้งหมดที่อัพโหลดสำเร็จ ──
