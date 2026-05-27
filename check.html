@@ -944,7 +944,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdb
 // ══════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════
-let vehicles = [], drivers = [], histData = [];
+let vehicles = [], drivers = [], histData = [], checkedToday = [];
 let fuelPct  = 50;
 let checkVals = {};    // { key: 'ผ่าน'|'ไม่ผ่าน' }
 let ratingVals = {};   // { eq_oil: '...', eq_battery: '...', eq_tire: '...' }
@@ -999,9 +999,14 @@ const pad = n => String(n).padStart(2,'0');
 async function loadInit() {
   showBanner('loading', 'กำลังโหลดข้อมูลยานพาหนะ...');
   try {
-    const [vr, dr] = await Promise.all([fetchGAS('getVehicles'), fetchGAS('getDrivers')]);
-    vehicles = vr.data || [];
-    drivers  = dr.drivers || [];
+    const [vr, dr, cr] = await Promise.all([
+      fetchGAS('getVehicles'),
+      fetchGAS('getDrivers'),
+      fetchGAS('getTodayCheckedPlates')
+    ]);
+    vehicles     = vr.data     || [];
+    drivers      = dr.drivers  || [];
+    checkedToday = cr.checked  || [];
     fillVehicleSelect();
     fillDriverSelect();
     hideBanner();
@@ -1033,7 +1038,18 @@ function fillVehicleSelect() {
   vehicles.forEach(v => {
     const o = document.createElement('option');
     const label = (v['ทะเบียน']||'') + (v['ประเภท'] ? ' — ' + v['ประเภท'] : '');
-    o.value = label; o.textContent = label; s.appendChild(o);
+    const plate = (v['ทะเบียน']||'').split(' ')[0].trim();
+    const isChecked = checkedToday.some(c => {
+      const cp = String(c.carType||'').split(' ')[0].trim();
+      return cp === plate || cp.includes(plate) || plate.includes(cp);
+    });
+    o.value = label; o.textContent = label;
+    if (isChecked) {
+      o.disabled = true;
+      o.textContent = '✅ ' + label + ' (ตรวจแล้ววันนี้)';
+      o.style.color = '#888';
+    }
+    s.appendChild(o);
   });
 }
 function fillDriverSelect() {
@@ -1308,20 +1324,30 @@ async function uploadPhoto(entry) {
   st.className = 'upload-status show uploading';
   st.innerHTML = '<div style="width:14px;height:14px;border:2px solid rgba(29,111,181,.25);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;"></div> กำลังอัพโหลด...';
 
-  const car  = document.getElementById('carType').value;
-  const date = document.getElementById('inspDate').value;
-  const fname = `check_${car.split(' ')[0]}_${date}_${Date.now()}.jpg`;
+  const car   = document.getElementById('carType').value;
+  const date  = document.getElementById('inspDate').value;
+  const fname = 'check_' + car.split(' ')[0] + '_' + date + '_' + Date.now() + '.jpg';
+  const body  = 'payload=' + encodeURIComponent(JSON.stringify({
+    action: 'uploadPhotoPost',
+    base64Data: entry.dataUrl,
+    mimeType: entry.file.type || 'image/jpeg',
+    fileName: fname,
+    subFolder: 'CheckPhotos',
+    carType: car,
+    inspDate: date
+  }));
 
+  // ─── attempt 1: normal fetch (with CORS) ───
   try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 30000); // 30s timeout
     const resp = await fetch(GAS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'payload=' + encodeURIComponent(JSON.stringify({
-        action: 'uploadPhotoPost', base64Data: entry.dataUrl,
-        mimeType: entry.file.type || 'image/jpeg', fileName: fname,
-        subFolder: 'CheckPhotos', carType: car, inspDate: date
-      }))
+      body,
+      signal: ctrl.signal
     });
+    clearTimeout(timer);
     if (resp.ok) {
       const data = await resp.json();
       if (data.status === 'ok' && data.url) {
@@ -1332,11 +1358,50 @@ async function uploadPhoto(entry) {
         st.innerHTML = '✅ อัพโหลดสำเร็จ ' + uploadedUrls.length + ' รูป';
         return;
       }
+      throw new Error((await resp.json().catch(()=>({}))).message || 'GAS error');
     }
-    throw new Error('response error');
-  } catch(err) {
+    throw new Error('HTTP ' + resp.status);
+  } catch(e1) {
+    if (e1.name === 'AbortError') {
+      console.warn('uploadPhoto: attempt 1 timeout');
+    } else {
+      console.warn('uploadPhoto: attempt 1 failed:', e1.message);
+    }
+  }
+
+  // ─── attempt 2: no-cors fire-and-forget ───
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body
+    });
+    // no-cors ไม่มี response body → poll GAS เพื่อยืนยัน URL
+    await new Promise(r => setTimeout(r, 3000));
+    try {
+      const check = await fetch(GAS_URL + '?action=getLatestPhotoUrl&carType=' +
+        encodeURIComponent(car) + '&inspDate=' + encodeURIComponent(date));
+      if (check.ok) {
+        const ck = await check.json();
+        if (ck.status === 'ok' && ck.url) {
+          entry.driveUrl = ck.url;
+          if (!uploadedUrls.includes(ck.url)) uploadedUrls.push(ck.url);
+          renderDriveLinks();
+          st.className = 'upload-status show done';
+          st.innerHTML = '✅ อัพโหลดสำเร็จ (ยืนยันแล้ว) ' + uploadedUrls.length + ' รูป';
+          return;
+        }
+      }
+    } catch(_) {}
+    // no-cors ส่งไปแล้ว แต่ยังยืนยัน URL ไม่ได้ → แจ้งว่าส่งแล้วรอ
+    entry.noCorsSubmitted = true;
+    st.className = 'upload-status show uploading';
+    st.innerHTML = '📤 ส่งรูปไปแล้ว — รอยืนยัน URL...';
+  } catch(e2) {
+    console.warn('uploadPhoto: attempt 2 failed:', e2.message);
     st.className = 'upload-status show err';
-    st.innerHTML = '⚠️ อัพโหลดไม่สำเร็จ — จะส่งพร้อมบันทึก';
+    st.innerHTML = '⚠️ อัพโหลดไม่สำเร็จ — รูปจะส่งพร้อมบันทึกข้อมูล';
   }
 }
 
