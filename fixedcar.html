@@ -1391,48 +1391,71 @@ function updatePendingBadge() {
   badge.style.display = cnt ? '' : 'none';
 }
 
+
 // ============================================================
 // BUILD PHOTO SECTION (ใช้ใน openDetail)
+// store preview srcs in module-level var so onclick can index safely
 // ============================================================
+var _detailPhotoSrcs = [];   // base64 srcs ของงานที่เปิดอยู่
+
 function buildPhotoSection(job) {
-  const photos     = Array.isArray(job.photos)    ? job.photos.filter(p => p && p.data) : [];
-  const photoUrls  = Array.isArray(job.photoUrls) ? job.photoUrls.filter(u => u)        : [];
-  const total      = photos.length + photoUrls.length;
+  var photos    = Array.isArray(job.photos)    ? job.photos.filter(function(p){ return p && p.data; }) : [];
+  var photoUrls = Array.isArray(job.photoUrls) ? job.photoUrls.filter(function(u){ return u; })        : [];
+  var total     = photos.length + photoUrls.length;
   if (!total) return '';
 
-  // สร้าง src array สำหรับ lightbox (base64 เท่านั้น)
-  const b64Srcs = photos.map(p => p.data);
-  const b64Json = JSON.stringify(b64Srcs).replace(/'/g, "&#39;");
+  // เก็บ base64 ไว้ใน module variable เพื่อให้ onclick เรียกได้โดย index
+  _detailPhotoSrcs = photos.map(function(p){ return p.data; });
 
-  let html = '<div class="section-divider" style="margin-top:20px;"><span>รูปถ่ายอาการ (' + total + ' รูป)</span></div>';
+  var html = '';
+  html += '<div class="section-divider" style="margin-top:20px;">'
+        + '<span>\u0e23\u0e39\u0e1b\u0e16\u0e48\u0e32\u0e22\u0e2d\u0e32\u0e01\u0e32\u0e23 (' + total + ' \u0e23\u0e39\u0e1b)</span></div>';
   html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">';
 
-  // รูป base64
+  // รูป base64 — onclick เรียก _detailPhotoSrcs[i] โดย index เท่านั้น
   photos.forEach(function(p, i) {
-    const name = escHtml(p.name || ('รูปที่ ' + (i + 1)));
     html += '<div class="photo-thumb" style="width:80px;height:80px;">';
-    html += '<img src="' + p.data + '" alt="' + name + '" onclick="openLightboxArr(' + b64Json + ',' + i + ')">';
-    html += '<button class="vw-btn" onclick="openLightboxArr(' + b64Json + ',' + i + ')">ดู</button>';
+    html += '<img src="' + p.data + '" alt="photo" onclick="_openDetailPhoto(' + i + ')">';
+    html += '<button class="vw-btn" onclick="_openDetailPhoto(' + i + ')">\u0e14\u0e39</button>';
     html += '</div>';
   });
 
-  // รูปจาก Drive URL
-  photoUrls.forEach(function(u) {
-    const safeU = escHtml(u);
+  // รูปจาก Drive URL — ใช้ data-url attribute แทน inline onclick string
+  photoUrls.forEach(function(u, i) {
+    var id = 'drv-' + Date.now() + '-' + i;
     html += '<div class="photo-thumb" style="width:80px;height:80px;">';
-    html += '<a href="' + safeU + '" target="_blank" rel="noopener" '
-          + 'style="display:flex;align-items:center;justify-content:center;'
+    html += '<a href="' + escHtml(u) + '" target="_blank" rel="noopener"'
+          + ' style="display:flex;align-items:center;justify-content:center;'
           + 'width:100%;height:100%;background:var(--blue-soft);border-radius:6px;text-decoration:none;">'
-          + '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" '
-          + 'stroke-linecap="round" stroke-linejoin="round">'
+          + '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"'
+          + ' stroke-linecap="round" stroke-linejoin="round">'
           + '<path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>'
           + '<circle cx="12" cy="13" r="4"/></svg></a>';
-    html += '<button class="vw-btn" style="font-size:8px;" onclick="window.open(&quot;' + safeU + '&quot;,&quot;_blank&quot;)">Drive</button>';
+    html += '<button id="' + id + '" class="vw-btn" style="font-size:8px;" data-url="' + escHtml(u) + '">Drive</button>';
     html += '</div>';
   });
 
   html += '</div>';
+
+  // ผูก event หลัง render ด้วย setTimeout เล็กน้อย
+  if (photoUrls.length) {
+    setTimeout(function() {
+      photoUrls.forEach(function(u, i) {
+        var btn = document.querySelector('[data-url="' + CSS.escape(escHtml(u)) + '"]');
+        if (btn) btn.addEventListener('click', function(){ window.open(u, '_blank'); });
+      });
+    }, 50);
+  }
+
   return html;
+}
+
+function _openDetailPhoto(idx) {
+  lbPhotos = _detailPhotoSrcs.map(function(s){ return { data: s, name: 'photo' }; });
+  lbIndex  = idx || 0;
+  updateLightbox();
+  document.getElementById('lightbox').classList.add('show');
+  document.body.style.overflow = 'hidden';
 }
 
 // ============================================================
@@ -1608,14 +1631,6 @@ function showToast(msg, type = '') {
   toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-
-function openLightboxArr(srcArr, idx) {
-  lbPhotos = srcArr.map(s => ({ data: s, name: 'รูปภาพ' }));
-  lbIndex  = idx || 0;
-  updateLightbox();
-  document.getElementById('lightbox').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
 
 // Init
 updateProgress();
