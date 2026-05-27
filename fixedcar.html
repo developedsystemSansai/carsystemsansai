@@ -1402,7 +1402,7 @@ function buildPhotoSection(job) {
 
   // สร้าง src array สำหรับ lightbox (base64 เท่านั้น)
   const b64Srcs = photos.map(p => p.data);
-  const b64Json = escHtml(JSON.stringify(b64Srcs));
+  const b64Json = JSON.stringify(b64Srcs).replace(/'/g, "&#39;");
 
   let html = '<div class="section-divider" style="margin-top:20px;"><span>รูปถ่ายอาการ (' + total + ' รูป)</span></div>';
   html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">';
@@ -1427,7 +1427,7 @@ function buildPhotoSection(job) {
           + 'stroke-linecap="round" stroke-linejoin="round">'
           + '<path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>'
           + '<circle cx="12" cy="13" r="4"/></svg></a>';
-    html += '<button class="vw-btn" style="font-size:8px;" onclick="window.open('' + safeU + '','_blank')">Drive</button>';
+    html += '<button class="vw-btn" style="font-size:8px;" onclick="window.open(&quot;' + safeU + '&quot;,&quot;_blank&quot;)">Drive</button>';
     html += '</div>';
   });
 
