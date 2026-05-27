@@ -659,7 +659,31 @@ input.odo-mismatch {
             </div>
           </div>
 
-
+          <!-- FUEL FILL -->
+          <div style="margin-top:14px;">
+            <div class="fuel-section">
+              <label class="fuel-toggle-label">
+                <input type="checkbox" id="fuelFill" onchange="toggleFuelFill()">
+                เติมน้ำมันวันนี้
+              </label>
+              <div class="fuel-upload-area" id="fuelFillArea">
+                <div class="form-grid three" style="margin-top:0;">
+                  <div class="form-group">
+                    <label>จำนวน (ลิตร)</label>
+                    <input type="number" id="fuelLiters" placeholder="ลิตร" step="0.1" min="0">
+                  </div>
+                  <div class="form-group">
+                    <label>ราคา (บาท)</label>
+                    <input type="number" id="fuelPrice" placeholder="บาท" min="0">
+                  </div>
+                  <div class="form-group">
+                    <label>ราคา/ลิตร</label>
+                    <input type="number" id="fuelPricePerL" placeholder="บาท/ล." step="0.01" min="0">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <button class="submit-btn blue" onclick="goStep2()">
@@ -924,9 +948,10 @@ let vehicles = [], drivers = [], histData = [], checkedToday = [];
 let fuelPct  = 50;
 let checkVals = {};    // { key: 'ผ่าน'|'ไม่ผ่าน' }
 let ratingVals = {};   // { eq_oil: '...', eq_battery: '...', eq_tire: '...' }
-let photos = [];       // [{ file, dataUrl, driveUrl? }]
+let photos = [];       // [{ file, dataUrl, driveUrl?, status:'pending'|'uploading'|'done'|'error' }]
 let uploadedUrls = [];
 let lastMile = 0;
+let _uploadingCount = 0;  // จำนวนรูปที่กำลัง upload อยู่ (ป้องกัน race condition)
 
 // ══════════════════════════════════════════════
 //  CHECK ITEM DEFINITIONS
@@ -1091,7 +1116,10 @@ function setFuel(pct) {
   });
 }
 
-
+function toggleFuelFill() {
+  document.getElementById('fuelFillArea').className =
+    'fuel-upload-area' + (document.getElementById('fuelFill').checked ? ' show' : '');
+}
 
 // ══════════════════════════════════════════════
 //  CAR CHANGE → ดึงไมล์อ้างอิง
@@ -1268,7 +1296,7 @@ function addPhotos(files) {
     if (file.size > 10*1024*1024) { showToast(file.name + ' ขนาดเกิน 10MB', 'error'); return; }
     const reader = new FileReader();
     reader.onload = ev => {
-      const entry = { file, dataUrl: ev.target.result, driveUrl: null };
+      const entry = { file, dataUrl: ev.target.result, driveUrl: null, status: 'pending' };
       photos.push(entry);
       renderPhotoGrid();
       uploadPhoto(entry);
@@ -1278,12 +1306,21 @@ function addPhotos(files) {
 }
 
 function renderPhotoGrid() {
-  document.getElementById('photoGrid').innerHTML = photos.map((p, i) => `
+  document.getElementById('photoGrid').innerHTML = photos.map((p, i) => {
+    const statusIcon = p.status === 'done'
+      ? '<div style="position:absolute;bottom:3px;left:3px;background:rgba(26,138,74,.9);border-radius:10px;padding:1px 5px;font-size:10px;color:#fff;font-weight:700;">✓</div>'
+      : p.status === 'error' || p.noCorsSubmitted
+      ? '<div style="position:absolute;bottom:3px;left:3px;background:rgba(192,57,43,.85);border-radius:10px;padding:1px 5px;font-size:10px;color:#fff;font-weight:700;">!</div>'
+      : p.status === 'uploading'
+      ? '<div style="position:absolute;bottom:3px;left:3px;background:rgba(29,111,181,.85);border-radius:10px;padding:1px 5px;font-size:10px;color:#fff;font-weight:700;">↑</div>'
+      : '';
+    return `
     <div class="photo-thumb">
       <img src="${p.dataUrl}" onclick="openLb('${p.dataUrl}')">
       <button class="photo-thumb-rm" onclick="removePhoto(${i})">✕</button>
+      ${statusIcon}
     </div>
-  `).join('');
+  `;}).join('');
 }
 
 function removePhoto(i) {
@@ -1296,12 +1333,29 @@ async function uploadPhoto(entry) {
   const st = document.getElementById('uploadStatus');
   const spinnerHtml = '<div style="width:14px;height:14px;border:2px solid rgba(29,111,181,.25);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0;"></div>';
 
-  const updateStatus = (type, html) => {
-    st.className = 'upload-status show ' + type;
-    st.innerHTML = html;
+  const updateStatus = () => {
+    const uploading = photos.filter(p => p.status === 'uploading').length;
+    const done      = photos.filter(p => p.status === 'done').length;
+    const err       = photos.filter(p => p.status === 'error').length;
+    const pending   = photos.filter(p => p.status === 'pending').length;
+    if (uploading + pending > 0) {
+      st.className = 'upload-status show uploading';
+      st.innerHTML = spinnerHtml + ` กำลังอัพโหลด${uploading + pending > 1 ? ' ' + (uploading + pending) + ' รูป' : ''}...`;
+    } else if (err > 0) {
+      st.className = 'upload-status show err';
+      st.innerHTML = `⚠️ อัพโหลดไม่สำเร็จ ${err} รูป (ข้อมูลจะส่งพร้อมบันทึก)`;
+    } else if (done > 0) {
+      st.className = 'upload-status show done';
+      st.innerHTML = `✅ อัพโหลดสำเร็จ ${done} รูป`;
+    } else {
+      st.className = 'upload-status';
+    }
   };
 
-  updateStatus('uploading', spinnerHtml + ' กำลังอัพโหลด...');
+  // mark uploading
+  entry.status = 'uploading';
+  _uploadingCount++;
+  updateStatus();
 
   const car   = document.getElementById('carType').value;
   const date  = document.getElementById('inspDate').value;
@@ -1320,16 +1374,17 @@ async function uploadPhoto(entry) {
   // helper: บันทึก URL สำเร็จ
   const applyUrl = (url) => {
     entry.driveUrl = url;
+    entry.status   = 'done';
     if (!uploadedUrls.includes(url)) uploadedUrls.push(url);
     renderDriveLinks();
-    updateStatus('done', '✅ อัพโหลดสำเร็จ ' + uploadedUrls.length + ' รูป');
+    updateStatus();
   };
 
   // helper: poll GAS หา URL ที่เพิ่งอัพโหลด (retry สูงสุด 5 ครั้ง, ทุก 3s)
   const pollForUrl = async () => {
     for (let i = 0; i < 5; i++) {
       await new Promise(r => setTimeout(r, 3000));
-      updateStatus('uploading', spinnerHtml + ' กำลังยืนยัน URL... (' + (i+1) + '/5)');
+      updateStatus();
       try {
         const r = await fetch(GAS_URL + '?action=getLatestPhotoUrl' +
           '&carType=' + encodeURIComponent(car) +
@@ -1340,7 +1395,6 @@ async function uploadPhoto(entry) {
         if (ck.status === 'ok' && ck.url && !uploadedUrls.includes(ck.url)) {
           return ck.url;
         }
-        // ถ้า url ซ้ำกับที่มีอยู่แล้ว ให้รอต่อ (GAS buffer อาจยังไม่ flush)
       } catch(_) {}
     }
     return null;
@@ -1360,15 +1414,14 @@ async function uploadPhoto(entry) {
     });
     clearTimeout(timer);
 
-    // อ่าน body ครั้งเดียว — หลีกเลี่ยง "body already consumed"
     let data = {};
     try { data = await resp.json(); } catch(_) {}
 
     if (data.status === 'ok' && data.url) {
       applyUrl(data.url);
+      _uploadingCount = Math.max(0, _uploadingCount - 1);
       return;
     }
-    // GAS ตอบ ok แต่ไม่มี url (ไม่ควรเกิด) → log แล้วไป attempt 2
     console.warn('uploadPhoto attempt1: resp ok but no url. data=', JSON.stringify(data));
   } catch(e1) {
     console.warn('uploadPhoto attempt1 failed:', e1.name === 'AbortError' ? 'timeout 35s' : e1.message);
@@ -1377,7 +1430,7 @@ async function uploadPhoto(entry) {
   // ══════════════════════════════════════════
   //  attempt 2: no-cors (ไม่มี response) → poll
   // ══════════════════════════════════════════
-  updateStatus('uploading', spinnerHtml + ' ส่งรูปผ่าน fallback...');
+  updateStatus();
   try {
     await fetch(GAS_URL, {
       method : 'POST',
@@ -1389,16 +1442,19 @@ async function uploadPhoto(entry) {
     const url = await pollForUrl();
     if (url) {
       applyUrl(url);
-      updateStatus('done', '✅ อัพโหลดสำเร็จ (ยืนยันแล้ว) ' + uploadedUrls.length + ' รูป');
+      _uploadingCount = Math.max(0, _uploadingCount - 1);
       return;
     }
-    // poll หมดแล้วยังไม่เจอ url → mark ว่าส่งไปแล้ว รอ saveCheck flush
+    // poll หมดแล้วยังไม่เจอ url → mark no-cors submitted
     entry.noCorsSubmitted = true;
-    updateStatus('uploading', '📤 รูปส่งไปแล้ว — URL จะปรากฏหลังบันทึก');
+    entry.status = 'error';
+    updateStatus();
   } catch(e2) {
     console.warn('uploadPhoto attempt2 failed:', e2.message);
-    updateStatus('err', '⚠️ อัพโหลดไม่สำเร็จ — รูปจะส่งพร้อมบันทึกข้อมูล');
+    entry.status = 'error';
+    updateStatus();
   }
+  _uploadingCount = Math.max(0, _uploadingCount - 1);
 }
 
 // ── หลัง submit สำเร็จ: ดึง URL ที่ GAS buffer ไว้มาแสดง (กรณี no-cors) ──
@@ -1438,9 +1494,21 @@ function showConfirm() {
   const total  = ALL_ITEMS.length;
   const passed = ALL_ITEMS.filter(it => checkVals[it.key] === 'ผ่าน').length;
   const failed = total - passed;
-  const photoInfo = uploadedUrls.length
-    ? uploadedUrls.length + ' รูป (บันทึกใน Drive แล้ว)'
-    : photos.length ? photos.length + ' รูป (รอส่ง)' : 'ไม่มีรูป';
+
+  const donePhotos    = photos.filter(p => p.status === 'done').length;
+  const errorPhotos   = photos.filter(p => p.status === 'error' || p.noCorsSubmitted).length;
+  const pendingPhotos = photos.filter(p => p.status === 'uploading' || p.status === 'pending').length;
+
+  let photoInfo;
+  if (pendingPhotos > 0) {
+    photoInfo = `⏳ ${pendingPhotos} รูปยังอัพโหลดไม่เสร็จ — กรุณารอ`;
+  } else if (errorPhotos > 0) {
+    photoInfo = `${donePhotos} รูป (Drive) + ${errorPhotos} รูป (ส่งพร้อมบันทึก)`;
+  } else if (donePhotos > 0) {
+    photoInfo = `${donePhotos} รูป (บันทึกใน Drive แล้ว)`;
+  } else {
+    photoInfo = 'ไม่มีรูป';
+  }
 
   document.getElementById('modalMsg').textContent = 'ตรวจสอบรายละเอียดก่อนยืนยันบันทึก';
   document.getElementById('modalDetail').innerHTML = [
@@ -1453,11 +1521,32 @@ function showConfirm() {
   ].map(([k,v]) => `<div class="d-label">${k}</div><div class="d-val">${v}</div>`).join('');
 
   document.getElementById('modal').classList.add('show');
+
+  // ปิดปุ่มยืนยันถ้ายังมีรูป pending อยู่
+  const confirmBtn = document.querySelector('.modal-btn.confirm');
+  if (confirmBtn) {
+    if (pendingPhotos > 0) {
+      confirmBtn.disabled = true;
+      confirmBtn.style.opacity = '0.5';
+      confirmBtn.title = 'รอการอัพโหลดรูปให้เสร็จก่อน';
+    } else {
+      confirmBtn.disabled = false;
+      confirmBtn.style.opacity = '';
+      confirmBtn.title = '';
+    }
+  }
 }
 
 function closeModal() { document.getElementById('modal').classList.remove('show'); }
 
 async function doSubmit() {
+  // ── ป้องกัน race condition: ห้าม submit ถ้ายังมีรูปกำลัง upload อยู่ ──
+  const stillUploading = photos.filter(p => p.status === 'uploading' || p.status === 'pending');
+  if (stillUploading.length > 0) {
+    showToast(`⏳ กำลังอัพโหลดรูป ${stillUploading.length} รูป กรุณารอสักครู่...`, 'warn', 5000);
+    return;
+  }
+
   closeModal();
   const btn = document.getElementById('submitBtn');
   btn.classList.add('loading'); btn.disabled = true;
@@ -1469,19 +1558,21 @@ async function doSubmit() {
   const time    = document.getElementById('inspTime').value;
   const odo     = document.getElementById('odometer').value;
   const remarks = document.getElementById('remarks').value;
+  const hasFuel = document.getElementById('fuelFill').checked;
+
   const payload = {
     action: 'saveCheck',
     carType: car, driverName: driver,
     inspDate: date, inspTime: time, odometer: odo, remarks,
     fuelLevel: String(fuelPct),
-    fuelFill:  '',
-    fuelLiters: '',
-    fuelPrice:  '',
+    fuelFill:  hasFuel ? 'ใช่' : '',
+    fuelLiters: hasFuel ? (document.getElementById('fuelLiters').value||'') : '',
+    fuelPrice:  hasFuel ? (document.getElementById('fuelPrice').value||'') : '',
     driveUrls:  uploadedUrls,
     ...checkVals, ...ratingVals,
-    photos: uploadedUrls.length < photos.length
-      ? photos.filter(p=>!p.driveUrl).map(p=>({ data:p.dataUrl, type:p.file.type, name:p.file.name }))
-      : []
+    // ส่ง base64 สำหรับรูปที่ upload ไม่สำเร็จ (status=error หรือ noCorsSubmitted)
+    photos: photos.filter(p => !p.driveUrl && (p.status === 'error' || p.noCorsSubmitted))
+               .map(p => ({ data: p.dataUrl, type: p.file.type, name: p.file.name }))
   };
 
   try {
@@ -1528,7 +1619,7 @@ async function doSubmit() {
 }
 
 function resetForm() {
-  checkVals = {}; ratingVals = {}; photos = []; uploadedUrls = [];
+  checkVals = {}; ratingVals = {}; photos = []; uploadedUrls = []; _uploadingCount = 0;
   document.getElementById('carType').value    = '';
   document.getElementById('driverName').value = '';
   document.getElementById('odometer').value   = '';
@@ -1536,7 +1627,10 @@ function resetForm() {
   document.getElementById('odoHint').className = 'odo-hint';
   document.getElementById('odoHint').textContent = '';
   document.getElementById('odometer').classList.remove('odo-mismatch');
-
+  document.getElementById('fuelFill').checked = false;
+  document.getElementById('fuelFillArea').className = 'fuel-upload-area';
+  document.getElementById('fuelLiters').value = '';
+  document.getElementById('fuelPrice').value  = '';
   document.getElementById('dupNotice').classList.remove('show');
   document.getElementById('photoGrid').innerHTML = '';
   document.getElementById('uploadedBox').classList.remove('show');
@@ -1578,7 +1672,10 @@ function renderHist() {
     const plate = String(r.carType||'').split(' ')[0]||'—';
 
     const urlsRaw = r.driveLinksUrls || r.driveLinks || '';
-    const urls = String(urlsRaw).split('\n').map(u=>u.trim()).filter(u=>u.startsWith('http'));
+    // ใช้ driveUrls array ก่อน (จาก getCheckData col 29) แล้วค่อย fallback
+    const urls = Array.isArray(r.driveUrls) && r.driveUrls.length
+      ? r.driveUrls
+      : String(urlsRaw).split('\n').map(u=>u.trim()).filter(u=>u.startsWith('http'));
     const photoHtml = urls.length
       ? '<div style="display:flex;gap:5px;flex-wrap:wrap;">' +
         urls.slice(0,4).map((u,i)=>`<a href="${u}" target="_blank" class="drive-link">📷 ${i+1}</a>`).join('') +
