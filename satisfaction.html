@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ประเมินความพึงพอใจการใช้รถ — โรงพยาบาลสันทราย</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:         #0d2137;
+    --navy-mid:     #163251;
+    --navy-light:   #1e4a7a;
+    --violet:       #6d3fc0;
+    --violet-mid:   #8255d4;
+    --violet-soft:  #f0ecfb;
+    --violet-dark:  #4a2a9a;
+    --bg:           #eef2f7;
+    --card:         #ffffff;
+    --border:       #d5dce8;
+    --text:         #182332;
+    --text-mid:     #3d5168;
+    --text-light:   #7a8ea5;
+    --success:      #1a8a4a;
+    --success-soft: #e4f5eb;
+    --danger:       #c0392b;
+    --danger-soft:  #fdecea;
+    --amber:        #c07a00;
+    --radius:       14px;
+    --radius-sm:    10px;
+    --shadow:       0 2px 18px rgba(13,33,55,.10);
+    --shadow-lg:    0 6px 36px rgba(13,33,55,.14);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans Thai', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* ── HEADER ── */
+  .site-header {
+    background: var(--navy);
+    padding: 0 20px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,.25);
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255,255,255,.75);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 5px 10px;
+    border-radius: 7px;
+    border: 1px solid rgba(255,255,255,.12);
+    transition: all .15s;
+    background: rgba(255,255,255,.06);
+  }
+  .back-btn:hover { color: #fff; background: rgba(255,255,255,.12); }
+  .header-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: .3px;
+  }
+  .header-badge {
+    background: rgba(109,63,192,.4);
+    border: 1px solid rgba(130,85,212,.5);
+    color: #c9b8f5;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: .4px;
+    text-transform: uppercase;
+  }
+
+  /* ── PAGE LAYOUT ── */
+  .page-wrap {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 28px 16px 60px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, #4a2690 0%, #6d3fc0 55%, #8255d4 100%);
+    border-radius: var(--radius);
+    padding: 28px 24px 24px;
+    color: #fff;
+    margin-bottom: 22px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 140px; height: 140px;
+    background: rgba(255,255,255,.06);
+    border-radius: 50%;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -20px; left: 60px;
+    width: 90px; height: 90px;
+    background: rgba(255,255,255,.04);
+    border-radius: 50%;
+  }
+  .hero-icon {
+    width: 48px; height: 48px;
+    background: rgba(255,255,255,.15);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 14px;
+    backdrop-filter: blur(4px);
+  }
+  .hero-icon svg { width: 24px; height: 24px; color: #fff; }
+  .hero-title {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 6px;
+    position: relative; z-index: 1;
+  }
+  .hero-sub {
+    font-size: 13px;
+    color: rgba(255,255,255,.8);
+    position: relative; z-index: 1;
+    line-height: 1.5;
+  }
+
+  /* ── CONFIDENTIAL BANNER ── */
+  .conf-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(109,63,192,.08);
+    border: 1.5px solid rgba(109,63,192,.25);
+    border-radius: var(--radius-sm);
+    padding: 11px 14px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: var(--violet-dark);
+  }
+  .conf-banner svg { flex-shrink: 0; width: 18px; height: 18px; color: var(--violet); }
+  .conf-banner strong { font-weight: 700; }
+
+  /* ── CARD ── */
+  .form-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    color: var(--violet);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── STAR RATING ── */
+  .star-container {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    padding: 10px 0 16px;
+  }
+  .star-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    transition: transform .15s;
+    font-size: 42px;
+    color: #d5dce8;
+    line-height: 1;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .star-btn:hover,
+  .star-btn.hovered { color: #f0c040; transform: scale(1.15); }
+  .star-btn.selected { color: #f0c040; }
+
+  .star-label {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    min-height: 22px;
+    color: var(--text-mid);
+    margin-bottom: 8px;
+    transition: color .2s;
+  }
+  .star-label.s1 { color: #c0392b; }
+  .star-label.s2 { color: #d4680a; }
+  .star-label.s3 { color: var(--amber); }
+  .star-label.s4 { color: #2e8b57; }
+  .star-label.s5 { color: var(--violet); }
+
+  /* ── SELECT ── */
+  .field-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 7px;
+    display: block;
+  }
+  .field-label span {
+    color: #c0392b;
+    margin-left: 2px;
+  }
+  .field-select,
+  .field-input {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-family: 'Noto Sans Thai', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: #f8fafc;
+    transition: border-color .15s, box-shadow .15s;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+  }
+  .field-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%237a8ea5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+  .field-select:focus,
+  .field-input:focus {
+    border-color: var(--violet);
+    box-shadow: 0 0 0 3px rgba(109,63,192,.12);
+    background: #fff;
+  }
+
+  /* ── TEXTAREA ── */
+  .field-textarea {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    font-family: 'Noto Sans Thai', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: #f8fafc;
+    resize: vertical;
+    min-height: 110px;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+    line-height: 1.6;
+  }
+  .field-textarea:focus {
+    border-color: var(--violet);
+    box-shadow: 0 0 0 3px rgba(109,63,192,.12);
+    background: #fff;
+  }
+  .field-textarea::placeholder { color: var(--text-light); }
+  .char-count {
+    font-size: 11px;
+    color: var(--text-light);
+    text-align: right;
+    margin-top: 5px;
+  }
+
+  /* ── SUBMIT BUTTON ── */
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--violet) 0%, var(--violet-mid) 100%);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-family: 'Noto Sans Thai', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 14px rgba(109,63,192,.35);
+    letter-spacing: .3px;
+  }
+  .submit-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(109,63,192,.45);
+  }
+  .submit-btn:active:not(:disabled) { transform: translateY(0); }
+  .submit-btn:disabled {
+    opacity: .65;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ── RESULT STATES ── */
+  .result-box {
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    display: none;
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+  .result-box.ok {
+    background: var(--success-soft);
+    color: var(--success);
+    border: 1.5px solid #a3d9b5;
+  }
+  .result-box.err {
+    background: var(--danger-soft);
+    color: var(--danger);
+    border: 1.5px solid #f0aaaa;
+  }
+
+  /* ── SUCCESS STATE ── */
+  .success-screen {
+    display: none;
+    text-align: center;
+    padding: 40px 24px;
+  }
+  .success-screen.show { display: block; }
+  .success-checkmark {
+    width: 72px; height: 72px;
+    background: var(--success-soft);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 20px;
+  }
+  .success-checkmark svg { width: 32px; height: 32px; color: var(--success); }
+  .success-screen h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+  .success-screen p {
+    font-size: 14px;
+    color: var(--text-mid);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+  .success-stars {
+    font-size: 30px;
+    margin-bottom: 18px;
+    letter-spacing: 4px;
+  }
+  .back-home-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 22px;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-mid);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all .15s;
+  }
+  .back-home-btn:hover { border-color: var(--violet); color: var(--violet); background: var(--violet-soft); }
+
+  /* ── FOOTER ── */
+  .page-footer {
+    text-align: center;
+    margin-top: 28px;
+    font-size: 12px;
+    color: var(--text-light);
+    line-height: 1.7;
+  }
+  .page-footer strong { color: var(--text-mid); }
+
+  /* ── QR SHARE SECTION ── */
+  .share-card {
+    background: var(--card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 24px;
+    margin-bottom: 22px;
+    border: 1.5px solid rgba(109,63,192,.25);
+    position: relative;
+    overflow: hidden;
+  }
+  .share-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--violet), var(--violet-mid));
+  }
+  .share-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .share-title svg { color: var(--violet); }
+  .share-sub {
+    font-size: 12px;
+    color: var(--text-light);
+    margin-bottom: 18px;
+    line-height: 1.6;
+  }
+  .share-body {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .qr-wrap {
+    flex-shrink: 0;
+    width: 120px; height: 120px;
+    border-radius: 10px;
+    border: 2px solid var(--border);
+    overflow: hidden;
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .qr-wrap img { width: 100%; height: 100%; display: block; }
+  .share-right {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .link-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--text-light);
+    margin-bottom: 4px;
+  }
+  .link-box {
+    display: flex;
+    gap: 6px;
+    align-items: stretch;
+  }
+  .link-input {
+    flex: 1;
+    min-width: 0;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 11px;
+    font-family: monospace;
+    color: var(--text-mid);
+    background: #f8fafc;
+    outline: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .copy-btn {
+    flex-shrink: 0;
+    padding: 0 12px;
+    background: var(--violet);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Noto Sans Thai', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s, transform .1s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .copy-btn:hover { background: var(--violet-mid); }
+  .copy-btn:active { transform: scale(.96); }
+  .copy-btn.copied {
+    background: var(--success);
+  }
+  .share-actions {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .share-action-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 1.5px solid var(--border);
+    background: #fff;
+    color: var(--text-mid);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all .15s;
+    font-family: 'Noto Sans Thai', sans-serif;
+  }
+  .share-action-btn:hover {
+    border-color: var(--violet);
+    color: var(--violet);
+    background: var(--violet-soft);
+  }
+  .share-action-btn svg { flex-shrink: 0; }
+  .qr-note {
+    font-size: 11px;
+    color: var(--text-light);
+    text-align: center;
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+  @media (max-width: 480px) {
+    .share-body { flex-direction: column; }
+    .qr-wrap { width: 100%; height: 160px; }
+  }
+
+  /* ── SPINNER ── */
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(255,255,255,.35);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 480px) {
+    .page-wrap { padding: 20px 12px 50px; }
+    .star-btn { font-size: 36px; }
+    .hero { padding: 22px 18px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="site-header">
+  <div class="header-left">
+    <a class="back-btn" href="index.html">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      หน้าหลัก
+    </a>
+    <span class="header-title">ประเมินความพึงพอใจ</span>
+  </div>
+  <span class="header-badge">🔒 ลับ</span>
+</header>
+
+<!-- ── PAGE ── -->
+<div class="page-wrap">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>
+    </div>
+    <div class="hero-title">ประเมินความพึงพอใจการใช้รถ</div>
+    <div class="hero-sub">กรุณาให้คะแนนและข้อเสนอแนะเพื่อพัฒนาคุณภาพการให้บริการยานพาหนะของโรงพยาบาลสันทราย</div>
+  </div>
+
+  <!-- ── QR SHARE CARD ── -->
+  <div class="share-card" id="shareCard">
+    <div class="share-title">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/>
+        <path d="M14 14h.01M14 18h.01M18 14h.01M18 18h.01"/>
+      </svg>
+      แชร์ลิ้งค์ให้ผู้ใช้รถ (พขร.)
+    </div>
+    <div class="share-sub">สแกน QR หรือส่งลิ้งค์ให้ผู้โดยสาร / ผู้มีสิทธิ์ประเมินความพึงพอใจหลังใช้รถ</div>
+    <div class="share-body">
+      <div>
+        <div class="qr-wrap">
+          <img id="qrImg" src="" alt="QR Code" loading="lazy">
+        </div>
+        <div class="qr-note">สแกน QR เพื่อเปิดแบบประเมิน</div>
+      </div>
+      <div class="share-right">
+        <div>
+          <div class="link-label">ลิ้งค์แบบประเมิน</div>
+          <div class="link-box">
+            <input class="link-input" id="shareUrl" type="text" readonly>
+            <button class="copy-btn" id="copyBtn" onclick="copyLink()">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              คัดลอก
+            </button>
+          </div>
+        </div>
+        <div class="share-actions">
+          <button class="share-action-btn" onclick="downloadQR()">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            บันทึก QR
+          </button>
+          <button class="share-action-btn" id="shareNativeBtn" onclick="shareNative()" style="display:none;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            แชร์
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confidential notice -->
+  <div class="conf-banner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+    </svg>
+    <div><strong>ข้อมูลเป็นความลับ</strong> ผลการประเมินนี้จะปรากฏให้เห็นเฉพาะผู้บริหารเท่านั้น ไม่มีการเปิดเผยต่อสาธารณะ</div>
+  </div>
+
+  <!-- ── FORM ── -->
+  <div id="formArea">
+
+    <!-- Star Rating Card -->
+    <div class="form-card">
+      <div class="section-label">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        ระดับความพึงพอใจโดยรวม
+      </div>
+
+      <div class="star-container" id="starContainer">
+        <button class="star-btn" data-val="1" onclick="selectStar(1)" aria-label="1 ดาว">★</button>
+        <button class="star-btn" data-val="2" onclick="selectStar(2)" aria-label="2 ดาว">★</button>
+        <button class="star-btn" data-val="3" onclick="selectStar(3)" aria-label="3 ดาว">★</button>
+        <button class="star-btn" data-val="4" onclick="selectStar(4)" aria-label="4 ดาว">★</button>
+        <button class="star-btn" data-val="5" onclick="selectStar(5)" aria-label="5 ดาว">★</button>
+      </div>
+      <div class="star-label" id="starLabel">— กรุณาเลือกคะแนน —</div>
+    </div>
+
+    <!-- Purpose Card -->
+    <div class="form-card">
+      <div class="section-label">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        จุดประสงค์การใช้รถ
+      </div>
+
+      <label class="field-label" for="purposeSelect">จุดประสงค์การใช้รถครั้งนี้ <span>*</span></label>
+      <select class="field-select" id="purposeSelect">
+        <option value="">— กรุณาเลือก —</option>
+        <option value="รับ-ส่งผู้ป่วย">รับ-ส่งผู้ป่วย</option>
+        <option value="ส่งต่อผู้ป่วย (Refer)">ส่งต่อผู้ป่วย (Refer)</option>
+        <option value="รับ-ส่งเจ้าหน้าที่ราชการ">รับ-ส่งเจ้าหน้าที่ราชการ</option>
+        <option value="ประชุม / อบรม">ประชุม / อบรม</option>
+        <option value="ปฏิบัติงานนอกสถานที่">ปฏิบัติงานนอกสถานที่</option>
+        <option value="รับ-ส่งสิ่งของ / เวชภัณฑ์">รับ-ส่งสิ่งของ / เวชภัณฑ์</option>
+        <option value="กิจกรรม / โครงการโรงพยาบาล">กิจกรรม / โครงการโรงพยาบาล</option>
+        <option value="ฉุกเฉิน EMS">ฉุกเฉิน EMS</option>
+        <option value="อื่น ๆ">อื่น ๆ (ระบุในช่องคำแนะนำ)</option>
+      </select>
+    </div>
+
+    <!-- Comment Card -->
+    <div class="form-card">
+      <div class="section-label">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        คำแนะนำต่อผู้ขับ
+      </div>
+
+      <label class="field-label" for="commentText">ข้อเสนอแนะ / คำแนะนำต่อผู้ขับรถ</label>
+      <textarea
+        class="field-textarea"
+        id="commentText"
+        placeholder="เช่น ขับรถดี มีมารยาท ตรงต่อเวลา หรือข้อแนะนำเพื่อการพัฒนา..."
+        maxlength="500"
+        oninput="updateCharCount()"
+      ></textarea>
+      <div class="char-count" id="charCount">0 / 500 ตัวอักษร</div>
+    </div>
+
+    <!-- Submit -->
+    <button class="submit-btn" id="submitBtn" onclick="submitSatisfaction()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      ส่งการประเมิน
+    </button>
+    <div class="result-box" id="resultBox"></div>
+
+  </div><!-- /formArea -->
+
+  <!-- ── SUCCESS SCREEN ── -->
+  <div class="form-card success-screen" id="successScreen">
+    <div class="success-checkmark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="success-stars" id="successStars"></div>
+    <h2>ขอบคุณสำหรับการประเมิน</h2>
+    <p>ข้อมูลของท่านได้รับการบันทึกเรียบร้อยแล้ว<br>ผลการประเมินจะถูกรายงานต่อผู้บริหารเท่านั้น</p>
+    <a class="back-home-btn" href="index.html">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      กลับหน้าหลัก
+    </a>
+  </div>
+
+  <!-- Footer -->
+  <div class="page-footer">
+    <div>ระบบประเมินนี้จะปรากฏให้เห็น<strong>เฉพาะผู้บริหารเท่านั้น</strong> เก็บเป็นความลับ</div>
+    <div style="margin-top:6px;">เครดิต <strong>กลุ่มงานพัฒนาคุณภาพและระบบบริการ</strong><br>โรงพยาบาลสันทราย</div>
+  </div>
+
+</div><!-- /page-wrap -->
+
+<script>
+// ── CONFIG ────────────────────────────────────────────
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
+
+const STAR_LABELS = {
+  0: '— กรุณาเลือกคะแนน —',
+  1: '😞 ควรปรับปรุงอย่างมาก',
+  2: '😐 ต่ำกว่าความคาดหวัง',
+  3: '🙂 พอใจในระดับปานกลาง',
+  4: '😊 พึงพอใจดี',
+  5: '🤩 พึงพอใจมากที่สุด'
+};
+
+let currentRating = 0;
+
+// ── STAR INTERACTION ──────────────────────────────────
+function selectStar(val) {
+  currentRating = val;
+  renderStars(val);
+  const lbl = document.getElementById('starLabel');
+  lbl.textContent = STAR_LABELS[val];
+  lbl.className = 'star-label s' + val;
+}
+
+function renderStars(hovered) {
+  document.querySelectorAll('.star-btn').forEach(btn => {
+    const v = parseInt(btn.dataset.val);
+    btn.classList.toggle('selected', v <= hovered);
+    btn.classList.remove('hovered');
+  });
+}
+
+// Hover effect
+document.getElementById('starContainer').addEventListener('mouseover', e => {
+  const btn = e.target.closest('.star-btn');
+  if (!btn) return;
+  const v = parseInt(btn.dataset.val);
+  document.querySelectorAll('.star-btn').forEach(b => {
+    b.classList.toggle('hovered', parseInt(b.dataset.val) <= v);
+  });
+  if (currentRating === 0) {
+    const lbl = document.getElementById('starLabel');
+    lbl.textContent = STAR_LABELS[v];
+    lbl.className = 'star-label s' + v;
+  }
+});
+document.getElementById('starContainer').addEventListener('mouseleave', () => {
+  document.querySelectorAll('.star-btn').forEach(b => b.classList.remove('hovered'));
+  if (currentRating === 0) {
+    const lbl = document.getElementById('starLabel');
+    lbl.textContent = STAR_LABELS[0];
+    lbl.className = 'star-label';
+  }
+});
+
+// ── CHAR COUNT ────────────────────────────────────────
+function updateCharCount() {
+  const len = document.getElementById('commentText').value.length;
+  document.getElementById('charCount').textContent = len + ' / 500 ตัวอักษร';
+}
+
+// ── SUBMIT ────────────────────────────────────────────
+async function submitSatisfaction() {
+  const purpose = document.getElementById('purposeSelect').value.trim();
+  const comment = document.getElementById('commentText').value.trim();
+  const btn     = document.getElementById('submitBtn');
+  const res     = document.getElementById('resultBox');
+
+  // Validate
+  if (currentRating === 0) {
+    showResult('err', 'กรุณาเลือกคะแนนดาวก่อนส่งการประเมิน');
+    return;
+  }
+  if (!purpose) {
+    showResult('err', 'กรุณาเลือกจุดประสงค์การใช้รถ');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> กำลังบันทึก...';
+  res.style.display = 'none';
+
+  try {
+    const payload = {
+      action:  'saveSatisfaction',
+      rating:  currentRating,
+      purpose: purpose,
+      comment: comment,
+      ts:      new Date().toISOString()
+    };
+
+    const response = await fetch(GAS_URL, {
+      method: 'POST',
+      body: JSON.stringify({ payload: JSON.stringify(payload) }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    });
+
+    // GAS doPost รับ payload แบบ form field
+    const formData = new FormData();
+    formData.append('payload', JSON.stringify(payload));
+
+    const r2 = await fetch(GAS_URL, {
+      method: 'POST',
+      body: new URLSearchParams({ payload: JSON.stringify(payload) })
+    });
+
+    const data = await r2.json();
+    if (data.status === 'ok') {
+      showSuccess(currentRating);
+    } else {
+      showResult('err', 'เกิดข้อผิดพลาด: ' + (data.message || 'ไม่ทราบสาเหตุ'));
+      resetBtn(btn);
+    }
+  } catch (err) {
+    showResult('err', 'ไม่สามารถเชื่อมต่อได้ กรุณาลองใหม่อีกครั้ง');
+    resetBtn(btn);
+  }
+}
+
+function showResult(type, msg) {
+  const res = document.getElementById('resultBox');
+  res.className = 'result-box ' + type;
+  res.textContent = msg;
+  res.style.display = 'block';
+  res.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function resetBtn(btn) {
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> ส่งการประเมิน';
+}
+
+// ── QR SHARE ──────────────────────────────────────────
+function initShare() {
+  // Build the canonical URL of this page
+  const url = window.location.href.split('?')[0]; // strip any params
+  const encoded = encodeURIComponent(url);
+
+  // Set link input
+  document.getElementById('shareUrl').value = url;
+
+  // QR via api.qrserver.com (free, no key needed)
+  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=${encoded}`;
+  document.getElementById('qrImg').src = qrSrc;
+
+  // Show native share button if supported
+  if (navigator.share) {
+    document.getElementById('shareNativeBtn').style.display = 'inline-flex';
+  }
+}
+
+function copyLink() {
+  const url = document.getElementById('shareUrl').value;
+  const btn = document.getElementById('copyBtn');
+  navigator.clipboard.writeText(url).then(() => {
+    btn.classList.add('copied');
+    btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> คัดลอกแล้ว!`;
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> คัดลอก`;
+    }, 2200);
+  }).catch(() => {
+    // Fallback for older browsers
+    document.getElementById('shareUrl').select();
+    document.execCommand('copy');
+  });
+}
+
+function downloadQR() {
+  const url = document.getElementById('shareUrl').value;
+  const encoded = encodeURIComponent(url);
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=16&data=${encoded}`;
+  const a = document.createElement('a');
+  a.href = qrUrl;
+  a.download = 'satisfaction-qr.png';
+  a.target = '_blank';
+  a.click();
+}
+
+async function shareNative() {
+  const url = document.getElementById('shareUrl').value;
+  try {
+    await navigator.share({
+      title: 'ประเมินความพึงพอใจการใช้รถ — โรงพยาบาลสันทราย',
+      text: 'กรุณาประเมินความพึงพอใจการใช้บริการรถของโรงพยาบาลสันทราย',
+      url: url
+    });
+  } catch(_) {}
+}
+
+document.addEventListener('DOMContentLoaded', initShare);
+  document.getElementById('formArea').style.display = 'none';
+  const sc = document.getElementById('successScreen');
+  sc.classList.add('show');
+
+  let stars = '';
+  for (let i = 0; i < rating; i++) stars += '★';
+  for (let i = rating; i < 5; i++) stars += '☆';
+  document.getElementById('successStars').style.color = '#f0c040';
+  document.getElementById('successStars').textContent = stars;
+
+  sc.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+
+</body>
+</html>
