@@ -1403,29 +1403,38 @@ async function uploadPhoto(entry) {
   // ══════════════════════════════════════════
   //  attempt 1: normal POST (รับ JSON response)
   // ══════════════════════════════════════════
-  try {
-    const ctrl  = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 35000);
-    const resp  = await fetch(GAS_URL, {
-      method: 'POST',
-      headers: headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body,
-      signal: ctrl.signal
-    });
-    clearTimeout(timer);
+// ══════════════════════════════════════════
+//  attempt 1: normal POST (รับ JSON response)
+// ══════════════════════════════════════════
+try {
+  const ctrl  = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 35000);
+  
+  const resp = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },  // ← แก้ตรงนี้
+    body: body,
+    signal: ctrl.signal
+  });
+  
+  clearTimeout(timer);
 
-    let data = {};
-    try { data = await resp.json(); } catch(_) {}
+  // อ่าน body ครั้งเดียว — หลีกเลี่ยง "body already consumed"
+  let data = {};
+  try { data = await resp.json().catch(()=>({})); } catch(_) {}
 
-    if (data.status === 'ok' && data.url) {
-      applyUrl(data.url);
-      _uploadingCount = Math.max(0, _uploadingCount - 1);
-      return;
-    }
-    console.warn('uploadPhoto attempt1: resp ok but no url. data=', JSON.stringify(data));
-  } catch(e1) {
-    console.warn('uploadPhoto attempt1 failed:', e1.name === 'AbortError' ? 'timeout 35s' : e1.message);
+  if (data.status === 'ok' && data.url) {
+    applyUrl(data.url);
+    _uploadingCount = Math.max(0, _uploadingCount - 1);
+    return;
   }
+  
+  // GAS ตอบ ok แต่ไม่มี url (ไม่ควรเกิด) → log แล้วไป attempt 2
+  console.warn('uploadPhoto attempt1: resp ok but no url. data=', JSON.stringify(data));
+  
+} catch(e1) {
+  console.warn('uploadPhoto attempt1 failed:', e1.name === 'AbortError' ? 'timeout 35s' : e1.message);
+}
 
   // ══════════════════════════════════════════
   //  attempt 2: no-cors (ไม่มี response) → poll
