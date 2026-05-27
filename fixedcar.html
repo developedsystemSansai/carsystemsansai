@@ -1392,6 +1392,50 @@ function updatePendingBadge() {
 }
 
 // ============================================================
+// BUILD PHOTO SECTION (ใช้ใน openDetail)
+// ============================================================
+function buildPhotoSection(job) {
+  const photos     = Array.isArray(job.photos)    ? job.photos.filter(p => p && p.data) : [];
+  const photoUrls  = Array.isArray(job.photoUrls) ? job.photoUrls.filter(u => u)        : [];
+  const total      = photos.length + photoUrls.length;
+  if (!total) return '';
+
+  // สร้าง src array สำหรับ lightbox (base64 เท่านั้น)
+  const b64Srcs = photos.map(p => p.data);
+  const b64Json = escHtml(JSON.stringify(b64Srcs));
+
+  let html = '<div class="section-divider" style="margin-top:20px;"><span>รูปถ่ายอาการ (' + total + ' รูป)</span></div>';
+  html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">';
+
+  // รูป base64
+  photos.forEach(function(p, i) {
+    const name = escHtml(p.name || ('รูปที่ ' + (i + 1)));
+    html += '<div class="photo-thumb" style="width:80px;height:80px;">';
+    html += '<img src="' + p.data + '" alt="' + name + '" onclick="openLightboxArr(' + b64Json + ',' + i + ')">';
+    html += '<button class="vw-btn" onclick="openLightboxArr(' + b64Json + ',' + i + ')">ดู</button>';
+    html += '</div>';
+  });
+
+  // รูปจาก Drive URL
+  photoUrls.forEach(function(u) {
+    const safeU = escHtml(u);
+    html += '<div class="photo-thumb" style="width:80px;height:80px;">';
+    html += '<a href="' + safeU + '" target="_blank" rel="noopener" '
+          + 'style="display:flex;align-items:center;justify-content:center;'
+          + 'width:100%;height:100%;background:var(--blue-soft);border-radius:6px;text-decoration:none;">'
+          + '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" '
+          + 'stroke-linecap="round" stroke-linejoin="round">'
+          + '<path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>'
+          + '<circle cx="12" cy="13" r="4"/></svg></a>';
+    html += '<button class="vw-btn" style="font-size:8px;" onclick="window.open('' + safeU + '','_blank')">Drive</button>';
+    html += '</div>';
+  });
+
+  html += '</div>';
+  return html;
+}
+
+// ============================================================
 // DETAIL OVERLAY (ตรวจรับงาน)
 // ============================================================
 function openDetail(jobId) {
@@ -1430,32 +1474,7 @@ function openDetail(jobId) {
     </div>` : ''}
 
     <!-- รูปถ่าย -->
-    ${(()=>{
-      const photos = Array.isArray(job.photos) ? job.photos : [];
-      const urls   = Array.isArray(job.photoUrls) ? job.photoUrls : [];
-      if (!photos.length && !urls.length) return '';
-      const previewPhotos = photos.filter(p => p.data);
-      const allSrc = [
-        ...previewPhotos.map((p,i) => ({ src: p.data, name: p.name || 'รูปที่'+(i+1), idx: i })),
-      ];
-      const driveLinks = urls.map(u => u);
-      return \`
-        <div class="section-divider" style="margin-top:20px;"><span>รูปถ่ายอาการ (\${allSrc.length + driveLinks.length} รูป)</span></div>
-        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
-          \${allSrc.map((p, i) => \`
-            <div class="photo-thumb" style="width:80px;height:80px;">
-              <img src="\${p.src}" alt="\${escHtml(p.name)}" onclick="openLightboxArr(\${JSON.stringify(allSrc.map(x=>x.src))},\${i})">
-              <button class="vw-btn" onclick="openLightboxArr(\${JSON.stringify(allSrc.map(x=>x.src))},\${i})">ดู</button>
-            </div>\`).join('')}
-          \${driveLinks.map(u => \`
-            <div class="photo-thumb" style="width:80px;height:80px;">
-              <a href="\${escHtml(u)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:var(--blue-soft);border-radius:6px;text-decoration:none;">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-              </a>
-              <button class="vw-btn" style="font-size:8px;" onclick="window.open('\${escHtml(u)}','_blank')">Drive</button>
-            </div>\`).join('')}
-        </div>\`;
-    })()}
+    ${buildPhotoSection(job)}
 
     <!-- อัพเดตสถานะ -->
     <div class="section-divider"><span>อัพเดตสถานะ / ตรวจรับ</span></div>
