@@ -1408,7 +1408,7 @@ async function uploadPhoto(entry) {
     const timer = setTimeout(() => ctrl.abort(), 35000);
     const resp  = await fetch(GAS_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body,
       signal: ctrl.signal
     });
