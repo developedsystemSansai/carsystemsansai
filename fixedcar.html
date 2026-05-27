@@ -768,8 +768,21 @@ textarea { resize: vertical; min-height: 80px; }
                        onchange="handleRepairPhotos(this.files)" style="display:none;">
               </button>
             </div>
+
+            <!-- Upload progress area (แสดงตอนกำลังอัปโหลด) -->
+            <div id="repairUploadProgress" style="display:none; margin-top:10px;">
+              <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:5px;">
+                <span style="font-size:11px; font-weight:600; color:var(--text-mid);" id="repairUploadLabel">กำลังอัปโหลด...</span>
+                <span style="font-size:10px; font-family:'IBM Plex Mono',monospace; color:var(--orange); font-weight:700;" id="repairUploadPct">0%</span>
+              </div>
+              <div style="height:5px; background:var(--border); border-radius:99px; overflow:hidden;">
+                <div id="repairUploadBar" style="height:100%; width:0%; background:linear-gradient(90deg,var(--orange),var(--amber)); border-radius:99px; transition:width .3s;"></div>
+              </div>
+              <div style="font-size:10px; color:var(--text-light); margin-top:4px;" id="repairUploadSub"></div>
+            </div>
+
             <div class="photo-grid" id="repairPhotoGrid"></div>
-            <p class="photo-note">รูปภาพจะถูกบันทึกพร้อมใบแจ้งซ่อม — อัพโหลดได้สูงสุด 10 รูป</p>
+            <p class="photo-note" id="repairPhotoNote">รูปภาพจะถูกอัปโหลดไป Google Drive อัตโนมัติ — สูงสุด 10 รูป</p>
           </div>
 
         </div>
@@ -1095,8 +1108,12 @@ function removeRepairItem(i) {
 }
 
 // ============================================================
-// PHOTO HANDLING
+// PHOTO HANDLING — อัปโหลดไป Drive ทันทีที่เลือก
 // ============================================================
+
+// repairPhotos: [{ name, preview, type, driveUrl, uploading, error }]
+// driveUrl ว่างหมายถึงยังอัปโหลดไม่สำเร็จ
+
 function handleRepairPhotos(files) {
   const newFiles = Array.from(files).filter(f => {
     if (!f.type.startsWith('image/')) return false;
@@ -1107,16 +1124,86 @@ function handleRepairPhotos(files) {
   if (repairPhotos.length + newFiles.length > 10) {
     showToast('อัพโหลดได้สูงสุด 10 รูป', 'error'); return;
   }
+
   newFiles.forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
-      repairPhotos.push({ name: file.name, data: e.target.result, type: file.type });
+      const idx = repairPhotos.length;
+      repairPhotos.push({
+        name: file.name, preview: e.target.result,
+        type: file.type, driveUrl: '', uploading: true, error: false
+      });
       renderRepairPhotoGrid();
+      uploadRepairPhoto(idx, file.name, e.target.result, file.type);
     };
     reader.readAsDataURL(file);
   });
   document.getElementById('photoCapture').value = '';
   document.getElementById('photoGallery').value = '';
+}
+
+async function uploadRepairPhoto(idx, name, base64, mimeType) {
+  updateUploadProgress();
+  try {
+    const result = await gasPost({
+      action    : 'uploadRepairPhoto',
+      fileName  : name,
+      mimeType  : mimeType,
+      base64Data: base64
+    });
+    if (result.status === 'ok' && result.url) {
+      repairPhotos[idx].driveUrl  = result.url;
+      repairPhotos[idx].uploading = false;
+      repairPhotos[idx].error     = false;
+    } else {
+      repairPhotos[idx].uploading = false;
+      repairPhotos[idx].error     = true;
+      showToast('อัปโหลด ' + name + ' ไม่สำเร็จ', 'error');
+    }
+  } catch(err) {
+    repairPhotos[idx].uploading = false;
+    repairPhotos[idx].error     = true;
+    showToast('อัปโหลดล้มเหลว: ' + err.message, 'error');
+  }
+  renderRepairPhotoGrid();
+  updateUploadProgress();
+}
+
+function updateUploadProgress() {
+  const prog  = document.getElementById('repairUploadProgress');
+  const bar   = document.getElementById('repairUploadBar');
+  const pct   = document.getElementById('repairUploadPct');
+  const label = document.getElementById('repairUploadLabel');
+  const sub   = document.getElementById('repairUploadSub');
+  const note  = document.getElementById('repairPhotoNote');
+
+  const total    = repairPhotos.length;
+  const uploading = repairPhotos.filter(p => p.uploading).length;
+  const done     = repairPhotos.filter(p => !p.uploading && !p.error && p.driveUrl).length;
+  const errors   = repairPhotos.filter(p => p.error).length;
+
+  if (total === 0 || uploading === 0) {
+    prog.style.display = 'none';
+    if (errors > 0) {
+      note.textContent = `⚠️ อัปโหลดไม่สำเร็จ ${errors} รูป — กรุณาลองใหม่`;
+      note.style.color = 'var(--danger)';
+    } else if (done > 0) {
+      note.textContent = `✓ อัปโหลดสำเร็จ ${done} รูป — บันทึกลง Google Drive แล้ว`;
+      note.style.color = 'var(--success)';
+    } else {
+      note.textContent = 'รูปภาพจะถูกอัปโหลดไป Google Drive อัตโนมัติ — สูงสุด 10 รูป';
+      note.style.color = '';
+    }
+    return;
+  }
+
+  prog.style.display = 'block';
+  const pctVal = Math.round(((total - uploading) / total) * 100);
+  bar.style.width  = pctVal + '%';
+  pct.textContent  = pctVal + '%';
+  label.textContent = `กำลังอัปโหลด ${uploading} รูป...`;
+  sub.textContent   = `สำเร็จแล้ว ${done}/${total} รูป`;
+  note.textContent  = '';
 }
 
 function renderRepairPhotoGrid() {
@@ -1125,18 +1212,48 @@ function renderRepairPhotoGrid() {
   repairPhotos.forEach((p, i) => {
     const div = document.createElement('div');
     div.className = 'photo-thumb';
+
+    // overlay status
+    let statusOverlay = '';
+    if (p.uploading) {
+      statusOverlay = `<div style="position:absolute;inset:0;background:rgba(13,33,55,.55);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:6px;">
+        <div style="width:22px;height:22px;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;"></div>
+        <span style="font-size:9px;color:#fff;font-weight:700;">อัปโหลด...</span>
+      </div>`;
+    } else if (p.error) {
+      statusOverlay = `<div style="position:absolute;inset:0;background:rgba(192,57,43,.6);display:flex;align-items:center;justify-content:center;border-radius:6px;">
+        <span style="font-size:10px;color:#fff;font-weight:700;text-align:center;padding:4px;">ล้มเหลว<br>กดลบแล้วลองใหม่</span>
+      </div>`;
+    } else if (p.driveUrl) {
+      statusOverlay = `<div style="position:absolute;top:3px;left:3px;background:rgba(26,138,74,.85);border-radius:3px;padding:1px 5px;">
+        <span style="font-size:9px;color:#fff;font-weight:700;">✓ Drive</span>
+      </div>`;
+    }
+
     div.innerHTML = `
-      <img src="${p.data}" alt="รูปที่ ${i+1}" onclick="openLightbox(repairPhotos,${i})">
-      <button class="vw-btn" onclick="openLightbox(repairPhotos,${i})">ดู</button>
-      <button class="rm-btn" onclick="removeRepairPhoto(${i})" title="ลบ">✕</button>
+      <img src="${p.preview}" alt="รูปที่ ${i+1}" onclick="openLightboxRepair(${i})" style="cursor:pointer;">
+      ${statusOverlay}
+      <button class="rm-btn" onclick="removeRepairPhoto(${i})" title="ลบ" ${p.uploading ? 'disabled' : ''}>✕</button>
+      ${p.driveUrl ? `<button class="vw-btn" onclick="window.open('${p.driveUrl}','_blank')">Drive</button>` : ''}
     `;
     grid.appendChild(div);
   });
 }
 
+function openLightboxRepair(i) {
+  const arr = repairPhotos.map(p => ({ data: p.preview, name: p.name }));
+  openLightbox(arr, i);
+}
+
 function removeRepairPhoto(i) {
+  if (repairPhotos[i]?.uploading) return;
   repairPhotos.splice(i, 1);
   renderRepairPhotoGrid();
+  updateUploadProgress();
+}
+
+function pendingUploads() {
+  return repairPhotos.filter(p => p.uploading).length;
 }
 
 // ============================================================
@@ -1237,7 +1354,10 @@ function collectRepairData() {
     receiverPhone : get('receiverPhone'),
     repairRemarks : get('repairRemarks'),
     status        : 'รออนุมัติ',
-    photos        : repairPhotos.map(p => ({ name: p.name, data: p.data, type: p.type }))
+    // รวบรวม URL ที่อัปโหลดสำเร็จแล้วเท่านั้น
+    photoUrls     : repairPhotos
+                      .filter(p => !p.uploading && !p.error && p.driveUrl)
+                      .map(p => p.driveUrl)
   };
 }
 
@@ -1247,6 +1367,18 @@ function collectRepairData() {
 document.getElementById('repairForm').addEventListener('submit', async e => {
   e.preventDefault();
   if (!validateRepairForm()) { showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', 'error'); return; }
+
+  // ตรวจรูปที่ยังอัปโหลดไม่เสร็จ
+  if (pendingUploads() > 0) {
+    showToast(`กรุณารอให้รูปภาพอัปโหลดเสร็จก่อน (${pendingUploads()} รูปกำลังอัปโหลด)`, 'error');
+    return;
+  }
+  // ตรวจรูปที่อัปโหลดล้มเหลว
+  const failedPhotos = repairPhotos.filter(p => p.error).length;
+  if (failedPhotos > 0) {
+    showToast(`มีรูปที่อัปโหลดล้มเหลว ${failedPhotos} รูป — กรุณาลบแล้วลองใหม่`, 'error');
+    return;
+  }
 
   const btn = document.getElementById('submitBtn');
   btn.classList.add('loading'); btn.disabled = true;
@@ -1271,7 +1403,9 @@ document.getElementById('repairForm').addEventListener('submit', async e => {
       repairJobs.push({ ...payload, id: result.id || ('RPR-' + Date.now()) });
       renderInspectCards();
       updatePendingBadge();
-      showModal('บันทึกใบแจ้งซ่อมสำเร็จ!');
+      const savedPhotos = (payload.photoUrls || []).length;
+      const photoMsg = savedPhotos > 0 ? `<br><small style="color:var(--text-light)">แนบรูป ${savedPhotos} รูปใน Google Drive</small>` : '';
+      showModal('บันทึกใบแจ้งซ่อมสำเร็จ!' + photoMsg + `<br><small style="color:var(--text-light)">รหัสใบแจ้งซ่อม: ${result.id}</small>`);
       resetRepairForm();
     } else {
       showToast('เกิดข้อผิดพลาด: ' + (result.message || 'ไม่ทราบสาเหตุ'), 'error');
@@ -1391,73 +1525,6 @@ function updatePendingBadge() {
   badge.style.display = cnt ? '' : 'none';
 }
 
-
-// ============================================================
-// BUILD PHOTO SECTION (ใช้ใน openDetail)
-// store preview srcs in module-level var so onclick can index safely
-// ============================================================
-var _detailPhotoSrcs = [];   // base64 srcs ของงานที่เปิดอยู่
-
-function buildPhotoSection(job) {
-  var photos    = Array.isArray(job.photos)    ? job.photos.filter(function(p){ return p && p.data; }) : [];
-  var photoUrls = Array.isArray(job.photoUrls) ? job.photoUrls.filter(function(u){ return u; })        : [];
-  var total     = photos.length + photoUrls.length;
-  if (!total) return '';
-
-  // เก็บ base64 ไว้ใน module variable เพื่อให้ onclick เรียกได้โดย index
-  _detailPhotoSrcs = photos.map(function(p){ return p.data; });
-
-  var html = '';
-  html += '<div class="section-divider" style="margin-top:20px;">'
-        + '<span>\u0e23\u0e39\u0e1b\u0e16\u0e48\u0e32\u0e22\u0e2d\u0e32\u0e01\u0e32\u0e23 (' + total + ' \u0e23\u0e39\u0e1b)</span></div>';
-  html += '<div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">';
-
-  // รูป base64 — onclick เรียก _detailPhotoSrcs[i] โดย index เท่านั้น
-  photos.forEach(function(p, i) {
-    html += '<div class="photo-thumb" style="width:80px;height:80px;">';
-    html += '<img src="' + p.data + '" alt="photo" onclick="_openDetailPhoto(' + i + ')">';
-    html += '<button class="vw-btn" onclick="_openDetailPhoto(' + i + ')">\u0e14\u0e39</button>';
-    html += '</div>';
-  });
-
-  // รูปจาก Drive URL — ใช้ data-url attribute แทน inline onclick string
-  photoUrls.forEach(function(u, i) {
-    var id = 'drv-' + Date.now() + '-' + i;
-    html += '<div class="photo-thumb" style="width:80px;height:80px;">';
-    html += '<a href="' + escHtml(u) + '" target="_blank" rel="noopener"'
-          + ' style="display:flex;align-items:center;justify-content:center;'
-          + 'width:100%;height:100%;background:var(--blue-soft);border-radius:6px;text-decoration:none;">'
-          + '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"'
-          + ' stroke-linecap="round" stroke-linejoin="round">'
-          + '<path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>'
-          + '<circle cx="12" cy="13" r="4"/></svg></a>';
-    html += '<button id="' + id + '" class="vw-btn" style="font-size:8px;" data-url="' + escHtml(u) + '">Drive</button>';
-    html += '</div>';
-  });
-
-  html += '</div>';
-
-  // ผูก event หลัง render ด้วย setTimeout เล็กน้อย
-  if (photoUrls.length) {
-    setTimeout(function() {
-      photoUrls.forEach(function(u, i) {
-        var btn = document.querySelector('[data-url="' + CSS.escape(escHtml(u)) + '"]');
-        if (btn) btn.addEventListener('click', function(){ window.open(u, '_blank'); });
-      });
-    }, 50);
-  }
-
-  return html;
-}
-
-function _openDetailPhoto(idx) {
-  lbPhotos = _detailPhotoSrcs.map(function(s){ return { data: s, name: 'photo' }; });
-  lbIndex  = idx || 0;
-  updateLightbox();
-  document.getElementById('lightbox').classList.add('show');
-  document.body.style.overflow = 'hidden';
-}
-
 // ============================================================
 // DETAIL OVERLAY (ตรวจรับงาน)
 // ============================================================
@@ -1495,9 +1562,6 @@ function openDetail(jobId) {
         ${items.map(i=>`<li>${escHtml(i)}</li>`).join('')}
       </ul>
     </div>` : ''}
-
-    <!-- รูปถ่าย -->
-    ${buildPhotoSection(job)}
 
     <!-- อัพเดตสถานะ -->
     <div class="section-divider"><span>อัพเดตสถานะ / ตรวจรับ</span></div>
@@ -1630,7 +1694,6 @@ function showToast(msg, type = '') {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
 }
-
 
 // Init
 updateProgress();
