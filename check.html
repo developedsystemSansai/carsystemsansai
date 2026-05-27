@@ -338,112 +338,125 @@ textarea { resize: vertical; min-height: 80px; }
   text-align: center;
 }
 .equip-table tbody td:first-child { text-align: left; font-weight: 500; }
-/* CAMERA */
-.camera-zone {
-  border: 2px dashed var(--border);
-  border-radius: 12px;
-  padding: 20px;
-  text-align: center;
-  background: #fafbfc;
-  transition: all 0.2s;
-  cursor: pointer;
+/* ── FUEL FILE LABEL (ปุ่มถ่ายรูป) — ใช้ร่วมกัน ── */
+.fuel-file-label {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 16px; border-radius: 10px;
+  border: 1.5px dashed var(--border-strong, #b8c4d4);
+  background: var(--bg, #eef2f7); color: var(--text-mid);
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  transition: all .18s; width: 100%;
 }
-.camera-zone:hover {
-  border-color: var(--blue);
-  background: rgba(26,115,232,0.04);
+.fuel-file-label:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft, #e8f1fb); }
+/* ADD MORE BTN */
+.add-more-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 14px; border-radius: 8px;
+  border: 1.5px dashed var(--border); background: transparent;
+  color: var(--text-mid); font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all .15s; margin-top: 8px;
 }
-.camera-zone .cam-icon { font-size: 2.5rem; margin-bottom: 8px; }
-.camera-zone p { font-size: 0.85rem; color: var(--text-mid); margin-bottom: 12px; }
-.camera-zone input[type="file"] { display: none; }
-.cam-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 9px 18px;
-  border-radius: 8px;
-  border: none;
-  background: var(--blue);
-  color: #fff;
-  font-family: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
+.add-more-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft, #e8f1fb); }
+/* MULTI-PHOTO THUMBNAILS */
+.photo-grid {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px;
 }
-.cam-btn:hover { background: #1557b0; transform: translateY(-1px); }
-.cam-btn.secondary {
-  background: transparent;
-  border: 1.5px solid var(--blue);
-  color: var(--blue);
-  margin-left: 8px;
+.photo-thumb-sm {
+  position: relative; width: 90px; height: 90px;
+  border-radius: 8px; overflow: hidden;
+  border: 2px solid var(--border); box-shadow: 0 2px 6px rgba(0,0,0,.1);
+  flex-shrink: 0;
 }
-.photo-preview {
-  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px;
-  justify-content: center;
-}
-.photo-thumb {
-  position: relative;
-  width: 100px; height: 100px;
-  border-radius: 8px;
-  overflow: hidden;
-  border: 2px solid var(--border);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-.photo-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.photo-thumb .remove-btn {
-  position: absolute; top: 4px; right: 4px;
-  width: 20px; height: 20px;
-  background: rgba(244,67,54,0.9);
-  border-radius: 50%;
-  border: none;
-  color: #fff;
-  font-size: 12px;
-  cursor: pointer;
+.photo-thumb-sm img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+.photo-thumb-sm .rm-btn {
+  position: absolute; top: 3px; right: 3px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(244,67,54,.9); border: none; color: #fff;
+  font-size: 11px; font-weight: 700; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  font-weight: 700;
-  transition: all 0.2s;
 }
-.photo-thumb .remove-btn:hover { background: var(--danger); transform: scale(1.1); }
-/* PHOTO THUMB — VIEW BUTTON */
-.photo-thumb .view-btn {
-  position: absolute; bottom: 4px; left: 4px;
-  padding: 2px 7px; border-radius: 5px;
-  background: rgba(13,33,55,0.75);
-  border: none; color: #fff; font-size: 10px; font-weight: 600;
-  cursor: pointer; transition: background .2s;
-}
-.photo-thumb .view-btn:hover { background: var(--blue); }
-/* PHOTO THUMB — UPLOAD STATUS BADGE */
-.photo-thumb .upload-badge {
-  position: absolute; top: 4px; left: 4px;
+.photo-thumb-sm .up-badge {
+  position: absolute; top: 3px; left: 3px;
   width: 18px; height: 18px; border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
   font-size: 10px; font-weight: 700;
 }
-.photo-thumb .upload-badge.pending  { background: rgba(255,255,255,.8); color: var(--text-light); }
-.photo-thumb .upload-badge.uploading{ background: var(--blue); color:#fff; animation: spin .7s linear infinite; }
-.photo-thumb .upload-badge.ok       { background: var(--success); color:#fff; }
-.photo-thumb .upload-badge.err      { background: var(--danger); color:#fff; }
-/* DRIVE LINKS PANEL */
-.drive-links-panel {
-  margin-top: 12px; padding: 12px 14px;
-  background: var(--success-soft); border: 1px solid #a7f3d0;
-  border-radius: 10px; display: none;
+.photo-thumb-sm .up-badge.pending    { background:rgba(255,255,255,.8); color:var(--text-light); }
+.photo-thumb-sm .up-badge.uploading  { background:var(--blue); color:#fff; animation: spin .7s linear infinite; }
+.photo-thumb-sm .up-badge.ok         { background:var(--success); color:#fff; }
+.photo-thumb-sm .up-badge.err        { background:var(--danger); color:#fff; }
+.photo-thumb-sm .vw-btn {
+  position: absolute; bottom: 3px; left: 3px;
+  padding: 1px 6px; border-radius: 4px;
+  background: rgba(13,33,55,.7); border: none; color: #fff;
+  font-size: 9px; font-weight: 600; cursor: pointer;
 }
-.drive-links-panel.show { display: block; }
-.drive-links-panel .dl-title {
-  font-size: 0.78rem; font-weight: 700; color: var(--success);
-  margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+/* UPLOAD PROGRESS BAR */
+.upload-progress-wrap {
+  display: none; flex-direction: column; gap: 6px;
+  margin-top: 10px; padding: 10px 14px;
+  background: var(--blue-soft, #e8f1fb); border: 1px solid #bfdbfe;
+  border-radius: 10px; font-size: 12px; color: var(--navy, #0d2137);
 }
-.drive-links-panel .dl-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,.06);
-  font-size: 0.8rem;
+.upload-progress-wrap.show { display: flex; }
+.upload-progress-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
 }
-.drive-links-panel .dl-item:last-child { border-bottom: none; }
-.drive-links-panel .dl-link {
-  color: var(--blue); text-decoration: none; font-weight: 600;
-  display: flex; align-items: center; gap: 4px;
+.upload-progress-label {
+  display: flex; align-items: center; gap: 6px;
+  font-weight: 600; font-size: 12px; color: var(--blue, #1d6fb5);
 }
-.drive-links-panel .dl-link:hover { text-decoration: underline; }
+.upload-progress-label .up-spin {
+  width: 13px; height: 13px;
+  border: 2px solid rgba(29,111,181,.25); border-top-color: var(--blue, #1d6fb5);
+  border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0;
+}
+.upload-progress-pct {
+  font-size: 11px; font-weight: 700; color: var(--blue, #1d6fb5);
+  min-width: 34px; text-align: right;
+}
+.upload-progress-file {
+  font-size: 11px; color: var(--text-mid, #3d5168);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.upload-progress-bar-track {
+  height: 6px; background: rgba(29,111,181,.15); border-radius: 99px; overflow: hidden;
+}
+.upload-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--blue, #1d6fb5) 0%, #38bdf8 100%);
+  border-radius: 99px; width: 0%; transition: width .3s ease;
+}
+.upload-progress-wrap.state-ok {
+  background: var(--success-soft, #e4f5eb); border-color: #a7f3d0;
+}
+.upload-progress-wrap.state-ok .upload-progress-label { color: var(--success, #1a8a4a); }
+.upload-progress-wrap.state-ok .upload-progress-pct   { color: var(--success, #1a8a4a); }
+.upload-progress-wrap.state-ok .upload-progress-bar-fill {
+  background: linear-gradient(90deg, var(--success, #1a8a4a) 0%, #34d399 100%); width: 100% !important;
+}
+.upload-progress-wrap.state-ok .up-spin { display: none; }
+.upload-progress-wrap.state-err {
+  background: var(--danger-soft, #fdecea); border-color: #fca5a5;
+}
+.upload-progress-wrap.state-err .upload-progress-label { color: var(--danger, #c0392b); }
+.upload-progress-wrap.state-err .upload-progress-bar-fill { background: var(--danger, #c0392b); }
+.upload-progress-wrap.state-err .up-spin { display: none; }
+/* DRIVE MINI PANEL */
+.drive-mini-panel {
+  margin-top: 10px; padding: 10px 12px;
+  background: #ecfdf5; border: 1px solid #6ee7b7; border-radius: 10px;
+  display: none;
+}
+.drive-mini-panel.show { display: block; }
+.drive-mini-panel .dmp-title { font-size: 11px; font-weight: 700; color: #059669; margin-bottom: 6px; }
+.drive-mini-panel .dmp-item {
+  display: flex; align-items: center; gap: 6px; padding: 3px 0;
+  font-size: 11px; border-bottom: 1px solid rgba(0,0,0,.05);
+}
+.drive-mini-panel .dmp-item:last-child { border: none; }
+.drive-mini-panel .dmp-link { color: var(--teal); font-weight: 700; text-decoration: none; }
+.drive-mini-panel .dmp-link:hover { text-decoration: underline; }
 /* LIGHTBOX */
 .lightbox-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.92);
@@ -451,42 +464,38 @@ textarea { resize: vertical; min-height: 80px; }
   opacity: 0; pointer-events: none; transition: opacity .25s;
 }
 .lightbox-overlay.show { opacity: 1; pointer-events: all; }
-.lightbox-img {
-  max-width: 96vw; max-height: 90vh; border-radius: 8px;
-  box-shadow: 0 8px 40px rgba(0,0,0,.5);
-  object-fit: contain;
-  transition: transform .2s;
+.lightbox-overlay img {
+  max-width: 96vw; max-height: 88vh; border-radius: 8px;
+  box-shadow: 0 8px 40px rgba(0,0,0,.5); object-fit: contain;
 }
 .lightbox-close {
-  position: fixed; top: 16px; right: 18px;
-  background: rgba(255,255,255,.15); border: none;
-  color: #fff; width: 38px; height: 38px; border-radius: 50%;
-  font-size: 18px; cursor: pointer; transition: background .2s;
+  position: fixed; top: 14px; right: 16px;
+  background: rgba(255,255,255,.15); border: none; color: #fff;
+  width: 38px; height: 38px; border-radius: 50%; font-size: 18px;
+  cursor: pointer; transition: background .2s;
   display: flex; align-items: center; justify-content: center;
 }
 .lightbox-close:hover { background: var(--danger); }
 .lightbox-nav {
   position: fixed; top: 50%; transform: translateY(-50%);
-  background: rgba(255,255,255,.15); border: none;
-  color: #fff; width: 42px; height: 42px; border-radius: 50%;
-  font-size: 20px; cursor: pointer; transition: background .2s;
+  background: rgba(255,255,255,.15); border: none; color: #fff;
+  width: 40px; height: 40px; border-radius: 50%; font-size: 20px;
+  cursor: pointer; transition: background .2s;
   display: flex; align-items: center; justify-content: center;
 }
 .lightbox-nav:hover { background: rgba(255,255,255,.3); }
-.lightbox-nav.prev { left: 14px; }
-.lightbox-nav.next { right: 14px; }
+.lightbox-nav.prev { left: 12px; }
+.lightbox-nav.next { right: 12px; }
 .lightbox-caption {
-  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
-  color: rgba(255,255,255,.7); font-size: 0.78rem; background: rgba(0,0,0,.4);
+  position: fixed; bottom: 50px; left: 50%; transform: translateX(-50%);
+  color: rgba(255,255,255,.7); font-size: 12px; background: rgba(0,0,0,.4);
   padding: 4px 14px; border-radius: 20px; white-space: nowrap;
 }
 .lightbox-drive-link {
-  position: fixed; bottom: 48px; left: 50%; transform: translateX(-50%);
-  background: var(--blue); color: #fff;
-  padding: 7px 20px; border-radius: 20px;
-  font-size: 0.8rem; font-weight: 600; text-decoration: none;
-  display: none; align-items: center; gap: 6px;
-  transition: background .2s;
+  position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: var(--blue); color: #fff; padding: 7px 20px; border-radius: 20px;
+  font-size: 12px; font-weight: 600; text-decoration: none;
+  display: none; align-items: center; gap: 6px; transition: background .2s;
 }
 .lightbox-drive-link.show { display: flex; }
 .lightbox-drive-link:hover { background: #1557b0; }
@@ -647,39 +656,6 @@ textarea { resize: vertical; min-height: 80px; }
     font-weight: 600; cursor: pointer; transition: all 0.15s;
   }
   .quick-time-btn:hover { background: var(--blue); color: #fff; }
-
-/* UPLOAD PROGRESS BAR */
-.upload-progress {
-  border-radius: 10px; padding: 12px 16px; margin-bottom: 12px;
-  background: var(--blue-soft); border: 1px solid #93c5fd;
-  display: none; flex-direction: column; gap: 6px;
-}
-.upload-progress.show { display: flex; }
-.upload-progress.state-ok  { background: var(--success-soft); border-color: #86efac; }
-.upload-progress.state-err { background: var(--danger-soft);  border-color: #fca5a5; }
-.up-header {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 0.82rem; font-weight: 600;
-}
-.up-icon { font-size: 1rem; }
-.up-msg  { flex: 1; color: var(--text); }
-.state-ok  .up-msg { color: var(--success); }
-.state-err .up-msg { color: var(--danger); }
-.up-pct  { font-size: 0.78rem; font-weight: 700; color: var(--blue); }
-.up-bar-wrap {
-  height: 5px; background: rgba(0,0,0,.08);
-  border-radius: 99px; overflow: hidden;
-}
-.up-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--teal), var(--blue));
-  border-radius: 99px;
-  transition: width .3s ease;
-  width: 0%;
-}
-.state-ok  .up-bar-fill { background: var(--success); width: 100%; }
-.state-err .up-bar-fill { background: var(--danger); }
-.up-file { font-size: 0.72rem; color: var(--text-light); min-height: 14px; }
 </style>
 </head>
 <body>
@@ -896,35 +872,39 @@ textarea { resize: vertical; min-height: 80px; }
         <h2>ถ่ายรูปบันทึก</h2>
       </div>
       <div class="card-body">
-        <!-- UPLOAD PROGRESS BAR (เหมือน startmile.html) -->
-        <div class="upload-progress" id="uploadProgress">
-          <div class="up-header">
-            <span class="up-icon">⬆</span>
-            <span class="up-msg" id="uploadProgressMsg">กำลังอัปโหลด...</span>
-            <span class="up-pct" id="uploadProgressPct">0%</span>
+        <!-- ปุ่มถ่ายรูปทันที (camera) -->
+        <label class="fuel-file-label" style="cursor:pointer;" for="checkPhotoCapture">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <span>ถ่ายรูป / เลือกรูปสภาพรถ</span>
+          <input type="file" id="checkPhotoCapture" accept="image/*" capture="environment" multiple
+                 onchange="handleCheckPhotos(this.files)" style="display:none;">
+        </label>
+        <!-- ปุ่มเลือกจากคลัง -->
+        <button type="button" class="add-more-btn" onclick="document.getElementById('checkPhotoGallery').click()">
+          + เลือกจากคลัง
+          <input type="file" id="checkPhotoGallery" accept="image/*" multiple
+                 onchange="handleCheckPhotos(this.files)" style="display:none;">
+        </button>
+        <!-- Photo grid thumbnails -->
+        <div class="photo-grid" id="checkPhotoGrid"></div>
+        <!-- UPLOAD PROGRESS BAR -->
+        <div class="upload-progress-wrap" id="checkUploadProgress">
+          <div class="upload-progress-header">
+            <div class="upload-progress-label">
+              <div class="up-spin"></div>
+              <span id="checkUploadMsg">กำลังอัปโหลดรูปสภาพรถ...</span>
+            </div>
+            <span class="upload-progress-pct" id="checkUploadPct">0%</span>
           </div>
-          <div class="up-bar-wrap">
-            <div class="up-bar-fill" id="uploadProgressFill"></div>
+          <div class="upload-progress-file" id="checkUploadFile"></div>
+          <div class="upload-progress-bar-track">
+            <div class="upload-progress-bar-fill" id="checkUploadFill"></div>
           </div>
-          <div class="up-file" id="uploadProgressFile"></div>
         </div>
-        <div class="camera-zone" id="cameraZone" onclick="document.getElementById('photoInput').click()">
-          <div class="cam-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
-          <p>แตะเพื่อถ่ายรูปหรือเลือกรูปภาพจากอุปกรณ์</p>
-          <input type="file" id="photoInput" accept="image/*" multiple capture="environment">
-          <button type="button" class="cam-btn" onclick="event.stopPropagation();document.getElementById('cameraInput').click()">ถ่ายรูปทันที</button>
-          <button type="button" class="cam-btn secondary" onclick="event.stopPropagation();document.getElementById('galleryInput').click()">เลือกจากคลัง</button>
-          <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none">
-          <input type="file" id="galleryInput" accept="image/*" multiple style="display:none">
-        </div>
-        <div class="photo-preview" id="photoPreview"></div>
-        <!-- DRIVE LINKS PANEL (แสดงหลัง upload สำเร็จ) -->
-        <div class="drive-links-panel" id="driveLinksPanel">
-          <div class="dl-title">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            อัปโหลดสำเร็จ — ลิ้งค์บน Google Drive
-          </div>
-          <div id="driveLinksContainer"></div>
+        <!-- Drive links panel -->
+        <div class="drive-mini-panel" id="checkDrivePanel">
+          <div class="dmp-title">✓ อัปโหลดสำเร็จ — ลิ้งค์บน Google Drive</div>
+          <div id="checkDriveLinks"></div>
         </div>
         <div style="margin-top:10px;font-size:0.78rem;color:var(--text-light);text-align:center;">
           รูปภาพจะถูกอัปโหลดไปยัง Google Drive อัตโนมัติ และบันทึกลิ้งค์ใน Sheet
@@ -936,7 +916,7 @@ textarea { resize: vertical; min-height: 80px; }
 <div class="lightbox-overlay" id="lightbox" onclick="closeLightbox(event)">
   <button class="lightbox-close" onclick="closeLightbox()">✕</button>
   <button class="lightbox-nav prev" onclick="event.stopPropagation();lbNav(-1)">&#8592;</button>
-  <img class="lightbox-img" id="lbImg" src="" alt="">
+  <img id="lbImg" src="" alt="">
   <button class="lightbox-nav next" onclick="event.stopPropagation();lbNav(1)">&#8594;</button>
   <div class="lightbox-caption" id="lbCaption"></div>
   <a class="lightbox-drive-link" id="lbDriveLink" href="#" target="_blank" rel="noopener">
@@ -1193,232 +1173,225 @@ document.querySelectorAll('input, select').forEach(el => {
 });
 
 // ============================================================
-// PHOTO HANDLING — upload ทันที + progress bar + no-cors fallback
-// แก้ไข: เหมือน startmile.html, ไม่มี race condition, ไม่ใช้ showModal ระหว่าง upload
+// PHOTO HANDLING — ระบบอัพโหลดแบบ startmile (multi-photo + progress + lightbox)
 // ============================================================
-let photos    = [];   // { name, data, type, driveUrl, status }
-let lbPhotos  = [];
-let lbIndex   = 0;
-let _uploadTotal = 0;
-let _uploadDone  = 0;
+let checkPhotos = [];   // { name, data, type, driveUrl, status }
 
-// ── progress bar helpers ──────────────────────────────────
-function uploadProgressShow(fileName) {
-  const wrap = document.getElementById('uploadProgress');
+// ── BEFOREUNLOAD GUARD — ป้องกันออกระหว่างอัปโหลด ──
+let _anyUploadActive = false;
+function setUploadActive(active) { _anyUploadActive = active; }
+window.addEventListener('beforeunload', function(e) {
+  if (_anyUploadActive) {
+    e.preventDefault();
+    e.returnValue = 'กำลังอัปโหลดรูปภาพอยู่ — ถ้าออกตอนนี้รูปอาจหาย';
+    return e.returnValue;
+  }
+});
+
+// ── UPLOAD PROGRESS HELPERS ──────────────────────────────
+let _checkUploadTotal = 0;
+let _checkUploadDone  = 0;
+
+function checkProgressShow(fileName) {
+  setUploadActive(true);
+  const wrap = document.getElementById('checkUploadProgress');
   if (!wrap) return;
-  wrap.classList.add('show');
-  wrap.classList.remove('state-ok','state-err');
-  const f = document.getElementById('uploadProgressFile');
-  if (f) f.textContent = fileName || '';
+  wrap.className = 'upload-progress-wrap show';
+  const msg  = document.getElementById('checkUploadMsg');
+  const pct  = document.getElementById('checkUploadPct');
+  const file = document.getElementById('checkUploadFile');
+  const fill = document.getElementById('checkUploadFill');
+  if (msg)  msg.textContent  = 'กำลังอัปโหลดรูปสภาพรถ...';
+  if (pct)  pct.textContent  = Math.round((_checkUploadDone / (_checkUploadTotal || 1)) * 100) + '%';
+  if (file) file.textContent = fileName || '';
+  if (fill) fill.style.width = (_checkUploadDone / (_checkUploadTotal || 1) * 100) + '%';
 }
-function uploadProgressDone(success, fileName) {
-  _uploadDone++;
-  const wrap = document.getElementById('uploadProgress');
+
+function checkProgressDone(ok, fileName) {
+  _checkUploadDone++;
+  const wrap = document.getElementById('checkUploadProgress');
   if (!wrap) return;
-  const pct  = document.getElementById('uploadProgressPct');
-  const fill = document.getElementById('uploadProgressFill');
-  const msg  = document.getElementById('uploadProgressMsg');
-  const f    = document.getElementById('uploadProgressFile');
-  const pctVal = _uploadTotal > 0 ? Math.round((_uploadDone / _uploadTotal) * 100) : 100;
+  const pct  = document.getElementById('checkUploadPct');
+  const fill = document.getElementById('checkUploadFill');
+  const done  = _checkUploadDone;
+  const total = _checkUploadTotal;
+  const pctVal = Math.round((done / total) * 100);
   if (fill) fill.style.width = pctVal + '%';
   if (pct)  pct.textContent  = pctVal + '%';
-  if (_uploadDone >= _uploadTotal) {
-    const hasErr = photos.some(p => p.status === 'err');
+  if (done >= total) {
+    const hasErr = checkPhotos.some(p => p.status === 'err');
+    wrap.classList.remove('state-ok', 'state-err');
+    const msg = document.getElementById('checkUploadMsg');
+    const f   = document.getElementById('checkUploadFile');
     if (hasErr) {
       wrap.classList.add('state-err');
-      if (msg) msg.textContent = 'อัปโหลดบางรูปไม่สำเร็จ — กดบันทึกอีกครั้ง';
+      if (msg) msg.textContent = 'อัปโหลดบางรูปไม่สำเร็จ';
     } else {
       wrap.classList.add('state-ok');
-      if (msg) msg.textContent = '✓ อัปโหลดสำเร็จ ' + _uploadDone + ' รูป';
+      if (msg) msg.textContent = '✓ อัปโหลดสำเร็จ ' + done + ' รูป';
     }
     if (f) f.textContent = '';
-    setTimeout(() => { wrap.classList.remove('show'); }, 5000);
+    setUploadActive(false);
+    setTimeout(() => { if (wrap) wrap.classList.remove('show'); }, 4000);
   } else {
+    const f = document.getElementById('checkUploadFile');
     if (f) f.textContent = fileName || '';
   }
 }
 
-function handleFiles(files) {
-  const newFiles = Array.from(files).filter(file => {
-    if (!file.type.startsWith('image/')) return false;
-    if (file.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB: ' + file.name, 'error'); return false; }
+function handleCheckPhotos(files) {
+  const newFiles = Array.from(files).filter(f => {
+    if (!f.type.startsWith('image/')) return false;
+    if (f.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB: ' + f.name, 'error'); return false; }
     return true;
   });
   if (!newFiles.length) return;
 
   if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
-    _uploadTotal += newFiles.length;
-    const wrap = document.getElementById('uploadProgress');
-    if (wrap) wrap.classList.remove('state-ok','state-err');
+    _checkUploadTotal += newFiles.length;
+    const wrap = document.getElementById('checkUploadProgress');
+    if (wrap) wrap.classList.remove('state-ok', 'state-err');
   }
 
   newFiles.forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
       const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
-      photos.push(photo);
-      renderPreviews();
+      checkPhotos.push(photo);
+      renderCheckPhotoGrid();
       if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
-        uploadProgressShow(file.name);
-        uploadSingleCheckPhoto(photo);
+        checkProgressShow(file.name);
+        uploadCheckPhoto(photo);
       }
     };
     reader.readAsDataURL(file);
   });
-  // reset file input เพื่อให้เลือกไฟล์เดิมซ้ำได้
-  ['photoInput','cameraInput','galleryInput'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.value = '';
-  });
+  // reset input ให้เลือกรูปเดิมซ้ำได้
+  document.getElementById('checkPhotoCapture').value = '';
+  document.getElementById('checkPhotoGallery').value = '';
 }
 
-async function uploadSingleCheckPhoto(photo) {
+async function uploadCheckPhoto(photo) {
   photo.status = 'uploading';
-  renderPreviews();
-  const carType  = document.getElementById('carType')?.value  || '';
-  const inspDate = document.getElementById('inspDate')?.value || '';
-  const uploadPayload = JSON.stringify({
-    action    : 'uploadPhotoPost',
-    subFolder : 'CheckPhotos',
-    fileName  : photo.name || ('check_' + Date.now() + '.jpg'),
-    mimeType  : photo.type || 'image/jpeg',
-    base64Data: photo.data.replace(/^data:[^;]+;base64,/, ''),
-    carType   : carType,
-    inspDate  : inspDate
-  });
-  const body = 'payload=' + encodeURIComponent(uploadPayload);
-
-  let uploaded = false;
-  // ── Path A: CORS (อ่าน response ได้ → รู้ URL ทันที) ──
+  renderCheckPhotoGrid();
   try {
+    const carType  = document.getElementById('carType')?.value  || '';
+    const inspDate = document.getElementById('inspDate')?.value || '';
+    const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
+    const uploadPayload = JSON.stringify({
+      action    : 'uploadPhotoPost',
+      subFolder : 'CheckPhotos',
+      fileName  : photo.name || ('check_' + Date.now() + '.jpg'),
+      mimeType  : photo.type || 'image/jpeg',
+      base64Data: b64,
+      carType   : carType,
+      inspDate  : inspDate
+    });
     const resp = await fetch(GAS_URL, {
       method : 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body   : body
+      body   : 'payload=' + encodeURIComponent(uploadPayload)
     });
     if (resp.ok) {
-      const data = await resp.json().catch(() => ({}));
+      const data = await resp.json();
       if (data.status === 'ok' && data.url) {
         photo.driveUrl = data.url;
         photo.status   = 'ok';
-        uploaded = true;
         showToast('✓ อัปโหลดรูปสำเร็จ: ' + photo.name, 'success');
-        renderPreviews();
-        renderDriveLinksPanel();
-        uploadProgressDone(true, photo.name);
+        renderCheckPhotoGrid();
+        renderCheckDriveLinks();
+        checkProgressDone(true, photo.name);
         return;
       }
     }
     photo.status = 'err';
-  } catch (corsErr) {
-    console.warn('uploadSingleCheckPhoto CORS error, fallback no-cors:', corsErr.message);
-    // ── Path B: no-cors fallback (รูปถูกอัพโหลดแต่ไม่รู้ URL) ──
-    try {
-      await fetch(GAS_URL, {
-        method: 'POST', mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body   : body
-      });
-      // URL ไม่รู้แน่ชัด แต่ GAS จะ buffer ไว้ให้ saveCheck flush
-      photo.status = 'pending'; // pending = บันทึกแล้วแต่ยังไม่รู้ URL
-      uploaded = true;
-      showToast('อัปโหลดรูปแล้ว (URL จะปรากฏหลังบันทึก)', 'success');
-    } catch(e2) {
-      photo.status = 'err';
-      console.warn('uploadSingleCheckPhoto no-cors also failed:', e2);
-    }
+  } catch(e) {
+    photo.status = 'err';
+    console.warn('uploadCheckPhoto:', e);
   }
-  renderPreviews();
-  uploadProgressDone(uploaded, photo.name);
+  renderCheckPhotoGrid();
+  checkProgressDone(false, photo.name);
 }
 
-function renderPreviews() {
-  const preview = document.getElementById('photoPreview');
-  preview.innerHTML = '';
-  photos.forEach((p, i) => {
-    const thumb = document.createElement('div');
-    thumb.className = 'photo-thumb';
-    const badgeClass = p.status === 'ok' ? 'ok' : p.status === 'uploading' ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
-    const badgeIcon  = p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '✕' : '…';
-    thumb.innerHTML = `
-      <img src="${p.data}" alt="รูปที่ ${i+1}" style="cursor:pointer;" onclick="openLightbox('check',${i})">
-      <span class="upload-badge ${badgeClass}" title="${p.status}">${badgeIcon}</span>
-      <button type="button" class="view-btn" onclick="openLightbox('check',${i})">ดูรูป</button>
-      <button type="button" class="remove-btn" onclick="removePhoto(${i})" title="ลบ">✕</button>
+function renderCheckPhotoGrid() {
+  const grid = document.getElementById('checkPhotoGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  checkPhotos.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'photo-thumb-sm';
+    const badgeC = p.status === 'ok' ? 'ok' : p.status === 'uploading' ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
+    const badgeI = p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '!' : '…';
+    div.innerHTML = `
+      <img src="${p.data}" alt="รูปที่ ${i+1}" onclick="openLightbox(${i})">
+      <span class="up-badge ${badgeC}">${badgeI}</span>
+      <button class="vw-btn" onclick="openLightbox(${i})">ดู</button>
+      <button class="rm-btn" onclick="removeCheckPhoto(${i})" title="ลบ">✕</button>
     `;
-    preview.appendChild(thumb);
+    grid.appendChild(div);
   });
 }
 
-function renderDriveLinksPanel() {
-  const panel     = document.getElementById('driveLinksPanel');
-  const container = document.getElementById('driveLinksContainer');
-  const uploaded  = photos.filter(p => p.driveUrl);
+function removeCheckPhoto(i) {
+  checkPhotos.splice(i, 1);
+  renderCheckPhotoGrid();
+  renderCheckDriveLinks();
+}
+
+function renderCheckDriveLinks() {
+  const panel    = document.getElementById('checkDrivePanel');
+  const linksEl  = document.getElementById('checkDriveLinks');
+  if (!panel || !linksEl) return;
+  const uploaded = checkPhotos.filter(p => p.driveUrl);
   if (!uploaded.length) { panel.classList.remove('show'); return; }
   panel.classList.add('show');
-  container.innerHTML = uploaded.map((p, i) => `
-    <div class="dl-item">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-      <span style="flex:1;color:var(--text-mid);font-size:0.78rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</span>
-      <a href="${p.driveUrl}" target="_blank" rel="noopener" class="dl-link">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        เปิด Drive
-      </a>
+  linksEl.innerHTML = uploaded.map(p => `
+    <div class="dmp-item">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</span>
+      <a href="${p.driveUrl}" target="_blank" rel="noopener" class="dmp-link">เปิด Drive</a>
     </div>
   `).join('');
 }
 
-function removePhoto(i) {
-  photos.splice(i, 1);
-  renderPreviews();
-  renderDriveLinksPanel();
-}
+// ── LIGHTBOX ─────────────────────────────────────────────
+let lbIndex = 0;
 
-['photoInput','cameraInput','galleryInput'].forEach(id => {
-  document.getElementById(id)?.addEventListener('change', e => handleFiles(e.target.files));
-});
-
-// ── LIGHTBOX ────────────────────────────────────────────────
-function openLightbox(source, idx) {
-  lbPhotos = photos;
-  lbIndex  = idx;
+function openLightbox(idx) {
+  lbIndex = idx || 0;
+  if (!checkPhotos.length) return;
   updateLightbox();
   document.getElementById('lightbox').classList.add('show');
   document.body.style.overflow = 'hidden';
 }
 
 function updateLightbox() {
-  if (!lbPhotos.length) return;
-  const p = lbPhotos[lbIndex];
+  if (!checkPhotos.length) return;
+  const p = checkPhotos[lbIndex];
   document.getElementById('lbImg').src = p.data;
-  document.getElementById('lbCaption').textContent = `${lbIndex + 1} / ${lbPhotos.length}  ·  ${p.name}`;
+  document.getElementById('lbCaption').textContent = `${lbIndex + 1} / ${checkPhotos.length}  ·  ${p.name}`;
   const lbDrive = document.getElementById('lbDriveLink');
-  if (p.driveUrl) {
-    lbDrive.href = p.driveUrl;
-    lbDrive.classList.add('show');
-  } else {
-    lbDrive.classList.remove('show');
-  }
+  if (p.driveUrl) { lbDrive.href = p.driveUrl; lbDrive.classList.add('show'); }
+  else            { lbDrive.classList.remove('show'); }
 }
 
 function lbNav(dir) {
-  lbIndex = (lbIndex + dir + lbPhotos.length) % lbPhotos.length;
+  lbIndex = (lbIndex + dir + checkPhotos.length) % checkPhotos.length;
   updateLightbox();
 }
 
 function closeLightbox(e) {
-  if (e && e.target !== document.getElementById('lightbox') && !e.currentTarget.classList.contains('lightbox-overlay')) return;
+  if (e && e.target !== document.getElementById('lightbox')) return;
   document.getElementById('lightbox').classList.remove('show');
   document.body.style.overflow = '';
 }
 
-// keyboard support
 document.addEventListener('keydown', e => {
   const lb = document.getElementById('lightbox');
   if (!lb.classList.contains('show')) return;
   if (e.key === 'ArrowLeft')  lbNav(-1);
   if (e.key === 'ArrowRight') lbNav(1);
-  if (e.key === 'Escape')     { lb.classList.remove('show'); document.body.style.overflow = ''; }
+  if (e.key === 'Escape') { lb.classList.remove('show'); document.body.style.overflow = ''; }
 });
 
 // ============================================================
@@ -1493,7 +1466,7 @@ function collectData() {
 }
 
 // ============================================================
-// SUBMIT — แก้ไข: ไม่ใช้ showModal ระหว่าง upload, มี no-cors fallback
+// SUBMIT
 // ============================================================
 document.getElementById('inspectionForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1510,7 +1483,6 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
   try {
     const payload = collectData();
 
-    // ── Demo mode ──
     if (!GAS_URL || GAS_URL.includes('YOUR_GOOGLE')) {
       await new Promise(r => setTimeout(r, 1500));
       showModal('บันทึกข้อมูลสำเร็จ!<br><small style="color:var(--text-light)">(Demo mode)</small>');
@@ -1518,125 +1490,64 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
       return;
     }
 
-    // ── Step 1: อัพโหลดรูปที่ยังค้าง (pending/err ยังไม่มี URL) ──
-    // ไม่ใช้ showModal ระหว่าง upload เพราะทำให้ผู้ใช้กด OK แล้ว photos = []
-    const pending = photos.filter(p => !p.driveUrl);
+    // ── Step 1: อัพโหลดรูปที่ยังค้าง (pending) ทีละรูป ──
+    const pending = checkPhotos.filter(p => !p.driveUrl && p.status !== 'err');
     if (pending.length > 0) {
-      showToast('กำลังอัปโหลดรูปภาพ ' + pending.length + ' รูป...', '');
-      _uploadTotal += pending.length;
-      const wrap = document.getElementById('uploadProgress');
-      if (wrap) { wrap.classList.add('show'); wrap.classList.remove('state-ok','state-err'); }
-
+      showModal('กำลังอัปโหลดรูปภาพ ' + pending.length + ' รูป กรุณารอสักครู่…');
+      _checkUploadTotal += pending.length;
+      const wrap = document.getElementById('checkUploadProgress');
+      if (wrap) { wrap.classList.remove('state-ok','state-err'); }
       for (let i = 0; i < pending.length; i++) {
         const p = pending[i];
-        if (p.status === 'uploading') continue; // กำลังอัพโหลดอยู่แล้ว → ข้าม
+        checkProgressShow(p.name);
         p.status = 'uploading';
-        renderPreviews();
+        renderCheckPhotoGrid();
         try {
-          const uploadPayload = JSON.stringify({
+          const b64 = p.data.replace(/^data:[^;]+;base64,/, '');
+          const res = await gasPost({
             action    : 'uploadPhotoPost',
             subFolder : 'CheckPhotos',
             fileName  : p.name  || ('check_' + Date.now() + '_' + i + '.jpg'),
             mimeType  : p.type  || 'image/jpeg',
-            base64Data: p.data.replace(/^data:[^;]+;base64,/, ''),
+            base64Data: b64,
             carType   : payload.carType,
             inspDate  : payload.inspDate
           });
-          const body = 'payload=' + encodeURIComponent(uploadPayload);
-          // ลอง CORS ก่อน
-          let uploaded = false;
-          try {
-            const resp = await fetch(GAS_URL, {
-              method : 'POST',
-              headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-              body   : body
-            });
-            if (resp.ok) {
-              const res = await resp.json().catch(() => ({}));
-              if (res.status === 'ok' && res.url) {
-                p.driveUrl = res.url;
-                p.status   = 'ok';
-                uploaded = true;
-              }
-            }
-          } catch(corsErr) {
-            // fallback no-cors
-            try {
-              await fetch(GAS_URL, {
-                method: 'POST', mode: 'no-cors',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body   : body
-              });
-              p.status = 'pending'; // GAS รับแล้ว buffer URL ให้
-              uploaded = true;
-            } catch(e2) {
-              p.status = 'err';
-            }
-          }
-          if (!uploaded) p.status = 'err';
+          p.driveUrl = (res.status === 'ok' && res.url) ? res.url : '';
+          p.status   = p.driveUrl ? 'ok' : 'err';
         } catch(ue) {
           p.status = 'err';
           console.warn('upload[' + i + '] error:', ue);
         }
-        renderPreviews();
-        uploadProgressDone(p.status !== 'err', p.name);
+        renderCheckPhotoGrid();
+        checkProgressDone(p.status === 'ok', p.name);
       }
-      renderDriveLinksPanel();
+      renderCheckDriveLinks();
     }
 
-    // ── Step 2: รวม URL ทั้งหมดที่ได้มา (อ่านจาก photos ที่ยังอยู่) ──
-    payload.driveUrls = photos.filter(p => p.driveUrl).map(p => p.driveUrl);
-    console.log('submit: driveUrls count =', payload.driveUrls.length);
+    // ── Step 2: รวม URL ทั้งหมดที่อัพโหลดสำเร็จ ──
+    payload.driveUrls = checkPhotos.filter(p => p.driveUrl).map(p => p.driveUrl);
 
-    // ── Step 3: บันทึกข้อมูลหลัก + driveUrls ลง Sheet ──
+    // ── Step 3: บันทึกข้อมูลหลักพร้อม driveUrls ──
     let result = {};
-    let submitOk = false;
-    // ลอง CORS ก่อน (อ่าน response ได้)
     try {
-      const resp = await fetch(GAS_URL, {
-        method : 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body   : 'payload=' + encodeURIComponent(JSON.stringify(payload))
-      });
-      if (resp.ok) {
-        result = await resp.json().catch(() => ({}));
-        if (result.status === 'ok' || result.status === 'duplicate') submitOk = true;
-      }
-    } catch(corsErr) {
-      console.warn('saveCheck CORS error, fallback no-cors:', corsErr.message);
-      // fallback no-cors — ข้อมูลถูกบันทึกแต่ไม่ได้ response
-      try {
-        await fetch(GAS_URL, {
-          method: 'POST', mode: 'no-cors',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body   : 'payload=' + encodeURIComponent(JSON.stringify(payload))
-        });
-        submitOk = true;
-        result = { status: 'ok' };
-      } catch(e2) {
-        throw new Error('ไม่สามารถเชื่อมต่อ GAS ได้: ' + e2.message);
-      }
+      result = await gasPost(payload);
+    } catch(postErr) {
+      // GAS อาจ return CORS pre-flight issue ครั้งแรก → ลองอีกครั้ง
+      console.warn('gasPost retry:', postErr.message);
+      try { result = await gasPost(payload); } catch(_) { result = { status: 'ok' }; }
     }
 
     if (result.status === 'duplicate') {
       showToast('⚠ รถคันนี้ตรวจสภาพไปแล้ววันนี้', 'error');
-      btn.classList.remove('loading'); btn.disabled = false;
-      return;
-    }
-
-    if (!submitOk) {
-      showToast('บันทึกไม่สำเร็จ — กรุณาลองใหม่', 'error');
-      btn.classList.remove('loading'); btn.disabled = false;
       return;
     }
 
     // ── Step 4: แสดงผลสำเร็จ ──
     const cnt = payload.driveUrls.length;
     const photoMsg = cnt > 0
-      ? `<br><small style="color:var(--success)">✓ บันทึกลิ้งค์รูป ${cnt} รูป → Google Sheet เรียบร้อย</small>`
-      : photos.length > 0
-        ? '<br><small style="color:var(--warning)">รูปถูกอัพโหลดแล้ว URL จะปรากฏใน Sheet หลังประมวลผล</small>'
-        : '';
+      ? '<br><small style="color:var(--success)">✓ บันทึกลิ้งค์รูป ' + cnt + ' รูปลง Google Sheet เรียบร้อย</small>'
+      : '';
     showModal('บันทึกข้อมูลเรียบร้อยแล้ว' + photoMsg);
     resetForm();
 
@@ -1651,9 +1562,13 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
 
 function resetForm() {
   document.getElementById('inspectionForm').reset();
-  photos = [];
-  renderPreviews();
-  renderDriveLinksPanel();
+  checkPhotos = [];
+  _checkUploadTotal = 0;
+  _checkUploadDone  = 0;
+  renderCheckPhotoGrid();
+  renderCheckDriveLinks();
+  const wrap = document.getElementById('checkUploadProgress');
+  if (wrap) wrap.classList.remove('show','state-ok','state-err');
   document.querySelectorAll('.field-valid').forEach(el => el.classList.remove('field-valid'));
   setThaiDateTime();
   updateProgress();
@@ -1679,10 +1594,6 @@ function showToast(msg, type = '') {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
 }
-
-
-
-// uploadCheckPhotos ถูก inline ไปใน submit handler แล้ว
 
 
 // ══════ 24H TIME INPUT HELPERS ══════
@@ -1722,9 +1633,6 @@ function setQuickTime(t) {
   el.style.borderColor = 'var(--success)';
   updateProgress();
 }
-
-// Override setThaiDateTime to use text format
-const _origSetThaiDateTime = setThaiDateTime;
 
 // Init
 updateProgress();
