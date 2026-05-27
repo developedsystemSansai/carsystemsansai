@@ -1237,7 +1237,7 @@ function collectRepairData() {
     receiverPhone : get('receiverPhone'),
     repairRemarks : get('repairRemarks'),
     status        : 'รออนุมัติ',
-    photos        : []
+    photos        : repairPhotos.map(p => ({ name: p.name, data: p.data, type: p.type }))
   };
 }
 
@@ -1429,6 +1429,34 @@ function openDetail(jobId) {
       </ul>
     </div>` : ''}
 
+    <!-- รูปถ่าย -->
+    ${(()=>{
+      const photos = Array.isArray(job.photos) ? job.photos : [];
+      const urls   = Array.isArray(job.photoUrls) ? job.photoUrls : [];
+      if (!photos.length && !urls.length) return '';
+      const previewPhotos = photos.filter(p => p.data);
+      const allSrc = [
+        ...previewPhotos.map((p,i) => ({ src: p.data, name: p.name || 'รูปที่'+(i+1), idx: i })),
+      ];
+      const driveLinks = urls.map(u => u);
+      return \`
+        <div class="section-divider" style="margin-top:20px;"><span>รูปถ่ายอาการ (\${allSrc.length + driveLinks.length} รูป)</span></div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          \${allSrc.map((p, i) => \`
+            <div class="photo-thumb" style="width:80px;height:80px;">
+              <img src="\${p.src}" alt="\${escHtml(p.name)}" onclick="openLightboxArr(\${JSON.stringify(allSrc.map(x=>x.src))},\${i})">
+              <button class="vw-btn" onclick="openLightboxArr(\${JSON.stringify(allSrc.map(x=>x.src))},\${i})">ดู</button>
+            </div>\`).join('')}
+          \${driveLinks.map(u => \`
+            <div class="photo-thumb" style="width:80px;height:80px;">
+              <a href="\${escHtml(u)}" target="_blank" rel="noopener" style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;background:var(--blue-soft);border-radius:6px;text-decoration:none;">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              </a>
+              <button class="vw-btn" style="font-size:8px;" onclick="window.open('\${escHtml(u)}','_blank')">Drive</button>
+            </div>\`).join('')}
+        </div>\`;
+    })()}
+
     <!-- อัพเดตสถานะ -->
     <div class="section-divider"><span>อัพเดตสถานะ / ตรวจรับ</span></div>
     <div class="field-row" style="margin-bottom:14px;">
@@ -1559,6 +1587,15 @@ function showToast(msg, type = '') {
   t.textContent = msg; t.className = 'toast show ' + type;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 3500);
+}
+
+
+function openLightboxArr(srcArr, idx) {
+  lbPhotos = srcArr.map(s => ({ data: s, name: 'รูปภาพ' }));
+  lbIndex  = idx || 0;
+  updateLightbox();
+  document.getElementById('lightbox').classList.add('show');
+  document.body.style.overflow = 'hidden';
 }
 
 // Init
