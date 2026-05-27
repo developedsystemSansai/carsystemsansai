@@ -34,6 +34,9 @@
     --warning-soft: #fdf4dc;
     --danger:       #c0392b;
     --danger-soft:  #fdecea;
+    --violet:       #6d3fc0;
+    --violet-soft:  #f0ecfb;
+    --violet-mid:   #8255d4;
     --radius:       12px;
     --radius-sm:    8px;
     --shadow-sm:    0 1px 6px rgba(13,33,55,.07);
@@ -117,6 +120,15 @@
     color: #fff;
   }
   .faq-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .sat-btn {
+    color: rgba(180,160,255,.85);
+    border-color: rgba(130,85,212,.3);
+    background: rgba(109,63,192,.12);
+  }
+  .sat-btn:hover {
+    background: rgba(109,63,192,.22);
+    color: #c9b8f5;
+  }
 
   /* ── PAGE BAND (sub-header) ── */
   .page-band {
@@ -302,6 +314,7 @@
   .nav-card.c-navy  .card-stripe { background: linear-gradient(90deg, var(--navy-mid), var(--navy-light)); }
   .nav-card.c-amber .card-stripe { background: linear-gradient(90deg, var(--amber), #e09a1a); }
   .nav-card.c-orange .card-stripe { background: linear-gradient(90deg, var(--orange), #e87b38); }
+  .nav-card.c-violet .card-stripe { background: linear-gradient(90deg, var(--violet), var(--violet-mid)); }
 
   .card-content {
     padding: 20px 20px 0;
@@ -320,6 +333,7 @@
   .nav-card.c-navy  .card-icon { background: #e6ecf5;           color: var(--navy-mid); }
   .nav-card.c-amber .card-icon { background: var(--amber-soft); color: var(--amber); }
   .nav-card.c-orange .card-icon { background: var(--orange-soft); color: var(--orange); }
+  .nav-card.c-violet .card-icon { background: var(--violet-soft); color: var(--violet); }
 
   .card-text { flex: 1; min-width: 0; }
   .card-step {
@@ -332,6 +346,7 @@
   .nav-card.c-navy  .card-step { color: var(--navy-mid); }
   .nav-card.c-amber .card-step { color: var(--amber); }
   .nav-card.c-orange .card-step { color: var(--orange); }
+  .nav-card.c-violet .card-step { color: var(--violet); }
 
   .card-title {
     font-size: 15px; font-weight: 700;
@@ -361,6 +376,7 @@
   .tag-amber { background: var(--amber-soft); color: #7a4f00; }
   .tag-red   { background: var(--red-soft);   color: #8b1a1a; }
   .tag-orange { background: var(--orange-soft); color: #8a3006; }
+  .tag-violet { background: var(--violet-soft); color: #4a2a9a; }
 
   .card-arrow {
     width: 26px; height: 26px; border-radius: 6px;
@@ -374,6 +390,7 @@
   .nav-card.c-navy:hover  .card-arrow { background: var(--navy-mid); color: #fff; }
   .nav-card.c-amber:hover .card-arrow { background: var(--amber);    color: #fff; }
   .nav-card.c-orange:hover .card-arrow { background: var(--orange);  color: #fff; }
+  .nav-card.c-violet:hover .card-arrow { background: var(--violet);  color: #fff; }
 
   /* ── NOTICE BANNER ── */
   .notice {
@@ -696,6 +713,7 @@
     .workflow-card { padding: 16px; }
     .vehicle-grid { grid-template-columns: repeat(2, 1fr); }
     .faq-btn span { display: none; }
+    .sat-btn span { display: none; }
   }
 </style>
 </head>
@@ -718,6 +736,12 @@
     </div>
     <div class="header-right">
       <span class="header-chip">v1.0 · 2568</span>
+      <a class="faq-btn sat-btn" href="satisfaction.html" title="ประเมินความพึงพอใจการใช้รถ">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        <span>ประเมินความพึงพอใจ</span>
+      </a>
       <button class="faq-btn" onclick="openFAQ()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="10"/>
