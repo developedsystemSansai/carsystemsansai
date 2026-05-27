@@ -736,7 +736,7 @@
     </div>
     <div class="header-right">
       <span class="header-chip">v1.0 · 2568</span>
-      <a class="faq-btn sat-btn" href="satisfaction.html" title="ประเมินความพึงพอใจการใช้รถ">
+      <a class="faq-btn sat-btn" href="#" onclick="openSatisfaction(); return false;" title="ประเมินความพึงพอใจการใช้รถ">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
         </svg>
@@ -1363,6 +1363,18 @@ async function submitFeedback() {
     res.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
   }
   btn.disabled = false; btn.textContent = 'ส่งข้อมูล';
+}
+
+// ─── SATISFACTION TOKEN ────────────────────────────────────────────────────
+function openSatisfaction() {
+  // สร้าง token แบบ random ที่ใช้ได้ครั้งเดียว
+  const token = 'sat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+  // เก็บ token ใน sessionStorage ของหน้าหลัก (origin เดียวกัน)
+  // satisfaction.html จะอ่านผ่าน localStorage (shared same origin)
+  const tokenData = { token: token, used: false, created: Date.now() };
+  localStorage.setItem('sat_token_pending', JSON.stringify(tokenData));
+  // เปิดหน้าประเมินในแท็บใหม่พร้อม token
+  window.open('satisfaction.html?token=' + encodeURIComponent(token), '_blank', 'noopener');
 }
 
 // ─── INIT ──────────────────────────────────────────────────────────────────
