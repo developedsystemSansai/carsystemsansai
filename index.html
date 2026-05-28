@@ -1339,6 +1339,9 @@ function selFbType(btn, type) {
 }
 
 async function submitFeedback() {
+//  แทนที่ฟังก์ชันทั้งหมดด้วย code ด้านล่าง
+// ════════════════════════════════════════════════════════
+async function submitFeedback() {
   const txt = document.getElementById('fbText').value.trim();
   const btn = document.getElementById('fbSubmit');
   const res = document.getElementById('fbResult');
@@ -1349,15 +1352,30 @@ async function submitFeedback() {
   btn.disabled = true; btn.textContent = 'กำลังส่ง...';
   res.style.display = 'none';
   try {
-    await fetch(GAS_URL + '?action=submitFeedback', {
-      method: 'POST',
-      body: JSON.stringify({ type: fbType || 'ทั่วไป', message: txt, ts: new Date().toISOString() })
+    // ต้องส่งเป็น URLSearchParams { payload: JSON.stringify({action, ...}) }
+    // เหมือน saveSatisfaction และ saveCheck อื่น ๆ
+    const payload = {
+      action  : 'submitFeedback',
+      type    : fbType || 'ทั่วไป',
+      message : txt,
+      page    : 'index',
+      ts      : new Date().toISOString()
+    };
+    const r = await fetch(GAS_URL, {
+      method : 'POST',
+      body   : new URLSearchParams({ payload: JSON.stringify(payload) })
     });
-    res.className = 'fb-result ok'; res.style.display = 'block';
-    res.textContent = 'ขอบคุณสำหรับข้อมูล ทีมงานจะดำเนินการตรวจสอบ';
-    document.getElementById('fbText').value = '';
-    document.querySelectorAll('.fb-type-btn').forEach(b => b.classList.remove('sel'));
-    fbType = '';
+    const data = await r.json();
+    if (data.status === 'ok') {
+      res.className = 'fb-result ok'; res.style.display = 'block';
+      res.textContent = 'ขอบคุณสำหรับข้อมูล ทีมงานจะดำเนินการตรวจสอบ';
+      document.getElementById('fbText').value = '';
+      document.querySelectorAll('.fb-type-btn').forEach(b => b.classList.remove('sel'));
+      fbType = '';
+    } else {
+      res.className = 'fb-result err'; res.style.display = 'block';
+      res.textContent = 'เกิดข้อผิดพลาด: ' + (data.message || 'ลองใหม่อีกครั้ง');
+    }
   } catch (_) {
     res.className = 'fb-result err'; res.style.display = 'block';
     res.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
