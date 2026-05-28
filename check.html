@@ -848,8 +848,22 @@ const DEFAULT_VEHICLES = [
   { ทะเบียน:'นง.8781 ชม.', ประเภท:'รถตู้ฮุนได', ผู้รับผิดชอบ:'นายภาณุพงศ์ กางสำโรง', ประเภทระบบ:'ทั่วไป' },
 ];
 const DEFAULT_DRIVERS = [
-  'นายคมสันต์ ภายไธสงค์','นายชัยพร มอญแสง','นายนพดล คำปินคำ','นายกิติพงศ์ เขื่อนแก้ว','นายเฉลิมชมน์ นันติแก้ว','นายชัยพร ชัยศร','นายกานต์นิธิ ทองอร','นายเก้า พิจิตร','นายเฉลิมพล เลาแก้ว','นายภาณุพงศ์ กางสำโรง','นายกัมพล โพธิ์พัด'
+  'นายคมสันต์ ภายไธสงค์','นายชัยพร มอญแสง','นายนพดล คำปินคำ','นายกิติพงศ์ เขื่อนแก้ว',
+  'นายเฉลิมชมน์ นันติแก้ว','นายชัยพร ชัยศร','นายกานต์นิธิ ทองอร','นายเก้า พิจิตร',
+  'นายเฉลิมพล เลาแก้ว','นายภาณุพงศ์ กางสำโรง','นายกัมพล โพธิ์พัด'
 ];
+// buildDriverList: รวม API drivers + ผู้รับผิดชอบจาก vehicles
+// ให้แน่ใจว่าชื่อทุกคันจะอยู่ใน dropdown เสมอแม้ GAS Config sheet ขาดชื่อ
+function buildDriverList(apiDrivers, vehicles) {
+  const norm = s => (s || '').replace(/\s+/g, '').toLowerCase();
+  const base = (apiDrivers && apiDrivers.length) ? [...apiDrivers] : [...DEFAULT_DRIVERS];
+  const seen = new Set(base.map(n => norm(n)));
+  (vehicles || []).forEach(v => {
+    const owner = (v['ผู้รับผิดชอบ'] || '').trim();
+    if (owner && !seen.has(norm(owner))) { base.push(owner); seen.add(norm(owner)); }
+  });
+  return base;
+}
 
 // ── loadMasterData: โหลด vehicles + drivers + today-checked ──────────
 async function loadMasterData() {
@@ -863,13 +877,13 @@ async function loadMasterData() {
     const dJson   = await dRes.json();
     const chkJson = await chkRes.json();
     const vehicles     = (vJson.data    && vJson.data.length)    ? vJson.data    : DEFAULT_VEHICLES;
-    const drivers      = (dJson.drivers && dJson.drivers.length) ? dJson.drivers : DEFAULT_DRIVERS;
+    const drivers      = buildDriverList(dJson.drivers, vehicles);
     const todayChecked = chkJson.checked || [];
     populateVehicleSelect(vehicles, todayChecked);
     populateDriverSelect(drivers);
   } catch (_) {
     populateVehicleSelect(DEFAULT_VEHICLES, []);
-    populateDriverSelect(DEFAULT_DRIVERS);
+    populateDriverSelect(buildDriverList([], DEFAULT_VEHICLES));
   }
 }
 
