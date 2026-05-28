@@ -1203,6 +1203,7 @@ input.odo-mismatch {
 //  CONFIG — แก้ URL นี้ถ้า deploy GAS ใหม่
 // ════════════════════════════════════════════════════════
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
+const API_KEY = '8358d83f-8270-4a84-9c73-9a22efacce82';
 
 // ════════════════════════════════════════════════════════
 //  DEFAULT DATA (แสดงทันทีถ้า API ช้า / ออฟไลน์)
@@ -2255,7 +2256,7 @@ async function doConfirm() {
   btn.classList.add('loading'); btn.disabled = true;
 
   try {
-    const payloadObj = { action: type === 'start' ? 'startMile' : 'endMile', ...data };
+    const payloadObj = { action: type === 'start' ? 'startMile' : 'endMile', apikey: '8358d83f-8270-4a84-9c73-9a22efacce82', ...data };
 
     // ── ส่งทั้ง startMile และ endMile พร้อม CORS เพื่ออ่าน response ──
     // GAS จะอัพโหลดรูปบิล + เขียน URL ลง Sheet และ return URL กลับมา
@@ -2282,14 +2283,8 @@ async function doConfirm() {
         }
       }
     } catch(corsErr) {
-      console.warn('doConfirm CORS error, fallback no-cors:', corsErr.message);
-      // fallback no-cors (ข้อมูลถูกบันทึกแต่ไม่รู้ URL รูป)
-      await fetch(GAS_URL, {
-        method: 'POST', mode: 'no-cors',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body   : 'payload=' + encodeURIComponent(JSON.stringify(payloadObj))
-      });
-      respOk = true;
+      console.warn('doConfirm error:', corsErr.message);
+      respOk = false;
     }
 
     await new Promise(r => setTimeout(r, 600)); // รอ GAS ประมวลผล
@@ -2808,6 +2803,7 @@ async function uploadTripPhoto(photo) {
     const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
     const uploadPayload = JSON.stringify({
       action    : 'uploadPhotoPost',
+      apikey    : '8358d83f-8270-4a84-9c73-9a22efacce82',
       subFolder : 'TripPhotos',
       fileName  : photo.name || ('trip_' + Date.now() + '.jpg'),
       mimeType  : photo.type || 'image/jpeg',
