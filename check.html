@@ -596,7 +596,20 @@ textarea { resize: vertical; min-height: 80px; }
             <span class="error-msg">กรุณาเลือกชื่อผู้ตรวจ</span>
           </div>
         </div>
-        
+        <!-- ผู้รับผิดชอบรถ (auto-fill จาก Vehicles sheet) -->
+        <div class="field-row full" id="fg-responsiblePerson" style="display:none;">
+          <div class="field-group">
+            <label>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--teal)"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              ผู้รับผิดชอบรถคันนี้
+            </label>
+            <div id="responsiblePersonBox" style="padding:10px 14px;border:1.5px solid var(--teal);border-radius:8px;background:var(--teal-soft);font-size:0.9rem;font-weight:600;color:var(--teal);display:flex;align-items:center;gap:8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span id="responsiblePersonName">—</span>
+            </div>
+          </div>
+        </div>
+
         <div class="field-row three">
           <div class="field-group" id="fg-inspDate">
             <label>วัน/เดือน/ปี <span class="req">*</span></label>
@@ -823,17 +836,16 @@ const API_KEY = '8358d83f-8270-4a84-9c73-9a22efacce82';
 // LOAD MASTER DATA FROM GOOGLE SHEETS (Vehicles + Drivers)
 // ============================================================
 const DEFAULT_VEHICLES = [
-  { ทะเบียน:'นจ.4919 ชม.', ประเภท:'รถตู้ฮุนได', ประเภทระบบ:'ทั่วไป' },
-  { ทะเบียน:'นง.8781 ชม.', ประเภท:'รถตู้ฮุนได', ประเภทระบบ:'ทั่วไป' },
-  { ทะเบียน:'นง.86 ชม.',   ประเภท:'รถตู้',       ประเภทระบบ:'ทั่วไป' },
-  { ทะเบียน:'จย.1379 ชม.', ประเภท:'รถ Refer',    ประเภทระบบ:'EMS' },
-  { ทะเบียน:'งบ.5466 ชม.', ประเภท:'รถ Refer',    ประเภทระบบ:'EMS' },
-  { ทะเบียน:'ขษ.4361 ชม.', ประเภท:'รถ Refer',    ประเภทระบบ:'EMS' },
-  { ทะเบียน:'ขร.501 ชม.',  ประเภท:'รถ Refer',    ประเภทระบบ:'EMS' },
-  { ทะเบียน:'ขธ.9302 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ประเภทระบบ:'ทั่วไป' },
-  { ทะเบียน:'ขฉ.8407 ชม.', ประเภท:'รถ Refer',    ประเภทระบบ:'EMS' },
-  { ทะเบียน:'ขค.9662 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ประเภทระบบ:'ทั่วไป' },
-  { ทะเบียน:'กล.9438 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'นง.8781 ชม.', ประเภท:'รถตู้ฮุนได',        ผู้รับผิดชอบ:'นายภาณุพงศ์ กางสำโรง',  ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'นง.86 ชม.',   ประเภท:'รถตู้',             ผู้รับผิดชอบ:'นายคมสันต์ ภายไธสงค์',   ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'จย.1379 ชม.', ประเภท:'รถ Refer',           ผู้รับผิดชอบ:'นายชัยพร มอญแสง',        ประเภทระบบ:'EMS' },
+  { ทะเบียน:'งบ.5466 ชม.', ประเภท:'รถ Refer',           ผู้รับผิดชอบ:'นายนพดล คำปินคำ',        ประเภทระบบ:'EMS' },
+  { ทะเบียน:'ขษ.4361 ชม.', ประเภท:'รถ Refer',           ผู้รับผิดชอบ:'นายกิติพงศ์ เขื่อนแก้ว', ประเภทระบบ:'EMS' },
+  { ทะเบียน:'ขร.501 ชม.',  ประเภท:'รถ Refer',           ผู้รับผิดชอบ:'นายเฉลิมชนม์ นันติแก้ว', ประเภทระบบ:'EMS' },
+  { ทะเบียน:'ขธ.9302 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ผู้รับผิดชอบ:'นายชัยพร ชัยศร',         ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'ขฉ.8407 ชม.', ประเภท:'รถ Refer',           ผู้รับผิดชอบ:'นายกานต์นิธิ ทองอร',     ประเภทระบบ:'EMS' },
+  { ทะเบียน:'ขค.9662 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ผู้รับผิดชอบ:'นายเก้า พิจิตร',          ประเภทระบบ:'ทั่วไป' },
+  { ทะเบียน:'กล.9438 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ผู้รับผิดชอบ:'นายเฉลิมพล เลาแก้ว',     ประเภทระบบ:'ทั่วไป' },
 ];
 const DEFAULT_DRIVERS = [
   'นาย ชัยพร มอญแสง','นาย กิตติพงศ์ เขื่อนแก้ว','นาย กานต์นิธิ ทองอร',
@@ -864,7 +876,17 @@ async function loadMasterData() {
 }
 
 // ── populateVehicleSelect: แสดง "(ตรวจแล้ว)" สำหรับรถที่ตรวจไปแล้ว ──
+// ── vehicleMap: เก็บข้อมูลรถทั้งหมด (ใช้ lookup ผู้รับผิดชอบ) ──
+let vehicleMap = {};
+
 function populateVehicleSelect(vehicles, todayChecked) {
+  // สร้าง map สำหรับ lookup
+  vehicleMap = {};
+  vehicles.forEach(v => {
+    const key = (v['ทะเบียน'] || '') + (v['ประเภท'] || '');
+    vehicleMap[key] = v;
+  });
+
   const sel = document.getElementById('carType');
   sel.innerHTML = '<option value="">-- เลือกรถ --</option>';
 
@@ -1364,6 +1386,22 @@ function removeCheckPhoto(i) {
   renderCheckPhotoGrid();
   updateCheckUploadProgress();
 }
+
+// ── carType change: auto-fill ผู้รับผิดชอบ ──
+document.getElementById('carType').addEventListener('change', function() {
+  const val = this.value;
+  const vehicle = vehicleMap[val];
+  const responsible = vehicle && vehicle['ผู้รับผิดชอบ'] ? vehicle['ผู้รับผิดชอบ'] : '';
+  const box  = document.getElementById('fg-responsiblePerson');
+  const name = document.getElementById('responsiblePersonName');
+  if (responsible) {
+    name.textContent = responsible;
+    box.style.display = '';
+  } else {
+    name.textContent = '—';
+    box.style.display = val ? '' : 'none';
+  }
+});
 
 // Init
 updateProgress();
