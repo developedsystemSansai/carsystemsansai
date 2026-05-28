@@ -1233,7 +1233,7 @@ async function initIndex() {
   });
 
   try {
-    const res  = await fetch(GAS_URL + '?action=getVehicles');
+    const res  = await fetch(GAS_URL + '?action=getVehicles&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
     const json = await res.json();
     if (json.data && json.data.length) {
       ALL_VEHICLES = json.data.map(v => {
@@ -1273,7 +1273,7 @@ async function loadStatus() {
   );
 
   try {
-    const res  = await fetch(GAS_URL + '?action=getStatusSummary');
+    const res  = await fetch(GAS_URL + '?action=getStatusSummary&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
     const json = await res.json();
     if (json.status !== 'ok') throw new Error('api error');
 
