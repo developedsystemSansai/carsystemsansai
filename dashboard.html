@@ -959,6 +959,99 @@ body {
   .kpi-grid { grid-template-columns: 1fr 1fr; }
 }
 
+/* ── FUEL TRACKER CARDS ── */
+.ft-card {
+  border-radius: var(--radius);
+  padding: 13px 14px;
+  display: flex; flex-direction: column; gap: 8px;
+  transition: box-shadow var(--dur), transform var(--dur);
+  position: relative;
+}
+.ft-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+
+.ft-card--filled {
+  background: var(--blue-soft);
+  border: 1.5px solid rgba(29,111,181,.28);
+  box-shadow: 0 1px 6px rgba(29,111,181,.08);
+}
+.ft-card--empty {
+  background: var(--card);
+  border: 1.5px dashed var(--border-strong);
+  opacity: .72;
+}
+
+.ft-card-top {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 8px;
+}
+.ft-plate-wrap { display: flex; flex-direction: column; gap: 2px; }
+.ft-plate {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1rem; font-weight: 700;
+  color: var(--navy); letter-spacing: .04em; line-height: 1;
+}
+.ft-card--empty .ft-plate { color: var(--text-mid); }
+.ft-type { font-size: 10.5px; color: var(--text-light); font-weight: 500; }
+
+.ft-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 700;
+  padding: 3px 9px; border-radius: 20px;
+  flex-shrink: 0; white-space: nowrap;
+  letter-spacing: .2px;
+}
+.ft-badge--filled {
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 1px 4px rgba(29,111,181,.3);
+}
+.ft-badge--empty {
+  background: var(--bg2);
+  color: var(--text-light);
+  border: 1px solid var(--border);
+}
+
+.ft-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.ft-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10.5px; font-weight: 700;
+  padding: 2px 9px; border-radius: 5px;
+  font-family: 'IBM Plex Mono', monospace;
+  letter-spacing: .02em;
+}
+.ft-tag--liters  { background: var(--blue-soft);  color: var(--blue);  border: 1px solid rgba(29,111,181,.2); }
+.ft-tag--price   { background: var(--amber-soft); color: var(--amber); border: 1px solid rgba(192,122,0,.2); }
+.ft-tag--level   { background: var(--teal-soft);  color: var(--teal);  border: 1px solid rgba(0,122,110,.2); }
+.ft-tag--source  { background: var(--bg2); color: var(--text-mid); border: 1px solid var(--border); }
+
+.ft-driver {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text-mid); font-weight: 500;
+}
+.ft-driver svg { flex-shrink: 0; color: var(--text-light); }
+
+.ft-bill-btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px;
+  background: var(--navy); color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 11px; font-weight: 600;
+  text-decoration: none; width: fit-content;
+  transition: background var(--dur), transform var(--dur);
+  border: none;
+}
+.ft-bill-btn:hover { background: var(--blue); transform: translateY(-1px); }
+
+.ft-no-bill {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10.5px; color: var(--text-light); font-weight: 500;
+  margin-top: 2px;
+}
+.ft-no-record {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--text-light);
+}
+
 /* ── PRINT ── */
 @media print {
   .site-header, .filter-bar, .breadcrumb-bar { position: relative; }
@@ -1260,20 +1353,20 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="card-body" style="padding:0;">
         <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
           <thead>
-            <tr style="background:#f0f8ff;">
-              <th style="padding:9px 12px;text-align:left;font-size:0.7rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;">ทะเบียน</th>
-              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;">จำนวนครั้ง</th>
-              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:#0369a1;border-bottom:2px solid #bfdbfe;">ลิตร / บาท</th>
-              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:#0369a1;border-bottom:2px solid #bfdbfe;">เติมล่าสุด</th>
+            <tr style="background:var(--bg);">
+              <th style="padding:9px 12px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);">ทะเบียน</th>
+              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);">จำนวนครั้ง</th>
+              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);">ลิตร / บาท</th>
+              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);">เติมล่าสุด</th>
             </tr>
           </thead>
           <tbody id="fuelSummaryTbody">
             <tr><td colspan="4" class="loading-state"><div class="spinner-sm"></div></td></tr>
           </tbody>
         </table>
-        <div id="fuelSummaryFooter" style="padding:8px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid #bfdbfe;display:flex;justify-content:space-between;align-items:center;">
+        <div id="fuelSummaryFooter" style="padding:8px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
           <span>⛽ รวมจาก MileLog ตามช่วงเวลาที่เลือก</span>
-          <span id="fuelSummaryTotal" style="font-weight:700;color:#0369a1;"></span>
+          <span id="fuelSummaryTotal" style="font-weight:700;color:var(--blue);font-family:'IBM Plex Mono',monospace;"></span>
         </div>
       </div>
     </div>
@@ -1282,7 +1375,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   <!-- ══ DAILY SUMMARY DATE PICKER ══ -->
   <div class="card" style="margin-bottom:12px;">
-    <div style="padding:12px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:linear-gradient(90deg,#f8fafc,#f0f4f8);border-radius:16px;">
+    <div style="padding:12px 18px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--bg);border-radius:16px;border:1px solid var(--border);">
       <span style="font-size:0.82rem;font-weight:700;color:var(--navy);">ดูข้อมูลประจำวัน :</span>
       <div style="display:flex;align-items:center;gap:6px;">
         <button onclick="summaryNavDate(-1)" style="width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);background:var(--bg);color:var(--text-mid);font-size:0.9rem;cursor:pointer;display:flex;align-items:center;justify-content:center;" onmouseover="this.style.background='var(--navy)';this.style.color='#fff'" onmouseout="this.style.background='var(--bg)';this.style.color='var(--text-mid)'">&#8592;</button>
@@ -1308,12 +1401,12 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="table-scroll">
           <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
             <thead>
-              <tr style="background:#f5f7fa;">
-                <th style="padding:9px 12px;text-align:left;font-size:0.71rem;font-weight:700;color:var(--text-mid);border-bottom:2px solid var(--border);white-space:nowrap;">ทะเบียน</th>
-                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:#0369a1;border-bottom:2px solid var(--border);white-space:nowrap;">ไมล์ตรวจเช็ค (เช้า)</th>
-                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:#15803d;border-bottom:2px solid var(--border);white-space:nowrap;">ไมล์ล่าสุด</th>
-                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:#7c3aed;border-bottom:2px solid var(--border);white-space:nowrap;">ระยะทางรวม</th>
-                <th style="padding:9px 12px;text-align:center;font-size:0.71rem;font-weight:700;color:var(--text-mid);border-bottom:2px solid var(--border);white-space:nowrap;">เที่ยว</th>
+              <tr style="background:var(--bg);">
+                <th style="padding:9px 12px;text-align:left;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">ทะเบียน</th>
+                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">ไมล์ตรวจเช็ค (เช้า)</th>
+                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">ไมล์ล่าสุด</th>
+                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">ระยะทางรวม</th>
+                <th style="padding:9px 12px;text-align:center;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">เที่ยว</th>
               </tr>
             </thead>
             <tbody id="distSummaryTbody">
@@ -1322,7 +1415,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </table>
         </div>
         <div style="padding:7px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid var(--border);display:flex;align-items:center;gap:5px;">
-          <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#7c3aed;"></span>
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--teal);"></span>
           ระยะทาง = ไมล์ล่าสุด (MileLog) &#8722; ไมล์ตรวจเช็คเช้า (CheckLog)
         </div>
       </div>
@@ -1339,12 +1432,12 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="table-scroll">
           <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
             <thead>
-              <tr style="background:#f0f8ff;">
-                <th style="padding:9px 12px;text-align:left;font-size:0.71rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;white-space:nowrap;">ทะเบียน</th>
-                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;white-space:nowrap;">ปริมาณ (ลิตร)</th>
-                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:#7c3aed;border-bottom:2px solid #bfdbfe;white-space:nowrap;">จำนวนเงิน (บาท)</th>
-                <th style="padding:9px 12px;text-align:center;font-size:0.71rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;white-space:nowrap;">เที่ยวที่เติม</th>
-                <th style="padding:9px 12px;text-align:center;font-size:0.71rem;font-weight:700;color:#1e40af;border-bottom:2px solid #bfdbfe;white-space:nowrap;">เวลา</th>
+              <tr style="background:var(--bg);">
+                <th style="padding:9px 12px;text-align:left;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">ทะเบียน</th>
+                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">ปริมาณ (ลิตร)</th>
+                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">จำนวนเงิน (บาท)</th>
+                <th style="padding:9px 12px;text-align:center;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">เที่ยวที่เติม</th>
+                <th style="padding:9px 12px;text-align:center;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">เวลา</th>
               </tr>
             </thead>
             <tbody id="fuelCostTbody">
@@ -1352,9 +1445,9 @@ document.addEventListener('DOMContentLoaded', function() {
             </tbody>
           </table>
         </div>
-        <div style="padding:7px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid #bfdbfe;display:flex;align-items:center;justify-content:space-between;">
-          <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#0ea5e9;"></span>ข้อมูลจาก MileLog (บันทึกการออกรถ)</span>
-          <span id="fuelCostTotal" style="font-weight:700;color:#0369a1;"></span>
+        <div style="padding:7px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--blue);"></span>ข้อมูลจาก MileLog (บันทึกการออกรถ)</span>
+          <span id="fuelCostTotal" style="font-weight:700;color:var(--blue);font-family:'IBM Plex Mono',monospace;"></span>
         </div>
       </div>
     </div>
@@ -2075,30 +2168,29 @@ function renderFuelSummary(_unused) {
     const litersStr = v.totalLiters > 0 ? v.totalLiters.toLocaleString(undefined, {maximumFractionDigits:1}) + ' ล.' : '—';
     const priceStr  = v.totalPrice  > 0 ? v.totalPrice.toLocaleString()  + ' ฿' : '—';
     const lastStr   = v.lastDate ? v.lastDate.slice(5).replace('-', '/') : '—';
-    const statusBg  = '#eff6ff', statusText = '#1e40af';
-    return `<tr style="border-bottom:1px solid #e8f0fe;transition:background .15s;"
-              onmouseover="this.style.background='#f0f8ff'" onmouseout="this.style.background=''">
-      <td style="padding:9px 12px;font-weight:700;color:#0a2540;font-family:'Space Grotesk',sans-serif;font-size:0.82rem;">${plate}</td>
+    return `<tr style="border-bottom:1px solid var(--border);transition:background .15s;"
+              onmouseover="this.style.background='var(--blue-soft)'" onmouseout="this.style.background=''">
+      <td style="padding:9px 12px;font-weight:700;color:var(--navy);font-family:'IBM Plex Mono',monospace;font-size:0.82rem;">${plate}</td>
       <td style="padding:9px 12px;text-align:center;">
-        <span style="font-size:0.95rem;font-weight:700;color:#1e40af;">${v.trips}</span>
-        <span style="font-size:0.65rem;color:#94a3b8;"> ครั้ง</span>
+        <span style="font-size:0.95rem;font-weight:700;color:var(--blue);">${v.trips}</span>
+        <span style="font-size:0.65rem;color:var(--text-light);"> ครั้ง</span>
       </td>
       <td style="padding:9px 12px;text-align:center;">
-        <div style="font-weight:700;color:#0369a1;font-size:0.82rem;">${litersStr}</div>
-        <div style="font-size:0.68rem;color:#7c3aed;font-weight:600;">${priceStr}</div>
+        <div style="font-weight:700;color:var(--navy);font-family:'IBM Plex Mono',monospace;font-size:0.82rem;">${litersStr}</div>
+        <div style="font-size:0.68rem;color:var(--amber);font-weight:600;">${priceStr}</div>
       </td>
       <td style="padding:9px 12px;text-align:center;">
-        <span style="background:${statusBg};color:${statusText};font-size:0.72rem;font-weight:700;padding:3px 9px;border-radius:99px;">
-          ✅ ล่าสุด ${lastStr}${v.lastDriver ? ' · ' + v.lastDriver.split(' ').slice(-1)[0] : ''}
+        <span style="background:var(--blue-soft);color:var(--blue);font-size:0.72rem;font-weight:700;padding:3px 9px;border-radius:4px;font-family:'IBM Plex Mono',monospace;">
+          ล่าสุด ${lastStr}${v.lastDriver ? ' · ' + v.lastDriver.split(' ').slice(-1)[0] : ''}
         </span>
       </td>
     </tr>`;
-  }).join('') + `<tr style="background:#eff6ff;border-top:2px solid #3b82f6;">
-    <td style="padding:9px 12px;font-weight:700;color:#1e40af;" colspan="1">รวม (${rows.length} คัน)</td>
-    <td style="padding:9px 12px;text-align:center;font-weight:700;color:#1e40af;">${rows.reduce((s,[,v])=>s+v.trips,0)} ครั้ง</td>
+  }).join('') + `<tr style="background:var(--bg);border-top:2px solid var(--border-strong);">
+    <td style="padding:9px 12px;font-weight:700;color:var(--navy);" colspan="1">รวม (${rows.length} คัน)</td>
+    <td style="padding:9px 12px;text-align:center;font-weight:700;color:var(--blue);font-family:'IBM Plex Mono',monospace;">${rows.reduce((s,[,v])=>s+v.trips,0)} ครั้ง</td>
     <td style="padding:9px 12px;text-align:center;">
-      <div style="font-weight:700;color:#0369a1;">${grandLiters.toLocaleString(undefined,{maximumFractionDigits:1})} ล.</div>
-      <div style="font-size:0.72rem;color:#7c3aed;font-weight:700;">${grandPrice.toLocaleString()} ฿</div>
+      <div style="font-weight:700;color:var(--navy);font-family:'IBM Plex Mono',monospace;">${grandLiters.toLocaleString(undefined,{maximumFractionDigits:1})} ล.</div>
+      <div style="font-size:0.72rem;color:var(--amber);font-weight:700;">${grandPrice.toLocaleString()} ฿</div>
     </td>
     <td></td>
   </tr>`;
@@ -3055,42 +3147,47 @@ function renderFuelTracker(json) {
       const fuelUrl = (fd?.fuelPhotoUrl || '').toString().trim();
       const cleanFuelUrl = fuelUrl.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
       const billBtn = cleanFuelUrl.startsWith('http')
-        ? `<a href="${cleanFuelUrl}" target="_blank" rel="noopener"
-             style="display:inline-flex;align-items:center;gap:5px;margin-top:8px;
-                    padding:5px 12px;background:#0ea5e9;color:#fff;border-radius:8px;
-                    font-size:0.7rem;font-weight:700;text-decoration:none;width:fit-content;">
-             🧾 ดูรูปบิลน้ำมัน
+        ? `<a href="${cleanFuelUrl}" target="_blank" rel="noopener" class="ft-bill-btn">
+             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+             ดูรูปบิลน้ำมัน
            </a>`
-        : `<div style="font-size:0.68rem;color:#94a3b8;margin-top:6px;display:flex;align-items:center;gap:4px;">
-             📎 <span>เติมแล้ว — ยังไม่มีรูปบิล</span>
+        : `<div class="ft-no-bill">
+             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+             <span>ยังไม่มีรูปบิล</span>
            </div>`;
-      return `<div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:2px solid #3b82f6;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <div style="font-size:0.95rem;font-weight:800;color:#0a2540;font-family:'Space Grotesk',sans-serif;">${v.plate}</div>
-            <div style="font-size:0.7rem;color:#64748b;">${v.type}</div>
+      return `<div class="ft-card ft-card--filled">
+        <div class="ft-card-top">
+          <div class="ft-plate-wrap">
+            <div class="ft-plate">${v.plate}</div>
+            <div class="ft-type">${v.type}</div>
           </div>
-          <span style="background:#3b82f6;color:#fff;font-size:0.62rem;font-weight:700;padding:3px 10px;border-radius:99px;">✅ เติมแล้ว</span>
+          <span class="ft-badge ft-badge--filled">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+            เติมแล้ว
+          </span>
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;">
-          ${litersLabel ? `<span style="background:#2563eb;color:#fff;font-size:0.68rem;font-weight:700;padding:2px 9px;border-radius:99px;">⛽ ${litersLabel}</span>` : ''}
-          ${priceLabel  ? `<span style="background:#7c3aed;color:#fff;font-size:0.68rem;font-weight:700;padding:2px 9px;border-radius:99px;">💰 ${priceLabel}</span>` : ''}
-          ${levelLabel  ? `<span style="background:#0ea5e9;color:#fff;font-size:0.68rem;font-weight:700;padding:2px 9px;border-radius:99px;">${levelLabel}</span>` : ''}
-          ${sourceLabel ? `<span style="background:#e0f2fe;color:#0369a1;font-size:0.68rem;font-weight:600;padding:2px 9px;border-radius:99px;">${sourceLabel}</span>` : ''}
+        <div class="ft-tags">
+          ${litersLabel ? `<span class="ft-tag ft-tag--liters"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14M19 5l2 2-2 2M21 7H17"/></svg> ${litersLabel}</span>` : ''}
+          ${priceLabel  ? `<span class="ft-tag ft-tag--price"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> ${priceLabel}</span>` : ''}
+          ${levelLabel  ? `<span class="ft-tag ft-tag--level">${levelLabel}</span>` : ''}
+          ${sourceLabel ? `<span class="ft-tag ft-tag--source">${sourceLabel}</span>` : ''}
         </div>
-        ${fd?.driverName ? `<div style="font-size:0.7rem;color:#1e40af;margin-top:2px;">👤 ${fd.driverName}${timeLabel ? ' · ' + timeLabel : ''}</div>` : ''}
+        ${fd?.driverName ? `<div class="ft-driver"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${fd.driverName}${timeLabel ? ' · ' + timeLabel : ''}</div>` : ''}
         ${billBtn}
       </div>`;
     } else {
-      return `<div style="background:#f8fafc;border:2px dashed #e2e8f0;border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;opacity:0.75;">
-        <div style="display:flex;align-items:center;justify-content:space-between;">
-          <div>
-            <div style="font-size:0.95rem;font-weight:800;color:#334155;font-family:'Space Grotesk',sans-serif;">${v.plate}</div>
-            <div style="font-size:0.7rem;color:#94a3b8;">${v.type}</div>
+      return `<div class="ft-card ft-card--empty">
+        <div class="ft-card-top">
+          <div class="ft-plate-wrap">
+            <div class="ft-plate">${v.plate}</div>
+            <div class="ft-type">${v.type}</div>
           </div>
-          <span style="background:#e2e8f0;color:#94a3b8;font-size:0.62rem;font-weight:600;padding:3px 10px;border-radius:99px;">ยังไม่ได้เติม</span>
+          <span class="ft-badge ft-badge--empty">ยังไม่ได้เติม</span>
         </div>
-        <div style="font-size:0.7rem;color:#94a3b8;margin-top:2px;">⛽ — ยังไม่มีการบันทึก</div>
+        <div class="ft-no-record">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14M19 5l2 2-2 2M21 7H17"/></svg>
+          — ยังไม่มีการบันทึก
+        </div>
       </div>`;
     }
   });
