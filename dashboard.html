@@ -1005,6 +1005,20 @@ body {
 const SESSION_KEY = 'fleet_auth';
 const SESSION_TTL = 24 * 60 * 60 * 1000; // 24 hours
 
+// ========================================================
+// SHA-256 HASH ของรหัสผ่าน (ไม่เก็บรหัสผ่านจริงใน code)
+// วิธีสร้าง hash ใหม่: เปิด browser console แล้วรัน
+//   crypto.subtle.digest('SHA-256', new TextEncoder().encode('รหัสผ่านของคุณ'))
+//     .then(buf => console.log(Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('')));
+// แล้วนำค่าที่ได้มาใส่แทนบรรทัดด้านล่าง
+// ========================================================
+const PASS_HASH = 'b80a62589150fb5ebb0a0bfc8d63befb908bdeb3a7f10b96914cbdbadac6223f';
+
+async function hashStr(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
 function checkSession() {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
@@ -1014,14 +1028,6 @@ function checkSession() {
     localStorage.removeItem(SESSION_KEY);
   } catch(_) {}
   return false;
-}
-
-// ใหม่ — ใช้ hash แทน
-const PASS_HASH = 'b80a62589150fb5ebb0a0bfc8d63befb908bdeb3a7f10b96914cbdbadac6223f'; // ← ใส่ SHA-256 hash ของรหัสผ่านใหม่
-
-async function hashStr(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
 async function checkPw() {
@@ -1505,7 +1511,7 @@ let ALL_VEHICLES = [
 // โหลด Vehicles จาก Google Sheets แล้วอัปเดต filter dropdown + live grid
 async function loadVehicleMaster() {
   try {
-    const res  = await fetch(GAS_URL + '?action=getVehicles');
+    const res  = await fetch(GAS_URL + '?action=getVehicles&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
     const json = await res.json();
     if (json.data && json.data.length) {
       ALL_VEHICLES = json.data.map(v => ({
@@ -1777,7 +1783,7 @@ async function loadMileLogToday() {
   if (_mileLogLoading) return;
   _mileLogLoading = true;
   try {
-    const res  = await fetch(GAS_URL + '?action=getMileData');
+    const res  = await fetch(GAS_URL + '?action=getMileData&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
     const json = await res.json();
     const todayStr = bkkDateStr();
     _mileLogToday = (json.data || []).filter(r => {
@@ -1942,7 +1948,7 @@ function startOdoAutoRefresh() {
 async function loadData() {
   document.getElementById('lastUpdated').textContent = 'กำลังโหลด...';
   try {
-    const res = await fetch(GAS_URL + '?action=getData');
+    const res = await fetch(GAS_URL + '?action=getData&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
     const json = await res.json();
     allData = json.data || [];
     window.allData = allData;
@@ -2113,7 +2119,7 @@ let _mileLogAllLoaded = false;
 async function loadMileLogAll() {
   if (_mileLogAllLoaded) return;
   try {
-    const res  = await fetch(GAS_URL + '?action=getMileData');
+    const res  = await fetch(GAS_URL + '?action=getMileData&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
     const json = await res.json();
     _mileLogAll = json.data || [];
     _mileLogAllLoaded = true;
@@ -3911,7 +3917,7 @@ async function checkDriveAuth(showAlert = false) {
   const btn = document.getElementById('driveAuthBtn');
   if (btn) btn.innerHTML = '⏳ กำลังตรวจสอบ...';
   try {
-    const res  = await fetch(GAS_URL + '?action=authorizeUpload');
+    const res  = await fetch(GAS_URL + '?action=authorizeUpload&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
     const json = await res.json();
     if (json.status === 'ok' && json.authorized) {
       window._driveFolderId = json.folderId;
