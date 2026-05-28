@@ -1017,7 +1017,7 @@ function checkSession() {
 }
 
 // ใหม่ — ใช้ hash แทน
-const PASS_HASH = 'a3f2e1c4b8d7e6f5a2b1c0d9e8f7a6b5'; // ← ใส่ SHA-256 hash ของรหัสผ่านใหม่
+const PASS_HASH = 'ab80a62589150fb5ebb0a0bfc8d63befb908bdeb3a7f10b96914cbdbadac6223f'; // ← ใส่ SHA-256 hash ของรหัสผ่านใหม่
 
 async function hashStr(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
