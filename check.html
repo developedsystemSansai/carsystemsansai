@@ -817,6 +817,7 @@ textarea { resize: vertical; min-height: 80px; }
 // CONFIG — แก้ไข URL ตรงนี้หลัง deploy Google Apps Script
 // ============================================================
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
+const API_KEY = '8358d83f-8270-4a84-9c73-9a22efacce82';
 
 // ============================================================
 // LOAD MASTER DATA FROM GOOGLE SHEETS (Vehicles + Drivers)
@@ -1284,6 +1285,7 @@ async function uploadCheckPhoto(idx, name, base64, mimeType) {
 
     const uploadPayload = JSON.stringify({
       action    : 'uploadPhotoPost',   // ✅ แก้จาก 'uploadRepairPhoto' → ใช้ buffer ลง CheckLog
+      apikey    : API_KEY,             // ✅ เพิ่ม — ป้องกัน Unauthorized
       subFolder : 'CheckPhotos',       // บอก GAS ว่าเป็นรูปตรวจสภาพ (ไม่ใช่ FuelReceipts)
       carType   : carType,             // ใช้สร้าง buffer key
       inspDate  : inspDate,            // ใช้สร้าง buffer key
