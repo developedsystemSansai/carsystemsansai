@@ -1192,6 +1192,7 @@
 <script>
 // ─── CONFIG ────────────────────────────────────────────────────────────────
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
+const API_KEY = '8358d83f-8270-4a84-9c73-9a22efacce82';
 
 let ALL_VEHICLES = [
   { plate:'นจ.4919 ชม.', type:'รถตู้ฮุนได',         sys:'ทั่วไป' },
@@ -1415,6 +1416,7 @@ async function submitFeedback() {
     // เหมือน saveSatisfaction และ saveCheck อื่น ๆ
     const payload = {
       action  : 'submitFeedback',
+      apikey  : '8358d83f-8270-4a84-9c73-9a22efacce82',
       type    : fbType || 'ทั่วไป',
       message : txt,
       page    : 'index',
