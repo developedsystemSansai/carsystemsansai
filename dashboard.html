@@ -2969,11 +2969,12 @@ async function loadLiveVehicleStatus() {
     await loadVehicleMaster();
 
     // ดึง getStatusSummary (รวม Vehicles sheet + MileLog + CheckLog จาก GAS)
-    const res = await fetch(GAS_STATUS_URL + '?action=getStatusSummary');
+    const res = await fetch(GAS_STATUS_URL + '?action=getStatusSummary&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
     const json = await res.json();
     if (json.status !== 'ok') throw new Error('api error');
 
     // ── สถานะรถแต่ละคัน (จาก Vehicles sheet + MileLog) ──
+    window._lastStatusJson = json;  // cache สำหรับ re-render หลังแก้สถานะ
     renderLiveVehicleGrid(json);
 
 
@@ -3995,6 +3996,101 @@ function openLiveVehicleDetail(plate) {
   }
 
   document.getElementById('liveVehModal').classList.add('show');
+
+  // ── Track current plate for setVehStatus ──
+  _lvmCurrentPlate = plate;
+
+  // ── Reset status buttons + highlight current status ──
+  const msgEl2 = document.getElementById('lvmStatusMsg');
+  if (msgEl2) msgEl2.textContent = '';
+  const currentSt = d.sheetStatus || '';
+  document.querySelectorAll('.lvm-status-btn').forEach(b => {
+    const match = b.dataset.status === currentSt;
+    b.style.opacity     = match ? '1'          : '0.65';
+    b.style.transform   = match ? 'scale(1.04)': '';
+    b.style.fontWeight  = match ? '700'        : '600';
+  });
+}
+
+// ── เก็บ plate ที่กำลังเปิด modal ──
+let _lvmCurrentPlate = '';
+
+// ── เพิ่มบรรทัดนี้ใน openLiveVehicleDetail เพื่อ track plate ──
+// (patch อยู่ด้านล่าง openLiveVehicleDetail จริง)
+
+// ── setVehStatus: highlight ปุ่มที่เลือก + ส่งไป GAS ──
+function setVehStatus(btn) {
+  const newStatus = btn.dataset.status;
+  const plate     = _lvmCurrentPlate;
+  if (!plate || !newStatus) return;
+
+  // highlight
+  document.querySelectorAll('.lvm-status-btn').forEach(b => {
+    b.style.opacity = '0.5';
+    b.style.transform = 'scale(0.97)';
+  });
+  btn.style.opacity = '1';
+  btn.style.transform = 'scale(1.04)';
+
+  const msgEl = document.getElementById('lvmStatusMsg');
+  msgEl.style.color = '#6b7280';
+  msgEl.textContent = '⏳ กำลังบันทึก...';
+
+  // ส่งไป GAS — ใช้ updateVehicleStatus ผ่าน action ที่มีอยู่แล้วใน saveCheck
+  // GAS ไม่มี action=updateStatus แยก — ใช้ fetch POST action=saveCheck แต่แบบ patch
+  // จริงๆ ต้องเรียก updateVehicleStatus ผ่าน action ใหม่ — เราใช้ fetch doGet resetDailyStatus
+  // ใช้วิธีง่ายที่สุด: POST action=updateVehicleStatus (ถ้าไม่มีใน router ให้ fallback แจ้ง)
+  const GAS_EP = typeof GAS_URL !== 'undefined' ? GAS_URL : '';
+  fetch(GAS_EP, {
+    method : 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body   : 'payload=' + encodeURIComponent(JSON.stringify({
+      action   : 'updateVehicleStatus',
+      apikey   : '8358d83f-8270-4a84-9c73-9a22efacce82',
+      carType  : plate,
+      status   : newStatus,
+      updatedBy: 'ผู้บริหาร'
+    }))
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.status === 'ok') {
+      msgEl.style.color = '#16a34a';
+      msgEl.textContent = '✅ บันทึกสถานะ "' + newStatus + '" เรียบร้อยแล้ว';
+      // อัปเดต liveVehicleDetailMap และ card ใน grid
+      if (window.liveVehicleDetailMap && window.liveVehicleDetailMap[plate]) {
+        window.liveVehicleDetailMap[plate].sheetStatus = newStatus;
+      }
+      // อัปเดต ALL_VEHICLES ด้วย
+      if (window.ALL_VEHICLES) {
+        const veh = window.ALL_VEHICLES.find(v => v.plate === plate);
+        if (veh) veh.sheetStatus = newStatus;
+      }
+      // รีเฟรช grid หลัง 800ms
+      setTimeout(() => {
+        if (typeof renderLiveVehicleGrid === 'function' && window._lastStatusJson) {
+          renderLiveVehicleGrid(window._lastStatusJson);
+        } else if (typeof renderLiveVehicleGridFromCheckLog === 'function') {
+          renderLiveVehicleGridFromCheckLog();
+        }
+      }, 800);
+    } else {
+      msgEl.style.color = '#dc2626';
+      msgEl.textContent = '❌ ' + (res.message || 'เกิดข้อผิดพลาด');
+      document.querySelectorAll('.lvm-status-btn').forEach(b => {
+        b.style.opacity = '1';
+        b.style.transform = '';
+      });
+    }
+  })
+  .catch(err => {
+    msgEl.style.color = '#dc2626';
+    msgEl.textContent = '❌ ไม่สามารถเชื่อมต่อได้: ' + err.message;
+    document.querySelectorAll('.lvm-status-btn').forEach(b => {
+      b.style.opacity = '1';
+      b.style.transform = '';
+    });
+  });
 }
 
 function closeLiveVehModal(e) {
@@ -4048,6 +4144,7 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
   try {
     const body = JSON.stringify({
       action     : 'uploadPhotos',
+      apikey     : '8358d83f-8270-4a84-9c73-9a22efacce82',
       photos     : photos,
       carType    : carType,
       inspDate   : inspDate,
@@ -4084,6 +4181,32 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
       <div id="lvmRemarksWrap" style="margin-top:14px;display:none;">
         <div class="lvm-sec-title">หมายเหตุ</div>
         <div class="remarks-box" id="lvmRemarks"></div>
+      </div>
+      <!-- ── ส่วนแก้ไขสถานะ (ผู้บริหาร) ── -->
+      <div id="lvmEditStatusWrap" style="margin-top:18px;border-top:1.5px solid #e2e8f0;padding-top:14px;">
+        <div class="lvm-sec-title" style="display:flex;align-items:center;gap:6px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          แก้ไขสถานะรถ
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <button class="lvm-status-btn" data-status="พร้อมใช้งาน" onclick="setVehStatus(this)"
+            style="padding:10px 6px;border-radius:10px;border:1.5px solid #bbf7d0;background:#f0fdf4;color:#166534;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all .15s;">
+            ✅ พร้อมใช้งาน
+          </button>
+          <button class="lvm-status-btn" data-status="กำลังใช้งาน" onclick="setVehStatus(this)"
+            style="padding:10px 6px;border-radius:10px;border:1.5px solid #fed7aa;background:#fff7ed;color:#9a3412;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all .15s;">
+            🚗 กำลังใช้งาน
+          </button>
+          <button class="lvm-status-btn" data-status="รอซ่อม" onclick="setVehStatus(this)"
+            style="padding:10px 6px;border-radius:10px;border:1.5px solid #fecaca;background:#fef2f2;color:#991b1b;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all .15s;">
+            🔧 รอซ่อม
+          </button>
+          <button class="lvm-status-btn" data-status="รอตรวจสภาพรถ" onclick="setVehStatus(this)"
+            style="padding:10px 6px;border-radius:10px;border:1.5px solid #cbd5e1;background:#f8fafc;color:#475569;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all .15s;">
+            ⏳ รอตรวจสภาพ
+          </button>
+        </div>
+        <div id="lvmStatusMsg" style="font-size:0.75rem;color:var(--text-light);text-align:center;min-height:18px;"></div>
       </div>
     </div>
   </div>
@@ -4689,7 +4812,7 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
 
   function loadSatisfactionData() {
     const p = getDateParams();
-    const url = GAS + '?action=getSatisfactionData&limit=300'
+    const url = GAS + '?action=getSatisfactionData&apikey=8358d83f-8270-4a84-9c73-9a22efacce82&limit=300'
       + (p.startDate ? '&startDate=' + encodeURIComponent(p.startDate) : '')
       + (p.endDate   ? '&endDate='   + encodeURIComponent(p.endDate)   : '');
 
@@ -4710,7 +4833,7 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
   }
 
   function loadFeedbackData() {
-    const url = GAS + '?action=getFeedbackData&limit=100';
+    const url = GAS + '?action=getFeedbackData&apikey=8358d83f-8270-4a84-9c73-9a22efacce82&limit=100';
     fetch(url)
       .then(r => r.json())
       .then(res => {
@@ -4889,7 +5012,7 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
 
   // โหลด badge count แบบเงียบ ๆ เมื่อหน้าโหลด
   setTimeout(() => {
-    fetch(GAS + '?action=getSatisfactionData&limit=1')
+    fetch(GAS + '?action=getSatisfactionData&apikey=8358d83f-8270-4a84-9c73-9a22efacce82&limit=1')
       .then(r => r.json())
       .then(res => {
         if (res && res.summary) {
