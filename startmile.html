@@ -1274,7 +1274,7 @@ function checkAndHandleDailyReset() {
   // ถ้ายังไม่เคย reset วันนี้ (หลังตี 3) → เรียก GAS
   if (lastReset !== todayKey && now.getHours() >= 3) {
     console.log('[DailyReset] triggering reset for', todayKey);
-    fetch(GAS_URL + '?action=resetDailyStatus', { cache: 'no-cache' })
+    fetch(GAS_URL + '?action=resetDailyStatus&apikey=8358d83f-8270-4a84-9c73-9a22efacce82', { cache: 'no-cache' })
       .then(r => r.json())
       .then(data => {
         console.log('[DailyReset] result:', data);
@@ -1299,7 +1299,7 @@ function scheduleReloadAt3am() {
 
   setTimeout(() => {
     // เรียก GAS reset แล้วค่อย reload หน้า
-    fetch(GAS_URL + '?action=resetDailyStatus', { cache: 'no-cache' })
+    fetch(GAS_URL + '?action=resetDailyStatus&apikey=8358d83f-8270-4a84-9c73-9a22efacce82', { cache: 'no-cache' })
       .finally(() => {
         const todayKey = (() => {
           const d = bkkNow();
@@ -1508,7 +1508,7 @@ async function loadAllData() {
 
 // helper fetch GAS
 async function fetchGAS(action) {
-  const res = await fetch(GAS_URL + '?action=' + action, { cache: 'no-cache' });
+  const res = await fetch(GAS_URL + '?action=' + action + '&apikey=8358d83f-8270-4a84-9c73-9a22efacce82', { cache: 'no-cache' });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   return await res.json();
 }
