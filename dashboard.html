@@ -4054,6 +4054,731 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
 </script>
 
 <!-- ── FOOTER ── -->
+<!-- ── FEEDBACK FLOATING BUTTON & PANEL ── -->
+<style>
+/* ── Floating Action Button (ขวา กึ่งกลาง) ── */
+.fab-feedback {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 900;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+}
+
+.fab-feedback-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #4a2a9a 0%, #6d3fc0 100%);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  padding: 10px 14px 10px 16px;
+  border-radius: 12px 0 0 12px;
+  box-shadow: -3px 3px 16px rgba(74,42,154,.40);
+  font-family: 'Noto Sans Thai', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .3px;
+  transition: all .2s cubic-bezier(0.25,0.46,0.45,0.94);
+  white-space: nowrap;
+  border-right: none;
+  writing-mode: horizontal-tb;
+}
+.fab-feedback-btn:hover {
+  background: linear-gradient(135deg, #5a38b0 0%, #7d50d4 100%);
+  box-shadow: -4px 4px 22px rgba(74,42,154,.55);
+  transform: translateX(-3px);
+}
+.fab-feedback-btn svg { flex-shrink: 0; }
+
+/* Badge count */
+.fab-badge {
+  background: #f0c040;
+  color: #182332;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  min-width: 18px;
+  text-align: center;
+  line-height: 16px;
+}
+
+/* ── Side Panel ── */
+.feedback-panel {
+  position: fixed;
+  right: -520px;
+  top: 0;
+  width: 500px;
+  max-width: 95vw;
+  height: 100vh;
+  background: #fff;
+  z-index: 950;
+  box-shadow: -6px 0 40px rgba(13,33,55,.20);
+  display: flex;
+  flex-direction: column;
+  transition: right .32s cubic-bezier(0.25,0.46,0.45,0.94);
+  border-left: 1px solid #d5dce8;
+}
+.feedback-panel.open {
+  right: 0;
+}
+
+/* Panel Header */
+.fp-header {
+  background: linear-gradient(135deg, #4a2a9a 0%, #6d3fc0 100%);
+  padding: 18px 20px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.fp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.fp-header-icon {
+  width: 36px; height: 36px;
+  background: rgba(255,255,255,.15);
+  border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+}
+.fp-title { color: #fff; font-size: 15px; font-weight: 700; }
+.fp-subtitle { color: rgba(255,255,255,.75); font-size: 11px; margin-top: 2px; }
+.fp-close {
+  background: rgba(255,255,255,.15);
+  border: none; cursor: pointer;
+  color: #fff; width: 32px; height: 32px;
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s;
+}
+.fp-close:hover { background: rgba(255,255,255,.25); }
+
+/* Tab bar */
+.fp-tabs {
+  display: flex;
+  border-bottom: 2px solid #d5dce8;
+  background: #f8f9fc;
+  flex-shrink: 0;
+}
+.fp-tab {
+  flex: 1;
+  padding: 11px 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Noto Sans Thai', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: #7a8ea5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: all .15s;
+}
+.fp-tab.active {
+  color: #4a2a9a;
+  border-bottom-color: #6d3fc0;
+  background: #fff;
+}
+.fp-tab:hover:not(.active) { color: #3d5168; background: #eef2f7; }
+.fp-tab-cnt {
+  background: #eef2f7;
+  color: #3d5168;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 6px;
+  min-width: 16px;
+  text-align: center;
+}
+.fp-tab.active .fp-tab-cnt { background: rgba(74,42,154,.12); color: #4a2a9a; }
+
+/* Panel Body */
+.fp-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.fp-body::-webkit-scrollbar { width: 4px; }
+.fp-body::-webkit-scrollbar-thumb { background: #d5dce8; border-radius: 4px; }
+
+/* Summary KPIs */
+.fp-kpi-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+  padding: 16px 16px 12px;
+}
+.fp-kpi {
+  background: #f8f9fc;
+  border: 1px solid #e0e7f0;
+  border-radius: 10px;
+  padding: 12px 10px;
+  text-align: center;
+}
+.fp-kpi-val {
+  font-size: 22px;
+  font-weight: 700;
+  color: #4a2a9a;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.fp-kpi-val.good { color: #1a8a4a; }
+.fp-kpi-val.warn { color: #c07a00; }
+.fp-kpi-val.bad  { color: #c0392b; }
+.fp-kpi-label {
+  font-size: 10px;
+  color: #7a8ea5;
+  font-weight: 500;
+}
+
+/* Star distribution bar */
+.fp-dist { padding: 0 16px 14px; }
+.fp-dist-title { font-size: 11px; font-weight: 700; color: #7a8ea5; letter-spacing: .6px; text-transform: uppercase; margin-bottom: 8px; }
+.fp-dist-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.fp-dist-star { font-size: 12px; color: #f0c040; width: 14px; text-align: right; flex-shrink: 0; }
+.fp-dist-star-label { font-size: 11px; color: #7a8ea5; width: 14px; flex-shrink: 0; }
+.fp-dist-bar-bg { flex: 1; background: #eef2f7; border-radius: 4px; height: 8px; overflow: hidden; }
+.fp-dist-bar-fill { height: 100%; background: #f0c040; border-radius: 4px; transition: width .4s ease; }
+.fp-dist-bar-fill.s5 { background: #6d3fc0; }
+.fp-dist-bar-fill.s4 { background: #1a8a4a; }
+.fp-dist-bar-fill.s3 { background: #c07a00; }
+.fp-dist-bar-fill.s2 { background: #d4680a; }
+.fp-dist-bar-fill.s1 { background: #c0392b; }
+.fp-dist-cnt { font-size: 11px; color: #7a8ea5; width: 20px; text-align: right; flex-shrink: 0; }
+
+/* Divider */
+.fp-divider { height: 1px; background: #eef2f7; margin: 0 16px 12px; }
+
+/* Card list */
+.fp-list { padding: 0 16px 80px; }
+.fp-card {
+  background: #fff;
+  border: 1px solid #e0e7f0;
+  border-radius: 10px;
+  padding: 13px 14px;
+  margin-bottom: 10px;
+  transition: box-shadow .15s;
+}
+.fp-card:hover { box-shadow: 0 3px 14px rgba(13,33,55,.09); }
+.fp-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.fp-card-stars { color: #f0c040; font-size: 14px; letter-spacing: 1px; }
+.fp-card-stars-empty { color: #d5dce8; }
+.fp-card-date { font-size: 11px; color: #7a8ea5; white-space: nowrap; flex-shrink: 0; }
+.fp-card-purpose {
+  display: inline-block;
+  background: rgba(74,42,154,.08);
+  color: #4a2a9a;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 5px;
+  margin-bottom: 6px;
+}
+.fp-card-comment {
+  font-size: 13px;
+  color: #3d5168;
+  line-height: 1.55;
+  word-break: break-word;
+}
+.fp-card-comment.muted { color: #b0bccc; font-style: italic; }
+.fp-card-driver {
+  font-size: 11px;
+  color: #7a8ea5;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Feedback cards */
+.fp-fb-type {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.fp-fb-type.แจ้งข้อผิดพลาด { background: #fdecea; color: #c0392b; }
+.fp-fb-type.ข้อเสนอแนะ     { background: #e4f5eb; color: #1a8a4a; }
+.fp-fb-type.สอบถามการใช้งาน { background: #e8f1fb; color: #1d6fb5; }
+.fp-fb-type.อื่น\ ๆ        { background: #f0ecfb; color: #4a2a9a; }
+.fp-fb-type.ทั่วไป          { background: #eef2f7; color: #3d5168; }
+
+/* Empty / loading */
+.fp-empty {
+  text-align: center;
+  padding: 48px 20px;
+  color: #7a8ea5;
+}
+.fp-empty svg { opacity: .3; margin-bottom: 12px; }
+.fp-empty p { font-size: 13px; }
+
+.fp-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  gap: 10px;
+  color: #7a8ea5;
+  font-size: 13px;
+}
+.fp-spinner {
+  width: 22px; height: 22px;
+  border: 2.5px solid #d5dce8;
+  border-top-color: #6d3fc0;
+  border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Date filter */
+.fp-filter {
+  padding: 10px 16px;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  background: #f8f9fc;
+  border-bottom: 1px solid #e0e7f0;
+  flex-shrink: 0;
+}
+.fp-filter label { font-size: 11px; font-weight: 600; color: #7a8ea5; flex-shrink: 0; }
+.fp-filter input[type="date"] {
+  font-family: 'Noto Sans Thai', sans-serif;
+  font-size: 12px;
+  padding: 4px 8px;
+  border: 1px solid #d5dce8;
+  border-radius: 6px;
+  color: #182332;
+  background: #fff;
+  flex: 1;
+  min-width: 120px;
+}
+.fp-filter-btn {
+  background: #4a2a9a;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-family: 'Noto Sans Thai', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 6px;
+  transition: background .15s;
+  flex-shrink: 0;
+}
+.fp-filter-btn:hover { background: #6d3fc0; }
+.fp-filter-clear {
+  background: none;
+  border: 1px solid #d5dce8;
+  cursor: pointer;
+  font-family: 'Noto Sans Thai', sans-serif;
+  font-size: 11px;
+  color: #7a8ea5;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: all .15s;
+  flex-shrink: 0;
+}
+.fp-filter-clear:hover { border-color: #4a2a9a; color: #4a2a9a; }
+
+/* Overlay */
+.fb-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13,33,55,.35);
+  z-index: 940;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .32s;
+  backdrop-filter: blur(2px);
+}
+.fb-overlay.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+</style>
+
+<!-- Overlay -->
+<div class="fb-overlay" id="fbOverlay" onclick="closeFeedbackPanel()"></div>
+
+<!-- Floating Button -->
+<div class="fab-feedback">
+  <button class="fab-feedback-btn" id="fabFeedbackBtn" onclick="openFeedbackPanel()" title="ดู Feedback และประเมินความพึงพอใจ">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+    </svg>
+    Feedback
+    <span class="fab-badge" id="fabBadge">—</span>
+  </button>
+</div>
+
+<!-- Side Panel -->
+<div class="feedback-panel" id="feedbackPanel">
+  <!-- Header -->
+  <div class="fp-header">
+    <div class="fp-header-left">
+      <div class="fp-header-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+      </div>
+      <div>
+        <div class="fp-title">ผลการประเมิน & Feedback</div>
+        <div class="fp-subtitle">เฉพาะผู้บริหาร · ข้อมูลจาก Google Sheets</div>
+      </div>
+    </div>
+    <button class="fp-close" onclick="closeFeedbackPanel()" title="ปิด">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="fp-tabs">
+    <button class="fp-tab active" id="fpTabSat" onclick="switchFpTab('sat')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      ประเมินความพึงพอใจ
+      <span class="fp-tab-cnt" id="fpTabSatCnt">—</span>
+    </button>
+    <button class="fp-tab" id="fpTabFb" onclick="switchFpTab('fb')">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      แจ้งปัญหา / ข้อเสนอแนะ
+      <span class="fp-tab-cnt" id="fpTabFbCnt">—</span>
+    </button>
+  </div>
+
+  <!-- Date Filter -->
+  <div class="fp-filter" id="fpFilter">
+    <label>ช่วงวันที่</label>
+    <input type="date" id="fpDateFrom" title="วันเริ่มต้น">
+    <label>ถึง</label>
+    <input type="date" id="fpDateTo" title="วันสิ้นสุด">
+    <button class="fp-filter-btn" onclick="reloadFpData()">กรอง</button>
+    <button class="fp-filter-clear" onclick="clearFpFilter()">ล้าง</button>
+  </div>
+
+  <!-- Body -->
+  <div class="fp-body" id="fpBody">
+    <div class="fp-loading"><div class="fp-spinner"></div> กำลังโหลด...</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  FEEDBACK PANEL — dashboard.html
+// ═══════════════════════════════════════════════════════
+(function() {
+  'use strict';
+
+  const GAS = typeof GAS_URL !== 'undefined'
+    ? GAS_URL
+    : 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
+
+  let currentTab  = 'sat';   // 'sat' | 'fb'
+  let satData     = null;
+  let fbData      = null;
+  let panelOpen   = false;
+
+  // ── OPEN / CLOSE ──────────────────────────────────────
+  window.openFeedbackPanel = function() {
+    document.getElementById('feedbackPanel').classList.add('open');
+    document.getElementById('fbOverlay').classList.add('show');
+    panelOpen = true;
+    document.body.style.overflow = 'hidden';
+    // โหลดข้อมูลถ้ายังไม่มี
+    if (!satData) loadSatisfactionData();
+    if (!fbData)  loadFeedbackData();
+  };
+
+  window.closeFeedbackPanel = function() {
+    document.getElementById('feedbackPanel').classList.remove('open');
+    document.getElementById('fbOverlay').classList.remove('show');
+    panelOpen = false;
+    document.body.style.overflow = '';
+  };
+
+  // keyboard ESC
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && panelOpen) window.closeFeedbackPanel();
+  });
+
+  // ── TAB SWITCH ────────────────────────────────────────
+  window.switchFpTab = function(tab) {
+    currentTab = tab;
+    document.getElementById('fpTabSat').classList.toggle('active', tab === 'sat');
+    document.getElementById('fpTabFb').classList.toggle('active', tab === 'fb');
+    renderFpBody();
+  };
+
+  // ── DATE FILTER ───────────────────────────────────────
+  // ตั้งค่า default: 30 วันย้อนหลัง → วันนี้
+  function setDefaultDates() {
+    const today = new Date();
+    const ago30 = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
+    document.getElementById('fpDateTo').value   = toDateInputVal(today);
+    document.getElementById('fpDateFrom').value = toDateInputVal(ago30);
+  }
+  function toDateInputVal(d) {
+    return d.toISOString().split('T')[0]; // yyyy-MM-dd
+  }
+  function toThaiDateStr(isoVal) {
+    if (!isoVal) return '';
+    const parts = isoVal.split('-');
+    return parts[2] + '/' + parts[1] + '/' + parts[0];
+  }
+
+  window.reloadFpData = function() {
+    satData = null; fbData = null;
+    document.getElementById('fpBody').innerHTML = '<div class="fp-loading"><div class="fp-spinner"></div> กำลังโหลด...</div>';
+    loadSatisfactionData();
+    loadFeedbackData();
+  };
+
+  window.clearFpFilter = function() {
+    setDefaultDates();
+    window.reloadFpData();
+  };
+
+  // ── LOAD DATA ─────────────────────────────────────────
+  function getDateParams() {
+    const from = document.getElementById('fpDateFrom').value;
+    const to   = document.getElementById('fpDateTo').value;
+    return {
+      startDate: toThaiDateStr(from),
+      endDate  : toThaiDateStr(to)
+    };
+  }
+
+  function loadSatisfactionData() {
+    const p = getDateParams();
+    const url = GAS + '?action=getSatisfactionData&limit=300'
+      + (p.startDate ? '&startDate=' + encodeURIComponent(p.startDate) : '')
+      + (p.endDate   ? '&endDate='   + encodeURIComponent(p.endDate)   : '');
+
+    fetch(url)
+      .then(r => r.json())
+      .then(res => {
+        satData = res;
+        // update badge & tab count
+        const cnt = res.count || 0;
+        document.getElementById('fpTabSatCnt').textContent = cnt;
+        updateFabBadge();
+        if (currentTab === 'sat') renderFpBody();
+      })
+      .catch(() => {
+        satData = { status: 'error', data: [], count: 0, summary: null };
+        if (currentTab === 'sat') renderFpBody();
+      });
+  }
+
+  function loadFeedbackData() {
+    const url = GAS + '?action=getFeedbackData&limit=100';
+    fetch(url)
+      .then(r => r.json())
+      .then(res => {
+        fbData = res;
+        document.getElementById('fpTabFbCnt').textContent = res.count || 0;
+        updateFabBadge();
+        if (currentTab === 'fb') renderFpBody();
+      })
+      .catch(() => {
+        fbData = { status: 'error', data: [], count: 0 };
+        if (currentTab === 'fb') renderFpBody();
+      });
+  }
+
+  function updateFabBadge() {
+    const satCnt = (satData && satData.count) || 0;
+    const fbCnt  = (fbData  && fbData.count)  || 0;
+    const total  = satCnt + fbCnt;
+    document.getElementById('fabBadge').textContent = total > 0 ? total : '0';
+  }
+
+  // ── RENDER BODY ───────────────────────────────────────
+  function renderFpBody() {
+    const body = document.getElementById('fpBody');
+    if (currentTab === 'sat') {
+      body.innerHTML = renderSatisfactionTab();
+    } else {
+      body.innerHTML = renderFeedbackTab();
+    }
+  }
+
+  // ── SATISFACTION TAB ──────────────────────────────────
+  function renderSatisfactionTab() {
+    if (!satData) return '<div class="fp-loading"><div class="fp-spinner"></div> กำลังโหลด...</div>';
+    if (satData.status === 'error') return '<div class="fp-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>ไม่สามารถโหลดข้อมูลได้<br>กรุณาตรวจสอบ GAS endpoint</p></div>';
+
+    const sm  = satData.summary || {};
+    const avg = sm.avgRating || 0;
+    const avgClass = avg >= 4.5 ? 'good' : avg >= 3.5 ? '' : avg >= 2.5 ? 'warn' : 'bad';
+    const total7 = sm.recentCount7 || 0;
+
+    let html = '';
+
+    // KPI Row
+    html += `<div class="fp-kpi-row">
+      <div class="fp-kpi">
+        <div class="fp-kpi-val">${sm.totalCount || 0}</div>
+        <div class="fp-kpi-label">รายการทั้งหมด</div>
+      </div>
+      <div class="fp-kpi">
+        <div class="fp-kpi-val ${avgClass}">${avg > 0 ? avg.toFixed(2) : '—'}</div>
+        <div class="fp-kpi-label">คะแนนเฉลี่ย (/ 5)</div>
+      </div>
+      <div class="fp-kpi">
+        <div class="fp-kpi-val">${total7}</div>
+        <div class="fp-kpi-label">7 วันล่าสุด</div>
+      </div>
+    </div>`;
+
+    // Star Distribution
+    const dist = sm.dist || { 1:0, 2:0, 3:0, 4:0, 5:0 };
+    const maxDist = Math.max(...Object.values(dist), 1);
+    html += `<div class="fp-dist">
+      <div class="fp-dist-title">การกระจายคะแนน</div>`;
+    [5,4,3,2,1].forEach(s => {
+      const cnt = dist[s] || 0;
+      const pct = Math.round((cnt / maxDist) * 100);
+      html += `<div class="fp-dist-row">
+        <div class="fp-dist-star">★</div>
+        <div class="fp-dist-star-label">${s}</div>
+        <div class="fp-dist-bar-bg"><div class="fp-dist-bar-fill s${s}" style="width:${pct}%"></div></div>
+        <div class="fp-dist-cnt">${cnt}</div>
+      </div>`;
+    });
+    html += `</div>`;
+
+    html += `<div class="fp-divider"></div>`;
+
+    // List
+    const items = satData.data || [];
+    if (items.length === 0) {
+      html += `<div class="fp-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><p>ยังไม่มีข้อมูลการประเมิน<br>ในช่วงเวลาที่เลือก</p></div>`;
+    } else {
+      html += `<div class="fp-list">`;
+      items.forEach(item => {
+        const rat = parseInt(item.rating) || 0;
+        let starsHtml = '';
+        for (let i = 1; i <= 5; i++) {
+          starsHtml += i <= rat
+            ? '<span>★</span>'
+            : '<span class="fp-card-stars-empty">☆</span>';
+        }
+        const hasComment = item.comment && item.comment.trim();
+        const ratingLabels = { 5:'พึงพอใจมากที่สุด', 4:'พึงพอใจดี', 3:'พอใจระดับปานกลาง', 2:'ต่ำกว่าความคาดหวัง', 1:'ควรปรับปรุงอย่างมาก' };
+        html += `<div class="fp-card">
+          <div class="fp-card-top">
+            <div class="fp-card-stars">${starsHtml}</div>
+            <div class="fp-card-date">${item.date || ''} ${item.time ? item.time.substring(0,5) : ''}</div>
+          </div>
+          ${item.purpose ? `<span class="fp-card-purpose">${escHtml(item.purpose)}</span>` : ''}
+          <div class="fp-card-comment ${hasComment ? '' : 'muted'}">${hasComment ? escHtml(item.comment) : '(ไม่มีข้อเสนอแนะ)'}</div>
+          ${item.driverName ? `<div class="fp-card-driver"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${escHtml(item.driverName)}</div>` : ''}
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    return html;
+  }
+
+  // ── FEEDBACK TAB ──────────────────────────────────────
+  function renderFeedbackTab() {
+    if (!fbData) return '<div class="fp-loading"><div class="fp-spinner"></div> กำลังโหลด...</div>';
+    if (fbData.status === 'error') return '<div class="fp-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><p>ไม่สามารถโหลดข้อมูลได้</p></div>';
+
+    const items = fbData.data || [];
+    if (items.length === 0) {
+      return `<div class="fp-empty"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><p>ยังไม่มีข้อมูล Feedback</p></div>`;
+    }
+
+    // type summary
+    const typeCounts = {};
+    items.forEach(i => { const t = i.type || 'ทั่วไป'; typeCounts[t] = (typeCounts[t] || 0) + 1; });
+
+    let html = `<div class="fp-kpi-row" style="grid-template-columns: repeat(${Math.min(Object.keys(typeCounts).length, 3)}, 1fr)">`;
+    Object.entries(typeCounts).slice(0, 3).forEach(([t, c]) => {
+      html += `<div class="fp-kpi">
+        <div class="fp-kpi-val" style="font-size:18px">${c}</div>
+        <div class="fp-kpi-label">${t}</div>
+      </div>`;
+    });
+    html += `</div><div class="fp-divider"></div><div class="fp-list">`;
+
+    items.forEach(item => {
+      const typeClass = (item.type || 'ทั่วไป').replace(/\s/g, '\\ ');
+      html += `<div class="fp-card">
+        <div class="fp-card-top">
+          <span class="fp-fb-type ${escHtml(item.type || 'ทั่วไป')}">${escHtml(item.type || 'ทั่วไป')}</span>
+          <div class="fp-card-date">${item.date || ''} ${item.time ? item.time.substring(0,5) : ''}</div>
+        </div>
+        <div class="fp-card-comment">${escHtml(item.message || '')}</div>
+      </div>`;
+    });
+    html += `</div>`;
+    return html;
+  }
+
+  // ── UTIL ──────────────────────────────────────────────
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── INIT ──────────────────────────────────────────────
+  // ตั้ง default dates เมื่อ DOM พร้อม
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setDefaultDates);
+  } else {
+    setDefaultDates();
+  }
+
+  // โหลด badge count แบบเงียบ ๆ เมื่อหน้าโหลด
+  setTimeout(() => {
+    fetch(GAS + '?action=getSatisfactionData&limit=1')
+      .then(r => r.json())
+      .then(res => {
+        if (res && res.summary) {
+          document.getElementById('fabBadge').textContent = res.summary.totalCount || 0;
+        }
+      })
+      .catch(() => {});
+  }, 2000);
+
+})();
+</script>
+
+
 <footer class="site-footer">
   <div class="footer-inner">
     <div class="footer-left">
