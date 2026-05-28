@@ -1096,8 +1096,8 @@ function collectData() {
     fuelLevel : getRadio('fuelLevel'),
     remarks   : get('remarks'),
     photos    : [],
-    driveUrls : [],
-    photoUrls : checkPhotos.filter(p => p.status === 'ok').map(p => p.driveUrl)
+    // driveUrls — field ที่ saveCheck ใน GAS อ่านเพื่อบันทึกลง DriveLinks / DriveLinks_URLs
+    driveUrls : checkPhotos.filter(p => p.status === 'ok').map(p => p.driveUrl)
   };
 
   checkItems.forEach(item => {
@@ -1159,7 +1159,7 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
     }
 
     // ── แสดงผลสำเร็จ ──
-    const savedPhotos = (payload.photoUrls || []).length;
+    const savedPhotos = (payload.driveUrls || []).length;
     const photoMsg = savedPhotos > 0 ? '<br><small style="color:var(--text-light)">แนบรูป ' + savedPhotos + ' รูปใน Google Drive</small>' : '';
     showModal('บันทึกข้อมูลเรียบร้อยแล้ว' + photoMsg);
     resetForm();
