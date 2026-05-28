@@ -1277,8 +1277,16 @@ async function uploadCheckPhoto(idx, name, base64, mimeType) {
   updateCheckUploadProgress();
   try {
     const b64Clean = base64.replace(/^data:[^;]+;base64,/, '');
+
+    // ดึง carType และวันที่ เพื่อให้ GAS buffer URL ลง CheckLog ได้ถูก row
+    const carType  = document.getElementById('carType')?.value  || '';
+    const inspDate = document.getElementById('inspDate')?.value || new Date().toISOString().slice(0, 10);
+
     const uploadPayload = JSON.stringify({
-      action    : 'uploadRepairPhoto',
+      action    : 'uploadPhotoPost',   // ✅ แก้จาก 'uploadRepairPhoto' → ใช้ buffer ลง CheckLog
+      subFolder : 'CheckPhotos',       // บอก GAS ว่าเป็นรูปตรวจสภาพ (ไม่ใช่ FuelReceipts)
+      carType   : carType,             // ใช้สร้าง buffer key
+      inspDate  : inspDate,            // ใช้สร้าง buffer key
       fileName  : name || ('check_' + Date.now() + '.jpg'),
       mimeType  : mimeType || 'image/jpeg',
       base64Data: b64Clean
@@ -1295,7 +1303,7 @@ async function uploadCheckPhoto(idx, name, base64, mimeType) {
       checkPhotos[idx].status   = 'ok';
     } else {
       checkPhotos[idx].status = 'err';
-      showToast('อัปโหลด ' + name + ' ไม่สำเร็จ', 'error');
+      showToast('อัปโหลด ' + name + ' ไม่สำเร็จ: ' + (result.message || ''), 'error');
     }
   } catch(err) {
     checkPhotos[idx].status = 'err';
