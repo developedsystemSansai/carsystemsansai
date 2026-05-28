@@ -425,7 +425,99 @@
     .star-btn { font-size: 36px; }
     .hero { padding: 22px 18px 20px; }
   }
-</style>
+
+  /* ── QR CODE BUTTON & MODAL ── */
+  .qr-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    color: rgba(255,255,255,.80);
+    background: rgba(255,255,255,.10);
+    border: 1px solid rgba(255,255,255,.20);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Noto Sans Thai', sans-serif;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .qr-btn:hover { background: rgba(255,255,255,.18); color: #fff; }
+  .qr-btn svg { flex-shrink: 0; }
+
+  .qr-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10,20,40,.75);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .qr-overlay.open { display: flex; }
+  .qr-modal {
+    background: #fff;
+    border-radius: 20px;
+    padding: 28px 24px 24px;
+    max-width: 340px;
+    width: 100%;
+    box-shadow: 0 24px 60px rgba(0,0,0,.35);
+    text-align: center;
+    position: relative;
+  }
+  .qr-modal-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+  }
+  .qr-modal-sub {
+    font-size: 12px;
+    color: #6b7a90;
+    margin-bottom: 18px;
+    line-height: 1.5;
+  }
+  .qr-img-wrap {
+    background: #f4f0fb;
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .qr-img-wrap img {
+    width: 220px;
+    height: 220px;
+    object-fit: contain;
+    border-radius: 6px;
+    display: block;
+  }
+  .qr-hint {
+    font-size: 11px;
+    color: #8a94a6;
+    margin-bottom: 16px;
+  }
+  .qr-close-btn {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #4a2a9a, #6d3fc0);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: 'Noto Sans Thai', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  .qr-close-btn:hover { opacity: .88; }
+
+  </style>
 </head>
 <body>
 
@@ -434,8 +526,40 @@
   <div class="header-left">
     <span class="header-title">ประเมินความพึงพอใจ — โรงพยาบาลสันทราย</span>
   </div>
-  <span class="header-badge">🔒 ลับ</span>
+  <div style="display:flex;align-items:center;gap:8px;">
+    <button class="qr-btn" onclick="openQR()" title="แสดง QR Code สำหรับประเมิน">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="3" height="3"/>
+        <rect x="18" y="14" width="3" height="3"/><rect x="14" y="18" width="3" height="3"/>
+        <rect x="18" y="18" width="3" height="3"/>
+      </svg>
+      QR ประเมิน
+    </button>
+    <span class="header-badge">🔒 ลับ</span>
+  </div>
 </header>
+
+<!-- ── QR MODAL ── -->
+<div class="qr-overlay" id="qrOverlay" onclick="closeQR(event)">
+  <div class="qr-modal" id="qrModal">
+    <div class="qr-modal-title">QR Code ประเมินความพึงพอใจ</div>
+    <div class="qr-modal-sub">สแกนเพื่อเปิดหน้าประเมิน<br>โรงพยาบาลสันทราย</div>
+    <div class="qr-img-wrap">
+      <img
+        src="https://drive.google.com/thumbnail?id=1Ypnw7Ap1qyB2pgFY9-6IXQQhj4ygv7Y_&sz=w400"
+        alt="QR Code ประเมินความพึงพอใจ"
+        onerror="this.style.display='none'; document.getElementById('qrFallback').style.display='block';"
+      />
+      <div id="qrFallback" style="display:none; padding:20px; color:#6b7a90; font-size:12px;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c0c8d8" stroke-width="1.5" style="display:block;margin:0 auto 10px"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        ไม่สามารถโหลด QR ได้<br>กรุณาตรวจสอบการเชื่อมต่อ
+      </div>
+    </div>
+    <div class="qr-hint">📱 ใช้กล้องสมาร์ทโฟนสแกน QR Code</div>
+    <button class="qr-close-btn" onclick="closeQR()">ปิด</button>
+  </div>
+</div>
 
 <!-- ── PAGE ── -->
 <div class="page-wrap">
@@ -740,6 +864,19 @@ function showSuccess(rating) {
 
   sc.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
+// ── QR MODAL ──────────────────────────────────────────────────────────────
+function openQR() {
+  document.getElementById('qrOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeQR(e) {
+  if (e && e.target !== document.getElementById('qrOverlay') && e.target !== document.querySelector('.qr-close-btn')) return;
+  document.getElementById('qrOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeQR({}); document.getElementById('qrOverlay').classList.remove('open'); document.body.style.overflow = ''; });
+
 </script>
 
 </body>
