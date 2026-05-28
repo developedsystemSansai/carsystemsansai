@@ -1016,9 +1016,18 @@ function checkSession() {
   return false;
 }
 
-function checkPw() {
+// ใหม่ — ใช้ hash แทน
+const PASS_HASH = 'a3f2e1c4b8d7e6f5a2b1c0d9e8f7a6b5'; // ← ใส่ SHA-256 hash ของรหัสผ่านใหม่
+
+async function hashStr(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function checkPw() {
   const v = document.getElementById('pwInput').value;
-  if (v === 'sansai2569') {
+  const h = await hashStr(v);
+  if (h === PASS_HASH) {
     localStorage.setItem(SESSION_KEY, JSON.stringify({ ts: Date.now() }));
     document.getElementById('pwOverlay').style.display = 'none';
     loadData();
