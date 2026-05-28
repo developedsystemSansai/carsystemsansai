@@ -511,6 +511,7 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
 
 <script>
 // ─────────────────────────────────────────────
+const API_KEY = '8358d83f-8270-4a84-9c73-9a22efacce82';
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
 
 // ─────────────────────────────────────────────
@@ -930,6 +931,7 @@ async function submitEMS() {
 
   const payload = {
     action      : 'saveEMS',
+    apikey      : API_KEY,
     carId,
     checkerName,
     checkerRole : document.getElementById('checkerRole').value.trim(),
@@ -944,7 +946,7 @@ async function submitEMS() {
     // ส่งข้อมูลหลักก่อน
     const payloadNoPhotos = { ...payload };
     await fetch(GAS_URL, {
-      method : 'POST', mode: 'no-cors',
+      method : 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body   : 'payload=' + encodeURIComponent(JSON.stringify(payloadNoPhotos))
     });
@@ -956,10 +958,10 @@ async function submitEMS() {
     );
     if (allPhotos.length > 0) {
       fetch(GAS_URL, {
-        method: 'POST', mode: 'no-cors',
+        method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'payload=' + encodeURIComponent(JSON.stringify({
-          action: 'uploadPhotos', carType: carId, inspDate: checkDate,
+          action: 'uploadPhotos', apikey: API_KEY, carType: carId, inspDate: checkDate,
           driverName: checkerName, photos: allPhotos.flatMap(x => x.photos)
         }))
       }).catch(() => {});
