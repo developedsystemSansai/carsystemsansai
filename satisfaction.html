@@ -520,6 +520,53 @@
       <div class="char-count" id="charCount">0 / 500 ตัวอักษร</div>
     </div>
 
+    <!-- Optional: Car & Driver Card -->
+    <div class="form-card">
+      <div class="section-label">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        ข้อมูลรถและผู้ขับ <span style="font-size:10px; color:var(--text-light); font-weight:400; margin-left:4px;">(ไม่บังคับ)</span>
+      </div>
+      <p style="font-size:12px; color:var(--text-light); margin: -4px 0 12px;">หากท่านทราบข้อมูล กรุณากรอกเพื่อประโยชน์ในการพัฒนาบริการ</p>
+
+      <label class="field-label" for="carTypeInput">ทะเบียน / ประเภทรถ</label>
+      <select class="field-select" id="carTypeInput">
+        <option value="">-- เลือกรถ --</option>
+        <optgroup label="รถ Refer">
+          <option value="จย.1379 ชม. — รถ Refer">จย.1379 ชม.</option>
+          <option value="งบ.5466 ชม. — รถ Refer">งบ.5466 ชม.</option>
+          <option value="ขษ.4361 ชม. — รถ Refer">ขษ.4361 ชม.</option>
+          <option value="ขร.501 ชม. — รถ Refer">ขร.501 ชม.</option>
+          <option value="ขอ.8407 ชม. — รถ Refer">ขอ.8407 ชม.</option>
+        </optgroup>
+        <optgroup label="รถปิ๊กอัพ 4 ประตู">
+          <option value="ขธ.9302 ชม. — รถปิ๊กอัพ 4 ประตู">ขธ.9302 ชม.</option>
+          <option value="ขค.9662 ชม. — รถปิ๊กอัพ 4 ประตู">ขค.9662 ชม.</option>
+          <option value="กล.9438 ชม. — รถปิ๊กอัพ 4 ประตู">กล.9438 ชม.</option>
+        </optgroup>
+        <optgroup label="รถตู้ฮุนได">
+          <option value="นง.8781 ชม. — รถตู้ฮุนได">นง.8781 ชม.</option>
+        </optgroup>
+        <optgroup label="รถตู้">
+          <option value="นง.86 ชม. — รถตู้">นง.86 ชม.</option>
+        </optgroup>
+      </select>
+
+      <label class="field-label" style="margin-top:12px;" for="driverNameInput">ชื่อพนักงานขับรถ</label>
+      <select class="field-select" id="driverNameInput">
+        <option value="">-- เลือกชื่อ --</option>
+        <option value="นาย ชัยพร มอญแสง">นาย ชัยพร มอญแสง</option>
+        <option value="นาย กิตติพงศ์ เขื่อนแก้ว">นาย กิตติพงศ์ เขื่อนแก้ว</option>
+        <option value="นาย กานต์นิธิ ทองอร">นาย กานต์นิธิ ทองอร</option>
+        <option value="นาย เฉลิมชนม์ นันติแก้ว">นาย เฉลิมชนม์ นันติแก้ว</option>
+        <option value="นาย นพดล คำปินคำ">นาย นพดล คำปินคำ</option>
+        <option value="นาย เก้า พิจิตร">นาย เก้า พิจิตร</option>
+        <option value="นาย ภาณุพงศ์ กางสำโรง">นาย ภาณุพงศ์ กางสำโรง</option>
+        <option value="นาย เฉลิมพล เลาแก้ว">นาย เฉลิมพล เลาแก้ว</option>
+        <option value="นายชัยพร ชัยศร">นายชัยพร ชัยศร</option>
+        <option value="นายกัมพล โพธิ์พัด">นายกัมพล โพธิ์พัด</option>
+      </select>
+    </div>
+
     <!-- Submit -->
     <button class="submit-btn" id="submitBtn" onclick="submitSatisfaction()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -632,11 +679,13 @@ async function submitSatisfaction() {
 
   try {
     const payload = {
-      action:  'saveSatisfaction',
-      rating:  currentRating,
-      purpose: purpose,
-      comment: comment,
-      ts:      new Date().toISOString()
+      action:      'saveSatisfaction',
+      rating:      currentRating,
+      purpose:     purpose,
+      comment:     comment,
+      carType:     (document.getElementById('carTypeInput').value || '').trim(),
+      driverName:  (document.getElementById('driverNameInput').value || '').trim(),
+      ts:          new Date().toISOString()
     };
 
     // GAS doPost รับ payload แบบ URLSearchParams (x-www-form-urlencoded)
