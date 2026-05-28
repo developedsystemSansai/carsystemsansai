@@ -1145,12 +1145,25 @@ function handleRepairPhotos(files) {
 async function uploadRepairPhoto(idx, name, base64, mimeType) {
   updateUploadProgress();
   try {
-    const result = await gasPost({
+    // ── strip data:...;base64, prefix ก่อนส่ง (pattern เดียวกับ startmile.html) ──
+    const b64Clean = base64.replace(/^data:[^;]+;base64,/, '');
+
+    const uploadPayload = JSON.stringify({
       action    : 'uploadRepairPhoto',
-      fileName  : name,
-      mimeType  : mimeType,
-      base64Data: base64
+      fileName  : name  || ('repair_' + Date.now() + '.jpg'),
+      mimeType  : mimeType || 'image/jpeg',
+      base64Data: b64Clean   // ← ส่ง raw base64 เท่านั้น ไม่มี prefix
     });
+
+    const resp = await fetch(GAS_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body   : 'payload=' + encodeURIComponent(uploadPayload)
+    });
+
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const result = await resp.json();
+
     if (result.status === 'ok' && result.url) {
       repairPhotos[idx].driveUrl  = result.url;
       repairPhotos[idx].uploading = false;
@@ -1158,12 +1171,13 @@ async function uploadRepairPhoto(idx, name, base64, mimeType) {
     } else {
       repairPhotos[idx].uploading = false;
       repairPhotos[idx].error     = true;
-      showToast('อัปโหลด ' + name + ' ไม่สำเร็จ', 'error');
+      showToast('อัปโหลด ' + name + ' ไม่สำเร็จ: ' + (result.message || 'ไม่ทราบสาเหตุ'), 'error');
     }
   } catch(err) {
     repairPhotos[idx].uploading = false;
     repairPhotos[idx].error     = true;
     showToast('อัปโหลดล้มเหลว: ' + err.message, 'error');
+    console.error('uploadRepairPhoto[' + idx + ']:', err);
   }
   renderRepairPhotoGrid();
   updateUploadProgress();
