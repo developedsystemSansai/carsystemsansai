@@ -848,9 +848,10 @@ const DEFAULT_VEHICLES = [
   { ทะเบียน:'กล.9438 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ผู้รับผิดชอบ:'นายเฉลิมพล เลาแก้ว',     ประเภทระบบ:'ทั่วไป' },
 ];
 const DEFAULT_DRIVERS = [
-  'นาย ชัยพร มอญแสง','นาย กิตติพงศ์ เขื่อนแก้ว','นาย กานต์นิธิ ทองอร',
-  'นาย เฉลิมชนม์ นันติแก้ว','นาย นพดล คำปินคำ','นาย เก้า พิจิตร',
-  'นาย ภาณุพงศ์ กางสำโรง','นาย เฉลิมพล เลาแก้ว','นายชัยพร ชัยศร','นายกัมพล โพธิ์พัด'
+  'นายชัยพร มอญแสง','นายกิติพงศ์ เขื่อนแก้ว','นายกานต์นิธิ ทองอร',
+  'นายเฉลิมชนม์ นันติแก้ว','นายนพดล คำปินคำ','นายเก้า พิจิตร',
+  'นายภาณุพงศ์ กางสำโรง','นายเฉลิมพล เลาแก้ว','นายชัยพร ชัยศร',
+  'นายคมสันต์ ภายไธสงค์','นายกัมพล โพธิ์พัด'
 ];
 
 // ── loadMasterData: โหลด vehicles + drivers + today-checked ──────────
@@ -1387,19 +1388,38 @@ function removeCheckPhoto(i) {
   updateCheckUploadProgress();
 }
 
-// ── carType change: auto-fill ผู้รับผิดชอบ ──
+// ── carType change: auto-fill ผู้รับผิดชอบ + auto-select ชื่อ-สกุล ──
 document.getElementById('carType').addEventListener('change', function() {
   const val = this.value;
   const vehicle = vehicleMap[val];
   const responsible = vehicle && vehicle['ผู้รับผิดชอบ'] ? vehicle['ผู้รับผิดชอบ'] : '';
   const box  = document.getElementById('fg-responsiblePerson');
-  const name = document.getElementById('responsiblePersonName');
+  const nameEl = document.getElementById('responsiblePersonName');
+
+  // แสดง box ผู้รับผิดชอบ
   if (responsible) {
-    name.textContent = responsible;
+    nameEl.textContent = responsible;
     box.style.display = '';
   } else {
-    name.textContent = '—';
+    nameEl.textContent = '—';
     box.style.display = val ? '' : 'none';
+  }
+
+  // auto-select ชื่อ-สกุล — normalize ลบช่องว่าง+คำนำหน้าก่อนเทียบ
+  const driverSel = document.getElementById('driverName');
+  if (responsible && driverSel.options.length > 1) {
+    const norm = s => s.replace(/\s+/g, '').toLowerCase();
+    const target = norm(responsible);
+    let best = -1;
+    for (let i = 1; i < driverSel.options.length; i++) {
+      if (norm(driverSel.options[i].value) === target) { best = i; break; }
+    }
+    if (best > -1) {
+      driverSel.selectedIndex = best;
+    } else {
+      driverSel.selectedIndex = 0; // reset ถ้าไม่เจอ
+    }
+    updateProgress();
   }
 });
 
