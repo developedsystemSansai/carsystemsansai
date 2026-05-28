@@ -996,8 +996,8 @@ async function loadVehiclesAndDrivers() {
   let drivers  = DEFAULT_DRIVERS;
   try {
     const [vR, dR] = await Promise.all([
-      fetch(GAS_URL + '?action=getVehicles'),
-      fetch(GAS_URL + '?action=getDrivers')
+      fetch(GAS_URL + '?action=getVehicles&apikey=8358d83f-8270-4a84-9c73-9a22efacce82'),
+      fetch(GAS_URL + '?action=getDrivers&apikey=8358d83f-8270-4a84-9c73-9a22efacce82')
     ]);
     const vJ = await vR.json();
     const dJ = await dR.json();
@@ -1029,7 +1029,7 @@ async function loadVehiclesAndDrivers() {
 
 async function loadRepairJobs() {
   try {
-    const r = await fetch(GAS_URL + '?action=getRepairJobs');
+    const r = await fetch(GAS_URL + '?action=getRepairJobs&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
     const j = await r.json();
     if (j.data && j.data.length) repairJobs = j.data;
   } catch(_) {
