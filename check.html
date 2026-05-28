@@ -495,6 +495,48 @@ textarea { resize: vertical; min-height: 80px; }
     font-weight: 600; cursor: pointer; transition: all 0.15s;
   }
   .quick-time-btn:hover { background: var(--blue); color: #fff; }
+
+/* ── PHOTO UPLOAD (check.html) ── */
+.photo-upload-zone { display:flex; flex-direction:column; gap:10px; }
+.photo-upload-btns { display:flex; gap:10px; flex-wrap:wrap; }
+.photo-btn {
+  display:flex; align-items:center; gap:7px;
+  padding:10px 18px; border-radius:10px;
+  border:1.5px dashed var(--border-strong,#b8c4d4);
+  background:var(--bg,#eef2f7); color:var(--text-mid,#3d5168);
+  font-family:inherit; font-size:13px; font-weight:600;
+  cursor:pointer; transition:all .18s; flex:1; justify-content:center;
+}
+.photo-btn:hover { border-color:var(--orange,#d4580a); color:var(--orange,#d4580a); background:#fdf0e6; }
+.photo-grid { display:flex; flex-wrap:wrap; gap:10px; margin-top:4px; }
+.photo-thumb {
+  position:relative; width:90px; height:90px;
+  border-radius:8px; overflow:hidden;
+  border:2px solid var(--border,#d5dce8);
+  box-shadow:0 2px 6px rgba(0,0,0,.1); flex-shrink:0;
+}
+.photo-thumb img { width:100%; height:100%; object-fit:cover; cursor:pointer; }
+.photo-thumb .rm-btn {
+  position:absolute; top:3px; right:3px;
+  width:20px; height:20px; border-radius:50%;
+  background:rgba(244,67,54,.9); border:none; color:#fff;
+  font-size:11px; font-weight:700; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+.photo-thumb .up-badge {
+  position:absolute; top:3px; left:3px;
+  width:18px; height:18px; border-radius:50%;
+  font-size:10px; font-weight:700; color:#fff;
+  display:flex; align-items:center; justify-content:center;
+}
+.photo-thumb .up-badge.uploading { background:rgba(29,111,181,.85); animation:spin .7s linear infinite; }
+.photo-thumb .up-badge.ok        { background:rgba(26,138,74,.85); }
+.photo-thumb .up-badge.err       { background:rgba(192,57,43,.85); }
+.photo-note { font-size:.76rem; color:var(--text-light,#7a8ea5); text-align:center; }
+.upload-progress { margin-top:8px; display:none; }
+.upload-progress-bar { height:5px; background:var(--border,#d5dce8); border-radius:99px; overflow:hidden; }
+.upload-progress-fill { height:100%; width:0%; background:linear-gradient(90deg,var(--orange,#d4580a),var(--amber,#c07a00)); border-radius:99px; transition:width .3s; }
+.upload-progress-label { font-size:11px; font-weight:600; color:var(--text-mid,#3d5168); display:flex; justify-content:space-between; margin-bottom:4px; }
 </style>
 </head>
 <body>
@@ -705,6 +747,46 @@ textarea { resize: vertical; min-height: 80px; }
     </div>
 
 
+
+
+    <!-- SECTION 6: รูปถ่ายสภาพรถ -->
+    <div class="card">
+      <div class="card-header">
+        <div class="icon">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </div>
+        <h2>รูปถ่ายสภาพรถ</h2>
+      </div>
+      <div class="card-body">
+        <div class="photo-upload-zone">
+          <div class="photo-upload-btns">
+            <label class="photo-btn" for="checkPhotoCapture">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              ถ่ายรูป
+              <input type="file" id="checkPhotoCapture" accept="image/*" capture="environment" multiple
+                     onchange="handleCheckPhotos(this.files)" style="display:none;">
+            </label>
+            <button type="button" class="photo-btn" onclick="document.getElementById('checkPhotoGallery').click()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              เลือกจากคลัง
+              <input type="file" id="checkPhotoGallery" accept="image/*" multiple
+                     onchange="handleCheckPhotos(this.files)" style="display:none;">
+            </button>
+          </div>
+          <div class="upload-progress" id="checkUploadProgress">
+            <div class="upload-progress-label">
+              <span id="checkUploadLabel">กำลังอัปโหลด...</span>
+              <span id="checkUploadPct">0%</span>
+            </div>
+            <div class="upload-progress-bar">
+              <div class="upload-progress-fill" id="checkUploadFill"></div>
+            </div>
+          </div>
+          <div class="photo-grid" id="checkPhotoGrid"></div>
+          <p class="photo-note" id="checkPhotoNote">รูปภาพจะถูกอัปโหลดไป Google Drive อัตโนมัติ — สูงสุด 10 รูป</p>
+        </div>
+      </div>
+    </div>
 
     <!-- SUBMIT -->
     <div class="submit-section">
@@ -1014,7 +1096,8 @@ function collectData() {
     fuelLevel : getRadio('fuelLevel'),
     remarks   : get('remarks'),
     photos    : [],
-    driveUrls : []
+    driveUrls : [],
+    photoUrls : checkPhotos.filter(p => p.status === 'ok').map(p => p.driveUrl)
   };
 
   checkItems.forEach(item => {
@@ -1032,6 +1115,18 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
 
   if (!validateForm()) {
     showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', 'error');
+    return;
+  }
+
+  // ตรวจรูปที่ยังอัปโหลดไม่เสร็จ
+  const pendingPhotos = checkPhotos.filter(p => p.status === 'uploading').length;
+  if (pendingPhotos > 0) {
+    showToast('กรุณารอให้รูปภาพอัปโหลดเสร็จก่อน (' + pendingPhotos + ' รูป)', 'error');
+    return;
+  }
+  const failedPhotos = checkPhotos.filter(p => p.status === 'err').length;
+  if (failedPhotos > 0) {
+    showToast('มีรูปที่อัปโหลดล้มเหลว ' + failedPhotos + ' รูป — กรุณาลบแล้วลองใหม่', 'error');
     return;
   }
 
@@ -1064,7 +1159,9 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
     }
 
     // ── แสดงผลสำเร็จ ──
-    showModal('บันทึกข้อมูลเรียบร้อยแล้ว');
+    const savedPhotos = (payload.photoUrls || []).length;
+    const photoMsg = savedPhotos > 0 ? '<br><small style="color:var(--text-light)">แนบรูป ' + savedPhotos + ' รูปใน Google Drive</small>' : '';
+    showModal('บันทึกข้อมูลเรียบร้อยแล้ว' + photoMsg);
     resetForm();
 
   } catch (err) {
@@ -1079,6 +1176,9 @@ document.getElementById('inspectionForm').addEventListener('submit', async (e) =
 function resetForm() {
   document.getElementById('inspectionForm').reset();
   document.querySelectorAll('.field-valid').forEach(el => el.classList.remove('field-valid'));
+  checkPhotos = [];
+  renderCheckPhotoGrid();
+  updateCheckUploadProgress();
   setThaiDateTime();
   updateProgress();
 }
@@ -1141,6 +1241,117 @@ function setQuickTime(t) {
   el.value = t;
   el.style.borderColor = 'var(--success)';
   updateProgress();
+}
+
+
+// ============================================================
+// PHOTO UPLOAD — check.html (pattern เดียวกับ fixedcar.html)
+// ============================================================
+let checkPhotos = []; // { name, preview, type, driveUrl, status }
+
+function handleCheckPhotos(files) {
+  const newFiles = Array.from(files).filter(f => {
+    if (!f.type.startsWith('image/')) return false;
+    if (f.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB: ' + f.name, 'error'); return false; }
+    return true;
+  });
+  if (!newFiles.length) return;
+  if (checkPhotos.length + newFiles.length > 10) {
+    showToast('อัพโหลดได้สูงสุด 10 รูป', 'error'); return;
+  }
+  newFiles.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const idx = checkPhotos.length;
+      checkPhotos.push({ name: file.name, preview: e.target.result, type: file.type, driveUrl: '', status: 'uploading' });
+      renderCheckPhotoGrid();
+      uploadCheckPhoto(idx, file.name, e.target.result, file.type);
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('checkPhotoCapture').value = '';
+  document.getElementById('checkPhotoGallery').value = '';
+}
+
+async function uploadCheckPhoto(idx, name, base64, mimeType) {
+  updateCheckUploadProgress();
+  try {
+    const b64Clean = base64.replace(/^data:[^;]+;base64,/, '');
+    const uploadPayload = JSON.stringify({
+      action    : 'uploadRepairPhoto',
+      fileName  : name || ('check_' + Date.now() + '.jpg'),
+      mimeType  : mimeType || 'image/jpeg',
+      base64Data: b64Clean
+    });
+    const resp = await fetch(GAS_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body   : 'payload=' + encodeURIComponent(uploadPayload)
+    });
+    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+    const result = await resp.json();
+    if (result.status === 'ok' && result.url) {
+      checkPhotos[idx].driveUrl = result.url;
+      checkPhotos[idx].status   = 'ok';
+    } else {
+      checkPhotos[idx].status = 'err';
+      showToast('อัปโหลด ' + name + ' ไม่สำเร็จ', 'error');
+    }
+  } catch(err) {
+    checkPhotos[idx].status = 'err';
+    showToast('อัปโหลดล้มเหลว: ' + err.message, 'error');
+  }
+  renderCheckPhotoGrid();
+  updateCheckUploadProgress();
+}
+
+function updateCheckUploadProgress() {
+  const wrap  = document.getElementById('checkUploadProgress');
+  const fill  = document.getElementById('checkUploadFill');
+  const pct   = document.getElementById('checkUploadPct');
+  const label = document.getElementById('checkUploadLabel');
+  const note  = document.getElementById('checkPhotoNote');
+  const total     = checkPhotos.length;
+  const uploading = checkPhotos.filter(p => p.status === 'uploading').length;
+  const done      = checkPhotos.filter(p => p.status === 'ok').length;
+  const errors    = checkPhotos.filter(p => p.status === 'err').length;
+  if (total === 0 || uploading === 0) {
+    wrap.style.display = 'none';
+    if (errors > 0)     { note.textContent = '⚠️ อัปโหลดไม่สำเร็จ ' + errors + ' รูป — กรุณาลองใหม่'; note.style.color = 'var(--danger,#c0392b)'; }
+    else if (done > 0)  { note.textContent = '✓ อัปโหลดสำเร็จ ' + done + ' รูป'; note.style.color = 'var(--success,#1a8a4a)'; }
+    else                { note.textContent = 'รูปภาพจะถูกอัปโหลดไป Google Drive อัตโนมัติ — สูงสุด 10 รูป'; note.style.color = ''; }
+    return;
+  }
+  wrap.style.display = 'block';
+  const pctVal = Math.round(((total - uploading) / total) * 100);
+  fill.style.width  = pctVal + '%';
+  pct.textContent   = pctVal + '%';
+  label.textContent = 'กำลังอัปโหลด ' + uploading + ' รูป... (สำเร็จ ' + done + '/' + total + ')';
+}
+
+function renderCheckPhotoGrid() {
+  const grid = document.getElementById('checkPhotoGrid');
+  grid.innerHTML = '';
+  checkPhotos.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'photo-thumb';
+    const badgeC = p.status === 'ok' ? 'ok' : p.status === 'uploading' ? 'uploading' : 'err';
+    const badgeT = p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : '!';
+    div.innerHTML = `
+      <img src="${p.preview}" alt="รูปที่ ${i+1}">
+      <span class="up-badge ${badgeC}">${badgeT}</span>
+      <button class="rm-btn" onclick="removeCheckPhoto(${i})" title="ลบ"
+        ${p.status==='uploading'?'disabled':''}>✕</button>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+function removeCheckPhoto(i) {
+  if (checkPhotos[i]?.status === 'uploading') return;
+  checkPhotos.splice(i, 1);
+  renderCheckPhotoGrid();
+  updateCheckUploadProgress();
 }
 
 // Init
