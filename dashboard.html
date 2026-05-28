@@ -1052,6 +1052,107 @@ body {
   font-size: 11px; color: var(--text-light);
 }
 
+/* ── LVM STATUS BUTTONS (on-theme, replaces inline styles) ── */
+.lvm-status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.lvm-status-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 9px 8px;
+  border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 12.5px; font-weight: 600;
+  cursor: pointer;
+  transition: all var(--dur);
+  letter-spacing: .1px;
+}
+.lvm-status-btn svg { flex-shrink: 0; }
+
+.lvm-st-ready {
+  border: 1.5px solid rgba(0,122,110,.30);
+  background: var(--teal-soft);
+  color: var(--teal);
+}
+.lvm-st-ready:hover, .lvm-st-ready.active-status {
+  background: var(--teal); color: #fff;
+  border-color: var(--teal);
+  box-shadow: 0 2px 8px rgba(0,122,110,.25);
+}
+.lvm-st-inuse {
+  border: 1.5px solid rgba(192,122,0,.28);
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+.lvm-st-inuse:hover, .lvm-st-inuse.active-status {
+  background: var(--amber); color: #fff;
+  border-color: var(--amber);
+  box-shadow: 0 2px 8px rgba(192,122,0,.25);
+}
+.lvm-st-repair {
+  border: 1.5px solid rgba(192,57,43,.26);
+  background: var(--red-soft);
+  color: var(--red);
+}
+.lvm-st-repair:hover, .lvm-st-repair.active-status {
+  background: var(--red); color: #fff;
+  border-color: var(--red);
+  box-shadow: 0 2px 8px rgba(192,57,43,.22);
+}
+.lvm-st-wait {
+  border: 1.5px solid var(--border-strong);
+  background: var(--bg2);
+  color: var(--text-mid);
+}
+.lvm-st-wait:hover, .lvm-st-wait.active-status {
+  background: var(--navy); color: #fff;
+  border-color: var(--navy);
+  box-shadow: 0 2px 8px rgba(13,33,55,.22);
+}
+
+.lvm-status-msg {
+  font-size: 12px; color: var(--text-light);
+  text-align: center; min-height: 20px;
+  padding: 2px 0;
+  transition: color var(--dur);
+}
+
+/* ── LVM EXTRA DETAILS ── */
+.lvm-extra-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+.lvm-extra-item {
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+}
+.lvm-extra-label {
+  font-size: 10px; font-weight: 700; color: var(--text-light);
+  text-transform: uppercase; letter-spacing: .6px;
+}
+.lvm-extra-val {
+  font-size: 13px; font-weight: 600; color: var(--navy);
+  font-family: 'IBM Plex Mono', monospace;
+}
+.lvm-extra-val.ok   { color: var(--success); }
+.lvm-extra-val.warn { color: var(--warning); }
+.lvm-extra-val.bad  { color: var(--danger);  }
+.lvm-extra-full { grid-column: 1 / -1; }
+.lvm-extra-note {
+  grid-column: 1 / -1;
+  background: var(--amber-soft);
+  border: 1px solid rgba(192,122,0,.22);
+  border-left: 3px solid var(--amber);
+  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  font-size: 12.5px; color: var(--text-mid); line-height: 1.55;
+}
+
 /* ── PRINT ── */
 @media print {
   .site-header, .filter-bar, .breadcrumb-bar { position: relative; }
@@ -3401,6 +3502,14 @@ function renderLiveVehicleGrid(json) {
       statusLabel = 'กำลังใช้งาน';
       statusSub   = dest || driver || '';
       stripeClass = 's-inuse'; chipClass = 's-inuse'; dotClass = 's-inuse';
+    } else if (isReadyFinal) {
+      // sheetStatus = 'พร้อมใช้งาน' หรือตรวจแล้วไม่มีปัญหา — override hasIssue เสมอ
+      statusLabel = 'พร้อมใช้งาน';
+      const chkInfo = chkData_;
+      statusSub = chkInfo?.driverName ? 'ตรวจโดย ' + chkInfo.driverName
+                : chkInfo?.inspTime   ? 'ตรวจเวลา ' + extractTimeOnly(chkInfo.inspTime)
+                : 'ตรวจสภาพแล้ว';
+      stripeClass = 's-ready'; chipClass = 's-ready'; dotClass = 's-ready';
     } else if (isWaitFinal) {
       statusLabel = 'รอตรวจสภาพ';
       statusSub   = 'ยังไม่ได้ตรวจวันนี้';
@@ -3772,16 +3881,27 @@ function openLiveVehicleDetail(plate) {
   const rec      = d.latestRecord;
   const chkData  = d.chkData;
 
-  // ── Header gradient ──
+  // ── Header gradient — sheetStatus (admin override) เป็น source of truth ──
   let headerBg, statusLine;
-  if (d.isInUse) {
-    headerBg   = 'linear-gradient(135deg,#b45309,#f59e0b)';
+  const _sheetSt = d.sheetStatus || '';
+  if (d.isInUse || _sheetSt === 'กำลังใช้งาน') {
+    headerBg   = 'linear-gradient(135deg,var(--navy-mid),var(--navy-light))';
     statusLine = '🚗 กำลังออกปฏิบัติงาน' + (d.inUseData?.destination ? ' → ' + d.inUseData.destination : '');
-  } else if (d.hasIssue) {
+  } else if (_sheetSt === 'พร้อมใช้งาน') {
+    // admin ตั้งสถานะ พร้อมใช้งาน → override hasIssue เสมอ
+    headerBg   = 'linear-gradient(135deg,var(--teal),#0d9488)';
+    statusLine = '✅ สถานะ: พร้อมใช้งาน';
+  } else if (_sheetSt === 'รอซ่อม') {
+    headerBg   = 'linear-gradient(135deg,#991b1b,#b91c1c)';
+    statusLine = '🔧 รอซ่อมบำรุง';
+  } else if (_sheetSt === 'รอตรวจสภาพรถ') {
+    headerBg   = 'linear-gradient(135deg,#475569,#64748b)';
+    statusLine = '⏳ รอตรวจสภาพรถ';
+  } else if (d.hasIssue && d.isChecked) {
     headerBg   = 'linear-gradient(135deg,#991b1b,#ef4444)';
     statusLine = '⚠️ ตรวจสภาพแล้ว — พบจุดผิดปกติ';
   } else if (d.isChecked) {
-    headerBg   = 'linear-gradient(135deg,#065f46,#22c55e)';
+    headerBg   = 'linear-gradient(135deg,var(--teal),#0d9488)';
     statusLine = '✅ ตรวจสภาพแล้ว — พร้อมใช้งาน';
   } else {
     headerBg   = 'linear-gradient(135deg,#475569,#94a3b8)';
@@ -4006,10 +4126,64 @@ function openLiveVehicleDetail(plate) {
   const currentSt = d.sheetStatus || '';
   document.querySelectorAll('.lvm-status-btn').forEach(b => {
     const match = b.dataset.status === currentSt;
-    b.style.opacity     = match ? '1'          : '0.65';
-    b.style.transform   = match ? 'scale(1.04)': '';
-    b.style.fontWeight  = match ? '700'        : '600';
+    b.classList.toggle('active-status', match);
+    b.style.opacity   = match ? '1' : '0.65';
+    b.style.transform = match ? 'scale(1.04)' : '';
+    b.style.fontWeight = match ? '700' : '600';
   });
+
+  // ── Extra details section ──
+  const extraWrap = document.getElementById('lvmExtraDetails');
+  const extraContent = document.getElementById('lvmExtraContent');
+  if (extraWrap && extraContent) {
+    const extraItems = [];
+    // ผู้ขับปัจจุบัน
+    if (d.sheetDriver) {
+      extraItems.push({ label: 'ผู้ขับปัจจุบัน', val: d.sheetDriver, cls: '' });
+    }
+    // ปลายทาง
+    if (d.sheetDest) {
+      extraItems.push({ label: 'ปลายทาง', val: d.sheetDest, cls: '' });
+    }
+    // สถานะใน Sheet
+    extraItems.push({ label: 'สถานะ (Sheet)', val: currentSt || '—',
+      cls: currentSt === 'พร้อมใช้งาน' ? 'ok' : currentSt === 'กำลังใช้งาน' ? 'warn' : currentSt === 'รอซ่อม' ? 'bad' : '' });
+    // ไมล์ล่าสุด
+    if (rec?.odometer) {
+      extraItems.push({ label: 'ไมล์ล่าสุด', val: Number(rec.odometer).toLocaleString('th-TH') + ' กม.', cls: '' });
+    }
+    // ระดับน้ำมัน
+    if (rec?.fuelLevel) {
+      extraItems.push({ label: 'ระดับน้ำมัน', val: rec.fuelLevel, cls: '' });
+    }
+    // ประเภทระบบ
+    if (d.type) {
+      extraItems.push({ label: 'ประเภทรถ', val: d.type, cls: '' });
+    }
+    // issue count
+    if (rec) {
+      const issueCount = Object.keys(rec).filter(k => k.startsWith('chk_') && rec[k] === 'ผิดปกติ').length;
+      if (issueCount > 0) {
+        extraItems.push({ label: 'จุดผิดปกติ', val: issueCount + ' จุด', cls: 'bad' });
+      } else if (issueCount === 0 && Object.keys(rec).some(k => k.startsWith('chk_'))) {
+        extraItems.push({ label: 'ผลตรวจ', val: 'ปกติทุกจุด', cls: 'ok' });
+      }
+    }
+    // remarks
+    const extraNote = rec?.remarks || '';
+
+    let extraHtml = extraItems.map(it =>
+      `<div class="lvm-extra-item">
+         <div class="lvm-extra-label">${it.label}</div>
+         <div class="lvm-extra-val ${it.cls}">${it.val}</div>
+       </div>`
+    ).join('');
+    if (extraNote.trim()) {
+      extraHtml += `<div class="lvm-extra-note">📝 ${extraNote}</div>`;
+    }
+    extraContent.innerHTML = extraHtml || '<div class="lvm-extra-item lvm-extra-full"><div class="lvm-extra-val" style="color:var(--text-light);font-size:12px;font-family:inherit;">ไม่มีข้อมูลเพิ่มเติม</div></div>';
+    extraWrap.style.display = 'block';
+  }
 }
 
 // ── เก็บ plate ที่กำลังเปิด modal ──
@@ -4024,22 +4198,20 @@ function setVehStatus(btn) {
   const plate     = _lvmCurrentPlate;
   if (!plate || !newStatus) return;
 
-  // highlight
+  // highlight ด้วย CSS class
   document.querySelectorAll('.lvm-status-btn').forEach(b => {
-    b.style.opacity = '0.5';
+    b.classList.remove('active-status');
+    b.style.opacity = '0.55';
     b.style.transform = 'scale(0.97)';
   });
+  btn.classList.add('active-status');
   btn.style.opacity = '1';
   btn.style.transform = 'scale(1.04)';
 
   const msgEl = document.getElementById('lvmStatusMsg');
-  msgEl.style.color = '#6b7280';
+  msgEl.style.color = 'var(--text-light)';
   msgEl.textContent = '⏳ กำลังบันทึก...';
 
-  // ส่งไป GAS — ใช้ updateVehicleStatus ผ่าน action ที่มีอยู่แล้วใน saveCheck
-  // GAS ไม่มี action=updateStatus แยก — ใช้ fetch POST action=saveCheck แต่แบบ patch
-  // จริงๆ ต้องเรียก updateVehicleStatus ผ่าน action ใหม่ — เราใช้ fetch doGet resetDailyStatus
-  // ใช้วิธีง่ายที่สุด: POST action=updateVehicleStatus (ถ้าไม่มีใน router ให้ fallback แจ้ง)
   const GAS_EP = typeof GAS_URL !== 'undefined' ? GAS_URL : '';
   fetch(GAS_EP, {
     method : 'POST',
@@ -4055,13 +4227,15 @@ function setVehStatus(btn) {
   .then(r => r.json())
   .then(res => {
     if (res.status === 'ok') {
-      msgEl.style.color = '#16a34a';
+      msgEl.style.color = 'var(--success)';
       msgEl.textContent = '✅ บันทึกสถานะ "' + newStatus + '" เรียบร้อยแล้ว';
-      // อัปเดต liveVehicleDetailMap และ card ใน grid
+      // อัปเดต local map ทันที
       if (window.liveVehicleDetailMap && window.liveVehicleDetailMap[plate]) {
         window.liveVehicleDetailMap[plate].sheetStatus = newStatus;
+        window.liveVehicleDetailMap[plate].isReady   = (newStatus === 'พร้อมใช้งาน');
+        window.liveVehicleDetailMap[plate].isInUse   = (newStatus === 'กำลังใช้งาน');
+        window.liveVehicleDetailMap[plate].isWait    = (newStatus === 'รอตรวจสภาพรถ');
       }
-      // อัปเดต ALL_VEHICLES ด้วย
       if (window.ALL_VEHICLES) {
         const veh = window.ALL_VEHICLES.find(v => v.plate === plate);
         if (veh) veh.sheetStatus = newStatus;
@@ -4075,18 +4249,20 @@ function setVehStatus(btn) {
         }
       }, 800);
     } else {
-      msgEl.style.color = '#dc2626';
+      msgEl.style.color = 'var(--danger)';
       msgEl.textContent = '❌ ' + (res.message || 'เกิดข้อผิดพลาด');
       document.querySelectorAll('.lvm-status-btn').forEach(b => {
+        b.classList.remove('active-status');
         b.style.opacity = '1';
         b.style.transform = '';
       });
     }
   })
   .catch(err => {
-    msgEl.style.color = '#dc2626';
+    msgEl.style.color = 'var(--danger)';
     msgEl.textContent = '❌ ไม่สามารถเชื่อมต่อได้: ' + err.message;
     document.querySelectorAll('.lvm-status-btn').forEach(b => {
+      b.classList.remove('active-status');
       b.style.opacity = '1';
       b.style.transform = '';
     });
@@ -4182,31 +4358,40 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
         <div class="lvm-sec-title">หมายเหตุ</div>
         <div class="remarks-box" id="lvmRemarks"></div>
       </div>
+      <!-- ── ส่วนรายละเอียดเพิ่มเติม ── -->
+      <div id="lvmExtraDetails" style="margin-top:14px;border-top:1.5px solid var(--border);padding-top:14px;display:none;">
+        <div class="lvm-sec-title">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          รายละเอียดเพิ่มเติม
+        </div>
+        <div id="lvmExtraContent" class="lvm-extra-grid"></div>
+      </div>
+
       <!-- ── ส่วนแก้ไขสถานะ (ผู้บริหาร) ── -->
-      <div id="lvmEditStatusWrap" style="margin-top:18px;border-top:1.5px solid #e2e8f0;padding-top:14px;">
-        <div class="lvm-sec-title" style="display:flex;align-items:center;gap:6px;">
+      <div id="lvmEditStatusWrap" style="margin-top:14px;border-top:1.5px solid var(--border);padding-top:14px;">
+        <div class="lvm-sec-title">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           แก้ไขสถานะรถ
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
-          <button class="lvm-status-btn" data-status="พร้อมใช้งาน" onclick="setVehStatus(this)"
-            style="padding:10px 6px;border-radius:10px;border:1.5px solid #bbf7d0;background:#f0fdf4;color:#166534;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all .15s;">
-            ✅ พร้อมใช้งาน
+        <div class="lvm-status-grid">
+          <button class="lvm-status-btn lvm-st-ready" data-status="พร้อมใช้งาน" onclick="setVehStatus(this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            พร้อมใช้งาน
           </button>
-          <button class="lvm-status-btn" data-status="กำลังใช้งาน" onclick="setVehStatus(this)"
-            style="padding:10px 6px;border-radius:10px;border:1.5px solid #fed7aa;background:#fff7ed;color:#9a3412;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all .15s;">
-            🚗 กำลังใช้งาน
+          <button class="lvm-status-btn lvm-st-inuse" data-status="กำลังใช้งาน" onclick="setVehStatus(this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-1 9h2l2-5H9l-1 5h2m1 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0"/></svg>
+            กำลังใช้งาน
           </button>
-          <button class="lvm-status-btn" data-status="รอซ่อม" onclick="setVehStatus(this)"
-            style="padding:10px 6px;border-radius:10px;border:1.5px solid #fecaca;background:#fef2f2;color:#991b1b;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all .15s;">
-            🔧 รอซ่อม
+          <button class="lvm-status-btn lvm-st-repair" data-status="รอซ่อม" onclick="setVehStatus(this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            รอซ่อม
           </button>
-          <button class="lvm-status-btn" data-status="รอตรวจสภาพรถ" onclick="setVehStatus(this)"
-            style="padding:10px 6px;border-radius:10px;border:1.5px solid #cbd5e1;background:#f8fafc;color:#475569;font-size:0.8rem;font-weight:600;cursor:pointer;transition:all .15s;">
-            ⏳ รอตรวจสภาพ
+          <button class="lvm-status-btn lvm-st-wait" data-status="รอตรวจสภาพรถ" onclick="setVehStatus(this)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            รอตรวจสภาพ
           </button>
         </div>
-        <div id="lvmStatusMsg" style="font-size:0.75rem;color:var(--text-light);text-align:center;min-height:18px;"></div>
+        <div id="lvmStatusMsg" class="lvm-status-msg"></div>
       </div>
     </div>
   </div>
