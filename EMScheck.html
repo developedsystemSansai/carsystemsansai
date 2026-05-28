@@ -1049,8 +1049,8 @@ const EMS_DEFAULT_DRIVERS = [
 async function loadEMSMasterData() {
   try {
     const [vRes, dRes] = await Promise.all([
-      fetch(GAS_URL + '?action=getVehicles'),
-      fetch(GAS_URL + '?action=getDrivers')
+      fetch(GAS_URL + '?action=getVehicles&apikey=8358d83f-8270-4a84-9c73-9a22efacce82'),
+      fetch(GAS_URL + '?action=getDrivers&apikey=8358d83f-8270-4a84-9c73-9a22efacce82')
     ]);
     const vJson = await vRes.json();
     const dJson = await dRes.json();
