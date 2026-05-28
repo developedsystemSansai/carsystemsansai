@@ -4696,7 +4696,7 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
         html += `<div class="fp-card">
           <div class="fp-card-top">
             <div class="fp-card-stars">${starsHtml}</div>
-            <div class="fp-card-date">${item.date || ''} ${item.time ? item.time.substring(0,5) : ''}</div>
+            <div class="fp-card-date">${fmtSatDate(item.date, item.time)}</div>
           </div>
           ${item.purpose ? `<span class="fp-card-purpose">${escHtml(item.purpose)}</span>` : ''}
           <div class="fp-card-comment ${hasComment ? '' : 'muted'}">${hasComment ? escHtml(item.comment) : '(ไม่มีข้อเสนอแนะ)'}</div>
@@ -4737,7 +4737,7 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
       html += `<div class="fp-card">
         <div class="fp-card-top">
           <span class="fp-fb-type ${escHtml(item.type || 'ทั่วไป')}">${escHtml(item.type || 'ทั่วไป')}</span>
-          <div class="fp-card-date">${item.date || ''} ${item.time ? item.time.substring(0,5) : ''}</div>
+          <div class="fp-card-date">${fmtSatDate(item.date, item.time)}</div>
         </div>
         <div class="fp-card-comment">${escHtml(item.message || '')}</div>
       </div>`;
@@ -4747,6 +4747,14 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
   }
 
   // ── UTIL ──────────────────────────────────────────────
+
+  function fmtSatDate(date, time) {
+    if (!date && !time) return '';
+    let out = '';
+    if (date) out += date;
+    if (time) out += (out ? ' เวลา ' : '') + time.substring(0, 5) + ' น.';
+    return out;
+  }
   function escHtml(str) {
     return String(str)
       .replace(/&/g, '&amp;')
