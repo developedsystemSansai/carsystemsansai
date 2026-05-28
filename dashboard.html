@@ -1118,6 +1118,110 @@ body {
   transition: color var(--dur);
 }
 
+/* ── LVM CONFIRM PANEL ── */
+.lvm-confirm-panel {
+  margin-top: 10px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  animation: confirmSlideIn .18s var(--ease);
+}
+@keyframes confirmSlideIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.lvm-confirm-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px;
+  background: var(--navy);
+  border-bottom: 1px solid rgba(255,255,255,.07);
+}
+.lvm-confirm-arrow { color: rgba(255,255,255,.4); display: flex; align-items: center; flex-shrink: 0; }
+.lvm-confirm-label { font-size: 11px; font-weight: 600; color: rgba(255,255,255,.55); white-space: nowrap; }
+.lvm-confirm-badge {
+  flex: 1;
+  display: inline-flex; align-items: center;
+  font-size: 12.5px; font-weight: 700;
+  padding: 2px 10px; border-radius: 20px;
+  letter-spacing: .1px;
+  width: fit-content;
+}
+.lvm-confirm-badge.badge-ready  { background: var(--teal-soft);  color: var(--teal);  }
+.lvm-confirm-badge.badge-inuse  { background: var(--amber-soft); color: var(--amber); }
+.lvm-confirm-badge.badge-repair { background: var(--red-soft);   color: var(--red);   }
+.lvm-confirm-badge.badge-wait   { background: var(--bg2);        color: var(--text-mid); border: 1px solid var(--border); }
+.lvm-confirm-cancel-x {
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14);
+  border-radius: var(--radius-xs); width: 26px; height: 26px;
+  cursor: pointer; color: rgba(255,255,255,.6); display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all var(--dur); padding: 0;
+}
+.lvm-confirm-cancel-x:hover { background: rgba(255,255,255,.2); color: #fff; }
+.lvm-confirm-body { padding: 13px 14px 6px; background: var(--card); }
+.lvm-confirm-field-label {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 700; color: var(--text-mid);
+  text-transform: uppercase; letter-spacing: .7px;
+  margin-bottom: 7px;
+}
+.lvm-confirm-required { color: var(--danger); }
+.lvm-confirm-textarea {
+  width: 100%; resize: vertical; min-height: 72px;
+  padding: 9px 11px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 13px; color: var(--text);
+  background: var(--bg);
+  outline: none; line-height: 1.55;
+  transition: border-color var(--dur), box-shadow var(--dur), background var(--dur);
+}
+.lvm-confirm-textarea:focus {
+  border-color: var(--blue);
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(29,111,181,.10);
+}
+.lvm-confirm-textarea.error {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(192,57,43,.10);
+}
+.lvm-confirm-char-count {
+  text-align: right; font-size: 10.5px; color: var(--text-light);
+  font-family: 'IBM Plex Mono', monospace;
+  margin-top: 4px; margin-bottom: 4px;
+}
+.lvm-confirm-error {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 11.5px; color: var(--danger);
+  margin-top: 4px; margin-bottom: 2px;
+}
+.lvm-confirm-footer {
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  padding: 10px 14px 12px;
+  background: var(--bg);
+  border-top: 1px solid var(--border);
+}
+.lvm-confirm-cancel-btn {
+  padding: 7px 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--card); color: var(--text-mid);
+  font-family: inherit; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; transition: all var(--dur);
+}
+.lvm-confirm-cancel-btn:hover { background: var(--bg2); border-color: var(--border-strong); }
+.lvm-confirm-submit-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 7px 16px; border-radius: var(--radius-sm);
+  border: none; background: var(--navy); color: #fff;
+  font-family: inherit; font-size: 12.5px; font-weight: 700;
+  cursor: pointer; transition: all var(--dur);
+  letter-spacing: .1px;
+}
+.lvm-confirm-submit-btn:hover { background: var(--navy-light); transform: translateY(-1px); box-shadow: 0 3px 10px rgba(13,33,55,.22); }
+.lvm-confirm-submit-btn:active { transform: none; box-shadow: none; }
+.lvm-confirm-submit-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+.lvm-confirm-submit-btn svg { flex-shrink: 0; }
+
 /* ── LVM EXTRA DETAILS ── */
 .lvm-extra-grid {
   display: grid;
@@ -4192,25 +4296,99 @@ let _lvmCurrentPlate = '';
 // ── เพิ่มบรรทัดนี้ใน openLiveVehicleDetail เพื่อ track plate ──
 // (patch อยู่ด้านล่าง openLiveVehicleDetail จริง)
 
-// ── setVehStatus: highlight ปุ่มที่เลือก + ส่งไป GAS ──
-function setVehStatus(btn) {
+// ── State สำหรับ status confirm flow ──
+let _lvmPendingStatus = '';
+
+// ── Step 1: เลือกสถานะ → เปิด confirm panel ──
+function selectVehStatus(btn) {
   const newStatus = btn.dataset.status;
   const plate     = _lvmCurrentPlate;
   if (!plate || !newStatus) return;
 
-  // highlight ด้วย CSS class
+  _lvmPendingStatus = newStatus;
+
+  // highlight ปุ่มที่เลือก
   document.querySelectorAll('.lvm-status-btn').forEach(b => {
-    b.classList.remove('active-status');
-    b.style.opacity = '0.55';
-    b.style.transform = 'scale(0.97)';
+    b.classList.toggle('active-status', b === btn);
+    b.style.opacity   = b === btn ? '1' : '0.55';
+    b.style.transform = b === btn ? 'scale(1.03)' : '';
   });
-  btn.classList.add('active-status');
-  btn.style.opacity = '1';
-  btn.style.transform = 'scale(1.04)';
+
+  // ตั้ง badge สี/ข้อความ
+  const badge = document.getElementById('lvmConfirmStatusBadge');
+  const badgeClassMap = {
+    'พร้อมใช้งาน' : 'badge-ready',
+    'กำลังใช้งาน' : 'badge-inuse',
+    'รอซ่อม'      : 'badge-repair',
+    'รอตรวจสภาพรถ': 'badge-wait',
+  };
+  badge.className = 'lvm-confirm-badge ' + (badgeClassMap[newStatus] || '');
+  badge.textContent = newStatus;
+
+  // reset textarea + error + char count
+  const ta = document.getElementById('lvmReasonInput');
+  ta.value = '';
+  ta.classList.remove('error');
+  document.getElementById('lvmReasonCount').textContent = '0';
+  document.getElementById('lvmReasonError').style.display = 'none';
+  document.getElementById('lvmStatusMsg').textContent = '';
+
+  // แสดง confirm panel
+  const panel = document.getElementById('lvmConfirmPanel');
+  panel.style.display = 'block';
+
+  // focus textarea หลัง animation
+  setTimeout(() => ta.focus(), 120);
+
+  // char counter
+  ta.oninput = function() {
+    const len = ta.value.length;
+    document.getElementById('lvmReasonCount').textContent = len;
+    if (len > 0) {
+      ta.classList.remove('error');
+      document.getElementById('lvmReasonError').style.display = 'none';
+    }
+    // สีแดงเมื่อใกล้ max
+    document.getElementById('lvmReasonCount').style.color = len > 260 ? 'var(--danger)' : '';
+  };
+}
+
+// ── ยกเลิก — กลับสู่ step 1 ──
+function cancelVehStatus() {
+  _lvmPendingStatus = '';
+  document.getElementById('lvmConfirmPanel').style.display = 'none';
+  // reset highlight กลับเป็น sheetStatus เดิม
+  const currentSt = (window.liveVehicleDetailMap?.[_lvmCurrentPlate]?.sheetStatus) || '';
+  document.querySelectorAll('.lvm-status-btn').forEach(b => {
+    const match = b.dataset.status === currentSt;
+    b.classList.toggle('active-status', match);
+    b.style.opacity   = match ? '1' : '0.65';
+    b.style.transform = match ? 'scale(1.04)' : '';
+  });
+  document.getElementById('lvmStatusMsg').textContent = '';
+}
+
+// ── Step 2: กดยืนยัน → ส่งไป GAS ──
+function confirmVehStatus() {
+  const newStatus = _lvmPendingStatus;
+  const plate     = _lvmCurrentPlate;
+  const ta        = document.getElementById('lvmReasonInput');
+  const reason    = ta.value.trim();
+
+  if (!reason) {
+    ta.classList.add('error');
+    document.getElementById('lvmReasonError').style.display = 'flex';
+    ta.focus();
+    return;
+  }
+
+  const submitBtn = document.getElementById('lvmConfirmSubmit');
+  submitBtn.disabled = true;
+  submitBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="animation:spin .7s linear infinite"><path d="M21 12a9 9 0 1 1-6.22-8.56"/></svg> กำลังบันทึก...';
 
   const msgEl = document.getElementById('lvmStatusMsg');
   msgEl.style.color = 'var(--text-light)';
-  msgEl.textContent = '⏳ กำลังบันทึก...';
+  msgEl.textContent = '';
 
   const GAS_EP = typeof GAS_URL !== 'undefined' ? GAS_URL : '';
   fetch(GAS_EP, {
@@ -4221,26 +4399,66 @@ function setVehStatus(btn) {
       apikey   : '8358d83f-8270-4a84-9c73-9a22efacce82',
       carType  : plate,
       status   : newStatus,
+      reason   : reason,
       updatedBy: 'ผู้บริหาร'
     }))
   })
   .then(r => r.json())
   .then(res => {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ยืนยันเปลี่ยนสถานะ';
+
     if (res.status === 'ok') {
+      // ปิด confirm panel
+      document.getElementById('lvmConfirmPanel').style.display = 'none';
+      _lvmPendingStatus = '';
+
       msgEl.style.color = 'var(--success)';
       msgEl.textContent = '✅ บันทึกสถานะ "' + newStatus + '" เรียบร้อยแล้ว';
+
       // อัปเดต local map ทันที
-      if (window.liveVehicleDetailMap && window.liveVehicleDetailMap[plate]) {
-        window.liveVehicleDetailMap[plate].sheetStatus = newStatus;
-        window.liveVehicleDetailMap[plate].isReady   = (newStatus === 'พร้อมใช้งาน');
-        window.liveVehicleDetailMap[plate].isInUse   = (newStatus === 'กำลังใช้งาน');
-        window.liveVehicleDetailMap[plate].isWait    = (newStatus === 'รอตรวจสภาพรถ');
+      if (window.liveVehicleDetailMap?.[plate]) {
+        const d = window.liveVehicleDetailMap[plate];
+        d.sheetStatus = newStatus;
+        d.isReady  = (newStatus === 'พร้อมใช้งาน');
+        d.isInUse  = (newStatus === 'กำลังใช้งาน');
+        d.isWait   = (newStatus === 'รอตรวจสภาพรถ');
       }
       if (window.ALL_VEHICLES) {
         const veh = window.ALL_VEHICLES.find(v => v.plate === plate);
         if (veh) veh.sheetStatus = newStatus;
       }
-      // รีเฟรช grid หลัง 800ms
+
+      // อัปเดต header modal
+      const headerBgMap = {
+        'พร้อมใช้งาน' : 'linear-gradient(135deg,var(--teal),#0d9488)',
+        'กำลังใช้งาน' : 'linear-gradient(135deg,var(--navy-mid),var(--navy-light))',
+        'รอซ่อม'      : 'linear-gradient(135deg,#991b1b,#b91c1c)',
+        'รอตรวจสภาพรถ': 'linear-gradient(135deg,#475569,#64748b)',
+      };
+      const statusLineMap = {
+        'พร้อมใช้งาน' : '✅ สถานะ: พร้อมใช้งาน',
+        'กำลังใช้งาน' : '🚗 กำลังออกปฏิบัติงาน',
+        'รอซ่อม'      : '🔧 รอซ่อมบำรุง',
+        'รอตรวจสภาพรถ': '⏳ รอตรวจสภาพรถ',
+      };
+      document.getElementById('lvmHeader').style.background = headerBgMap[newStatus] || '';
+      document.getElementById('lvmStatusLine').textContent   = statusLineMap[newStatus] || newStatus;
+
+      // อัปเดต extra details: แสดงหมายเหตุที่เพิ่งกรอก
+      const extraContent = document.getElementById('lvmExtraContent');
+      if (extraContent) {
+        // หา/เพิ่ม note item
+        const existingNote = extraContent.querySelector('.lvm-extra-note');
+        const noteHtml = `<div class="lvm-extra-note">📝 [ผู้บริหาร] ${reason}</div>`;
+        if (existingNote) {
+          existingNote.outerHTML = noteHtml;
+        } else {
+          extraContent.insertAdjacentHTML('beforeend', noteHtml);
+        }
+      }
+
+      // รีเฟรช grid
       setTimeout(() => {
         if (typeof renderLiveVehicleGrid === 'function' && window._lastStatusJson) {
           renderLiveVehicleGrid(window._lastStatusJson);
@@ -4248,26 +4466,23 @@ function setVehStatus(btn) {
           renderLiveVehicleGridFromCheckLog();
         }
       }, 800);
+
     } else {
       msgEl.style.color = 'var(--danger)';
       msgEl.textContent = '❌ ' + (res.message || 'เกิดข้อผิดพลาด');
-      document.querySelectorAll('.lvm-status-btn').forEach(b => {
-        b.classList.remove('active-status');
-        b.style.opacity = '1';
-        b.style.transform = '';
-      });
     }
   })
   .catch(err => {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ยืนยันเปลี่ยนสถานะ';
+    const msgEl = document.getElementById('lvmStatusMsg');
     msgEl.style.color = 'var(--danger)';
     msgEl.textContent = '❌ ไม่สามารถเชื่อมต่อได้: ' + err.message;
-    document.querySelectorAll('.lvm-status-btn').forEach(b => {
-      b.classList.remove('active-status');
-      b.style.opacity = '1';
-      b.style.transform = '';
-    });
   });
 }
+
+// ── setVehStatus: compat alias (ไม่ใช้แล้ว แต่เผื่อมี reference อื่น) ──
+function setVehStatus(btn) { selectVehStatus(btn); }
 
 function closeLiveVehModal(e) {
   if (e.target === document.getElementById('liveVehModal')) {
@@ -4373,24 +4588,62 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
           แก้ไขสถานะรถ
         </div>
-        <div class="lvm-status-grid">
-          <button class="lvm-status-btn lvm-st-ready" data-status="พร้อมใช้งาน" onclick="setVehStatus(this)">
+
+        <!-- Step 1: เลือกสถานะ -->
+        <div id="lvmStepSelect" class="lvm-status-grid">
+          <button class="lvm-status-btn lvm-st-ready"  data-status="พร้อมใช้งาน"  onclick="selectVehStatus(this)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
             พร้อมใช้งาน
           </button>
-          <button class="lvm-status-btn lvm-st-inuse" data-status="กำลังใช้งาน" onclick="setVehStatus(this)">
+          <button class="lvm-status-btn lvm-st-inuse"  data-status="กำลังใช้งาน" onclick="selectVehStatus(this)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v3m-1 9h2l2-5H9l-1 5h2m1 0a2 2 0 1 0 4 0 2 2 0 0 0-4 0"/></svg>
             กำลังใช้งาน
           </button>
-          <button class="lvm-status-btn lvm-st-repair" data-status="รอซ่อม" onclick="setVehStatus(this)">
+          <button class="lvm-status-btn lvm-st-repair" data-status="รอซ่อม"       onclick="selectVehStatus(this)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
             รอซ่อม
           </button>
-          <button class="lvm-status-btn lvm-st-wait" data-status="รอตรวจสภาพรถ" onclick="setVehStatus(this)">
+          <button class="lvm-status-btn lvm-st-wait"   data-status="รอตรวจสภาพรถ" onclick="selectVehStatus(this)">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             รอตรวจสภาพ
           </button>
         </div>
+
+        <!-- Step 2: Confirm panel (hidden until step 1) -->
+        <div id="lvmConfirmPanel" class="lvm-confirm-panel" style="display:none;">
+          <div class="lvm-confirm-header">
+            <div class="lvm-confirm-arrow">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <span class="lvm-confirm-label">เปลี่ยนสถานะเป็น</span>
+            <span id="lvmConfirmStatusBadge" class="lvm-confirm-badge"></span>
+            <button class="lvm-confirm-cancel-x" onclick="cancelVehStatus()" title="ยกเลิก">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <div class="lvm-confirm-body">
+            <label class="lvm-confirm-field-label" for="lvmReasonInput">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              เหตุผล / รายละเอียด <span class="lvm-confirm-required">*</span>
+            </label>
+            <textarea id="lvmReasonInput" class="lvm-confirm-textarea"
+              placeholder="ระบุเหตุผลที่เปลี่ยนสถานะ เช่น เสร็จซ่อมแล้ว / ส่งซ่อมเนื่องจากเบรกผิดปกติ / ตรวจสภาพเสร็จสิ้น..."
+              rows="3" maxlength="300"></textarea>
+            <div class="lvm-confirm-char-count"><span id="lvmReasonCount">0</span>/300</div>
+            <div id="lvmReasonError" class="lvm-confirm-error" style="display:none;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              กรุณากรอกเหตุผลก่อนยืนยัน
+            </div>
+          </div>
+          <div class="lvm-confirm-footer">
+            <button class="lvm-confirm-cancel-btn" onclick="cancelVehStatus()">ยกเลิก</button>
+            <button class="lvm-confirm-submit-btn" id="lvmConfirmSubmit" onclick="confirmVehStatus()">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              ยืนยันเปลี่ยนสถานะ
+            </button>
+          </div>
+        </div>
+
         <div id="lvmStatusMsg" class="lvm-status-msg"></div>
       </div>
     </div>
