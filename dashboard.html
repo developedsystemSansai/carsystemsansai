@@ -3350,17 +3350,37 @@ function renderFuelTracker(json) {
     const levelLabel  = fd?.fuelLevel ? 'ระดับ ' + fd.fuelLevel : '';
 
     if (filled) {
-      const fuelUrl = (fd?.fuelPhotoUrl || '').toString().trim();
-      const cleanFuelUrl = fuelUrl.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
-      const billBtn = cleanFuelUrl.startsWith('http')
-        ? `<a href="${cleanFuelUrl}" target="_blank" rel="noopener" class="ft-bill-btn">
-             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-             ดูรูปบิลน้ำมัน
-           </a>`
-        : `<div class="ft-no-bill">
+      // ดึง URL รูปบิล — ตรวจ fuelPhotoUrl ก่อน ถ้าว่างให้ fallback ไป returnFuelPhotoUrl
+      const rawFuelUrl = (fd?.fuelPhotoUrl || fd?.returnFuelPhotoUrl || '').toString().trim();
+      const cleanFuelUrl = rawFuelUrl.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
+      // สร้างปุ่มดูบิล พร้อม thumbnail ถ้าเป็น Drive link
+      let billBtn;
+      if (cleanFuelUrl.startsWith('http')) {
+        const driveMatch = cleanFuelUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (driveMatch) {
+          const fid = driveMatch[1];
+          const thumb = `https://drive.google.com/thumbnail?id=${fid}&sz=w120`;
+          billBtn = `<a href="${cleanFuelUrl}" target="_blank" rel="noopener" class="ft-bill-btn" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 8px;">
+               <img src="${thumb}" alt="บิลน้ำมัน"
+                    style="width:60px;height:54px;object-fit:cover;border-radius:4px;border:1.5px solid rgba(255,255,255,0.3);"
+                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+               <span style="display:none;align-items:center;gap:4px;font-size:0.7rem;">
+                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                 ดูรูปบิล
+               </span>
+             </a>`;
+        } else {
+          billBtn = `<a href="${cleanFuelUrl}" target="_blank" rel="noopener" class="ft-bill-btn">
+               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+               ดูรูปบิลน้ำมัน
+             </a>`;
+        }
+      } else {
+        billBtn = `<div class="ft-no-bill">
              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
              <span>ยังไม่มีรูปบิล</span>
            </div>`;
+      }
       return `<div class="ft-card ft-card--filled">
         <div class="ft-card-top">
           <div class="ft-plate-wrap">
@@ -3407,9 +3427,32 @@ function renderFuelTrackerFromMileLog() {
   // กรอง MileLog วันนี้ที่มีการเติมน้ำมัน (น้ำมันที่เติม(ลิตร) มีค่า หรือ = 'ใช่')
   const todayFueled = [];
   const seenPlate = new Set();
+
+  // helper: ดึง URL รูปบิลน้ำมันจาก record — ตรวจสอบทุก field ที่เป็นไปได้
+  function extractFuelPhotoUrl(r) {
+    function extractDriveUrl(val) {
+      if (!val) return '';
+      const s = String(val).trim();
+      const m = s.match(/=HYPERLINK\("([^"]+)"/i);
+      if (m) return m[1];
+      if (s.startsWith('http')) return s;
+      return '';
+    }
+    return extractDriveUrl(r['fuelPhotoUrl'])
+        || extractDriveUrl(r['รูปบิลน้ำมัน'])
+        // fallback: ถ้าขาไปไม่มีรูป ให้ดึงจากขากลับ (GAS บางครั้งบันทึก URL ลง col 17)
+        || extractDriveUrl(r['returnFuelPhotoUrl'])
+        || extractDriveUrl(r['รูปบิลน้ำมันขากลับ'])
+        || '';
+  }
+
   (_mileLogToday || []).forEach(r => {
     const hasFuel = String(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || '').trim();
-    if (!hasFuel || hasFuel === '0') return;
+    // รับทั้งกรณีที่มีจำนวนลิตร และกรณีที่ระบุแค่ว่าเติม ('ใช่')
+    const hasFuelVal = hasFuel && hasFuel !== '0' && hasFuel !== '';
+    // ตรวจสอบรูปบิลน้ำมันด้วย แม้ไม่ได้กรอกลิตร
+    const photoUrl = extractFuelPhotoUrl(r);
+    if (!hasFuelVal && !photoUrl) return;
     const plate = (String(r['ทะเบียน/รถ'] || r['carType'] || '')).split(' ')[0].trim();
     if (!plate || seenPlate.has(plate)) return;
     seenPlate.add(plate);
@@ -3418,9 +3461,9 @@ function renderFuelTrackerFromMileLog() {
       driverName : r['พนักงานขับรถ'] || '',
       time       : extractTimeOnly(r['เวลาออก'] || ''),
       fuelLevel  : '',
-      fuelLiters : hasFuel,
+      fuelLiters : hasFuelVal ? hasFuel : '',
       fuelPrice  : String(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || ''),
-      fuelPhotoUrl: r['fuelPhotoUrl'] || '',
+      fuelPhotoUrl: photoUrl,
       source     : 'mile'
     });
   });
