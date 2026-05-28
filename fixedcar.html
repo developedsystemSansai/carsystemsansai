@@ -1684,10 +1684,11 @@ function closeDetail() {
 // HELPERS
 // ============================================================
 async function gasPost(payload) {
+  const secured = { apikey: API_KEY, ...payload };
   const resp = await fetch(GAS_URL, {
     method : 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body   : 'payload=' + encodeURIComponent(JSON.stringify(payload))
+    body   : 'payload=' + encodeURIComponent(JSON.stringify(secured))
   });
   if (!resp.ok) throw new Error('HTTP ' + resp.status);
   return resp.json();
