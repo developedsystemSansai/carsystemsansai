@@ -4752,7 +4752,11 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
     if (!date && !time) return '';
     let out = '';
     if (date) out += date;
-    if (time) out += (out ? ' เวลา ' : '') + time.substring(0, 5) + ' น.';
+    if (time) {
+      // time มาจาก GAS เป็น "HH:mm:ss" — ตัดเอาแค่ HH:MM
+      const hhmm = String(time).substring(0, 5);
+      out += (out ? ' · ' : '') + hhmm;
+    }
     return out;
   }
   function escHtml(str) {
