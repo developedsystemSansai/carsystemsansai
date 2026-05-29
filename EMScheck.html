@@ -511,8 +511,8 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
 
 <script>
 // ─────────────────────────────────────────────
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
-const API_KEY = '8358d83f-8270-4a84-9c73-9a22efacce82';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec'; // ✅ Proxy — API_KEY ซ่อนใน ScriptProperties
+// const API_KEY — removed: key is now hidden inside GAS Proxy ScriptProperties
 
 // ─────────────────────────────────────────────
 //  EMS EQUIPMENT DATA — 54 รายการ 12 หมวด
@@ -931,7 +931,6 @@ async function submitEMS() {
 
   const payload = {
     action      : 'saveEMS',
-    apikey      : API_KEY,
     carId,
     checkerName,
     checkerRole : document.getElementById('checkerRole').value.trim(),
@@ -961,7 +960,7 @@ async function submitEMS() {
         method: 'POST', mode: 'no-cors',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'payload=' + encodeURIComponent(JSON.stringify({
-          action: 'uploadPhotos', apikey: API_KEY, carType: carId, inspDate: checkDate,
+          action: 'uploadPhotos', carType: carId, inspDate: checkDate,
           driverName: checkerName, photos: allPhotos.flatMap(x => x.photos)
         }))
       }).catch(() => {});
@@ -1051,8 +1050,8 @@ const EMS_DEFAULT_DRIVERS = [
 async function loadEMSMasterData() {
   try {
     const [vRes, dRes] = await Promise.all([
-      fetch(GAS_URL + '?action=getVehicles&apikey=8358d83f-8270-4a84-9c73-9a22efacce82'),
-      fetch(GAS_URL + '?action=getDrivers&apikey=8358d83f-8270-4a84-9c73-9a22efacce82')
+      fetch(GAS_URL + '?action=getVehicles'),
+      fetch(GAS_URL + '?action=getDrivers')
     ]);
     const vJson = await vRes.json();
     const dJson = await dRes.json();
