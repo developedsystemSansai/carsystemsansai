@@ -932,8 +932,8 @@ textarea { resize: vertical; min-height: 80px; }
 // ============================================================
 // CONFIG
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
-const API_KEY = '8358d83f-8270-4a84-9c73-9a22efacce82';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec'; // ✅ Proxy — API_KEY ซ่อนใน ScriptProperties
+// const API_KEY — removed: key is now hidden inside GAS Proxy ScriptProperties
 
 const DEFAULT_VEHICLES = [
   { ทะเบียน:'นจ.4919 ชม.', ประเภท:'รถตู้ฮุนได' },
@@ -997,8 +997,8 @@ async function loadVehiclesAndDrivers() {
   let drivers  = DEFAULT_DRIVERS;
   try {
     const [vR, dR] = await Promise.all([
-      fetch(GAS_URL + '?action=getVehicles&apikey=8358d83f-8270-4a84-9c73-9a22efacce82'),
-      fetch(GAS_URL + '?action=getDrivers&apikey=8358d83f-8270-4a84-9c73-9a22efacce82')
+      fetch(GAS_URL + '?action=getVehicles'),
+      fetch(GAS_URL + '?action=getDrivers')
     ]);
     const vJ = await vR.json();
     const dJ = await dR.json();
@@ -1030,7 +1030,7 @@ async function loadVehiclesAndDrivers() {
 
 async function loadRepairJobs() {
   try {
-    const r = await fetch(GAS_URL + '?action=getRepairJobs&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
+    const r = await fetch(GAS_URL + '?action=getRepairJobs');
     const j = await r.json();
     if (j.data && j.data.length) repairJobs = j.data;
   } catch(_) {
@@ -1151,7 +1151,7 @@ async function uploadRepairPhoto(idx, name, base64, mimeType) {
 
     const uploadPayload = JSON.stringify({
       action    : 'uploadRepairPhoto',
-      apikey    : API_KEY,             // ✅ เพิ่ม — ป้องกัน Unauthorized
+      // ✅ เพิ่ม — ป้องกัน Unauthorized
       fileName  : name  || ('repair_' + Date.now() + '.jpg'),
       mimeType  : mimeType || 'image/jpeg',
       base64Data: b64Clean   // ← ส่ง raw base64 เท่านั้น ไม่มี prefix
@@ -1684,7 +1684,7 @@ function closeDetail() {
 // HELPERS
 // ============================================================
 async function gasPost(payload) {
-  const secured = { apikey: API_KEY, ...payload };
+  const secured = { ...payload };
   const resp = await fetch(GAS_URL, {
     method : 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
