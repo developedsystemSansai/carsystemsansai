@@ -829,8 +829,8 @@ textarea { resize: vertical; min-height: 80px; }
 // ============================================================
 // CONFIG — แก้ไข URL ตรงนี้หลัง deploy Google Apps Script
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
-const API_KEY = '8358d83f-8270-4a84-9c73-9a22efacce82';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec'; // ✅ Proxy — API_KEY ซ่อนใน ScriptProperties
+// const API_KEY — removed: key is now hidden inside GAS Proxy ScriptProperties
 
 // ============================================================
 // LOAD MASTER DATA FROM GOOGLE SHEETS (Vehicles + Drivers)
@@ -869,9 +869,9 @@ function buildDriverList(apiDrivers, vehicles) {
 async function loadMasterData() {
   try {
     const [vRes, dRes, chkRes] = await Promise.all([
-      fetch(GAS_URL + '?action=getVehicles&apikey=8358d83f-8270-4a84-9c73-9a22efacce82'),
-      fetch(GAS_URL + '?action=getDrivers&apikey=8358d83f-8270-4a84-9c73-9a22efacce82'),
-      fetch(GAS_URL + '?action=getTodayCheckedPlates&apikey=8358d83f-8270-4a84-9c73-9a22efacce82')
+      fetch(GAS_URL + '?action=getVehicles'),
+      fetch(GAS_URL + '?action=getDrivers'),
+      fetch(GAS_URL + '?action=getTodayCheckedPlates')
     ]);
     const vJson   = await vRes.json();
     const dJson   = await dRes.json();
@@ -1101,7 +1101,7 @@ function validateForm() {
 // HELPER: POST ไปยัง GAS (cors ปกติ — อ่าน response ได้)
 // ============================================================
 async function gasPost(payload) {
-  const secured = { apikey: API_KEY, ...payload };
+  const secured = { ...payload };
   const resp = await fetch(GAS_URL, {
     method : 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -1320,7 +1320,7 @@ async function uploadCheckPhoto(idx, name, base64, mimeType) {
 
     const uploadPayload = JSON.stringify({
       action    : 'uploadPhotoPost',   // ✅ แก้จาก 'uploadRepairPhoto' → ใช้ buffer ลง CheckLog
-      apikey    : API_KEY,             // ✅ เพิ่ม — ป้องกัน Unauthorized
+      // ✅ เพิ่ม — ป้องกัน Unauthorized
       subFolder : 'CheckPhotos',       // บอก GAS ว่าเป็นรูปตรวจสภาพ (ไม่ใช่ FuelReceipts)
       carType   : carType,             // ใช้สร้าง buffer key
       inspDate  : inspDate,            // ใช้สร้าง buffer key
