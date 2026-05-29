@@ -2926,14 +2926,21 @@ function renderFuelPhotoSection(r, mileRec) {
 
   if (r.fuelFill !== 'เติม') return;
 
-  // รูปบิลน้ำมัน — อยู่ใน fuelPhotoUrl (MileLog col 16) ไม่ใช่ driveLinks (CheckLog)
-  const rawFuel = mileRec
-    ? (mileRec.fuelPhotoUrl || mileRec['รูปบิลน้ำมัน'] || '').toString().trim()
-    : '';
-  const fuelPhotoClean = rawFuel.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
-  const links = fuelPhotoClean
-    ? fuelPhotoClean.split(/[\n,]+/).map(l => l.trim()).filter(l => l.startsWith('http'))
-    : [];
+  // helper: แกะ URL จาก HYPERLINK formula หรือ plain URL
+  function extractBillUrl(val) {
+    if (!val) return '';
+    const s = String(val).trim();
+    const m = s.match(/=HYPERLINK\("([^"]+)"/i);
+    if (m) return m[1];
+    return s.startsWith('http') ? s : '';
+  }
+
+  // ── ดึง URL ขาไป (col 16) และขากลับ (col 17) แยกกัน ──
+  const urlGo     = mileRec ? (extractBillUrl(mileRec['fuelPhotoUrl'])  || extractBillUrl(mileRec['รูปบิลน้ำมัน'])) : '';
+  const urlReturn = mileRec ? (extractBillUrl(mileRec['returnFuelPhotoUrl']) || extractBillUrl(mileRec['รูปบิลน้ำมันขากลับ'])) : '';
+
+  // รวม links (เพื่อ backward compat กับโค้ดที่เหลือ)
+  const links = [urlGo, urlReturn].filter(u => u.startsWith('http'));
 
   const photosSection = document.getElementById('m-photos').parentElement;
   const wrap = document.createElement('div');
@@ -2946,7 +2953,12 @@ function renderFuelPhotoSection(r, mileRec) {
         ✅ บันทึกว่าเติมน้ำมัน แต่ยังไม่มีรูปบิลที่อัปโหลด
       </div>`;
   } else {
-    const thumbsHtml = links.map((url, i) => {
+    // กำหนด label สำหรับแต่ละ URL
+    const billLabels = [];
+    if (urlGo)     billLabels.push({ url: urlGo,     label: '⛽ บิลขาไป' });
+    if (urlReturn) billLabels.push({ url: urlReturn,  label: '🔄 บิลขากลับ' });
+
+    const thumbsHtml = billLabels.map(({ url, label }) => {
       const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
       if (m) {
         const fid = m[1];
@@ -2956,7 +2968,7 @@ function renderFuelPhotoSection(r, mileRec) {
           <div style="position:relative;border-radius:10px;overflow:hidden;
                       border:2px solid #3b82f6;cursor:pointer;width:100px;height:90px;"
                onclick="openLightbox('${thumb.replace('w200','w1200')}','${view}')">
-            <img src="${thumb}" alt="บิลที่ ${i+1}"
+            <img src="${thumb}" alt="${label}"
                  style="width:100%;height:100%;object-fit:cover;"
                  onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
             <div style="display:none;align-items:center;justify-content:center;
@@ -2972,7 +2984,7 @@ function renderFuelPhotoSection(r, mileRec) {
                     padding:3px 9px;background:#2563eb;color:#fff;
                     border-radius:6px;font-size:0.65rem;font-weight:700;
                     text-decoration:none;">
-            🔗 เปิดบิลที่ ${i+1}
+            🔗 ${label}
           </a>
         </div>`;
       }
@@ -2981,11 +2993,11 @@ function renderFuelPhotoSection(r, mileRec) {
                height:90px;width:100px;background:#eff6ff;border:2px solid #3b82f6;
                border-radius:10px;color:#1e40af;font-size:0.75rem;
                font-weight:700;text-decoration:none;">
-        📄 เปิดบิลที่ ${i+1}
+        📄 ${label}
       </a>`;
     }).join('');
 
-    const allLinksHtml = links.map((url, i) => {
+    const allLinksHtml = billLabels.map(({ url, label }) => {
       const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
       const v = m ? `https://drive.google.com/file/d/${m[1]}/view` : url;
       return `<a href="${v}" target="_blank" rel="noopener"
@@ -2993,12 +3005,12 @@ function renderFuelPhotoSection(r, mileRec) {
                padding:5px 12px;background:#2563eb;color:#fff;
                border-radius:8px;font-size:0.75rem;font-weight:700;
                text-decoration:none;margin:3px;">
-        📄 บิลที่ ${i+1}
+        📄 ${label}
       </a>`;
     }).join('');
 
     wrap.innerHTML = `
-      <div class="modal-section-title">⛽ บิลน้ำมัน / รูปถ่าย (${links.length} รูป)</div>
+      <div class="modal-section-title">⛽ บิลน้ำมัน / รูปถ่าย (${billLabels.length} ใบ${billLabels.length === 2 ? ' · ขาไป + ขากลับ' : ''})</div>
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
         ${thumbsHtml}
       </div>
@@ -3350,31 +3362,65 @@ function renderFuelTracker(json) {
     const levelLabel  = fd?.fuelLevel ? 'ระดับ ' + fd.fuelLevel : '';
 
     if (filled) {
-      // ดึง URL รูปบิล — ตรวจ fuelPhotoUrl ก่อน ถ้าว่างให้ fallback ไป returnFuelPhotoUrl
-      const rawFuelUrl = (fd?.fuelPhotoUrl || fd?.returnFuelPhotoUrl || '').toString().trim();
-      const cleanFuelUrl = rawFuelUrl.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
-      // สร้างปุ่มดูบิล พร้อม thumbnail ถ้าเป็น Drive link
-      let billBtn;
-      if (cleanFuelUrl.startsWith('http')) {
-        const driveMatch = cleanFuelUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if (driveMatch) {
-          const fid = driveMatch[1];
+      // ── helper: แปลง raw URL / HYPERLINK formula → URL สะอาด ──
+      function cleanUrl(raw) {
+        if (!raw) return '';
+        const s = raw.toString().trim();
+        const m = s.match(/=HYPERLINK\("([^"]+)"/i);
+        if (m) return m[1];
+        return s.startsWith('http') ? s : '';
+      }
+      // ── ดึง URL แยกขาไป / ขากลับ ──
+      const urlGo     = cleanUrl(fd?.fuelPhotoUrl);
+      const urlReturn = cleanUrl(fd?.returnFuelPhotoUrl);
+
+      // ── helper: สร้าง thumb+ปุ่มสำหรับบิล 1 ใบ ──
+      function makeBillThumb(url, label) {
+        if (!url) return '';
+        const dm = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (dm) {
+          const fid   = dm[1];
           const thumb = `https://drive.google.com/thumbnail?id=${fid}&sz=w120`;
-          billBtn = `<a href="${cleanFuelUrl}" target="_blank" rel="noopener" class="ft-bill-btn" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 8px;">
-               <img src="${thumb}" alt="บิลน้ำมัน"
-                    style="width:60px;height:54px;object-fit:cover;border-radius:4px;border:1.5px solid rgba(255,255,255,0.3);"
-                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-               <span style="display:none;align-items:center;gap:4px;font-size:0.7rem;">
-                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                 ดูรูปบิล
-               </span>
-             </a>`;
-        } else {
-          billBtn = `<a href="${cleanFuelUrl}" target="_blank" rel="noopener" class="ft-bill-btn">
-               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-               ดูรูปบิลน้ำมัน
-             </a>`;
+          return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
+            <a href="${url}" target="_blank" rel="noopener"
+               style="display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;">
+              <div style="position:relative;border-radius:6px;overflow:hidden;
+                          border:1.5px solid rgba(255,255,255,0.35);width:60px;height:54px;">
+                <img src="${thumb}" alt="${label}"
+                     style="width:100%;height:100%;object-fit:cover;"
+                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+                <div style="display:none;align-items:center;justify-content:center;
+                             width:100%;height:100%;background:#eff6ff;font-size:1rem;">📄</div>
+              </div>
+              <span style="font-size:0.6rem;font-weight:700;color:rgba(255,255,255,0.85);
+                           background:rgba(0,0,0,0.28);border-radius:4px;padding:1px 5px;">
+                ${label}
+              </span>
+            </a>
+          </div>`;
         }
+        return `<a href="${url}" target="_blank" rel="noopener" class="ft-bill-btn" style="font-size:0.7rem;">
+          📄 ${label}
+        </a>`;
+      }
+
+      // ── สร้าง billBtn รองรับ 2 บิล ──
+      let billBtn;
+      const thumbGo     = makeBillThumb(urlGo,     'บิลขาไป');
+      const thumbReturn = makeBillThumb(urlReturn,  'บิลขากลับ');
+      const hasAnyBill  = thumbGo || thumbReturn;
+
+      if (hasAnyBill) {
+        const billCount = (urlGo ? 1 : 0) + (urlReturn ? 1 : 0);
+        billBtn = `<div style="display:flex;flex-direction:column;gap:4px;">
+          <div style="font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.55);
+                      text-transform:uppercase;letter-spacing:0.4px;">
+            ⛽ บิลน้ำมัน (${billCount} ใบ)
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            ${thumbGo}${thumbReturn}
+          </div>
+        </div>`;
       } else {
         billBtn = `<div class="ft-no-bill">
              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
@@ -3446,25 +3492,42 @@ function renderFuelTrackerFromMileLog() {
         || '';
   }
 
+  // helper แยกต่างหาก: ดึง URL รูปบิลขากลับ
+  function extractReturnFuelPhotoUrl(r) {
+    function extractDriveUrl(val) {
+      if (!val) return '';
+      const s = String(val).trim();
+      const m = s.match(/=HYPERLINK\("([^"]+)"/i);
+      if (m) return m[1];
+      if (s.startsWith('http')) return s;
+      return '';
+    }
+    return extractDriveUrl(r['returnFuelPhotoUrl'])
+        || extractDriveUrl(r['รูปบิลน้ำมันขากลับ'])
+        || '';
+  }
+
   (_mileLogToday || []).forEach(r => {
     const hasFuel = String(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || '').trim();
     // รับทั้งกรณีที่มีจำนวนลิตร และกรณีที่ระบุแค่ว่าเติม ('ใช่')
     const hasFuelVal = hasFuel && hasFuel !== '0' && hasFuel !== '';
     // ตรวจสอบรูปบิลน้ำมันด้วย แม้ไม่ได้กรอกลิตร
-    const photoUrl = extractFuelPhotoUrl(r);
-    if (!hasFuelVal && !photoUrl) return;
+    const photoUrl       = extractFuelPhotoUrl(r);
+    const returnPhotoUrl = extractReturnFuelPhotoUrl(r);
+    if (!hasFuelVal && !photoUrl && !returnPhotoUrl) return;
     const plate = (String(r['ทะเบียน/รถ'] || r['carType'] || '')).split(' ')[0].trim();
     if (!plate || seenPlate.has(plate)) return;
     seenPlate.add(plate);
     todayFueled.push({
-      carType    : r['ทะเบียน/รถ'] || r['carType'] || plate,
-      driverName : r['พนักงานขับรถ'] || '',
-      time       : extractTimeOnly(r['เวลาออก'] || ''),
-      fuelLevel  : '',
-      fuelLiters : hasFuelVal ? hasFuel : '',
-      fuelPrice  : String(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || ''),
-      fuelPhotoUrl: photoUrl,
-      source     : 'mile'
+      carType           : r['ทะเบียน/รถ'] || r['carType'] || plate,
+      driverName        : r['พนักงานขับรถ'] || '',
+      time              : extractTimeOnly(r['เวลาออก'] || ''),
+      fuelLevel         : '',
+      fuelLiters        : hasFuelVal ? hasFuel : '',
+      fuelPrice         : String(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || ''),
+      fuelPhotoUrl      : photoUrl,
+      returnFuelPhotoUrl: returnPhotoUrl,
+      source            : 'mile'
     });
   });
   renderFuelTracker({ todayFueled });
@@ -4155,29 +4218,43 @@ function openLiveVehicleDetail(plate) {
         const cDate  = normDateForMatch(rec.inspDate || '');
         return mPlate === cPlate && (mDate === cDate || !cDate || !mDate);
       });
-      const rawFuelLink = mileRec
+      const rawFuelLink    = mileRec
         ? (mileRec.fuelPhotoUrl || mileRec['รูปบิลน้ำมัน'] || '').toString().trim()
         : '';
-      const cleanFuelLink = rawFuelLink.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
-      const fuelLinks = cleanFuelLink
-        ? cleanFuelLink.split(/[\n,]+/).map(l => l.trim()).filter(l => l.startsWith('http'))
-        : [];
+      const rawReturnLink  = mileRec
+        ? (mileRec.returnFuelPhotoUrl || mileRec['รูปบิลน้ำมันขากลับ'] || '').toString().trim()
+        : '';
+
+      function extractOdomUrl(raw) {
+        if (!raw) return '';
+        const m = raw.match(/=HYPERLINK\("([^"]+)"/i);
+        if (m) return m[1];
+        return raw.startsWith('http') ? raw : '';
+      }
+      const urlGoOdo     = extractOdomUrl(rawFuelLink);
+      const urlReturnOdo = extractOdomUrl(rawReturnLink);
+
+      // รวม links แบบ label-aware
+      const billPairs = [];
+      if (urlGoOdo)     billPairs.push({ url: urlGoOdo,     label: '📎 บิลขาไป' });
+      if (urlReturnOdo) billPairs.push({ url: urlReturnOdo, label: '📎 บิลขากลับ' });
+
       let fuelLinkHtml = '';
-      if (fuelLinks.length > 0) {
-        const thumbs = fuelLinks.map((url, i) => {
+      if (billPairs.length > 0) {
+        const thumbs = billPairs.map(({ url, label }) => {
           const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
           if (m) {
             const fid = m[1];
             return `<a href="https://drive.google.com/file/d/${fid}/view" target="_blank"
                        style="display:inline-flex;align-items:center;gap:4px;background:#2563eb;color:#fff;
                               padding:4px 11px;border-radius:8px;font-size:0.68rem;font-weight:700;text-decoration:none;margin:2px;">
-                      📎 บิลที่ ${i+1}
+                      ${label}
                     </a>`;
           }
           return `<a href="${url}" target="_blank"
                      style="display:inline-flex;align-items:center;gap:4px;background:#2563eb;color:#fff;
                             padding:4px 11px;border-radius:8px;font-size:0.68rem;font-weight:700;text-decoration:none;margin:2px;">
-                    📎 บิลที่ ${i+1}
+                    ${label}
                   </a>`;
         }).join('');
         fuelLinkHtml = `<div style="margin-top:6px;">${thumbs}</div>`;
