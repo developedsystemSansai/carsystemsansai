@@ -1776,7 +1776,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <script>
 // ── CONFIG ──
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec'; // ✅ Proxy — API_KEY ซ่อนใน ScriptProperties
 // NOTE: GAS_STATUS_URL ใช้ตัวเดียวกับ GAS_URL (ประกาศซ้ำด้านล่างเพื่อ compatibility)
 // ── Bangkok Timezone Helpers ──────────────────────────────
 function bkkDateStr(d) {
@@ -1809,7 +1809,7 @@ let ALL_VEHICLES = [
 // โหลด Vehicles จาก Google Sheets แล้วอัปเดต filter dropdown + live grid
 async function loadVehicleMaster() {
   try {
-    const res  = await fetch(GAS_URL + '?action=getVehicles&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
+    const res  = await fetch(GAS_URL + '?action=getVehicles');
     const json = await res.json();
     if (json.data && json.data.length) {
       ALL_VEHICLES = json.data.map(v => ({
@@ -2081,7 +2081,7 @@ async function loadMileLogToday() {
   if (_mileLogLoading) return;
   _mileLogLoading = true;
   try {
-    const res  = await fetch(GAS_URL + '?action=getMileData&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
+    const res  = await fetch(GAS_URL + '?action=getMileData');
     const json = await res.json();
     const todayStr = bkkDateStr();
     _mileLogToday = (json.data || []).filter(r => {
@@ -2246,7 +2246,7 @@ function startOdoAutoRefresh() {
 async function loadData() {
   document.getElementById('lastUpdated').textContent = 'กำลังโหลด...';
   try {
-    const res = await fetch(GAS_URL + '?action=getData&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
+    const res = await fetch(GAS_URL + '?action=getData');
     const json = await res.json();
     allData = json.data || [];
     window.allData = allData;
@@ -2416,7 +2416,7 @@ let _mileLogAllLoaded = false;
 async function loadMileLogAll() {
   if (_mileLogAllLoaded) return;
   try {
-    const res  = await fetch(GAS_URL + '?action=getMileData&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
+    const res  = await fetch(GAS_URL + '?action=getMileData');
     const json = await res.json();
     _mileLogAll = json.data || [];
     _mileLogAllLoaded = true;
@@ -3174,7 +3174,7 @@ async function loadLiveVehicleStatus() {
     await loadVehicleMaster();
 
     // ดึง getStatusSummary (รวม Vehicles sheet + MileLog + CheckLog จาก GAS)
-    const res = await fetch(GAS_STATUS_URL + '?action=getStatusSummary&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
+    const res = await fetch(GAS_STATUS_URL + '?action=getStatusSummary');
     const json = await res.json();
     if (json.status !== 'ok') throw new Error('api error');
 
@@ -4439,7 +4439,6 @@ function confirmVehStatus() {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body   : 'payload=' + encodeURIComponent(JSON.stringify({
       action   : 'updateVehicleStatus',
-      apikey   : '8358d83f-8270-4a84-9c73-9a22efacce82',
       carType  : plate,
       status   : newStatus,
       reason   : reason,
@@ -4544,7 +4543,7 @@ async function checkDriveAuth(showAlert = false) {
   const btn = document.getElementById('driveAuthBtn');
   if (btn) btn.innerHTML = '⏳ กำลังตรวจสอบ...';
   try {
-    const res  = await fetch(GAS_URL + '?action=authorizeUpload&apikey=8358d83f-8270-4a84-9c73-9a22efacce82');
+    const res  = await fetch(GAS_URL + '?action=authorizeUpload');
     const json = await res.json();
     if (json.status === 'ok' && json.authorized) {
       window._driveFolderId = json.folderId;
@@ -4578,7 +4577,6 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
   try {
     const body = JSON.stringify({
       action     : 'uploadPhotos',
-      apikey     : '8358d83f-8270-4a84-9c73-9a22efacce82',
       photos     : photos,
       carType    : carType,
       inspDate   : inspDate,
@@ -5214,7 +5212,7 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
 
   const GAS = typeof GAS_URL !== 'undefined'
     ? GAS_URL
-    : 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
+    : 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec';
 
   let currentTab  = 'sat';   // 'sat' | 'fb'
   let satData     = null;
@@ -5293,7 +5291,7 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
 
   function loadSatisfactionData() {
     const p = getDateParams();
-    const url = GAS + '?action=getSatisfactionData&apikey=8358d83f-8270-4a84-9c73-9a22efacce82&limit=300'
+    const url = GAS + '?action=getSatisfactionData&limit=300'
       + (p.startDate ? '&startDate=' + encodeURIComponent(p.startDate) : '')
       + (p.endDate   ? '&endDate='   + encodeURIComponent(p.endDate)   : '');
 
@@ -5314,7 +5312,7 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
   }
 
   function loadFeedbackData() {
-    const url = GAS + '?action=getFeedbackData&apikey=8358d83f-8270-4a84-9c73-9a22efacce82&limit=100';
+    const url = GAS + '?action=getFeedbackData&limit=100';
     fetch(url)
       .then(r => r.json())
       .then(res => {
@@ -5493,7 +5491,7 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
 
   // โหลด badge count แบบเงียบ ๆ เมื่อหน้าโหลด
   setTimeout(() => {
-    fetch(GAS + '?action=getSatisfactionData&apikey=8358d83f-8270-4a84-9c73-9a22efacce82&limit=1')
+    fetch(GAS + '?action=getSatisfactionData&limit=1')
       .then(r => r.json())
       .then(res => {
         if (res && res.summary) {
