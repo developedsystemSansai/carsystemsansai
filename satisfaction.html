@@ -721,7 +721,7 @@
 
 <script>
 // ── CONFIG ────────────────────────────────────────────
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec'; // ✅ Proxy — API_KEY ซ่อนใน ScriptProperties
 
 const STAR_LABELS = {
   0: '— กรุณาเลือกคะแนน —',
@@ -804,7 +804,6 @@ async function submitSatisfaction() {
   try {
     const payload = {
       action:      'saveSatisfaction',
-      apikey:      '8358d83f-8270-4a84-9c73-9a22efacce82',
       rating:      currentRating,
       purpose:     purpose,
       comment:     comment,
