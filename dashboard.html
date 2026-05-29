@@ -2322,9 +2322,11 @@ function renderFuelSummary(_unused) {
   // กรองเดือนเดียวกับ filterMonth
   const monF = (document.getElementById('filterMonth') || {}).value || '';
 
-  // ดึงจาก MileLog — เฉพาะแถวที่มีการเติมน้ำมัน
+  // ดึงจาก MileLog — เฉพาะแถวที่มีการเติมน้ำมัน (ขาออกหรือขากลับ)
   const mileRows = (_mileLogAll || []).filter(r => {
-    const hasFuel = String(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || '').trim();
+    const goL  = parseFloat(r['น้ำมันขาออก(ลิตร)']  || r['fuelGoLiters']     || r['fuelLiters'] || 0) || 0;
+    const rtL  = parseFloat(r['น้ำมันขากลับ(ลิตร)'] || r['fuelReturnLiters'] || 0) || 0;
+    const hasFuel = (goL + rtL) > 0 ? String(goL + rtL) : String(r['fuelLiters'] || r['น้ำมันที่เติม(ลิตร)'] || '').trim();
     if (!hasFuel || hasFuel === '0' || hasFuel === '') return false;
     if (monF) {
       // กรองเดือน: วันที่ใน MileLog อยู่ใน col 'วันที่' (yyyy-MM-dd หรือ dd/MM/yyyy)
@@ -2344,8 +2346,13 @@ function renderFuelSummary(_unused) {
       trips: 0, totalLiters: 0, totalPrice: 0,
       lastDate: '', lastLiters: 0, lastPrice: 0, lastDriver: ''
     };
-    const liters = parseFloat(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || 0) || 0;
-    const price  = parseFloat(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || 0) || 0;
+    // รวมขาออก + ขากลับ
+    const goL   = parseFloat(r['น้ำมันขาออก(ลิตร)']       || r['fuelGoLiters']     || r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || 0) || 0;
+    const rtL   = parseFloat(r['น้ำมันขากลับ(ลิตร)']      || r['fuelReturnLiters'] || 0) || 0;
+    const goP   = parseFloat(r['ราคาน้ำมันขาออก(บาท)']     || r['fuelGoPrice']      || r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || 0) || 0;
+    const rtP   = parseFloat(r['ราคาน้ำมันขากลับ(บาท)']    || r['fuelReturnPrice']  || 0) || 0;
+    const liters = goL + rtL;
+    const price  = goP + rtP;
     const rowDate = normalizeInspDate(r['วันที่'] || '');
     byPlate[plate].trips++;
     byPlate[plate].totalLiters += liters;
@@ -2571,8 +2578,13 @@ function renderFuelCostSummary(dateStr) {
     const plate  = raw.split(' ')[0].trim();
     if (!plate) return;
 
-    const liters = parseFloat(t['น้ำมันที่เติม(ลิตร)'] || t['fuelLiters'] || 0);
-    const price  = parseFloat(t['ราคาน้ำมัน(บาท)'] || t['ราคาน้ำมัน'] || t['fuelPrice'] || 0);
+    // รวมขาออก + ขากลับ
+    const goLc  = parseFloat(t['น้ำมันขาออก(ลิตร)']    || t['fuelGoLiters']     || t['น้ำมันที่เติม(ลิตร)'] || t['fuelLiters'] || 0) || 0;
+    const rtLc  = parseFloat(t['น้ำมันขากลับ(ลิตร)']   || t['fuelReturnLiters'] || 0) || 0;
+    const goP2c = parseFloat(t['ราคาน้ำมันขาออก(บาท)']  || t['fuelGoPrice']      || t['ราคาน้ำมัน(บาท)'] || t['ราคาน้ำมัน'] || t['fuelPrice'] || 0) || 0;
+    const rtP2c = parseFloat(t['ราคาน้ำมันขากลับ(บาท)'] || t['fuelReturnPrice']  || 0) || 0;
+    const liters = goLc + rtLc;
+    const price  = goP2c + rtP2c;
     if (!liters && !price) return; // ไม่มีการเติม
 
     const timeOut  = extractTimeOnly(t['เวลาออก']  || '');
@@ -2580,6 +2592,7 @@ function renderFuelCostSummary(dateStr) {
     const tripNo   = (plateSeen[plate] = (plateSeen[plate] || 0) + 1);
 
     fuelRows.push({ plate, liters, price, timeOut, timeBack, tripNo,
+      goLiters: goLc, returnLiters: rtLc, goPrice: goP2c, returnPrice: rtP2c,
       type: ALL_VEHICLES.find(v => v.plate === plate)?.type || '' });
   });
 
@@ -2604,11 +2617,15 @@ function renderFuelCostSummary(dateStr) {
 
   const rows = fuelRows.map(r => {
     const litersHtml = r.liters
-      ? `<span style="font-weight:700;font-family:'Space Grotesk',monospace;color:#0369a1;">${r.liters.toLocaleString()} ล.</span>`
+      ? (r.returnLiters > 0
+          ? `<span style="font-weight:700;font-family:'Space Grotesk',monospace;color:#0369a1;">${r.goLiters}+${r.returnLiters}<br><span style="font-size:0.72rem;color:#64748b;">รวม ${r.liters.toLocaleString()} ล.</span></span>`
+          : `<span style="font-weight:700;font-family:'Space Grotesk',monospace;color:#0369a1;">${r.liters.toLocaleString()} ล.</span>`)
       : `<span style="color:var(--text-light);">—</span>`;
 
     const priceHtml = r.price
-      ? `<span style="font-weight:800;font-family:'Space Grotesk',monospace;color:#7c3aed;font-size:0.88rem;">${r.price.toLocaleString()} ฿</span>`
+      ? (r.returnPrice > 0
+          ? `<span style="font-weight:800;font-family:'Space Grotesk',monospace;color:#7c3aed;font-size:0.88rem;">${r.goPrice.toLocaleString()}+${r.returnPrice.toLocaleString()}<br><span style="font-size:0.72rem;">รวม ${r.price.toLocaleString()} ฿</span></span>`
+          : `<span style="font-weight:800;font-family:'Space Grotesk',monospace;color:#7c3aed;font-size:0.88rem;">${r.price.toLocaleString()} ฿</span>`)
       : `<span style="color:var(--text-light);">—</span>`;
 
     const timeHtml = r.timeOut || r.timeBack
@@ -2725,8 +2742,25 @@ function renderRecentRecords(data) {
       const cp = extractPlate(r.carType);
       return mp === cp || mp.includes(cp) || cp.includes(mp);
     }) : null;
-    const fuelLitersLabel = _fRec && _fRec['น้ำมันที่เติม(ลิตร)']
-      ? `<br><span style="color:#0369a1;font-size:0.68rem;font-weight:700;">${_fRec['น้ำมันที่เติม(ลิตร)']} ลิตร${_fRec['ราคาน้ำมัน(บาท)'] || _fRec['ราคาน้ำมัน'] ? ' · ' + (_fRec['ราคาน้ำมัน(บาท)'] || _fRec['ราคาน้ำมัน']) + ' บาท' : ''}</span>` : '';
+    const _chkGoL  = parseFloat(_fRec?.['น้ำมันขาออก(ลิตร)']    || _fRec?.['fuelGoLiters']     || _fRec?.['น้ำมันที่เติม(ลิตร)'] || _fRec?.['fuelLiters'] || 0) || 0;
+    const _chkRtL  = parseFloat(_fRec?.['น้ำมันขากลับ(ลิตร)']   || _fRec?.['fuelReturnLiters'] || 0) || 0;
+    const _chkGoP  = parseFloat(_fRec?.['ราคาน้ำมันขาออก(บาท)']  || _fRec?.['fuelGoPrice']      || _fRec?.['ราคาน้ำมัน(บาท)'] || _fRec?.['ราคาน้ำมัน'] || _fRec?.['fuelPrice'] || 0) || 0;
+    const _chkRtP  = parseFloat(_fRec?.['ราคาน้ำมันขากลับ(บาท)'] || _fRec?.['fuelReturnPrice']  || 0) || 0;
+    const _chkTotL = _chkGoL + _chkRtL;
+    const _chkTotP = _chkGoP + _chkRtP;
+    const fuelLitersLabel = _fRec && (_chkTotL > 0 || _chkTotP > 0)
+      ? (() => {
+          const lStr = _chkTotL > 0
+            ? (_chkRtL > 0 ? `${_chkGoL}+${_chkRtL}=${_chkTotL}ล.` : `${_chkTotL}ล.`)
+            : '';
+          const pStr = _chkTotP > 0
+            ? (_chkRtP > 0 ? `${_chkGoP.toLocaleString()}+${_chkRtP.toLocaleString()}=${_chkTotP.toLocaleString()}฿` : `${_chkTotP.toLocaleString()}฿`)
+            : '';
+          return `<br><span style="color:#0369a1;font-size:0.68rem;font-weight:700;">${lStr}${lStr && pStr ? ' · ' : ''}${pStr}</span>`;
+        })()
+      : (_fRec?.['น้ำมันที่เติม(ลิตร)'] || _fRec?.['fuelLiters']
+          ? `<br><span style="color:#0369a1;font-size:0.68rem;font-weight:700;">${_fRec['น้ำมันที่เติม(ลิตร)'] || _fRec['fuelLiters']} ลิตร</span>`
+          : '');
     return `<tr onclick="openDetailByKey('${key}')" style="cursor:pointer;">
       <td style="white-space:nowrap;font-size:0.76rem;">
         ${fmtDateTime(r.timestamp||r.inspDate||'')}
@@ -3356,8 +3390,24 @@ function renderFuelTracker(json) {
     const fd = fueledMap[v.plate];
     const filled = !!fd;
     const sourceLabel = fd?.source === 'check' ? '🔍 ตรวจรถ' : fd?.source === 'mile' ? '🚗 ออกรถ' : '';
-    const litersLabel = fd?.fuelLiters ? fd.fuelLiters + ' ลิตร' : '';
-    const priceLabel  = fd?.fuelPrice  ? parseFloat(fd.fuelPrice).toLocaleString() + ' บาท' : '';
+    // รวมขาออก + ขากลับ สำหรับแสดงบน card
+    const _goL  = parseFloat(fd?.fuelGoLiters      || fd?.fuelLiters || 0) || 0;
+    const _rtL  = parseFloat(fd?.fuelReturnLiters  || 0) || 0;
+    const _goP  = parseFloat(fd?.fuelGoPrice       || fd?.fuelPrice  || 0) || 0;
+    const _rtP  = parseFloat(fd?.fuelReturnPrice   || 0) || 0;
+    const _totL = _goL + _rtL;
+    const _totP = _goP + _rtP;
+    // แสดงแบบแยก ถ้ามีทั้งขาออกและขากลับ มิเช่นนั้นแสดงรวม
+    const litersLabel = _totL > 0
+      ? (_rtL > 0
+          ? `${_goL > 0 ? _goL + '+' : ''}${_rtL} ล. รวม ${_totL} ล.`
+          : _totL + ' ลิตร')
+      : (fd?.fuelLiters ? fd.fuelLiters + ' ลิตร' : '');
+    const priceLabel = _totP > 0
+      ? (_rtP > 0
+          ? `${_goP > 0 ? _goP.toLocaleString() + '+' : ''}${_rtP.toLocaleString()} ฿ รวม ${_totP.toLocaleString()} ฿`
+          : _totP.toLocaleString() + ' บาท')
+      : (fd?.fuelPrice ? parseFloat(fd.fuelPrice).toLocaleString() + ' บาท' : '');
     const timeLabel   = fd?.time ? extractTimeOnly(fd.time) : '';
     const levelLabel  = fd?.fuelLevel ? 'ระดับ ' + fd.fuelLevel : '';
 
@@ -3518,13 +3568,21 @@ function renderFuelTrackerFromMileLog() {
     const plate = (String(r['ทะเบียน/รถ'] || r['carType'] || '')).split(' ')[0].trim();
     if (!plate || seenPlate.has(plate)) return;
     seenPlate.add(plate);
+    const _rGoL  = parseFloat(r['น้ำมันขาออก(ลิตร)']    || r['fuelGoLiters']     || (hasFuelVal && hasFuel !== 'ใช่' ? hasFuel : 0) || 0) || 0;
+    const _rRtL  = parseFloat(r['น้ำมันขากลับ(ลิตร)']   || r['fuelReturnLiters'] || 0) || 0;
+    const _rGoP  = parseFloat(r['ราคาน้ำมันขาออก(บาท)']  || r['fuelGoPrice']      || r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || 0) || 0;
+    const _rRtP  = parseFloat(r['ราคาน้ำมันขากลับ(บาท)'] || r['fuelReturnPrice']  || 0) || 0;
     todayFueled.push({
       carType           : r['ทะเบียน/รถ'] || r['carType'] || plate,
       driverName        : r['พนักงานขับรถ'] || '',
       time              : extractTimeOnly(r['เวลาออก'] || ''),
       fuelLevel         : '',
-      fuelLiters        : hasFuelVal ? hasFuel : '',
-      fuelPrice         : String(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || ''),
+      fuelGoLiters      : _rGoL  > 0 ? String(_rGoL)  : '',
+      fuelGoPrice       : _rGoP  > 0 ? String(_rGoP)  : '',
+      fuelReturnLiters  : _rRtL  > 0 ? String(_rRtL)  : '',
+      fuelReturnPrice   : _rRtP  > 0 ? String(_rRtP)  : '',
+      fuelLiters        : (_rGoL + _rRtL) > 0 ? String(_rGoL + _rRtL) : (hasFuelVal ? hasFuel : ''),
+      fuelPrice         : (_rGoP + _rRtP) > 0 ? String(_rGoP + _rRtP) : String(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || ''),
       fuelPhotoUrl      : photoUrl,
       returnFuelPhotoUrl: returnPhotoUrl,
       source            : 'mile'
