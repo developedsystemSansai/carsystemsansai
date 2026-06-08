@@ -1388,6 +1388,75 @@ let pendingAction   = null;       // { type, data }
 let apiLoaded       = false;
 
 // ════════════════════════════════════════════════════════
+//  RP PICKER — multi-chip picker สำหรับ จุดขอใช้รถ
+// ════════════════════════════════════════════════════════
+let _rpSelected = new Set();
+let _rpAll = [];
+
+function initRPPicker(points) {
+  _rpAll = points;
+  _renderRPList(_rpAll);
+}
+
+function _renderRPList(points) {
+  const list = document.getElementById('rp-list');
+  if (!list) return;
+  list.innerHTML = points.map(p => `
+    <div onclick="toggleRP('${p}')" style="
+      padding:7px 10px;border-radius:6px;cursor:pointer;font-size:12.5px;
+      background:${_rpSelected.has(p) ? '#e8f5e9' : 'transparent'};
+      font-weight:${_rpSelected.has(p) ? '600' : '400'};
+      color:var(--text);" data-rp="${p}">
+      ${_rpSelected.has(p) ? '✓ ' : ''}${p}
+    </div>`).join('');
+}
+
+function toggleRP(point) {
+  if (_rpSelected.has(point)) { _rpSelected.delete(point); }
+  else { _rpSelected.add(point); }
+  _updateRPChips();
+  const q = document.getElementById('rp-search')?.value.toLowerCase() || '';
+  _renderRPList(_rpAll.filter(p => p.toLowerCase().includes(q)));
+  const hidden = document.getElementById('s_requestPoint');
+  if (hidden) hidden.value = [..._rpSelected].join(', ');
+}
+
+function _updateRPChips() {
+  const chips = document.getElementById('rp-chips');
+  const label = document.getElementById('rp-toggle-label');
+  if (!chips) return;
+  chips.innerHTML = [..._rpSelected].map(p => `
+    <span style="display:inline-flex;align-items:center;gap:4px;
+      background:#1976d2;color:#fff;border-radius:16px;
+      padding:3px 10px 3px 12px;font-size:12px;">
+      ${p}
+      <span onclick="toggleRP('${p}')" style="cursor:pointer;font-size:14px;line-height:1;">×</span>
+    </span>`).join('');
+  if (label) label.textContent = _rpSelected.size === 0 ? '-- เลือกแผนก/วอร์ด --' : `เลือกแล้ว ${_rpSelected.size} จุด`;
+}
+
+function toggleRPPicker() {
+  const picker = document.getElementById('rp-picker');
+  if (!picker) return;
+  const isOpen = picker.style.display !== 'none';
+  picker.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    document.getElementById('rp-search')?.focus();
+    _renderRPList(_rpAll);
+  }
+}
+
+function filterRPPicker() {
+  const q = document.getElementById('rp-search')?.value.toLowerCase() || '';
+  _renderRPList(_rpAll.filter(p => p.toLowerCase().includes(q)));
+}
+
+function getSelectedRPs() {
+  return [..._rpSelected];
+}
+
+
+// ════════════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
