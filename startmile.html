@@ -2632,8 +2632,35 @@ async function loadMileHistory() {
 
 function renderHistory() {
   const filterPlate = (document.getElementById('histFilterCar')?.value || '').trim();
+
+  // ── parse Timestamp/วันที่ → milliseconds (รองรับทุก format ที่ GAS ส่งมา) ──
+  function parseRowMs(r) {
+    const raw = String(r['Timestamp'] || r['วันที่'] || '').trim();
+    if (!raw) return 0;
+    // รูปแบบ dd/MM/yyyy HH:mm:ss  หรือ  dd/MM/yyyy HH:mm  หรือ  dd/MM/yyyy
+    const m1 = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+    if (m1) {
+      const [, d, mo, y, hh = '0', mm = '0', ss = '0'] = m1;
+      return new Date(+y, +mo - 1, +d, +hh, +mm, +ss).getTime();
+    }
+    // รูปแบบ ISO  yyyy-MM-ddTHH:mm  หรือ  yyyy-MM-dd HH:mm  หรือ  yyyy-MM-dd
+    const t = Date.parse(raw.replace(' ', 'T'));
+    return isNaN(t) ? 0 : t;
+  }
+
+  // tiebreaker: ถ้า Timestamp เท่ากัน ให้เรียงด้วยเวลาออก
+  function parseTimeField(val) {
+    if (!val) return 0;
+    const m = String(val).trim().match(/(\d{1,2}):(\d{2})/);
+    return m ? +m[1] * 60 + +m[2] : 0;
+  }
+
   const sorted = [...mileHistory]
-    .sort((a, b) => String(b['Timestamp'] || b['วันที่'] || '').localeCompare(String(a['Timestamp'] || a['วันที่'] || '')))
+    .sort((a, b) => {
+      const diff = parseRowMs(b) - parseRowMs(a);
+      if (diff !== 0) return diff;
+      return parseTimeField(b['เวลาออก'] || b['startTime']) - parseTimeField(a['เวลาออก'] || a['startTime']);
+    })
     .slice(0, 50);
 
   // ── helper: ดึง Drive URL จาก field ที่อาจเป็น HYPERLINK formula หรือ plain URL ──
