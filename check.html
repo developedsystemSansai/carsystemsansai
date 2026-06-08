@@ -829,8 +829,8 @@ textarea { resize: vertical; min-height: 80px; }
 // ============================================================
 // CONFIG — แก้ไข URL ตรงนี้หลัง deploy Google Apps Script
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec'; // ✅ Proxy — API_KEY ซ่อนใน ScriptProperties
-// const API_KEY — removed: key is now hidden inside GAS Proxy ScriptProperties
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec'; // Proxy
+// API_KEY removed — hidden in Proxy
 
 // ============================================================
 // LOAD MASTER DATA FROM GOOGLE SHEETS (Vehicles + Drivers)
@@ -850,7 +850,7 @@ const DEFAULT_VEHICLES = [
 const DEFAULT_DRIVERS = [
   'นายคมสันต์ ภายไธสงค์','นายชัยพร มอญแสง','นายนพดล คำปินคำ','นายกิติพงศ์ เขื่อนแก้ว',
   'นายเฉลิมชมน์ นันติแก้ว','นายชัยพร ชัยศร','นายกานต์นิธิ ทองอร','นายเก้า พิจิตร',
-  'นายเฉลิมพล เลาแก้ว','นายภาณุพงศ์ กางสำโรง','นายกัมพล โพธิ์พัด'
+  'นายเฉลิมพล เลาแก้ว','นายภาณุพงศ์ กางสำโรง'
 ];
 // buildDriverList: รวม API drivers + ผู้รับผิดชอบจาก vehicles
 // ให้แน่ใจว่าชื่อทุกคันจะอยู่ใน dropdown เสมอแม้ GAS Config sheet ขาดชื่อ
@@ -989,13 +989,47 @@ const checkItems = [
   { key: 'aircon',  label: 'เครื่องปรับอากาศ' },
   { key: 'exteriorClean', label: 'ความสะอาดภายนอกรถ' },
   { key: 'interiorClean', label: 'ความสะอาดภายในรถ' },
+  // ── รายการ O2 (ทุกคัน) ──────────────────────────────────
+  { key: 'o2Level', label: 'ระดับ O₂ (ถัง)', type: 'o2', unit: 'PSI', warnBelow: 300 },
+  // ── รายการเฉพาะ รถ Refer / EMS ──────────────────────────
+  { key: 'emergencyLight', label: 'แสงไฟฉุกเฉิน (ไฟวับวาบ)', referOnly: true },
+  { key: 'siren',          label: 'เสียงไซเรน',              referOnly: true },
+  { key: 'stretcherLock',  label: 'เปลและระบบล็อกเปล',       referOnly: true },
+  { key: 'suction',        label: 'เครื่อง Suction',          referOnly: true },
+  { key: 'aed',            label: 'AED / Defibrillator',      referOnly: true },
 ];
 
 // Build check table
 const tbody = document.getElementById('checkTableBody');
+// กรองรายการตาม ประเภทรถ
+function getActiveCheckItems(carType) {
+  const isRefer = carType && (carType.includes('Refer') || carType.includes('EMS') || carType.includes('refer'));
+  return checkItems.filter(item => isRefer ? true : !item.referOnly);
+}
+
 checkItems.forEach(item => {
+  // ข้าม referOnly ตอน build table เริ่มต้น (จะ rebuild เมื่อเลือกรถ)
   const row = document.createElement('tr');
-  row.innerHTML = `
+  if (item.type === 'o2') {
+    // O2: ใส่ช่องตัวเลข + แสดง warning ถ้า < 300
+    row.setAttribute('data-item-key', item.key);
+    row.innerHTML = `
+      <td>${item.label} <span style="font-size:11px;color:var(--text-light)">(PSI)</span></td>
+      <td colspan="2">
+        <div style="display:flex;align-items:center;gap:10px">
+          <input type="number" id="o2_val" name="chk_o2Level_val" min="0" max="3000" step="10"
+            placeholder="กรอกค่า PSI"
+            style="width:110px;padding:6px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px"
+            oninput="checkO2Alert(this.value)">
+          <span id="o2_warn" style="display:none;color:#d32f2f;font-weight:600;font-size:13px">
+            ⚠ ต่ำกว่า 300 PSI — แจ้งเตือนผิดปกติ
+          </span>
+          <input type="hidden" name="chk_o2Level" id="o2_status" value="">
+        </div>
+      </td>`;
+    row.setAttribute('data-check-key', item.key);
+  } else {
+    row.innerHTML = `
     <td>${item.label}</td>
     <td><label class="radio-opt normal"><input type="radio" name="chk_${item.key}" value="ปกติ"><span class="pill">ปกติ</span></label></td>
     <td><label class="radio-opt abnormal"><input type="radio" name="chk_${item.key}" value="ผิดปกติ"><span class="pill">ผิดปกติ</span></label></td>
@@ -1436,6 +1470,43 @@ document.getElementById('carType').addEventListener('change', function() {
 
 // Init
 updateProgress();
+</script>
+<script>
+// ─── O2 Alert ────────────────────────────────────────────
+function checkO2Alert(val) {
+  const n = parseFloat(val);
+  const warn = document.getElementById('o2_warn');
+  const hidden = document.getElementById('o2_status');
+  if (!warn || !hidden) return;
+  if (!isNaN(n) && n < 300) {
+    warn.style.display = 'inline';
+    hidden.value = 'ผิดปกติ (O2=' + n + ' PSI)';
+  } else {
+    warn.style.display = 'none';
+    hidden.value = isNaN(n) ? '' : 'ปกติ (O2=' + n + ' PSI)';
+  }
+}
+
+// ─── Fuel Alert: expose ข้อมูลน้ำมันต่ำ ≤50% ให้ index.html ดึง ─────
+// เก็บใน sessionStorage key 'fuelAlerts' เป็น JSON array
+function storeFuelAlert(carType, fuelPct) {
+  try {
+    const key = 'fuelAlerts';
+    let arr = [];
+    try { arr = JSON.parse(sessionStorage.getItem(key) || '[]'); } catch(_) {}
+    // ลบ entry เก่าของคันนี้
+    arr = arr.filter(x => x.carType !== carType);
+    if (fuelPct !== null && fuelPct <= 50) {
+      arr.push({ carType, fuelPct, ts: Date.now() });
+    }
+    sessionStorage.setItem(key, JSON.stringify(arr));
+  } catch(_) {}
+}
+
+// เรียกหลัง save check สำเร็จ
+function afterCheckSaved(carType, fuelPct) {
+  storeFuelAlert(carType, parseFloat(fuelPct) || null);
+}
 </script>
 </body>
 </html>
