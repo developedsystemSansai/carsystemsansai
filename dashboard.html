@@ -2322,11 +2322,9 @@ function renderFuelSummary(_unused) {
   // กรองเดือนเดียวกับ filterMonth
   const monF = (document.getElementById('filterMonth') || {}).value || '';
 
-  // ดึงจาก MileLog — เฉพาะแถวที่มีการเติมน้ำมัน (ขาออกหรือขากลับ)
+  // ดึงจาก MileLog — เฉพาะแถวที่มีการเติมน้ำมัน
   const mileRows = (_mileLogAll || []).filter(r => {
-    const goL  = parseFloat(r['น้ำมันขาออก(ลิตร)']  || r['fuelGoLiters']     || r['fuelLiters'] || 0) || 0;
-    const rtL  = parseFloat(r['น้ำมันขากลับ(ลิตร)'] || r['fuelReturnLiters'] || 0) || 0;
-    const hasFuel = (goL + rtL) > 0 ? String(goL + rtL) : String(r['fuelLiters'] || r['น้ำมันที่เติม(ลิตร)'] || '').trim();
+    const hasFuel = String(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || '').trim();
     if (!hasFuel || hasFuel === '0' || hasFuel === '') return false;
     if (monF) {
       // กรองเดือน: วันที่ใน MileLog อยู่ใน col 'วันที่' (yyyy-MM-dd หรือ dd/MM/yyyy)
@@ -2346,13 +2344,8 @@ function renderFuelSummary(_unused) {
       trips: 0, totalLiters: 0, totalPrice: 0,
       lastDate: '', lastLiters: 0, lastPrice: 0, lastDriver: ''
     };
-    // รวมขาออก + ขากลับ
-    const goL   = parseFloat(r['น้ำมันขาออก(ลิตร)']       || r['fuelGoLiters']     || r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || 0) || 0;
-    const rtL   = parseFloat(r['น้ำมันขากลับ(ลิตร)']      || r['fuelReturnLiters'] || 0) || 0;
-    const goP   = parseFloat(r['ราคาน้ำมันขาออก(บาท)']     || r['fuelGoPrice']      || r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || 0) || 0;
-    const rtP   = parseFloat(r['ราคาน้ำมันขากลับ(บาท)']    || r['fuelReturnPrice']  || 0) || 0;
-    const liters = goL + rtL;
-    const price  = goP + rtP;
+    const liters = parseFloat(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || 0) || 0;
+    const price  = parseFloat(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || 0) || 0;
     const rowDate = normalizeInspDate(r['วันที่'] || '');
     byPlate[plate].trips++;
     byPlate[plate].totalLiters += liters;
@@ -2578,13 +2571,8 @@ function renderFuelCostSummary(dateStr) {
     const plate  = raw.split(' ')[0].trim();
     if (!plate) return;
 
-    // รวมขาออก + ขากลับ
-    const goLc  = parseFloat(t['น้ำมันขาออก(ลิตร)']    || t['fuelGoLiters']     || t['น้ำมันที่เติม(ลิตร)'] || t['fuelLiters'] || 0) || 0;
-    const rtLc  = parseFloat(t['น้ำมันขากลับ(ลิตร)']   || t['fuelReturnLiters'] || 0) || 0;
-    const goP2c = parseFloat(t['ราคาน้ำมันขาออก(บาท)']  || t['fuelGoPrice']      || t['ราคาน้ำมัน(บาท)'] || t['ราคาน้ำมัน'] || t['fuelPrice'] || 0) || 0;
-    const rtP2c = parseFloat(t['ราคาน้ำมันขากลับ(บาท)'] || t['fuelReturnPrice']  || 0) || 0;
-    const liters = goLc + rtLc;
-    const price  = goP2c + rtP2c;
+    const liters = parseFloat(t['น้ำมันที่เติม(ลิตร)'] || t['fuelLiters'] || 0);
+    const price  = parseFloat(t['ราคาน้ำมัน(บาท)'] || t['ราคาน้ำมัน'] || t['fuelPrice'] || 0);
     if (!liters && !price) return; // ไม่มีการเติม
 
     const timeOut  = extractTimeOnly(t['เวลาออก']  || '');
@@ -2592,7 +2580,6 @@ function renderFuelCostSummary(dateStr) {
     const tripNo   = (plateSeen[plate] = (plateSeen[plate] || 0) + 1);
 
     fuelRows.push({ plate, liters, price, timeOut, timeBack, tripNo,
-      goLiters: goLc, returnLiters: rtLc, goPrice: goP2c, returnPrice: rtP2c,
       type: ALL_VEHICLES.find(v => v.plate === plate)?.type || '' });
   });
 
@@ -2617,15 +2604,11 @@ function renderFuelCostSummary(dateStr) {
 
   const rows = fuelRows.map(r => {
     const litersHtml = r.liters
-      ? (r.returnLiters > 0
-          ? `<span style="font-weight:700;font-family:'Space Grotesk',monospace;color:#0369a1;">${r.goLiters}+${r.returnLiters}<br><span style="font-size:0.72rem;color:#64748b;">รวม ${r.liters.toLocaleString()} ล.</span></span>`
-          : `<span style="font-weight:700;font-family:'Space Grotesk',monospace;color:#0369a1;">${r.liters.toLocaleString()} ล.</span>`)
+      ? `<span style="font-weight:700;font-family:'Space Grotesk',monospace;color:#0369a1;">${r.liters.toLocaleString()} ล.</span>`
       : `<span style="color:var(--text-light);">—</span>`;
 
     const priceHtml = r.price
-      ? (r.returnPrice > 0
-          ? `<span style="font-weight:800;font-family:'Space Grotesk',monospace;color:#7c3aed;font-size:0.88rem;">${r.goPrice.toLocaleString()}+${r.returnPrice.toLocaleString()}<br><span style="font-size:0.72rem;">รวม ${r.price.toLocaleString()} ฿</span></span>`
-          : `<span style="font-weight:800;font-family:'Space Grotesk',monospace;color:#7c3aed;font-size:0.88rem;">${r.price.toLocaleString()} ฿</span>`)
+      ? `<span style="font-weight:800;font-family:'Space Grotesk',monospace;color:#7c3aed;font-size:0.88rem;">${r.price.toLocaleString()} ฿</span>`
       : `<span style="color:var(--text-light);">—</span>`;
 
     const timeHtml = r.timeOut || r.timeBack
@@ -2742,25 +2725,8 @@ function renderRecentRecords(data) {
       const cp = extractPlate(r.carType);
       return mp === cp || mp.includes(cp) || cp.includes(mp);
     }) : null;
-    const _chkGoL  = parseFloat(_fRec?.['น้ำมันขาออก(ลิตร)']    || _fRec?.['fuelGoLiters']     || _fRec?.['น้ำมันที่เติม(ลิตร)'] || _fRec?.['fuelLiters'] || 0) || 0;
-    const _chkRtL  = parseFloat(_fRec?.['น้ำมันขากลับ(ลิตร)']   || _fRec?.['fuelReturnLiters'] || 0) || 0;
-    const _chkGoP  = parseFloat(_fRec?.['ราคาน้ำมันขาออก(บาท)']  || _fRec?.['fuelGoPrice']      || _fRec?.['ราคาน้ำมัน(บาท)'] || _fRec?.['ราคาน้ำมัน'] || _fRec?.['fuelPrice'] || 0) || 0;
-    const _chkRtP  = parseFloat(_fRec?.['ราคาน้ำมันขากลับ(บาท)'] || _fRec?.['fuelReturnPrice']  || 0) || 0;
-    const _chkTotL = _chkGoL + _chkRtL;
-    const _chkTotP = _chkGoP + _chkRtP;
-    const fuelLitersLabel = _fRec && (_chkTotL > 0 || _chkTotP > 0)
-      ? (() => {
-          const lStr = _chkTotL > 0
-            ? (_chkRtL > 0 ? `${_chkGoL}+${_chkRtL}=${_chkTotL}ล.` : `${_chkTotL}ล.`)
-            : '';
-          const pStr = _chkTotP > 0
-            ? (_chkRtP > 0 ? `${_chkGoP.toLocaleString()}+${_chkRtP.toLocaleString()}=${_chkTotP.toLocaleString()}฿` : `${_chkTotP.toLocaleString()}฿`)
-            : '';
-          return `<br><span style="color:#0369a1;font-size:0.68rem;font-weight:700;">${lStr}${lStr && pStr ? ' · ' : ''}${pStr}</span>`;
-        })()
-      : (_fRec?.['น้ำมันที่เติม(ลิตร)'] || _fRec?.['fuelLiters']
-          ? `<br><span style="color:#0369a1;font-size:0.68rem;font-weight:700;">${_fRec['น้ำมันที่เติม(ลิตร)'] || _fRec['fuelLiters']} ลิตร</span>`
-          : '');
+    const fuelLitersLabel = _fRec && _fRec['น้ำมันที่เติม(ลิตร)']
+      ? `<br><span style="color:#0369a1;font-size:0.68rem;font-weight:700;">${_fRec['น้ำมันที่เติม(ลิตร)']} ลิตร${_fRec['ราคาน้ำมัน(บาท)'] || _fRec['ราคาน้ำมัน'] ? ' · ' + (_fRec['ราคาน้ำมัน(บาท)'] || _fRec['ราคาน้ำมัน']) + ' บาท' : ''}</span>` : '';
     return `<tr onclick="openDetailByKey('${key}')" style="cursor:pointer;">
       <td style="white-space:nowrap;font-size:0.76rem;">
         ${fmtDateTime(r.timestamp||r.inspDate||'')}
@@ -2960,21 +2926,14 @@ function renderFuelPhotoSection(r, mileRec) {
 
   if (r.fuelFill !== 'เติม') return;
 
-  // helper: แกะ URL จาก HYPERLINK formula หรือ plain URL
-  function extractBillUrl(val) {
-    if (!val) return '';
-    const s = String(val).trim();
-    const m = s.match(/=HYPERLINK\("([^"]+)"/i);
-    if (m) return m[1];
-    return s.startsWith('http') ? s : '';
-  }
-
-  // ── ดึง URL ขาไป (col 16) และขากลับ (col 17) แยกกัน ──
-  const urlGo     = mileRec ? (extractBillUrl(mileRec['fuelPhotoUrl'])  || extractBillUrl(mileRec['รูปบิลน้ำมัน'])) : '';
-  const urlReturn = mileRec ? (extractBillUrl(mileRec['returnFuelPhotoUrl']) || extractBillUrl(mileRec['รูปบิลน้ำมันขากลับ'])) : '';
-
-  // รวม links (เพื่อ backward compat กับโค้ดที่เหลือ)
-  const links = [urlGo, urlReturn].filter(u => u.startsWith('http'));
+  // รูปบิลน้ำมัน — อยู่ใน fuelPhotoUrl (MileLog col 16) ไม่ใช่ driveLinks (CheckLog)
+  const rawFuel = mileRec
+    ? (mileRec.fuelPhotoUrl || mileRec['รูปบิลน้ำมัน'] || '').toString().trim()
+    : '';
+  const fuelPhotoClean = rawFuel.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
+  const links = fuelPhotoClean
+    ? fuelPhotoClean.split(/[\n,]+/).map(l => l.trim()).filter(l => l.startsWith('http'))
+    : [];
 
   const photosSection = document.getElementById('m-photos').parentElement;
   const wrap = document.createElement('div');
@@ -2987,12 +2946,7 @@ function renderFuelPhotoSection(r, mileRec) {
         ✅ บันทึกว่าเติมน้ำมัน แต่ยังไม่มีรูปบิลที่อัปโหลด
       </div>`;
   } else {
-    // กำหนด label สำหรับแต่ละ URL
-    const billLabels = [];
-    if (urlGo)     billLabels.push({ url: urlGo,     label: '⛽ บิลขาไป' });
-    if (urlReturn) billLabels.push({ url: urlReturn,  label: '🔄 บิลขากลับ' });
-
-    const thumbsHtml = billLabels.map(({ url, label }) => {
+    const thumbsHtml = links.map((url, i) => {
       const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
       if (m) {
         const fid = m[1];
@@ -3002,7 +2956,7 @@ function renderFuelPhotoSection(r, mileRec) {
           <div style="position:relative;border-radius:10px;overflow:hidden;
                       border:2px solid #3b82f6;cursor:pointer;width:100px;height:90px;"
                onclick="openLightbox('${thumb.replace('w200','w1200')}','${view}')">
-            <img src="${thumb}" alt="${label}"
+            <img src="${thumb}" alt="บิลที่ ${i+1}"
                  style="width:100%;height:100%;object-fit:cover;"
                  onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
             <div style="display:none;align-items:center;justify-content:center;
@@ -3018,7 +2972,7 @@ function renderFuelPhotoSection(r, mileRec) {
                     padding:3px 9px;background:#2563eb;color:#fff;
                     border-radius:6px;font-size:0.65rem;font-weight:700;
                     text-decoration:none;">
-            🔗 ${label}
+            🔗 เปิดบิลที่ ${i+1}
           </a>
         </div>`;
       }
@@ -3027,11 +2981,11 @@ function renderFuelPhotoSection(r, mileRec) {
                height:90px;width:100px;background:#eff6ff;border:2px solid #3b82f6;
                border-radius:10px;color:#1e40af;font-size:0.75rem;
                font-weight:700;text-decoration:none;">
-        📄 ${label}
+        📄 เปิดบิลที่ ${i+1}
       </a>`;
     }).join('');
 
-    const allLinksHtml = billLabels.map(({ url, label }) => {
+    const allLinksHtml = links.map((url, i) => {
       const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
       const v = m ? `https://drive.google.com/file/d/${m[1]}/view` : url;
       return `<a href="${v}" target="_blank" rel="noopener"
@@ -3039,12 +2993,12 @@ function renderFuelPhotoSection(r, mileRec) {
                padding:5px 12px;background:#2563eb;color:#fff;
                border-radius:8px;font-size:0.75rem;font-weight:700;
                text-decoration:none;margin:3px;">
-        📄 ${label}
+        📄 บิลที่ ${i+1}
       </a>`;
     }).join('');
 
     wrap.innerHTML = `
-      <div class="modal-section-title">⛽ บิลน้ำมัน / รูปถ่าย (${billLabels.length} ใบ${billLabels.length === 2 ? ' · ขาไป + ขากลับ' : ''})</div>
+      <div class="modal-section-title">⛽ บิลน้ำมัน / รูปถ่าย (${links.length} รูป)</div>
       <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
         ${thumbsHtml}
       </div>
@@ -3094,7 +3048,7 @@ document.addEventListener('keydown', e => {
 // ── DEMO DATA ──
 function generateDemoData() {
   const carTypes = ['ขค.9662 ชม.รถปิ๊กอัพ4ประตู','กล.9438 ชม.รถปิ๊กอัพ4ประตู','ขธ.9302 ชม.รถปิ๊กอัพ4ประตู','นง.86 ชม.รถตู้','นง.8781 ชม.รถตู้ฮุนได'];
-  const drivers = ['นาย ชัยพร มอญแสง','นาย กิตติพงศ์ เขื่อนแก้ว','นาย กานต์นิธิ ทองอร','นาย เฉลิมพล เลาแก้ว','นายกัมพล โพธิ์พัด'];
+  const drivers = ['นาย ชัยพร มอญแสง','นาย กิตติพงศ์ เขื่อนแก้ว','นาย กานต์นิธิ ทองอร','นาย เฉลิมพล เลาแก้ว'];
   const statuses = ['ปกติ','ปกติ','ปกติ','ปกติ','ผิดปกติ','ไม่ตรวจ'];
   const fuels = ['0%','25%','50%','75%','100%'];
   const allChecks = STATUS_KEYS.map(sk => sk.key);
@@ -3390,87 +3344,37 @@ function renderFuelTracker(json) {
     const fd = fueledMap[v.plate];
     const filled = !!fd;
     const sourceLabel = fd?.source === 'check' ? '🔍 ตรวจรถ' : fd?.source === 'mile' ? '🚗 ออกรถ' : '';
-    // รวมขาออก + ขากลับ สำหรับแสดงบน card
-    const _goL  = parseFloat(fd?.fuelGoLiters      || fd?.fuelLiters || 0) || 0;
-    const _rtL  = parseFloat(fd?.fuelReturnLiters  || 0) || 0;
-    const _goP  = parseFloat(fd?.fuelGoPrice       || fd?.fuelPrice  || 0) || 0;
-    const _rtP  = parseFloat(fd?.fuelReturnPrice   || 0) || 0;
-    const _totL = _goL + _rtL;
-    const _totP = _goP + _rtP;
-    // แสดงแบบแยก ถ้ามีทั้งขาออกและขากลับ มิเช่นนั้นแสดงรวม
-    const litersLabel = _totL > 0
-      ? (_rtL > 0
-          ? `${_goL > 0 ? _goL + '+' : ''}${_rtL} ล. รวม ${_totL} ล.`
-          : _totL + ' ลิตร')
-      : (fd?.fuelLiters ? fd.fuelLiters + ' ลิตร' : '');
-    const priceLabel = _totP > 0
-      ? (_rtP > 0
-          ? `${_goP > 0 ? _goP.toLocaleString() + '+' : ''}${_rtP.toLocaleString()} ฿ รวม ${_totP.toLocaleString()} ฿`
-          : _totP.toLocaleString() + ' บาท')
-      : (fd?.fuelPrice ? parseFloat(fd.fuelPrice).toLocaleString() + ' บาท' : '');
+    const litersLabel = fd?.fuelLiters ? fd.fuelLiters + ' ลิตร' : '';
+    const priceLabel  = fd?.fuelPrice  ? parseFloat(fd.fuelPrice).toLocaleString() + ' บาท' : '';
     const timeLabel   = fd?.time ? extractTimeOnly(fd.time) : '';
     const levelLabel  = fd?.fuelLevel ? 'ระดับ ' + fd.fuelLevel : '';
 
     if (filled) {
-      // ── helper: แปลง raw URL / HYPERLINK formula → URL สะอาด ──
-      function cleanUrl(raw) {
-        if (!raw) return '';
-        const s = raw.toString().trim();
-        const m = s.match(/=HYPERLINK\("([^"]+)"/i);
-        if (m) return m[1];
-        return s.startsWith('http') ? s : '';
-      }
-      // ── ดึง URL แยกขาไป / ขากลับ ──
-      const urlGo     = cleanUrl(fd?.fuelPhotoUrl);
-      const urlReturn = cleanUrl(fd?.returnFuelPhotoUrl);
-
-      // ── helper: สร้าง thumb+ปุ่มสำหรับบิล 1 ใบ ──
-      function makeBillThumb(url, label) {
-        if (!url) return '';
-        const dm = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-        if (dm) {
-          const fid   = dm[1];
-          const thumb = `https://drive.google.com/thumbnail?id=${fid}&sz=w120`;
-          return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;">
-            <a href="${url}" target="_blank" rel="noopener"
-               style="display:flex;flex-direction:column;align-items:center;gap:3px;text-decoration:none;">
-              <div style="position:relative;border-radius:6px;overflow:hidden;
-                          border:1.5px solid rgba(255,255,255,0.35);width:60px;height:54px;">
-                <img src="${thumb}" alt="${label}"
-                     style="width:100%;height:100%;object-fit:cover;"
-                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                <div style="display:none;align-items:center;justify-content:center;
-                             width:100%;height:100%;background:#eff6ff;font-size:1rem;">📄</div>
-              </div>
-              <span style="font-size:0.6rem;font-weight:700;color:rgba(255,255,255,0.85);
-                           background:rgba(0,0,0,0.28);border-radius:4px;padding:1px 5px;">
-                ${label}
-              </span>
-            </a>
-          </div>`;
-        }
-        return `<a href="${url}" target="_blank" rel="noopener" class="ft-bill-btn" style="font-size:0.7rem;">
-          📄 ${label}
-        </a>`;
-      }
-
-      // ── สร้าง billBtn รองรับ 2 บิล ──
+      // ดึง URL รูปบิล — ตรวจ fuelPhotoUrl ก่อน ถ้าว่างให้ fallback ไป returnFuelPhotoUrl
+      const rawFuelUrl = (fd?.fuelPhotoUrl || fd?.returnFuelPhotoUrl || '').toString().trim();
+      const cleanFuelUrl = rawFuelUrl.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
+      // สร้างปุ่มดูบิล พร้อม thumbnail ถ้าเป็น Drive link
       let billBtn;
-      const thumbGo     = makeBillThumb(urlGo,     'บิลขาไป');
-      const thumbReturn = makeBillThumb(urlReturn,  'บิลขากลับ');
-      const hasAnyBill  = thumbGo || thumbReturn;
-
-      if (hasAnyBill) {
-        const billCount = (urlGo ? 1 : 0) + (urlReturn ? 1 : 0);
-        billBtn = `<div style="display:flex;flex-direction:column;gap:4px;">
-          <div style="font-size:0.62rem;font-weight:700;color:rgba(255,255,255,0.55);
-                      text-transform:uppercase;letter-spacing:0.4px;">
-            ⛽ บิลน้ำมัน (${billCount} ใบ)
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            ${thumbGo}${thumbReturn}
-          </div>
-        </div>`;
+      if (cleanFuelUrl.startsWith('http')) {
+        const driveMatch = cleanFuelUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        if (driveMatch) {
+          const fid = driveMatch[1];
+          const thumb = `https://drive.google.com/thumbnail?id=${fid}&sz=w120`;
+          billBtn = `<a href="${cleanFuelUrl}" target="_blank" rel="noopener" class="ft-bill-btn" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 8px;">
+               <img src="${thumb}" alt="บิลน้ำมัน"
+                    style="width:60px;height:54px;object-fit:cover;border-radius:4px;border:1.5px solid rgba(255,255,255,0.3);"
+                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+               <span style="display:none;align-items:center;gap:4px;font-size:0.7rem;">
+                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                 ดูรูปบิล
+               </span>
+             </a>`;
+        } else {
+          billBtn = `<a href="${cleanFuelUrl}" target="_blank" rel="noopener" class="ft-bill-btn">
+               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+               ดูรูปบิลน้ำมัน
+             </a>`;
+        }
       } else {
         billBtn = `<div class="ft-no-bill">
              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
@@ -3542,50 +3446,25 @@ function renderFuelTrackerFromMileLog() {
         || '';
   }
 
-  // helper แยกต่างหาก: ดึง URL รูปบิลขากลับ
-  function extractReturnFuelPhotoUrl(r) {
-    function extractDriveUrl(val) {
-      if (!val) return '';
-      const s = String(val).trim();
-      const m = s.match(/=HYPERLINK\("([^"]+)"/i);
-      if (m) return m[1];
-      if (s.startsWith('http')) return s;
-      return '';
-    }
-    return extractDriveUrl(r['returnFuelPhotoUrl'])
-        || extractDriveUrl(r['รูปบิลน้ำมันขากลับ'])
-        || '';
-  }
-
   (_mileLogToday || []).forEach(r => {
     const hasFuel = String(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || '').trim();
     // รับทั้งกรณีที่มีจำนวนลิตร และกรณีที่ระบุแค่ว่าเติม ('ใช่')
     const hasFuelVal = hasFuel && hasFuel !== '0' && hasFuel !== '';
     // ตรวจสอบรูปบิลน้ำมันด้วย แม้ไม่ได้กรอกลิตร
-    const photoUrl       = extractFuelPhotoUrl(r);
-    const returnPhotoUrl = extractReturnFuelPhotoUrl(r);
-    if (!hasFuelVal && !photoUrl && !returnPhotoUrl) return;
+    const photoUrl = extractFuelPhotoUrl(r);
+    if (!hasFuelVal && !photoUrl) return;
     const plate = (String(r['ทะเบียน/รถ'] || r['carType'] || '')).split(' ')[0].trim();
     if (!plate || seenPlate.has(plate)) return;
     seenPlate.add(plate);
-    const _rGoL  = parseFloat(r['น้ำมันขาออก(ลิตร)']    || r['fuelGoLiters']     || (hasFuelVal && hasFuel !== 'ใช่' ? hasFuel : 0) || 0) || 0;
-    const _rRtL  = parseFloat(r['น้ำมันขากลับ(ลิตร)']   || r['fuelReturnLiters'] || 0) || 0;
-    const _rGoP  = parseFloat(r['ราคาน้ำมันขาออก(บาท)']  || r['fuelGoPrice']      || r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || 0) || 0;
-    const _rRtP  = parseFloat(r['ราคาน้ำมันขากลับ(บาท)'] || r['fuelReturnPrice']  || 0) || 0;
     todayFueled.push({
-      carType           : r['ทะเบียน/รถ'] || r['carType'] || plate,
-      driverName        : r['พนักงานขับรถ'] || '',
-      time              : extractTimeOnly(r['เวลาออก'] || ''),
-      fuelLevel         : '',
-      fuelGoLiters      : _rGoL  > 0 ? String(_rGoL)  : '',
-      fuelGoPrice       : _rGoP  > 0 ? String(_rGoP)  : '',
-      fuelReturnLiters  : _rRtL  > 0 ? String(_rRtL)  : '',
-      fuelReturnPrice   : _rRtP  > 0 ? String(_rRtP)  : '',
-      fuelLiters        : (_rGoL + _rRtL) > 0 ? String(_rGoL + _rRtL) : (hasFuelVal ? hasFuel : ''),
-      fuelPrice         : (_rGoP + _rRtP) > 0 ? String(_rGoP + _rRtP) : String(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || ''),
-      fuelPhotoUrl      : photoUrl,
-      returnFuelPhotoUrl: returnPhotoUrl,
-      source            : 'mile'
+      carType    : r['ทะเบียน/รถ'] || r['carType'] || plate,
+      driverName : r['พนักงานขับรถ'] || '',
+      time       : extractTimeOnly(r['เวลาออก'] || ''),
+      fuelLevel  : '',
+      fuelLiters : hasFuelVal ? hasFuel : '',
+      fuelPrice  : String(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || ''),
+      fuelPhotoUrl: photoUrl,
+      source     : 'mile'
     });
   });
   renderFuelTracker({ todayFueled });
@@ -3885,7 +3764,7 @@ const MOCK_DRIVERS = [
   'นาย กิตติพงศ์ เขื่อนแก้ว',
   'นาย กานต์นิธิ ทองอร',
   'นาย เฉลิมพล เลาแก้ว',
-  'นายกัมพล โพธิ์พัด',
+  
   'นาย นพดล คำปินคำ',
   'นาย ภาณุพงศ์ กางสำโรง',
   'นายชัยพร ชัยศร',
@@ -3976,13 +3855,13 @@ function generateMockLiveStatus() {
 
   const todayChecked = [
     { carType: 'ขค.9662 ชม.รถปิ๊กอัพ4ประตู', driverName: 'นาย ชัยพร มอญแสง',      inspTime: '06:45' },
-    { carType: 'กล.9438 ชม.รถปิ๊กอัพ4ประตู', driverName: 'นายกัมพล โพธิ์พัด',      inspTime: '07:10' },
+    { carType: 'กล.9438 ชม.รถปิ๊กอัพ4ประตู', driverName:       inspTime: '07:10' },
     { carType: 'นง.86 ชม.รถตู้',              driverName: 'นาย นพดล คำปินคำ',        inspTime: '07:22' },
     { carType: 'นง.8781 ชม.รถตู้ฮุนได',       driverName: 'นาย ภาณุพงศ์ กางสำโรง',  inspTime: '07:05' },
   ];
 
   const inUse = [
-    { carType: 'กล.9438 ชม.รถปิ๊กอัพ4ประตู', driver: 'นายกัมพล โพธิ์พัด',     destination: destinations[0] },
+    { carType: 'กล.9438 ชม.รถปิ๊กอัพ4ประตู', driver:      destination: destinations[0] },
     { carType: 'นง.86 ชม.รถตู้',              driver: 'นาย นพดล คำปินคำ',       destination: destinations[2] },
   ];
 
@@ -4276,43 +4155,29 @@ function openLiveVehicleDetail(plate) {
         const cDate  = normDateForMatch(rec.inspDate || '');
         return mPlate === cPlate && (mDate === cDate || !cDate || !mDate);
       });
-      const rawFuelLink    = mileRec
+      const rawFuelLink = mileRec
         ? (mileRec.fuelPhotoUrl || mileRec['รูปบิลน้ำมัน'] || '').toString().trim()
         : '';
-      const rawReturnLink  = mileRec
-        ? (mileRec.returnFuelPhotoUrl || mileRec['รูปบิลน้ำมันขากลับ'] || '').toString().trim()
-        : '';
-
-      function extractOdomUrl(raw) {
-        if (!raw) return '';
-        const m = raw.match(/=HYPERLINK\("([^"]+)"/i);
-        if (m) return m[1];
-        return raw.startsWith('http') ? raw : '';
-      }
-      const urlGoOdo     = extractOdomUrl(rawFuelLink);
-      const urlReturnOdo = extractOdomUrl(rawReturnLink);
-
-      // รวม links แบบ label-aware
-      const billPairs = [];
-      if (urlGoOdo)     billPairs.push({ url: urlGoOdo,     label: '📎 บิลขาไป' });
-      if (urlReturnOdo) billPairs.push({ url: urlReturnOdo, label: '📎 บิลขากลับ' });
-
+      const cleanFuelLink = rawFuelLink.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
+      const fuelLinks = cleanFuelLink
+        ? cleanFuelLink.split(/[\n,]+/).map(l => l.trim()).filter(l => l.startsWith('http'))
+        : [];
       let fuelLinkHtml = '';
-      if (billPairs.length > 0) {
-        const thumbs = billPairs.map(({ url, label }) => {
+      if (fuelLinks.length > 0) {
+        const thumbs = fuelLinks.map((url, i) => {
           const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
           if (m) {
             const fid = m[1];
             return `<a href="https://drive.google.com/file/d/${fid}/view" target="_blank"
                        style="display:inline-flex;align-items:center;gap:4px;background:#2563eb;color:#fff;
                               padding:4px 11px;border-radius:8px;font-size:0.68rem;font-weight:700;text-decoration:none;margin:2px;">
-                      ${label}
+                      📎 บิลที่ ${i+1}
                     </a>`;
           }
           return `<a href="${url}" target="_blank"
                      style="display:inline-flex;align-items:center;gap:4px;background:#2563eb;color:#fff;
                             padding:4px 11px;border-radius:8px;font-size:0.68rem;font-weight:700;text-decoration:none;margin:2px;">
-                    ${label}
+                    📎 บิลที่ ${i+1}
                   </a>`;
         }).join('');
         fuelLinkHtml = `<div style="margin-top:6px;">${thumbs}</div>`;
