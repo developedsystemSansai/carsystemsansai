@@ -1069,7 +1069,7 @@ const checkItems = [
   { key: 'exteriorClean', label: 'ความสะอาดภายนอกรถ' },
   { key: 'interiorClean', label: 'ความสะอาดภายในรถ' },
   // ── รายการ O2 (ทุกคัน) ──────────────────────────────────
-  { key: 'o2Level', label: 'ระดับ O₂ (ถัง)', type: 'o2', unit: 'PSI', warnBelow: 300 },
+  { key: 'o2Level', label: 'ระดับ O₂ (ถัง)', type: 'o2', unit: 'PSI', warnBelow: 300, referOnly: true },
   // ── รายการเฉพาะ รถ Refer / EMS ──────────────────────────
   { key: 'emergencyLight', label: 'แสงไฟฉุกเฉิน (ไฟวับวาบ)', referOnly: true },
   { key: 'siren',          label: 'เสียงไซเรน',              referOnly: true },
@@ -1087,46 +1087,16 @@ function getActiveCheckItems(carType) {
 }
 
 checkItems.forEach(item => {
-  // ข้าม referOnly ตอน build table เริ่มต้น (จะ rebuild เมื่อเลือกรถ)
+  // ข้าม referOnly (รวม O₂) — จัดการใน rebuildEmsRows แทน
+  if (item.referOnly) return;
   const row = document.createElement('tr');
-  if (item.type === 'o2') {
-    // O2: radio 3 ตัว (≥300=ปกติ / <300=ผิดปกติ / ไม่ตรวจ)
-    row.setAttribute('data-item-key', item.key);
-    row.setAttribute('data-check-key', item.key);
-    row.innerHTML = `
-      <td>${item.label} <span style="font-size:11px;color:var(--text-light)">(PSI)</span></td>
-      <td>
-        <label class="o2-opt o2-high">
-          <input type="radio" name="chk_o2Level" value="ปกติ (≥300 PSI)" onchange="syncO2Status(this)">
-          <span class="o2-pill">≥ 300 PSI<br><span style="font-size:10px;font-weight:400">ปกติ</span></span>
-        </label>
-      </td>
-      <td>
-        <label class="o2-opt o2-low">
-          <input type="radio" name="chk_o2Level" value="ผิดปกติ (&lt;300 PSI)" onchange="syncO2Status(this)">
-          <span class="o2-pill">&#60; 300 PSI<br><span style="font-size:10px;font-weight:400">ผิดปกติ</span></span>
-        </label>
-      </td>
-      <td>
-        <label class="o2-opt o2-skip">
-          <input type="radio" name="chk_o2Level" value="ไม่ตรวจ" onchange="syncO2Status(this)">
-          <span class="o2-pill">ไม่ตรวจ</span>
-        </label>
-        <input type="hidden" name="chk_o2Level_val" id="o2_status" value="">
-      </td>`;
-    tbody.appendChild(row);
-  } else if (item.referOnly) {
-    // EMS items — จะถูก inject ใหม่พร้อม header ใน rebuildEmsRows()
-    // skip ตรงนี้ จัดการใน rebuildEmsRows แทน
-  } else {
-    row.innerHTML = `
+  row.innerHTML = `
     <td>${item.label}</td>
     <td><label class="radio-opt normal"><input type="radio" name="chk_${item.key}" value="ปกติ"><span class="pill">ปกติ</span></label></td>
     <td><label class="radio-opt abnormal"><input type="radio" name="chk_${item.key}" value="ผิดปกติ"><span class="pill">ผิดปกติ</span></label></td>
     <td><label class="radio-opt skip"><input type="radio" name="chk_${item.key}" value="ไม่ตรวจ"><span class="pill">ไม่ตรวจ</span></label></td>
   `;
-    tbody.appendChild(row);
-  }
+  tbody.appendChild(row);
 });
 
 // ── ฟังก์ชัน sync O2 hidden field ──────────────────────────────
@@ -1168,11 +1138,35 @@ function buildEmsItemRow(item) {
   const tr = document.createElement('tr');
   tr.className = 'ems-row';
   tr.setAttribute('data-ems-key', item.key);
-  tr.innerHTML = `
-    <td>${item.label}</td>
-    <td><label class="radio-opt normal"><input type="radio" name="chk_${item.key}" value="ปกติ"><span class="pill">ปกติ</span></label></td>
-    <td><label class="radio-opt abnormal"><input type="radio" name="chk_${item.key}" value="ผิดปกติ"><span class="pill">ผิดปกติ</span></label></td>
-    <td><label class="radio-opt skip"><input type="radio" name="chk_${item.key}" value="ไม่ตรวจ"><span class="pill">ไม่ตรวจ</span></label></td>`;
+  if (item.type === 'o2') {
+    tr.innerHTML = `
+      <td>${item.label} <span style="font-size:11px;color:var(--text-light)">(PSI)</span></td>
+      <td>
+        <label class="o2-opt o2-high">
+          <input type="radio" name="chk_o2Level" value="ปกติ (≥300 PSI)" onchange="syncO2Status(this)">
+          <span class="o2-pill">≥ 300 PSI<br><span style="font-size:10px;font-weight:400">ปกติ</span></span>
+        </label>
+      </td>
+      <td>
+        <label class="o2-opt o2-low">
+          <input type="radio" name="chk_o2Level" value="ผิดปกติ (&lt;300 PSI)" onchange="syncO2Status(this)">
+          <span class="o2-pill">&#60; 300 PSI<br><span style="font-size:10px;font-weight:400">ผิดปกติ</span></span>
+        </label>
+      </td>
+      <td>
+        <label class="o2-opt o2-skip">
+          <input type="radio" name="chk_o2Level" value="ไม่ตรวจ" onchange="syncO2Status(this)">
+          <span class="o2-pill">ไม่ตรวจ</span>
+        </label>
+        <input type="hidden" name="chk_o2Level_val" id="o2_status" value="">
+      </td>`;
+  } else {
+    tr.innerHTML = `
+      <td>${item.label}</td>
+      <td><label class="radio-opt normal"><input type="radio" name="chk_${item.key}" value="ปกติ"><span class="pill">ปกติ</span></label></td>
+      <td><label class="radio-opt abnormal"><input type="radio" name="chk_${item.key}" value="ผิดปกติ"><span class="pill">ผิดปกติ</span></label></td>
+      <td><label class="radio-opt skip"><input type="radio" name="chk_${item.key}" value="ไม่ตรวจ"><span class="pill">ไม่ตรวจ</span></label></td>`;
+  }
   return tr;
 }
 
@@ -1185,12 +1179,16 @@ function rebuildEmsRows(show) {
 }
 
 function bulkSelectEms(value) {
-  emsItems.forEach(item => {
+  // bulk-select เฉพาะรายการที่ไม่ใช่ O₂ (O₂ มี value พิเศษ)
+  emsItems.filter(i => i.type !== 'o2').forEach(item => {
     const radio = document.querySelector(`input[name="chk_${item.key}"][value="${value}"]`);
     if (radio) { radio.checked = true; }
   });
+  // O₂ — map value → radio value ที่ตรงกัน
+  const o2Map = { 'ปกติ': 'ปกติ (≥300 PSI)', 'ผิดปกติ': 'ผิดปกติ (<300 PSI)', 'ไม่ตรวจ': 'ไม่ตรวจ' };
+  const o2Radio = document.querySelector(`input[name="chk_o2Level"][value="${o2Map[value]}"]`);
+  if (o2Radio) { o2Radio.checked = true; syncO2Status(o2Radio); }
   updateProgress();
-  // feedback toast
   const labels = { 'ปกติ': '✓ เลือกปกติทั้งหมดแล้ว', 'ผิดปกติ': '⚠ เลือกผิดปกติทั้งหมดแล้ว', 'ไม่ตรวจ': '— ไม่ตรวจทุกรายการ EMS' };
   showToast(labels[value] || 'เลือกแล้ว');
 }
