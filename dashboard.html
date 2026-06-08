@@ -1843,6 +1843,13 @@ const STATUS_KEYS = [
   { key: 'aircon',        label: 'เครื่องปรับอากาศ' },
   { key: 'exteriorClean', label: 'ความสะอาดภายนอก' },
   { key: 'interiorClean', label: 'ความสะอาดภายใน' },
+  // ── EMS / Refer (แสดงเฉพาะเมื่อมีข้อมูล) ──
+  { key: 'o2Level',       label: 'ระดับ O₂ (PSI)',         emsOnly: true },
+  { key: 'emergencyLight',label: 'แสงไฟฉุกเฉิน (ไฟวับวาบ)', emsOnly: true },
+  { key: 'siren',         label: 'เสียงไซเรน',              emsOnly: true },
+  { key: 'stretcherLock', label: 'เปลและระบบล็อกเปล',       emsOnly: true },
+  { key: 'suction',       label: 'เครื่อง Suction',          emsOnly: true },
+  { key: 'aed',           label: 'AED / Defibrillator',      emsOnly: true },
 ];
 
 let allData = [];
@@ -2269,12 +2276,15 @@ function renderStatusSummary(data) {
   }
   const html = STATUS_KEYS.map(sk => {
     const total = data.filter(r => r['chk_'+sk.key] && r['chk_'+sk.key] !== 'ไม่ตรวจ').length;
+    // ซ่อน EMS items ถ้าไม่มีรถ EMS ในช่วงนั้นเลย
+    if (sk.emsOnly && total === 0) return '';
     const ok = data.filter(r => r['chk_'+sk.key] === 'ปกติ').length;
     const bad = data.filter(r => r['chk_'+sk.key] === 'ผิดปกติ').length;
     const pct = total ? Math.round(ok/total*100) : 0;
     const cls = pct >= 90 ? 'ok' : pct >= 70 ? 'warn' : 'bad';
+    const emsLabel = sk.emsOnly ? `<span style="font-size:0.6rem;color:#007a6e;font-weight:700;background:#e6f7f5;padding:1px 5px;border-radius:4px;margin-right:3px;">EMS</span>` : '';
     return `<div class="status-item">
-      <span class="status-name">${sk.label}</span>
+      <span class="status-name">${emsLabel}${sk.label}</span>
       <div class="mini-bar"><div class="mini-fill ${cls}" style="width:${pct}%"></div></div>
       <span class="status-pct ${cls}">${pct}%</span>
       ${bad > 0 ? `<span class="issue-badge">${bad} จุด</span>` : ''}
@@ -2786,8 +2796,12 @@ function _openDetailForRecord(r) {
     </div>
   `).join('');
 
-  // Checks
-  document.getElementById('m-checks').innerHTML = STATUS_KEYS.map(sk => {
+  // Checks — แยก general และ EMS section
+  const generalKeys = STATUS_KEYS.filter(sk => !sk.emsOnly);
+  const emsKeys     = STATUS_KEYS.filter(sk => sk.emsOnly);
+  const hasEmsData  = emsKeys.some(sk => (r['chk_'+sk.key]||'').trim() !== '');
+
+  const generalHtml = generalKeys.map(sk => {
     const val = r['chk_'+sk.key] || '—';
     const cls = val === 'ปกติ' ? 'ok' : val === 'ผิดปกติ' ? 'bad' : 'skip';
     return `<div class="check-row ${val === 'ผิดปกติ' ? 'has-issue' : ''}">
@@ -2795,6 +2809,24 @@ function _openDetailForRecord(r) {
       <span class="check-pill ${cls}">${val}</span>
     </div>`;
   }).join('');
+
+  let emsHtml = '';
+  if (hasEmsData) {
+    const emsRows = emsKeys.map(sk => {
+      const val = r['chk_'+sk.key] || '—';
+      const cls = val === 'ปกติ' ? 'ok' : val === 'ผิดปกติ' ? 'bad' : 'skip';
+      return `<div class="check-row ems-row ${val === 'ผิดปกติ' ? 'has-issue' : ''}">
+        <span class="check-row-label">${sk.label}</span>
+        <span class="check-pill ${cls}">${val}</span>
+      </div>`;
+    }).join('');
+    emsHtml = `<div style="margin:10px 0 4px;font-size:0.72rem;font-weight:700;color:#007a6e;text-transform:uppercase;letter-spacing:0.5px;display:flex;align-items:center;gap:6px;">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      อุปกรณ์ EMS / Refer
+    </div>${emsRows}`;
+  }
+
+  document.getElementById('m-checks').innerHTML = generalHtml + emsHtml;
 
   // Remarks
   const remarksSection = document.getElementById('m-remarks-section');
@@ -4104,6 +4136,14 @@ function openLiveVehicleDetail(plate) {
     { key:'exteriorClean', label:'ความสะอาดภายนอก' },
     { key:'interiorClean', label:'ความสะอาดภายใน' },
   ];
+  const EMS_ITEMS_LVM = [
+    { key:'o2Level',       label:'ระดับ O₂ (PSI)' },
+    { key:'emergencyLight',label:'แสงไฟฉุกเฉิน (ไฟวับวาบ)' },
+    { key:'siren',         label:'เสียงไซเรน' },
+    { key:'stretcherLock', label:'เปลและระบบล็อกเปล' },
+    { key:'suction',       label:'เครื่อง Suction' },
+    { key:'aed',           label:'AED / Defibrillator' },
+  ];
 
   let issueHtml = '';
   if (rec) {
@@ -4187,8 +4227,7 @@ function openLiveVehicleDetail(plate) {
     }
 
     // ── ผลตรวจระบบ ──
-    const checkRows = CHECK_ITEMS_LVM.map(sk => {
-      const val = rec['chk_' + sk.key] || '';
+    const renderLvmCheckRow = (sk, val) => {
       if (!val || val === 'ไม่ตรวจ') {
         return `<div class="lvm-issue-item skip">
           <span style="font-size:0.85rem;">➖</span> ${sk.label}
@@ -4205,7 +4244,18 @@ function openLiveVehicleDetail(plate) {
         <span style="font-size:0.85rem;">✓</span> ${sk.label}
         <span style="margin-left:auto;font-size:0.72rem;color:#22c55e;">ปกติ</span>
       </div>`;
-    }).join('');
+    };
+
+    const checkRows = CHECK_ITEMS_LVM.map(sk => renderLvmCheckRow(sk, rec['chk_' + sk.key] || '')).join('');
+
+    // EMS section — แสดงเฉพาะรถ EMS/Refer ที่มีข้อมูล
+    const hasEmsLvm = EMS_ITEMS_LVM.some(sk => (rec['chk_' + sk.key] || '').trim() !== '');
+    const emsCheckRows = hasEmsLvm
+      ? `<div style="margin:10px 0 4px;font-size:0.72rem;font-weight:700;color:#007a6e;display:flex;align-items:center;gap:5px;">
+           🚑 อุปกรณ์ EMS / Refer
+         </div>`
+        + EMS_ITEMS_LVM.map(sk => renderLvmCheckRow(sk, rec['chk_' + sk.key] || '')).join('')
+      : '';
 
     // ── อัปเดตล่าสุด ──
     const updateHtml = lastUpdate !== '—'
@@ -4227,7 +4277,8 @@ function openLiveVehicleDetail(plate) {
          </div>`
       + fuelTodayHtml
       + `<div style="margin:12px 0 4px;font-size:0.72rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:0.5px;">ผลการตรวจสอบระบบ</div>`
-      + checkRows;
+      + checkRows
+      + emsCheckRows;
   } else if (chkData) {
     // มีข้อมูลจาก getStatusSummary แต่ยังไม่โหลด CheckLog
     const updateHtml = `<div style="font-size:0.7rem;color:var(--text-light);padding:6px 14px;border-top:1px solid #e8edf5;margin-top:8px;">
