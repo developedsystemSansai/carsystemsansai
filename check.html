@@ -821,6 +821,13 @@ textarea { resize: vertical; min-height: 80px; }
         <div style="margin-top:10px;font-size:0.78rem;color:var(--text-light);text-align:center;">
           การเติมน้ำมัน — บันทึกพร้อมรูปบิลได้ที่หน้า <strong>ออกรถ</strong>
         </div>
+        <div style="margin-top:12px;display:flex;align-items:center;gap:8px;justify-content:center;">
+          <input type="checkbox" id="chkFuelFill" name="fuelFill" value="เติม"
+                 style="width:16px;height:16px;accent-color:var(--teal);cursor:pointer;">
+          <label for="chkFuelFill" style="font-size:0.82rem;font-weight:600;color:var(--teal);cursor:pointer;">
+            เติมน้ำมันวันนี้
+          </label>
+        </div>
       </div>
     </div>
 
@@ -1319,6 +1326,7 @@ function collectData() {
     eq_battery: getRadio('eq_battery'),
     eq_tire   : getRadio('eq_tire'),
     fuelLevel : getRadio('fuelLevel'),
+    fuelFill  : document.getElementById('chkFuelFill')?.checked ? 'เติม' : '',
     remarks   : get('remarks'),
     photos    : [],
     // driveUrls — field ที่ saveCheck ใน GAS อ่านเพื่อบันทึกลง DriveLinks / DriveLinks_URLs
