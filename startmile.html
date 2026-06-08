@@ -772,6 +772,34 @@ input.odo-mismatch {
 .lb-drive.show { display: flex; }
 .lb-drive:hover { background: #1557b0; }
 
+
+/* ── Request Point Multi-picker ── */
+.rp-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #e3f2fd; border: 1px solid #90caf9;
+  color: #0d47a1; font-size: 11.5px; font-weight: 700;
+  padding: 4px 10px; border-radius: 20px; cursor: default;
+}
+.rp-chip .rp-remove {
+  font-size: 13px; cursor: pointer; opacity: .7; line-height: 1;
+  background: none; border: none; color: inherit; padding: 0;
+}
+.rp-chip .rp-remove:hover { opacity: 1; }
+.rp-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-radius: 8px; cursor: pointer;
+  font-size: 12.5px; font-family: var(--font);
+  transition: background .12s;
+}
+.rp-item:hover { background: #f0f5ff; }
+.rp-item.selected { background: #e3f2fd; color: #0d47a1; font-weight: 700; }
+.rp-item .rp-check {
+  width: 16px; height: 16px; border-radius: 4px; border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 10px;
+}
+.rp-item.selected .rp-check { background: #1d6fb5; border-color: #1d6fb5; color: #fff; }
+
 </style>
 </head>
 <body>
@@ -878,6 +906,37 @@ input.odo-mismatch {
             <input type="hidden" id="s_tripTime">
           </div>
           <div class="form-group span2" style="position:relative;">
+            <label>จุดขอใช้รถ
+              <span style="font-size:10px;font-weight:400;color:var(--text-light);margin-left:6px">(ไม่บังคับ — เลือกได้หลายจุด)</span>
+            </label>
+            <!-- selected chips -->
+            <div id="rp-chips" style="display:flex;flex-wrap:wrap;gap:6px;min-height:28px;margin-bottom:6px;"></div>
+            <!-- picker dropdown -->
+            <div style="position:relative;">
+              <button type="button" id="rp-toggle" onclick="toggleRPPicker()"
+                style="width:100%;height:38px;border-radius:8px;border:1.5px solid var(--border);
+                       background:#f8fafc;text-align:left;padding:0 10px;font-size:12.5px;
+                       font-family:var(--font);color:var(--muted);cursor:pointer;
+                       display:flex;align-items:center;justify-content:space-between;">
+                <span id="rp-toggle-label">-- เลือกแผนก/วอร์ด --</span>
+                <span style="font-size:11px">▾</span>
+              </button>
+              <div id="rp-picker" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;
+                background:#fff;border:1.5px solid var(--border);border-radius:10px;
+                box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:300;overflow:hidden;">
+                <div style="padding:8px;border-bottom:1px solid var(--border);background:#f8fafc;">
+                  <input type="text" id="rp-search" placeholder="ค้นหาแผนก..."
+                    oninput="filterRPPicker()"
+                    style="width:100%;height:32px;border-radius:6px;border:1px solid var(--border);
+                           padding:0 8px;font-size:12px;font-family:var(--font);">
+                </div>
+                <div id="rp-list" style="max-height:180px;overflow-y:auto;padding:6px;"></div>
+              </div>
+            </div>
+            <!-- hidden input สำหรับ validation -->
+            <input type="hidden" id="s_requestPoint" id="s_requestPoint">
+          </div>
+          <div class="form-group">
             <label>ปลายทาง <span class="req">*</span></label>
             <div class="dest-wrap" id="destWrap">
               <input type="text" id="s_destination" autocomplete="off"
@@ -1269,8 +1328,8 @@ input.odo-mismatch {
 // ════════════════════════════════════════════════════════
 //  CONFIG — แก้ URL นี้ถ้า deploy GAS ใหม่
 // ════════════════════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec'; // ✅ Proxy — API_KEY ซ่อนใน ScriptProperties
-// const API_KEY — removed: key is now hidden inside GAS Proxy ScriptProperties
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec'; // Proxy
+// API_KEY removed — hidden in Proxy
 
 // ════════════════════════════════════════════════════════
 //  DEFAULT DATA (แสดงทันทีถ้า API ช้า / ออฟไลน์)
@@ -1291,12 +1350,31 @@ const DEFAULT_VEHICLES = [
 const DEFAULT_DRIVERS = [
   'นาย ชัยพร มอญแสง','นาย กิตติพงศ์ เขื่อนแก้ว','นาย กานต์นิธิ ทองอร',
   'นาย เฉลิมชนม์ นันติแก้ว','นาย นพดล คำปินคำ','นาย เก้า พิจิตร',
-  'นาย ภาณุพงศ์ กางสำโรง','นาย เฉลิมพล เลาแก้ว','นายชัยพร ชัยศร','นายกัมพล โพธิ์พัด'
+  'นาย ภาณุพงศ์ กางสำโรง','นาย เฉลิมพล เลาแก้ว','นายชัยพร ชัยศร'
 ];
 const DEFAULT_DESTINATIONS = [
-  'รพ.นครพิงค์','รพ.สันทราย','รพ.สันป่าตอง','รพ.จอมทอง','รพ.ฝาง',
+  // ── ภายใน / ธุรการ ──────────────────────────────────────
+  'ปั๊ม PT หน้า รพ.',
+  'ส่งเลือด',
+  'ส่งเช็ค',
+  'ธนาคาร',
+  'ส่งแฟ้มศาลากลาง',
+  'ส่งแฟ้ม สสจ.',
+  // ── รพ. เครือข่าย ────────────────────────────────────────
+  'รพ.นครพิงค์','รพ.มหาราชนครเชียงใหม่','รพ.สันทราย',
+  'รพ.สันป่าตอง','รพ.จอมทอง','รพ.ฝาง',
   'รพ.สันกำแพง','รพ.ดอยสะเก็ด','รพ.แม่แตง','รพ.เชียงดาว',
-  'รพ.แม่อาย','รพ.พร้าว','รพ.หางดง','รพ.สารภี','สำนักงานสาธารณสุขจังหวัด','ปั้มน้ำมันPTหน้ารพ','อื่นๆ'
+  'รพ.แม่อาย','รพ.พร้าว','รพ.หางดง','รพ.สารภี',
+  // ── อื่นๆ ────────────────────────────────────────────────
+  'ส่งแฟ้ม (ที่อื่น โปรดระบุ)',
+  'อื่นๆ โปรดระบุ'
+];
+
+// จุดขอใช้รถ (ward/แผนก)
+const REQUEST_POINTS = [
+  'ER','OPD','IPD','ICU','OR','LR (ห้องคลอด)',
+  'ผู้ป่วยใน F1','ผู้ป่วยใน F2','ผู้ป่วยใน F3',
+  'งานยานยนต์','ธุรการ/สารบรรณ','อื่นๆ'
 ];
 
 // ════════════════════════════════════════════════════════
@@ -1325,6 +1403,8 @@ document.addEventListener('DOMContentLoaded', () => {
   populateCarSelects();
   populateDriverSelect(DEFAULT_DRIVERS);
   populateDestinations(DEFAULT_DESTINATIONS);
+  // populate จุดขอใช้รถ (multi-chip picker)
+  initRPPicker(REQUEST_POINTS);
 
   // โหลดข้อมูลจาก Google Sheets แบบ parallel
   loadAllData();
@@ -2198,7 +2278,10 @@ function submitStart() {
   const driverName = document.getElementById('s_driverName').value.trim();
   const tripDate   = document.getElementById('s_tripDate').value;
   const tripTime   = document.getElementById('s_tripTime').value;
-  const dest       = document.getElementById('s_destination').value.trim();
+  const dest         = document.getElementById('s_destination').value.trim();
+  // ดึงจุดขอใช้รถทุกจุดที่เลือก (multi)
+  const requestPoints = getSelectedRPs(); // array
+  const requestPoint  = requestPoints.join(', '); // รวมเป็น string สำหรับ GAS
   const odoStart   = Number(document.getElementById('s_odometerStart').value);
   const remarks    = document.getElementById('s_remarks').value.trim();
 
@@ -2242,6 +2325,7 @@ function submitStart() {
 
   pendingAction = { type: 'start', data: { carType, driverName, tripDate, tripTime,
     destination: dest, odometerStart: odoStart, remarks,
+    requestPoints: requestPoints.join(' / '), // จุดขอใช้รถ (อาจมีหลายจุด)
     hasFuel: hasFuel ? 'ใช่' : '',
     fuelLiters: hasFuel ? (document.getElementById('s_fuelLiters').value.trim() || '') : '',
     fuelPrice:  hasFuel ? (document.getElementById('s_fuelPrice').value.trim()  || '') : '',
@@ -2251,7 +2335,11 @@ function submitStart() {
     fuelPhotoName : (hasFuel && fuelPhotoB64) ? (fuelPhotoName || ('fuel_' + Date.now() + '.jpg')) : ''
   } };
 
+  const rpLabel = requestPoints.length > 1
+    ? requestPoints.join(' + ')
+    : (requestPoints[0] || '—');
   const modalDetails = { 'ทะเบียน': plate, 'พขร.': driverName, 'วันที่/เวลา': displayDT,
+    'จุดขอใช้รถ': rpLabel,
     'ปลายทาง': dest, 'เลขไมล์': odoStart.toLocaleString() + ' กม.' };
   if (hasFuel) {
     const liters = document.getElementById('s_fuelLiters').value;
@@ -2417,6 +2505,7 @@ async function doConfirm() {
       document.getElementById('s_carType').value = '';
       document.getElementById('s_odometerStart').value = '';
       document.getElementById('s_destination').value = '';
+      clearAllRPs(); // ล้าง chips จุดขอใช้รถ
       document.getElementById('s_remarks').value = '';
       document.getElementById('s_lastMileHint').textContent = '';
       startDTEdited = false;  // live clock เริ่มทำงานใหม่
