@@ -673,7 +673,8 @@ function renderScheduleTab(d) {
   // filter chips
   let filterHtml = `<button class="filter-chip active" onclick="setFilter('all',this)">👥 ทั้งหมด</button>`;
   staff.forEach(s => {
-    filterHtml += `<button class="filter-chip" onclick="setFilter('${s.name.replace(/'/g,'\\'')}',this)">${s.nick||s.name.replace(/^นาย\.?/,'')}</button>`;
+    const displayName = s.nick || s.name.replace(/^นาย\.?\s*/, '');
+    filterHtml += `<button class="filter-chip" data-fname="${s.name}" onclick="setFilter(this.dataset.fname,this)">${displayName}</button>`;
   });
 
   // table head
