@@ -1267,9 +1267,8 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7i
 // API_KEY removed
 
 let ALL_VEHICLES = [
-  { plate:'นจ.4919 ชม.', type:'รถตู้ฮุนได',         sys:'ทั่วไป' },
-  { plate:'นง.8781 ชม.', type:'รถตู้ฮุนได',         sys:'ทั่วไป' },
   { plate:'นง.86 ชม.',   type:'รถตู้',              sys:'ทั่วไป' },
+  { plate:'นง.8781 ชม.', type:'รถตู้ฮุนได',         sys:'ทั่วไป' },
   { plate:'จย.1379 ชม.', type:'รถ Refer',           sys:'EMS' },
   { plate:'งบ.5466 ชม.', type:'รถ Refer',           sys:'EMS' },
   { plate:'ขษ.4361 ชม.', type:'รถ Refer',           sys:'EMS' },
@@ -1312,8 +1311,8 @@ async function initIndex() {
       ALL_VEHICLES = json.data.map(v => {
         const plate = String(v['ทะเบียน'] || '').trim();
         const key   = plate.replace(/ ชม\.?.*/, '').trim();
-        // ใช้ sys จาก hardcoded ก่อน ถ้าไม่มีค่อยใช้จาก API
-        const sys   = HARDCODED_SYS[key] || v['ประเภทระบบ'] || 'ทั่วไป';
+        // ใช้ sys จาก API ก่อน ถ้าไม่มีค่อยใช้ hardcoded
+        const sys   = v['ประเภทระบบ'] || HARDCODED_SYS[key] || 'ทั่วไป';
         return { plate, type: v['ประเภท'] || '', sys };
       });
     }
@@ -1375,6 +1374,15 @@ async function loadStatus() {
 }
 
 function renderVehicleCards(json) {
+  // ── sync ALL_VEHICLES จาก vehicles meta ที่ GAS ส่งมา (ถ้ามี) ──
+  if (json.vehicles && json.vehicles.length) {
+    ALL_VEHICLES = json.vehicles.map(v => ({
+      plate: v.plate + ' ชม.',
+      type : v.type,
+      sys  : v.sys || 'ทั่วไป'
+    }));
+  }
+
   const inUseMap={}, readyMap={}, checkedMap={};
   (json.inUse||[]).forEach(x => { inUseMap[x.carType] = x; });
   (json.ready||[]).forEach(x => { readyMap[x.carType] = x; });
@@ -1382,9 +1390,10 @@ function renderVehicleCards(json) {
 
   function buildCard(v) {
     const plateKey = v.plate.replace(/ ชม\.?.*/, '').trim();
-    const inUseKey  = Object.keys(inUseMap).find(k  => k.includes(plateKey));
-    const readyKey  = Object.keys(readyMap).find(k  => k.includes(plateKey));
-    const chkKey    = Object.keys(checkedMap).find(k => k.includes(plateKey));
+    // รองรับ carType ทั้งแบบ "นง.86 ชม. รถตู้" และ "นง.86 ชม.รถตู้" (ไม่มีช่องว่าง)
+    const inUseKey  = Object.keys(inUseMap).find(k  => k.replace(/ ชม\.?/,' ชม.').split(' ')[0].trim() === plateKey || k.split(' ')[0].trim() === plateKey);
+    const readyKey  = Object.keys(readyMap).find(k  => k.replace(/ ชม\.?/,' ชม.').split(' ')[0].trim() === plateKey || k.split(' ')[0].trim() === plateKey);
+    const chkKey    = Object.keys(checkedMap).find(k => k.replace(/ ชม\.?/,' ชม.').split(' ')[0].trim() === plateKey || k.split(' ')[0].trim() === plateKey);
     const isInUse   = !!inUseKey;
     const isChecked = !!chkKey || !!readyKey;
 
