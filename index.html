@@ -1378,12 +1378,15 @@ function renderVehicleCards(json) {
       const key = String(v.plate || '').replace(/ ชม\.?.*/, '').trim();
       sheetMeta[key] = v;
     });
-    // อัปเดต type/sys ใน ALL_VEHICLES จาก sheet แต่ใช้ category/isEms จาก hardcoded เดิม
+    // อัปเดตเฉพาะ type จาก sheet (ถ้ามี)
+    // ⚠️ ห้าม override sys / category / isEms เด็ดขาด — ใช้ hardcoded เท่านั้น
+    // เพราะ GAS Vehicles sheet อาจส่ง sys:'ทั่วไป' สำหรับรถ Refer ที่ไม่ใช่ EMS จริง
+    // ซึ่งจะทำให้รถ Refer หลุดไปอยู่กลุ่มทั่วไปแทนกลุ่ม REFER/EMS
     ALL_VEHICLES = ALL_VEHICLES.map(v => {
       const key = v.plate.replace(/ ชม\.?.*/, '').trim();
       const m   = sheetMeta[key];
       return m
-        ? { ...v, type: m.type || v.type, sys: m.sys || v.sys }
+        ? { ...v, type: m.type || v.type }  // อัปเดตแค่ type, sys/category/isEms คง hardcoded
         : v;
     });
   }
