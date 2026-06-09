@@ -5607,17 +5607,24 @@ document.addEventListener('DOMContentLoaded', function() {
         if (hasMedia) {
           mediaHtml += `<div class="fp-media-label">📎 หลักฐาน</div><div class="fp-media-grid">`;
 
-          // รูปภาพ — ใช้ directUrl (uc?export=view) สำหรับ <img>
+          // รูปภาพ — ใช้ Drive thumbnail API (sz=w300) สำหรับ preview ใน thumbnail
+          // และ sz=w1200 สำหรับ lightbox fullsize
           photoList.forEach((url, idx) => {
-            const directUrl = url.replace('drive.google.com/file/d/', 'drive.google.com/uc?export=view&id=')
-                                 .replace(/\/view$/, '');
-            const safeUrl   = escHtml(url);
-            const safeDirect = escHtml(directUrl);
+            // Extract file ID จาก URL หลายรูปแบบ
+            const fileId = url.match(/\/d\/([^/?#]+)/)?.[1]
+                        || url.match(/id=([^&]+)/)?.[1]
+                        || '';
+            const thumbUrl  = fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w300` : url;
+            const largeUrl  = fileId ? `https://drive.google.com/thumbnail?id=${fileId}&sz=w1200` : url;
+            const openUrl   = fileId ? `https://drive.google.com/file/d/${fileId}/view` : url;
+            const safeThumb  = escHtml(thumbUrl);
+            const safeLarge  = escHtml(largeUrl);
+            const safeOpen   = escHtml(openUrl);
             const fname = 'รูปภาพ ' + (idx + 1);
-            mediaHtml += `<div class="fp-media-thumb" onclick="fpOpenLightbox('photo','${safeUrl}','${safeDirect}','${escHtml(fname)}')" title="${escHtml(fname)}">
-              <img src="${safeDirect}" alt="${escHtml(fname)}"
+            mediaHtml += `<div class="fp-media-thumb" onclick="fpOpenLightbox('photo','${safeOpen}','${safeLarge}','${escHtml(fname)}')" title="${escHtml(fname)}">
+              <img src="${safeThumb}" alt="${escHtml(fname)}"
                    onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-              <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:22px;background:#f0ecfb;">🖼️</div>
+              <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:22px;background:#1a1035;">🖼️</div>
               <span class="fp-media-badge">IMG</span>
             </div>`;
           });
@@ -5702,6 +5709,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const openBtn = document.getElementById('fpLightboxOpenBtn');
 
     if (type === 'photo') {
+      // directUrl = thumbnail sz=w1200 (โหลดได้โดยไม่ต้อง auth)
+      // viewUrl   = drive.google.com/file/d/.../view สำหรับกดเปิดใน Drive
       const imgSrc = directUrl || viewUrl;
       media.innerHTML = `<img src="${imgSrc}" alt="${label}"
         style="max-width:92vw;max-height:78vh;display:block;object-fit:contain;border-radius:8px;"
