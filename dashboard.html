@@ -1031,8 +1031,8 @@ body {
 .ft-driver svg { flex-shrink: 0; color: var(--text-light); }
 
 .ft-bill-btn {
-  display: inline-flex; align-items: center; gap: 5px;
-  padding: 5px 12px;
+  display: inline-flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 10px;
   background: var(--navy); color: #fff;
   border-radius: var(--radius-sm);
   font-size: 11px; font-weight: 600;
@@ -1041,6 +1041,10 @@ body {
   border: none;
 }
 .ft-bill-btn:hover { background: var(--blue); transform: translateY(-1px); }
+.ft-bill-label {
+  font-size: 10px; font-weight: 700; letter-spacing: .3px;
+  color: rgba(255,255,255,.8); white-space: nowrap;
+}
 
 .ft-no-bill {
   display: flex; align-items: center; gap: 5px;
@@ -3398,37 +3402,42 @@ function renderFuelTracker(json) {
     const levelLabel  = fd?.fuelLevel ? 'ระดับ ' + fd.fuelLevel : '';
 
     if (filled) {
-      // ดึง URL รูปบิล — ตรวจ fuelPhotoUrl ก่อน ถ้าว่างให้ fallback ไป returnFuelPhotoUrl
-      const rawFuelUrl = (fd?.fuelPhotoUrl || fd?.returnFuelPhotoUrl || '').toString().trim();
-      const cleanFuelUrl = rawFuelUrl.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
-      // สร้างปุ่มดูบิล พร้อม thumbnail ถ้าเป็น Drive link
-      let billBtn;
-      if (cleanFuelUrl.startsWith('http')) {
-        const driveMatch = cleanFuelUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      // helper สร้าง thumbnail+link สำหรับรูปบิลแต่ละขา
+      function makeBillBtn(url, label) {
+        if (!url) return '';
+        const clean = url.replace(/=HYPERLINK\("([^"]+)"[^)]*\)/g, '$1').trim();
+        if (!clean.startsWith('http')) return '';
+        const driveMatch = clean.match(/\/d\/([a-zA-Z0-9_-]+)/);
         if (driveMatch) {
           const fid = driveMatch[1];
           const thumb = `https://drive.google.com/thumbnail?id=${fid}&sz=w120`;
-          billBtn = `<a href="${cleanFuelUrl}" target="_blank" rel="noopener" class="ft-bill-btn" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 8px;">
-               <img src="${thumb}" alt="บิลน้ำมัน"
-                    style="width:60px;height:54px;object-fit:cover;border-radius:4px;border:1.5px solid rgba(255,255,255,0.3);"
+          return `<a href="${clean}" target="_blank" rel="noopener" class="ft-bill-btn" title="${label}">
+               <span class="ft-bill-label">${label}</span>
+               <img src="${thumb}" alt="${label}"
+                    style="width:70px;height:60px;object-fit:cover;border-radius:5px;border:1.5px solid rgba(255,255,255,0.3);display:block;margin-top:4px;"
                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
                <span style="display:none;align-items:center;gap:4px;font-size:0.7rem;">
                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                  ดูรูปบิล
                </span>
              </a>`;
-        } else {
-          billBtn = `<a href="${cleanFuelUrl}" target="_blank" rel="noopener" class="ft-bill-btn">
-               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-               ดูรูปบิลน้ำมัน
-             </a>`;
         }
-      } else {
-        billBtn = `<div class="ft-no-bill">
+        return `<a href="${clean}" target="_blank" rel="noopener" class="ft-bill-btn">
+             <span class="ft-bill-label">${label}</span>
+             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+             ${label}
+           </a>`;
+      }
+      const outBtn    = makeBillBtn(fd?.fuelPhotoUrl,        '🚗 ขาไป');
+      const returnBtn = makeBillBtn(fd?.returnFuelPhotoUrl,  '🏠 ขากลับ');
+      const noBill    = (!outBtn && !returnBtn)
+        ? `<div class="ft-no-bill">
              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
              <span>ยังไม่มีรูปบิล</span>
-           </div>`;
-      }
+           </div>` : '';
+      const billSection = (outBtn || returnBtn)
+        ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">${outBtn}${returnBtn}</div>`
+        : noBill;
       return `<div class="ft-card ft-card--filled">
         <div class="ft-card-top">
           <div class="ft-plate-wrap">
@@ -3447,7 +3456,7 @@ function renderFuelTracker(json) {
           ${sourceLabel ? `<span class="ft-tag ft-tag--source">${sourceLabel}</span>` : ''}
         </div>
         ${fd?.driverName ? `<div class="ft-driver"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${fd.driverName}${timeLabel ? ' · ' + timeLabel : ''}</div>` : ''}
-        ${billBtn}
+        ${billSection}
       </div>`;
     } else {
       return `<div class="ft-card ft-card--empty">
@@ -3476,43 +3485,41 @@ function renderFuelTrackerFromMileLog() {
   const todayFueled = [];
   const seenPlate = new Set();
 
-  // helper: ดึง URL รูปบิลน้ำมันจาก record — ตรวจสอบทุก field ที่เป็นไปได้
-  function extractFuelPhotoUrl(r) {
-    function extractDriveUrl(val) {
-      if (!val) return '';
-      const s = String(val).trim();
-      const m = s.match(/=HYPERLINK\("([^"]+)"/i);
-      if (m) return m[1];
-      if (s.startsWith('http')) return s;
-      return '';
-    }
-    return extractDriveUrl(r['fuelPhotoUrl'])
-        || extractDriveUrl(r['รูปบิลน้ำมัน'])
-        // fallback: ถ้าขาไปไม่มีรูป ให้ดึงจากขากลับ (GAS บางครั้งบันทึก URL ลง col 17)
-        || extractDriveUrl(r['returnFuelPhotoUrl'])
-        || extractDriveUrl(r['รูปบิลน้ำมันขากลับ'])
-        || '';
+  // helper: แกะ URL จาก plain URL หรือ =HYPERLINK formula
+  function extractDriveUrl(val) {
+    if (!val) return '';
+    const s = String(val).trim();
+    const m = s.match(/=HYPERLINK\("([^"]+)"/i);
+    if (m) return m[1];
+    if (s.startsWith('http')) return s;
+    return '';
   }
 
   (_mileLogToday || []).forEach(r => {
     const hasFuel = String(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || '').trim();
-    // รับทั้งกรณีที่มีจำนวนลิตร และกรณีที่ระบุแค่ว่าเติม ('ใช่')
     const hasFuelVal = hasFuel && hasFuel !== '0' && hasFuel !== '';
-    // ตรวจสอบรูปบิลน้ำมันด้วย แม้ไม่ได้กรอกลิตร
-    const photoUrl = extractFuelPhotoUrl(r);
-    if (!hasFuelVal && !photoUrl) return;
+    // แยก URL ขาไป / ขากลับ อย่างชัดเจน
+    const outPhotoUrl    = extractDriveUrl(r['fuelPhotoUrl'])
+                        || extractDriveUrl(r['รูปบิลน้ำมันออกรถ'])
+                        || extractDriveUrl(r['รูปบิลน้ำมัน'])
+                        || '';
+    const returnPhotoUrl = extractDriveUrl(r['returnFuelPhotoUrl'])
+                        || extractDriveUrl(r['รูปบิลน้ำมันขากลับ'])
+                        || '';
+    if (!hasFuelVal && !outPhotoUrl && !returnPhotoUrl) return;
     const plate = (String(r['ทะเบียน/รถ'] || r['carType'] || '')).split(' ')[0].trim();
     if (!plate || seenPlate.has(plate)) return;
     seenPlate.add(plate);
     todayFueled.push({
-      carType    : r['ทะเบียน/รถ'] || r['carType'] || plate,
-      driverName : r['พนักงานขับรถ'] || '',
-      time       : extractTimeOnly(r['เวลาออก'] || ''),
-      fuelLevel  : '',
-      fuelLiters : hasFuelVal ? hasFuel : '',
-      fuelPrice  : String(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || ''),
-      fuelPhotoUrl: photoUrl,
-      source     : 'mile'
+      carType            : r['ทะเบียน/รถ'] || r['carType'] || plate,
+      driverName         : r['พนักงานขับรถ'] || '',
+      time               : extractTimeOnly(r['เวลาออก'] || ''),
+      fuelLevel          : '',
+      fuelLiters         : hasFuelVal ? hasFuel : '',
+      fuelPrice          : String(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || ''),
+      fuelPhotoUrl       : outPhotoUrl,       // รูปบิลน้ำมัน ขาไป
+      returnFuelPhotoUrl : returnPhotoUrl,    // รูปบิลน้ำมัน ขากลับ
+      source             : 'mile'
     });
   });
   renderFuelTracker({ todayFueled });
