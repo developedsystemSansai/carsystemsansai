@@ -768,35 +768,130 @@
 /* ── Fuel Alert Banner ─────────────────────────────────────── */
 #fuelAlertBanner {
   display: none;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 3px 16px rgba(230,81,0,.18);
+}
+.fab-header {
+  background: linear-gradient(90deg, #e65100 0%, #f57c00 100%);
+  padding: 11px 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.fab-header-icon {
+  font-size: 18px; line-height: 1; flex-shrink: 0;
+}
+.fab-header-text { flex: 1; }
+.fab-header-title {
+  font-size: 13px; font-weight: 800; color: #fff;
+  letter-spacing: .2px;
+}
+.fab-header-sub {
+  font-size: 10.5px; color: rgba(255,255,255,.75);
+  margin-top: 1px;
+}
+.fab-header-count {
+  background: rgba(255,255,255,.25);
+  border-radius: 20px; padding: 2px 9px;
+  font-size: 11px; font-weight: 800; color: #fff;
+  white-space: nowrap;
+}
+.fab-body {
   background: #fff8e1;
   border: 1.5px solid #f9a825;
-  border-radius: 14px;
-  padding: 14px 16px;
-  box-shadow: 0 2px 10px rgba(249,168,37,.15);
-}
-.fab-title {
-  font-size: 12.5px; font-weight: 700; color: #e65100;
-  margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  padding: 12px 14px;
 }
 .fab-cards { display: flex; flex-wrap: wrap; gap: 8px; }
 .fab-card {
-  background: #fff; border: 1.5px solid #ffcc80;
-  border-radius: 10px; padding: 9px 12px; min-width: 150px;
-  flex: 1; max-width: 200px;
+  background: #fff;
+  border: 2px solid #ffb300;
+  border-radius: 10px; padding: 10px 13px;
+  min-width: 155px; flex: 1; max-width: 220px;
+  position: relative;
+  animation: fab-pulse-warn 2.4s ease-in-out infinite;
 }
-.fab-card.refueled { border-color: #a5d6a7; background: #f1f8e9; }
-.fab-card .fc-plate { font-size: 12px; font-weight: 700; color: #263238; margin-bottom: 3px; }
-.fab-card .fc-pct { font-size: 11px; font-weight: 600; color: #bf360c; }
+@keyframes fab-pulse-warn {
+  0%,100% { box-shadow: 0 0 0 0 rgba(255,179,0,.0); }
+  50%      { box-shadow: 0 0 0 4px rgba(255,179,0,.25); }
+}
+.fab-card.refueled {
+  border-color: #66bb6a;
+  background: #f1f8e9;
+  animation: none;
+}
+.fab-card .fc-plate {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px; font-weight: 700; color: #1a237e;
+  margin-bottom: 3px; letter-spacing: .04em;
+}
+.fab-card .fc-bar-wrap {
+  height: 5px; background: #eceff1; border-radius: 99px;
+  margin: 5px 0 4px; overflow: hidden;
+}
+.fab-card .fc-bar {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, #ef9a9a, #e53935);
+  transition: width .4s ease;
+}
+.fab-card.refueled .fc-bar { background: linear-gradient(90deg, #a5d6a7, #43a047); }
+.fab-card .fc-pct {
+  font-size: 11px; font-weight: 700; color: #bf360c;
+}
 .fab-card.refueled .fc-pct { color: #2e7d32; }
 .fab-card .fc-badge {
   display: inline-flex; align-items: center; gap: 3px;
-  margin-top: 5px; font-size: 10.5px; font-weight: 700;
-  padding: 2px 8px; border-radius: 20px;
+  margin-top: 6px; font-size: 10.5px; font-weight: 800;
+  padding: 3px 9px; border-radius: 20px;
+  letter-spacing: .2px;
 }
-.fc-badge.warn { background: #ffe0b2; color: #bf360c; }
-.fc-badge.ok   { background: #c8e6c9; color: #1b5e20; }
-.fab-card .fc-detail { font-size: 10.5px; color: #546e7a; margin-top: 3px; }
+.fc-badge.warn { background: #ffe0b2; color: #bf360c; border: 1px solid rgba(191,54,12,.2); }
+.fc-badge.ok   { background: #c8e6c9; color: #1b5e20; border: 1px solid rgba(27,94,32,.2); }
+.fab-card .fc-detail { font-size: 10.5px; color: #546e7a; margin-top: 4px; line-height: 1.5; }
+.fab-card .fc-link {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; color: #0288d1; margin-top: 4px;
+  text-decoration: none; font-weight: 600;
+}
+.fab-card .fc-link:hover { text-decoration: underline; }
+
+/* ── Fuel mark on vehicle-mini cards ── */
+.vm-fuel-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9.5px; font-weight: 800;
+  padding: 2px 6px; border-radius: 4px;
+  margin-left: 5px; vertical-align: middle;
+  letter-spacing: .2px; flex-shrink: 0;
+}
+.vm-fuel-badge.low {
+  background: #fff3cd; color: #b45309;
+  border: 1px solid rgba(180,83,9,.25);
+  animation: fuel-blink 2s ease-in-out infinite;
+}
+.vm-fuel-badge.refueled {
+  background: #d1fae5; color: #065f3a;
+  border: 1px solid rgba(6,95,58,.22);
+}
+@keyframes fuel-blink {
+  0%,100% { opacity: 1; } 50% { opacity: .5; }
+}
+.vm-fuel-row {
+  display: flex; align-items: center; gap: 4px;
+  margin-top: 5px; flex-wrap: wrap;
+}
+.vm-fuel-bar-wrap {
+  flex: 1; height: 4px; background: #e2e8f0;
+  border-radius: 99px; overflow: hidden; min-width: 40px;
+}
+.vm-fuel-bar {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, #fca5a5, #ef4444);
+}
+.vm-fuel-bar.refueled {
+  background: linear-gradient(90deg, #86efac, #22c55e);
+}
+
 @media (max-width: 480px) {
   .fab-card { min-width: calc(50% - 4px); max-width: none; }
 }
@@ -944,6 +1039,21 @@
         <div style="flex:1;height:1px;background:rgba(192,57,43,.25);"></div>
       </div>
       <div class="vehicle-grid" id="vehicleCardsEMS"></div>
+    </div>
+  </div>
+
+  <!-- ── FUEL ALERT BANNER ── -->
+  <div id="fuelAlertBanner">
+    <div class="fab-header">
+      <div class="fab-header-icon">⛽</div>
+      <div class="fab-header-text">
+        <div class="fab-header-title">แจ้งเตือน — น้ำมันต่ำกว่า 50%</div>
+        <div class="fab-header-sub">รถต่อไปนี้ต้องเติมน้ำมันก่อนออกปฏิบัติงาน</div>
+      </div>
+      <div class="fab-header-count" id="fuelAlertCount">0 คัน</div>
+    </div>
+    <div class="fab-body">
+      <div class="fab-cards" id="fuelAlertCards"></div>
     </div>
   </div>
 
@@ -1371,6 +1481,9 @@ async function loadStatus() {
 
 function renderVehicleCards(json) {
   // ── sync ALL_VEHICLES จาก vehicles meta ที่ GAS ส่งมา ──────────────
+  // ── เซ็ต _fuelAlertMap ก่อน buildCard ──
+  if (json.lowFuelAlerts) renderFuelAlerts(json.lowFuelAlerts);
+
   // อัปเดต sheetStatus/sheetDriver/sheetDest เพื่อนำมา fallback แสดงสถานะ
   const sheetMeta = {}; // key = plateKey (ไม่มี ชม.) → {sheetStatus, sheetDriver, sheetDest, type, sys}
   if (json.vehicles && json.vehicles.length) {
@@ -1469,12 +1582,26 @@ function renderVehicleCards(json) {
     // ── EMS badge: แสดงเฉพาะ isEms:true ──
     const emsBadge = v.isEms ? '<span class="ems-badge">EMS</span>' : '';
 
-    return '<div class="vehicle-mini ' + vmClass + '">'
-         + '<div class="vm-plate">' + plateKey + emsBadge + '</div>'
-         + '<div class="vm-type">' + v.type + '</div>'
-         + statusHtml
-         + '<div class="vm-sub">' + chkSub + '</div>'
-         + '</div>';
+    // ── Fuel mark: ดึงจาก _fuelAlertMap (set โดย renderFuelAlerts) ──
+    let fuelMarkHtml = '';
+    const fuelAlert = (window._fuelAlertMap || {})[plateKey];
+    if (fuelAlert) {
+      const barPct     = Math.max(0, Math.min(100, fuelAlert.fuelPct));
+      const barClass   = fuelAlert.refueled ? 'refueled' : '';
+      const badgeClass = fuelAlert.refueled ? 'refueled' : 'low';
+      const badgeText  = fuelAlert.refueled
+        ? '✅ เติมแล้ว'
+        : '⛽ ' + fuelAlert.fuelPct + '% ต้องเติม';
+      fuelMarkHtml =
+        '<div class="vm-fuel-row">' +
+          '<span class="vm-fuel-badge ' + badgeClass + '">' + badgeText + '</span>' +
+          '<div class="vm-fuel-bar-wrap">' +
+            '<div class="vm-fuel-bar ' + barClass + '" style="width:' + barPct + '%"></div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    return '<div class="vehicle-mini ' + vmClass + '">'         + '<div class="vm-plate">' + plateKey + emsBadge + '</div>'         + '<div class="vm-type">' + v.type + '</div>'         + statusHtml         + '<div class="vm-sub">' + chkSub + '</div>'         + fuelMarkHtml         + '</div>';
   }
 
   // ── แบ่งกลุ่ม: ทั่วไป (van+pickup) | EMS/Refer ──────────────────
@@ -1735,41 +1862,73 @@ document.getElementById('footerYear').textContent = new Date().getFullYear();
 </script>
 
 <script>
-// ── Fuel Alert Banner ──────────────────────────────────────────
+// ── Fuel Alert Banner + vehicle-mini fuel mark ──────────────
+
+// global map plate → alert — เซ็ตโดย renderFuelAlerts, ใช้ใน buildCard
+window._fuelAlertMap = {};
+
 function renderFuelAlerts(alerts) {
-  const banner = document.getElementById('fuelAlertBanner');
-  const cards  = document.getElementById('fuelAlertCards');
+  const banner  = document.getElementById('fuelAlertBanner');
+  const cards   = document.getElementById('fuelAlertCards');
+  const countEl = document.getElementById('fuelAlertCount');
   if (!banner || !cards) return;
 
-  // กรองเฉพาะที่น้ำมัน ≤ 50%
   const low = (alerts || []).filter(function(a) { return a.fuelPct <= 50; });
+
+  // เก็บ map สำหรับ buildCard (vehicle-mini fuel mark)
+  window._fuelAlertMap = {};
+  low.forEach(function(a) {
+    const plate = String(a.carType || '').split(' ')[0].trim();
+    window._fuelAlertMap[plate] = a;
+  });
 
   if (!low.length) {
     banner.style.display = 'none';
     return;
   }
 
+  // อัปเดต count chip
+  const notYet = low.filter(function(a){ return !a.refueled; }).length;
+  if (countEl) countEl.textContent = notYet > 0
+    ? notYet + ' คัน ยังไม่เติม'
+    : 'เติมครบแล้ว ✅';
+
+  // เรียง: ยังไม่เติมก่อน, เรียงจากน้อยไปมาก
+  const sorted = [...low].sort(function(a,b){
+    if (a.refueled === b.refueled) return a.fuelPct - b.fuelPct;
+    return a.refueled ? 1 : -1;
+  });
+
   cards.innerHTML = '';
-  low.forEach(function(a) {
+  sorted.forEach(function(a) {
     const card = document.createElement('div');
     card.className = 'fab-card' + (a.refueled ? ' refueled' : '');
+
+    const barPct = Math.max(0, Math.min(100, a.fuelPct));
+    const barColor = a.refueled ? '#43a047' : (barPct <= 25 ? '#e53935' : '#f57c00');
 
     let detail = '';
     if (a.refueled) {
       const parts = [];
-      if (a.fuelLiters) parts.push(a.fuelLiters + ' ลิตร');
-      if (a.fuelPrice)  parts.push(a.fuelPrice  + ' บาท');
-      if (a.refuelTime) parts.push('เวลา ' + a.refuelTime);
-      detail = parts.join(' · ');
+      if (a.fuelLiters) parts.push('⛽ ' + a.fuelLiters + ' ลิตร');
+      if (a.fuelPrice)  parts.push('฿' + a.fuelPrice);
+      if (a.refuelTime) parts.push('🕐 ' + a.refuelTime);
+      detail = parts.join('  ');
     }
+
+    const photoLink = (a.fuelPhotoUrl && a.refueled)
+      ? '<a class="fc-link" href="' + a.fuelPhotoUrl + '" target="_blank" rel="noopener">🧾 ดูบิลน้ำมัน</a>'
+      : '';
 
     card.innerHTML =
       '<div class="fc-plate">🚗 ' + a.carType + '</div>' +
-      '<div class="fc-pct">⛽ น้ำมัน ' + a.fuelPct + '%</div>' +
+      '<div class="fc-bar-wrap"><div class="fc-bar" style="width:' + barPct + '%;background:' + barColor + ';"></div></div>' +
+      '<div class="fc-pct">น้ำมัน ' + a.fuelPct + '%</div>' +
       '<span class="fc-badge ' + (a.refueled ? 'ok' : 'warn') + '">' +
-        (a.refueled ? '✅ เติมแล้ว' : '⚠ ยังไม่เติม') +
+        (a.refueled ? '✅ เติมแล้ว' : '⚠️ ต้องเติมน้ำมัน') +
       '</span>' +
-      (detail ? '<div class="fc-detail">' + detail + '</div>' : '');
+      (detail ? '<div class="fc-detail">' + detail + '</div>' : '') +
+      photoLink;
 
     cards.appendChild(card);
   });
