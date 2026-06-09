@@ -1399,10 +1399,27 @@ function renderVehicleCards(json) {
   (json.ready||[]).forEach(x => { readyMap[x.carType] = x; });
   (json.todayChecked||[]).forEach(x => { checkedMap[x.carType] = x; });
 
-  // ── สร้าง fuelMap: plate → fuelLevel (ดึงตรงจาก todayChecked) ──────
+  // ── fueledTodayMap: plate → true ถ้ามีการเติมน้ำมันใน MileLog วันนี้ ──
+  const fueledTodayMap = {};
+  (json.todayFueled||[]).forEach(function(f) {
+    const plate = String(f.carType || '').split(' ')[0].trim();
+    if (plate) fueledTodayMap[plate] = true;
+  });
+
+  // ── สร้าง fuelMap: plate → fuelLevel ──────────────────────────────
+  //    ถ้ามีการเติมน้ำมันวันนี้ใน MileLog (ขาไปหรือขากลับ) → แสดง 100%
+  //    ถ้าไม่มี → ใช้ค่าจาก CheckLog ตามที่บันทึกไว้
   window._fuelAlertMap = {};
   (json.todayChecked||[]).forEach(function(c) {
     const plate = String(c.carType || '').split(' ')[0].trim();
+
+    // ถ้าเติมน้ำมันวันนี้ใน MileLog → 100% ทันที
+    if (fueledTodayMap[plate]) {
+      window._fuelAlertMap[plate] = { carType: c.carType, fuelPct: 100, refueled: true };
+      return;
+    }
+
+    // ไม่มีการเติม → ใช้ค่าจาก CheckLog
     const rawLevel = String(c.fuelLevel || '').trim();
     if (!rawLevel) return;
     const numStr = rawLevel.replace('%', '').trim();
@@ -1410,7 +1427,7 @@ function renderVehicleCards(json) {
     if (isNaN(pct)) return;
     // ถ้าได้ decimal (0–1) ให้คูณ 100 → เปอร์เซ็นต์จริง
     if (pct > 0 && pct <= 1) pct = Math.round(pct * 100);
-    window._fuelAlertMap[plate] = { carType: c.carType, fuelPct: pct };
+    window._fuelAlertMap[plate] = { carType: c.carType, fuelPct: pct, refueled: false };
   });
 
   // helper: หา key ใน map ที่ plate ตรงกัน (fuzzy match)
@@ -1485,20 +1502,30 @@ function renderVehicleCards(json) {
     // ── EMS badge: แสดงเฉพาะ isEms:true ──
     const emsBadge = v.isEms ? '<span class="ems-badge">EMS</span>' : '';
 
-    // ── Fuel mark: ดึงจาก _fuelAlertMap (set จาก todayChecked ทุกคัน) ──
+    // ── Fuel mark: ดึงจาก _fuelAlertMap ──────────────────────────────
+    //    refueled=true → เติมวันนี้ใน MileLog → แสดง 100% สีเขียว + badge
     let fuelMarkHtml = '';
     const fuelAlert = (window._fuelAlertMap || {})[plateKey];
     if (fuelAlert) {
       const barPct   = Math.max(0, Math.min(100, fuelAlert.fuelPct));
-      const isLow    = barPct <= 50;
-      const barColor = barPct >= 75 ? '#22c55e' : (barPct >= 51 ? '#f59e0b' : (barPct <= 25 ? '#ef4444' : '#f97316'));
-      const barClass = !isLow ? 'refueled' : '';
+      const refueled = !!fuelAlert.refueled;
+      const isLow    = !refueled && barPct <= 50;
+      const barColor = refueled ? '#16a34a'
+                     : barPct >= 75 ? '#22c55e'
+                     : barPct >= 51 ? '#f59e0b'
+                     : barPct <= 25 ? '#ef4444' : '#f97316';
+      const pctColor = refueled ? '#065f3a' : (isLow ? '#b45309' : '#065f3a');
+      const refuelBadge = refueled
+        ? '<span style="font-size:9px;font-weight:800;background:#dcfce7;color:#15803d;' +
+          'border:1px solid #86efac;border-radius:4px;padding:1px 5px;margin-left:4px;">✓ เติมแล้ว</span>'
+        : '';
       fuelMarkHtml =
         '<div class="vm-fuel-row">' +
           '<span style="font-size:9.5px;color:var(--text-light);">⛽</span>' +
-          '<span style="font-size:10px;font-weight:700;color:' + (isLow ? '#b45309' : '#065f3a') + ';">' + fuelAlert.fuelPct + '%</span>' +
+          '<span style="font-size:10px;font-weight:700;color:' + pctColor + ';">' + fuelAlert.fuelPct + '%</span>' +
+          refuelBadge +
           '<div class="vm-fuel-bar-wrap">' +
-            '<div class="vm-fuel-bar ' + barClass + '" style="width:' + barPct + '%;background:' + barColor + ';"></div>' +
+            '<div class="vm-fuel-bar refueled" style="width:' + barPct + '%;background:' + barColor + ';"></div>' +
           '</div>' +
         '</div>';
     }
