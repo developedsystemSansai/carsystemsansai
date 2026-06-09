@@ -1276,6 +1276,7 @@ input.odo-mismatch {
               <th>เวลาออก</th>
               <th>เวลากลับ</th>
               <th>ปลายทาง/ภารกิจ</th>
+              <th>จุดขอใช้รถ</th>
               <th>ไมล์ต้น</th>
               <th>ไมล์ปลาย</th>
               <th>ระยะ(กม.)</th>
@@ -1285,7 +1286,7 @@ input.odo-mismatch {
             </tr>
           </thead>
           <tbody id="histBody">
-            <tr class="empty-row"><td colspan="12">กำลังโหลดข้อมูล...</td></tr>
+            <tr class="empty-row"><td colspan="13">กำลังโหลดข้อมูล...</td></tr>
           </tbody>
         </table>
       </div>
@@ -2701,7 +2702,7 @@ function renderHistory() {
 
   const tbody = document.getElementById('histBody');
   if (!filtered.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="12">ยังไม่มีประวัติการใช้รถ</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="13">ยังไม่มีประวัติการใช้รถ</td></tr>';
     return;
   }
 
@@ -2756,6 +2757,7 @@ function renderHistory() {
       <td style="font-size:13px;font-weight:600;color:#0369a1;white-space:nowrap;">${timeOut} น.</td>
       <td style="font-size:13px;font-weight:600;color:#15803d;white-space:nowrap;">${timeBack}${!isActive && timeBack !== '—' ? ' น.' : ''}</td>
       <td style="font-size:12px;">${r['ปลายทาง']||'—'}</td>
+      <td style="font-size:11px;color:#475569;max-width:110px;word-break:break-word;">${r['จุดขอใช้รถ']||r['requestPoints']||'—'}</td>
       <td style="font-weight:600;">${startMile ? startMile.toLocaleString() : '—'}</td>
       <td style="font-weight:600;">${endMile   ? endMile.toLocaleString()   : '—'}</td>
       <td style="font-weight:700;color:var(--teal);">${dist !== '—' ? dist : '—'}</td>
