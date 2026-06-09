@@ -1169,6 +1169,47 @@ input.odo-mismatch {
           <textarea id="e_remarks" placeholder="(ไม่บังคับ) หมายเหตุเพิ่มเติม..."></textarea>
         </div>
 
+        <!-- ── ถ่ายรูปสภาพรถตอนกลับ (MULTI-PHOTO) ── -->
+        <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:16px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:10px;display:flex;align-items:center;gap:6px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            ถ่ายรูปสภาพรถหลังกลับ (ไม่บังคับ)
+          </div>
+          <label class="fuel-file-label" style="cursor:pointer;" for="e_returnCarPhoto">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>ถ่ายรูป / เลือกรูปสภาพรถ</span>
+            <input type="file" id="e_returnCarPhoto" accept="image/*" capture="environment" multiple
+                   onchange="handleReturnCarPhotos(this.files)" style="display:none;">
+          </label>
+          <button type="button" class="add-more-btn" onclick="document.getElementById('e_returnCarPhotoGallery').click()">
+            + เลือกจากคลัง
+            <input type="file" id="e_returnCarPhotoGallery" accept="image/*" multiple
+                   onchange="handleReturnCarPhotos(this.files)" style="display:none;">
+          </button>
+          <!-- Photo grid -->
+          <div class="photo-grid" id="returnCarPhotoGrid"></div>
+          <!-- UPLOAD PROGRESS BAR -->
+          <div class="upload-progress-wrap" id="returnCarUploadProgress">
+            <div class="upload-progress-header">
+              <div class="upload-progress-label">
+                <div class="up-spin"></div>
+                <span id="returnCarUploadMsg">กำลังอัปโหลดรูปสภาพรถ...</span>
+              </div>
+              <span class="upload-progress-pct" id="returnCarUploadPct">0%</span>
+            </div>
+            <div class="upload-progress-file" id="returnCarUploadFile"></div>
+            <div class="upload-progress-bar-track">
+              <div class="upload-progress-bar-fill" id="returnCarUploadFill"></div>
+            </div>
+          </div>
+          <!-- Drive links panel -->
+          <div class="drive-mini-panel" id="returnCarDrivePanel">
+            <div class="dmp-title">✓ อัปโหลดสำเร็จ — ลิ้งค์บน Google Drive</div>
+            <div id="returnCarDriveLinks"></div>
+          </div>
+        </div>
+        <!-- ── end ถ่ายรูปสภาพรถขากลับ ── -->
+
         <!-- ── เติมน้ำมันขากลับ ── -->
         <div class="fuel-section" id="returnFuelSection" style="margin-top:16px;">
           <label class="fuel-toggle-label">
@@ -2499,7 +2540,9 @@ function submitEnd() {
     returnFuelPhotoUrl  : returnFuelPhotoUrl || '',
     returnFuelPhotoB64  : (hasReturnFuel && returnFuelPhotoB64) ? returnFuelPhotoB64 : '',
     returnFuelPhotoMime : (hasReturnFuel && returnFuelPhotoB64) ? (returnFuelPhotoMime || 'image/jpeg') : '',
-    returnFuelPhotoName : (hasReturnFuel && returnFuelPhotoB64) ? (returnFuelPhotoName || ('fuel_return_' + Date.now() + '.jpg')) : ''
+    returnFuelPhotoName : (hasReturnFuel && returnFuelPhotoB64) ? (returnFuelPhotoName || ('fuel_return_' + Date.now() + '.jpg')) : '',
+    // รูปสภาพรถขากลับ — ส่ง driveUrls ที่อัปโหลดสำเร็จแล้ว
+    returnCarDriveUrls: returnCarPhotos.filter(p => p.driveUrl).map(p => p.driveUrl)
   }};
 
   const modalDeets = { 'ทะเบียน': plate,
@@ -2622,6 +2665,14 @@ async function doConfirm() {
       document.getElementById('e_hasFuel').checked = false;
       document.getElementById('returnFuelUploadArea').classList.remove('show');
       removeReturnFuelPhoto();
+      // รีเซตรูปสภาพรถขากลับ
+      returnCarPhotos = [];
+      _returnCarUploadTotal = 0;
+      _returnCarUploadDone  = 0;
+      renderReturnCarPhotoGrid();
+      renderReturnCarDriveLinks();
+      const rcProg = document.getElementById('returnCarUploadProgress');
+      if (rcProg) rcProg.classList.remove('show','state-ok','state-err');
     }
 
     // รีโหลดข้อมูล
@@ -3396,6 +3447,173 @@ function renderTripDriveLinks() {
 }
 
 // ════════════════════════════════════════════════════════
+//  RETURN CAR PHOTOS — รูปสภาพรถขากลับ (mirror ของ tripPhotos)
+// ════════════════════════════════════════════════════════
+let returnCarPhotos = [];   // { name, data, type, driveUrl, status }
+let _returnCarUploadTotal = 0;
+let _returnCarUploadDone  = 0;
+
+function returnCarProgressShow(fileName) {
+  setUploadActive(true);
+  const wrap = document.getElementById('returnCarUploadProgress');
+  if (!wrap) return;
+  wrap.className = 'upload-progress-wrap show';
+  const msg  = document.getElementById('returnCarUploadMsg');
+  const pct  = document.getElementById('returnCarUploadPct');
+  const file = document.getElementById('returnCarUploadFile');
+  const fill = document.getElementById('returnCarUploadFill');
+  if (msg)  msg.textContent  = 'กำลังอัปโหลดรูปสภาพรถ...';
+  if (pct)  pct.textContent  = Math.round((_returnCarUploadDone/_returnCarUploadTotal||0)*100) + '%';
+  if (file) file.textContent = fileName || '';
+  if (fill) fill.style.width = (_returnCarUploadDone/_returnCarUploadTotal*100||0) + '%';
+}
+function returnCarProgressDone(ok, fileName) {
+  _returnCarUploadDone++;
+  const wrap = document.getElementById('returnCarUploadProgress');
+  if (!wrap) return;
+  const pct  = document.getElementById('returnCarUploadPct');
+  const fill = document.getElementById('returnCarUploadFill');
+  const done  = _returnCarUploadDone;
+  const total = _returnCarUploadTotal;
+  const pctVal = Math.round((done / total) * 100);
+  if (fill) fill.style.width = pctVal + '%';
+  if (pct)  pct.textContent  = pctVal + '%';
+  if (done >= total) {
+    const hasErr = returnCarPhotos.some(p => p.status === 'err');
+    wrap.classList.remove('state-ok','state-err');
+    const msg = document.getElementById('returnCarUploadMsg');
+    const f   = document.getElementById('returnCarUploadFile');
+    if (hasErr) {
+      wrap.classList.add('state-err');
+      if (msg) msg.textContent = 'อัปโหลดบางรูปไม่สำเร็จ';
+    } else {
+      wrap.classList.add('state-ok');
+      if (msg) msg.textContent = '✓ อัปโหลดสำเร็จ ' + done + ' รูป';
+    }
+    if (f) f.textContent = '';
+    setUploadActive(false);
+    setTimeout(() => { if (wrap) wrap.classList.remove('show'); }, 4000);
+  } else {
+    const f = document.getElementById('returnCarUploadFile');
+    if (f) f.textContent = fileName || '';
+  }
+}
+
+function handleReturnCarPhotos(files) {
+  const newFiles = Array.from(files).filter(f => {
+    if (!f.type.startsWith('image/')) return false;
+    if (f.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB', 'error'); return false; }
+    return true;
+  });
+  if (!newFiles.length) return;
+
+  if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
+    _returnCarUploadTotal += newFiles.length;
+    const wrap = document.getElementById('returnCarUploadProgress');
+    if (wrap) wrap.classList.remove('state-ok','state-err');
+  }
+
+  newFiles.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
+      returnCarPhotos.push(photo);
+      renderReturnCarPhotoGrid();
+      if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
+        returnCarProgressShow(file.name);
+        uploadReturnCarPhoto(photo);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('e_returnCarPhoto').value = '';
+  document.getElementById('e_returnCarPhotoGallery').value = '';
+}
+
+async function uploadReturnCarPhoto(photo) {
+  photo.status = 'uploading';
+  renderReturnCarPhotoGrid();
+  try {
+    const carType = document.getElementById('e_carType')?.value || '';
+    const today   = new Date().toISOString().slice(0, 10);
+    const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
+    const uploadPayload = JSON.stringify({
+      action    : 'uploadPhotoPost',
+      subFolder : 'ReturnCarPhotos',
+      fileName  : photo.name || ('return_' + Date.now() + '.jpg'),
+      mimeType  : photo.type || 'image/jpeg',
+      base64Data: b64,
+      carType   : carType,
+      inspDate  : today
+    });
+    const resp = await fetch(GAS_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body   : 'payload=' + encodeURIComponent(uploadPayload)
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      if (data.status === 'ok' && data.url) {
+        photo.driveUrl = data.url;
+        photo.status   = 'ok';
+        showToast('✓ อัปโหลดรูปสภาพรถขากลับสำเร็จ', 'success');
+        renderReturnCarPhotoGrid();
+        renderReturnCarDriveLinks();
+        returnCarProgressDone(true, photo.name);
+        return;
+      }
+    }
+    photo.status = 'err';
+  } catch(e) {
+    photo.status = 'err';
+    console.warn('uploadReturnCarPhoto:', e);
+  }
+  renderReturnCarPhotoGrid();
+  returnCarProgressDone(false, photo.name);
+}
+
+function renderReturnCarPhotoGrid() {
+  const grid = document.getElementById('returnCarPhotoGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  returnCarPhotos.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'photo-thumb-sm';
+    const badgeC = p.status === 'ok' ? 'ok' : p.status === 'uploading' ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
+    const badgeI = p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '!' : '…';
+    div.innerHTML = `
+      <img src="${p.data}" alt="รูปที่ ${i+1}" onclick="openLb('returnCar',${i})">
+      <span class="up-badge ${badgeC}">${badgeI}</span>
+      <button class="vw-btn" onclick="openLb('returnCar',${i})">ดู</button>
+      <button class="rm-btn" onclick="removeReturnCarPhoto(${i})" title="ลบ">✕</button>
+    `;
+    grid.appendChild(div);
+  });
+}
+
+function removeReturnCarPhoto(i) {
+  returnCarPhotos.splice(i, 1);
+  renderReturnCarPhotoGrid();
+  renderReturnCarDriveLinks();
+}
+
+function renderReturnCarDriveLinks() {
+  const panel   = document.getElementById('returnCarDrivePanel');
+  const linksEl = document.getElementById('returnCarDriveLinks');
+  if (!panel || !linksEl) return;
+  const uploaded = returnCarPhotos.filter(p => p.driveUrl);
+  if (!uploaded.length) { panel.classList.remove('show'); return; }
+  panel.classList.add('show');
+  linksEl.innerHTML = uploaded.map(p => `
+    <div class="dmp-item">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</span>
+      <a href="${p.driveUrl}" target="_blank" rel="noopener" class="dmp-link">เปิด Drive</a>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════════════════════
 //  LIGHTBOX (startmile)
 // ════════════════════════════════════════════════════════
 // source: 'trip' | 'fuel'
@@ -3405,6 +3623,8 @@ let smLbIdx    = 0;
 function openLb(source, idx) {
   if (source === 'trip') {
     smLbPhotos = tripPhotos;
+  } else if (source === 'returnCar') {
+    smLbPhotos = returnCarPhotos;
   } else if (source === 'returnFuel') {
     smLbPhotos = returnFuelPhotoB64 ? [{ name: 'บิลน้ำมันขากลับ', data: returnFuelPhotoB64, driveUrl: returnFuelPhotoUrl }] : [];
   } else {
