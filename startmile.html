@@ -1457,6 +1457,21 @@ function getSelectedRPs() {
   return [..._rpSelected];
 }
 
+/**
+ * clearAllRPs — ล้างจุดขอใช้รถทั้งหมด (chips + hidden input)
+ * เรียกหลัง submit startMile สำเร็จเพื่อ reset form
+ */
+function clearAllRPs() {
+  _rpSelected.clear();
+  _updateRPChips();
+  _renderRPList(_rpAll);
+  const hidden = document.getElementById('s_requestPoint');
+  if (hidden) hidden.value = '';
+  // ปิด picker ถ้าเปิดอยู่
+  const picker = document.getElementById('rp-picker');
+  if (picker) picker.style.display = 'none';
+}
+
 
 // ════════════════════════════════════════════════════════
 //  INIT
@@ -1490,44 +1505,37 @@ function checkAndHandleDailyReset() {
   const todayKey  = `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
   const lastReset = localStorage.getItem('dailyResetDate');
 
-  // ถ้ายังไม่เคย reset วันนี้ (หลังตี 3) → เรียก GAS
-  if (lastReset !== todayKey && now.getHours() >= 3) {
-    console.log('[DailyReset] triggering reset for', todayKey);
-    fetch(GAS_URL + '?action=resetDailyStatus', { cache: 'no-cache' })
-      .then(r => r.json())
-      .then(data => {
-        console.log('[DailyReset] result:', data);
-        localStorage.setItem('dailyResetDate', todayKey);
-      })
-      .catch(err => console.warn('[DailyReset] error:', err));
+  // ถ้ายังไม่เคย reset วันนี้ (หลัง 7 โมงเช้า) → mark ว่าเห็นแล้ว
+  // GAS จะ reset Vehicles sheet เองผ่าน Time Trigger (scheduledDailyReset ตอน 7:00-8:00 น.)
+  // ไม่ต้องเรียก resetDailyStatus จากฝั่ง client อีกต่อไป (GAS ปิดช่องทางนี้แล้ว)
+  if (lastReset !== todayKey && now.getHours() >= 7) {
+    console.log('[DailyReset] new day detected, marking reset for', todayKey);
+    localStorage.setItem('dailyResetDate', todayKey);
   }
 
-  // ── Schedule auto-reload ให้ตรงตี 3 ทุกคืน ──
-  scheduleReloadAt3am();
+  // ── Schedule auto-reload ให้ตรง 7:00 น. ทุกวัน ──
+  scheduleReloadAt7am();
 }
 
-function scheduleReloadAt3am() {
+function scheduleReloadAt7am() {
   const now     = bkkNow();
-  const next3am = bkkNow();
-  next3am.setHours(3, 0, 5, 0);   // ตี 3 พอดี + 5 วินาที
-  if (next3am <= now) {
-    next3am.setDate(next3am.getDate() + 1);  // ถ้าเลยตี 3 แล้ว → ตี 3 พรุ่งนี้
+  const next7am = bkkNow();
+  next7am.setHours(7, 0, 5, 0);   // 7:00:05 น. (+ 5 วินาที กันเที่ยง)
+  if (next7am <= now) {
+    next7am.setDate(next7am.getDate() + 1);  // ถ้าเลย 7 โมงแล้ว → 7 โมงพรุ่งนี้
   }
-  const msUntil3am = next3am - now;
-  console.log('[DailyReset] next reset in', Math.round(msUntil3am / 60000), 'minutes');
+  const msUntil7am = next7am - now;
+  console.log('[DailyReset] next page reload in', Math.round(msUntil7am / 60000), 'minutes (at 7:00am)');
 
   setTimeout(() => {
-    // เรียก GAS reset แล้วค่อย reload หน้า
-    fetch(GAS_URL + '?action=resetDailyStatus', { cache: 'no-cache' })
-      .finally(() => {
-        const todayKey = (() => {
-          const d = bkkNow();
-          return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
-        })();
-        localStorage.setItem('dailyResetDate', todayKey);
-        location.reload();
-      });
-  }, msUntil3am);
+    // reload หน้าเพื่อดึงสถานะที่ GAS reset ไปแล้ว
+    const todayKey = (() => {
+      const d = bkkNow();
+      return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+    })();
+    localStorage.setItem('dailyResetDate', todayKey);
+    location.reload();
+  }, msUntil7am);
 }
 
 // ── DATETIME HELPERS ──────────────────────────────────
@@ -2417,7 +2425,9 @@ function submitStart() {
     fuelPhotoUrl  : fuelPhotoUrl || '',
     fuelPhotoB64  : (hasFuel && fuelPhotoB64) ? fuelPhotoB64 : '',
     fuelPhotoMime : (hasFuel && fuelPhotoB64) ? (fuelPhotoMime || 'image/jpeg') : '',
-    fuelPhotoName : (hasFuel && fuelPhotoB64) ? (fuelPhotoName || ('fuel_' + Date.now() + '.jpg')) : ''
+    fuelPhotoName : (hasFuel && fuelPhotoB64) ? (fuelPhotoName || ('fuel_' + Date.now() + '.jpg')) : '',
+    // รูปสภาพรถ — ส่ง driveUrls ที่อัปโหลดสำเร็จแล้ว
+    driveUrls: tripPhotos.filter(p => p.driveUrl).map(p => p.driveUrl)
   } };
 
   const rpLabel = requestPoints.length > 1
@@ -2598,6 +2608,10 @@ async function doConfirm() {
       document.getElementById('s_hasFuel').checked = false;
       document.getElementById('fuelUploadArea').classList.remove('show');
       removeFuelPhoto();
+      // รีเซ็ตรูปสภาพรถ
+      tripPhotos = [];
+      renderTripPhotoGrid();
+      renderTripDriveLinks();
     } else {
       document.getElementById('e_carType').value = '';
       document.getElementById('e_odometerEnd').value = '';
@@ -3191,12 +3205,12 @@ function removeReturnFuelPhoto() {
 //  TOAST
 // ════════════════════════════════════════════════════════
 let toastTimer;
-function showToast(msg, type = '') {
+function showToast(msg, type = '', duration = 3500) {
   const el = document.getElementById('toast');
-  el.textContent = msg;
+  el.innerHTML = msg;  // ใช้ innerHTML แทน textContent เพื่อรองรับ link HTML
   el.className = 'toast show' + (type ? ' ' + type : '');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+  toastTimer = setTimeout(() => el.classList.remove('show'), duration);
 }
 
 // ════════════════════════════════════════════════════════
@@ -3436,9 +3450,6 @@ document.addEventListener('keydown', ev => {
 function viewFuelPhotoLocal() {
   openLb('fuel', 0);
 }
-
-// ── expose tripPhoto URLs to submitStart payload ──
-const _origSubmitStart = typeof submitStart === 'function' ? submitStart : null;
 </script>
 
 </body>
