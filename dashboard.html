@@ -2367,12 +2367,11 @@ function renderFuelSummary(_unused) {
     if (!plate) return;
     if (!byPlate[plate]) byPlate[plate] = {
       trips: 0, totalLiters: 0, totalPrice: 0,
-      lastDate: '', lastLiters: 0, lastPrice: 0, lastDriver: '', lastTime: ''
+      lastDate: '', lastLiters: 0, lastPrice: 0, lastDriver: ''
     };
     const liters = parseFloat(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || 0) || 0;
     const price  = parseFloat(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || 0) || 0;
-    const rowDate = normalizeInspDate(r['วันที่'] || r['Timestamp'] || r['timestamp'] || '');
-    const rowTime = extractTimeOnly(r['เวลาออก'] || r['timestamp'] || r['Timestamp'] || '');
+    const rowDate = normalizeInspDate(r['วันที่'] || '');
     byPlate[plate].trips++;
     byPlate[plate].totalLiters += liters;
     byPlate[plate].totalPrice  += price;
@@ -2381,7 +2380,6 @@ function renderFuelSummary(_unused) {
       byPlate[plate].lastLiters = liters;
       byPlate[plate].lastPrice  = price;
       byPlate[plate].lastDriver = String(r['พนักงานขับรถ'] || '');
-      byPlate[plate].lastTime   = rowTime;
     }
   });
 
@@ -2413,7 +2411,7 @@ function renderFuelSummary(_unused) {
       </td>
       <td style="padding:9px 12px;text-align:center;">
         <span style="background:var(--blue-soft);color:var(--blue);font-size:0.72rem;font-weight:700;padding:3px 9px;border-radius:4px;font-family:'IBM Plex Mono',monospace;">
-          ล่าสุด ${lastStr}${v.lastTime ? ' ' + v.lastTime : ''}${v.lastDriver ? ' · ' + v.lastDriver.split(' ').slice(-1)[0] : ''}
+          ล่าสุด ${lastStr}${v.lastDriver ? ' · ' + v.lastDriver.split(' ').slice(-1)[0] : ''}
         </span>
       </td>
     </tr>`;
@@ -2494,16 +2492,14 @@ function renderDistSummary(dateStr) {
   if (!tbody) return;
 
   // CheckLog: หาเลขไมล์ตอนตรวจเช็คเช้า (ต่อ plate ในวันนั้น)
-  const checkOdoMap = {}; // plate → { odometer, inspTime }
+  const checkOdoMap = {}; // plate → odometer (จาก CheckLog)
   (window.allData || []).forEach(r => {
     const nd = r._normDate || normalizeInspDate(r.inspDate || r.timestamp || '');
     if (nd !== dateStr) return;
     const plate = extractPlate(r.carType);
     if (!plate) return;
     const odo = Number(r.odometer || 0);
-    if (!checkOdoMap[plate] || odo < (checkOdoMap[plate].odometer || Infinity)) {
-      checkOdoMap[plate] = { odometer: odo, inspTime: getInspTime(r) || r.inspTime || '' };
-    }
+    if (!checkOdoMap[plate] || odo < checkOdoMap[plate]) checkOdoMap[plate] = odo;
   });
 
   // MileLog: หาเลขไมล์ล่าสุด + จำนวนเที่ยว (ต่อ plate ในวันนั้น)
@@ -2526,16 +2522,14 @@ function renderDistSummary(dateStr) {
 
   let totalKm = 0, activeCount = 0;
   const rows = ALL_VEHICLES.map(v => {
-    const checkInfo = checkOdoMap[v.plate] || {};
-    const checkOdo = checkInfo.odometer || 0;
-    const checkTime = checkInfo.inspTime || '';
+    const checkOdo = checkOdoMap[v.plate] || 0;
     const mile     = mileMap[v.plate] || { lastOdo: 0, trips: 0 };
     const lastOdo  = mile.lastOdo;
     const diff     = (lastOdo && checkOdo && lastOdo > checkOdo) ? lastOdo - checkOdo : 0;
     if (diff > 0) { totalKm += diff; activeCount++; }
 
     const checkOdoHtml = checkOdo
-      ? `<span style="font-weight:700;font-family:'Space Grotesk',monospace;color:#0369a1;">${checkOdo.toLocaleString()}</span>${checkTime ? `<div style="font-size:0.65rem;color:var(--text-light);">🕐 ${checkTime}</div>` : ''}`
+      ? `<span style="font-weight:700;font-family:'Space Grotesk',monospace;color:#0369a1;">${checkOdo.toLocaleString()}</span>`
       : `<span style="color:var(--text-light);font-size:0.75rem;">ไม่มีข้อมูล</span>`;
 
     const lastOdoHtml = lastOdo
@@ -5113,6 +5107,100 @@ document.addEventListener('DOMContentLoaded', function() {
   gap: 4px;
 }
 
+
+/* Media evidence grid (รูป/วีดีโอหลักฐาน) */
+.fp-media-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(68px, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+.fp-media-thumb {
+  position: relative;
+  border-radius: 7px;
+  overflow: hidden;
+  aspect-ratio: 1;
+  cursor: pointer;
+  background: #eef2f7;
+  border: 1.5px solid #e0e7f0;
+  transition: transform .15s, border-color .15s, box-shadow .15s;
+}
+.fp-media-thumb:hover {
+  transform: scale(1.05);
+  border-color: #6d3fc0;
+  box-shadow: 0 2px 10px rgba(109,63,192,.25);
+}
+.fp-media-thumb img {
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+.fp-media-thumb .fp-media-badge {
+  position: absolute; bottom: 3px; left: 3px;
+  background: rgba(0,0,0,.55);
+  color: #fff; font-size: 9px; font-weight: 700;
+  padding: 1px 5px; border-radius: 4px;
+  letter-spacing: .3px; text-transform: uppercase;
+  pointer-events: none;
+}
+.fp-media-thumb .fp-media-play {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,.35);
+  pointer-events: none;
+}
+.fp-media-thumb .fp-media-play svg { filter: drop-shadow(0 1px 3px rgba(0,0,0,.5)); }
+.fp-media-label {
+  font-size: 10px; font-weight: 700; letter-spacing: .5px;
+  text-transform: uppercase; color: #7a8ea5;
+  margin-top: 8px; margin-bottom: 4px;
+  display: flex; align-items: center; gap: 5px;
+}
+.fp-media-label::before { content: ''; flex: 1; height: 1px; background: #e8edf5; }
+.fp-media-label::after  { content: ''; flex: 1; height: 1px; background: #e8edf5; }
+
+/* Lightbox */
+.fp-lightbox {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(5,10,25,.88);
+  z-index: 9999;
+  align-items: center; justify-content: center;
+  flex-direction: column;
+  backdrop-filter: blur(6px);
+  padding: 20px;
+}
+.fp-lightbox.open { display: flex; }
+.fp-lightbox-media {
+  max-width: 92vw; max-height: 78vh;
+  border-radius: 10px; overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0,0,0,.6);
+  background: #000;
+}
+.fp-lightbox-media img  { max-width: 92vw; max-height: 78vh; display: block; object-fit: contain; }
+.fp-lightbox-media video {
+  max-width: 92vw; max-height: 78vh;
+  display: block; background: #000;
+}
+.fp-lightbox-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; max-width: 560px;
+  margin-top: 12px; gap: 10px;
+}
+.fp-lightbox-info { font-size: 12px; color: rgba(255,255,255,.55); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-lightbox-actions { display: flex; gap: 8px; }
+.fp-lb-btn {
+  padding: 6px 14px; border-radius: 7px; border: 1px solid rgba(255,255,255,.2);
+  background: rgba(255,255,255,.08); color: rgba(255,255,255,.8);
+  font-size: 12px; font-weight: 600; cursor: pointer;
+  font-family: 'Noto Sans Thai', sans-serif;
+  transition: all .15s;
+}
+.fp-lb-btn:hover { background: rgba(255,255,255,.18); color: #fff; }
+.fp-lb-btn.close-btn { border-color: rgba(255,100,100,.3); color: #fca5a5; }
+.fp-lb-btn.close-btn:hover { background: rgba(220,38,38,.25); }
+.fp-lb-btn.open-btn { border-color: rgba(109,63,192,.5); color: #c4b0f5; }
+.fp-lb-btn.open-btn:hover { background: rgba(109,63,192,.3); }
+
 /* Feedback cards */
 .fp-fb-type {
   display: inline-block;
@@ -5223,6 +5311,18 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 
+<!-- Lightbox สื่อหลักฐาน -->
+<div class="fp-lightbox" id="fpLightbox" onclick="fpCloseLightboxOnBg(event)">
+  <div class="fp-lightbox-media" id="fpLightboxMedia"></div>
+  <div class="fp-lightbox-bar">
+    <div class="fp-lightbox-info" id="fpLightboxInfo"></div>
+    <div class="fp-lightbox-actions">
+      <a class="fp-lb-btn open-btn" id="fpLightboxOpenBtn" href="#" target="_blank" rel="noopener">↗ เปิดใน Drive</a>
+      <button class="fp-lb-btn close-btn" onclick="fpCloseLightbox()">✕ ปิด</button>
+    </div>
+  </div>
+</div>
+
 <!-- Overlay -->
 <div class="fb-overlay" id="fbOverlay" onclick="closeFeedbackPanel()"></div>
 
@@ -5325,7 +5425,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // keyboard ESC
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && panelOpen) window.closeFeedbackPanel();
+    if (e.key === 'Escape') {
+      const lb = document.getElementById('fpLightbox');
+      if (lb && lb.classList.contains('open')) { window.fpCloseLightbox(); return; }
+      if (panelOpen) window.closeFeedbackPanel();
+    }
   });
 
   // ── TAB SWITCH ────────────────────────────────────────
@@ -5492,7 +5596,50 @@ document.addEventListener('DOMContentLoaded', function() {
             : '<span class="fp-card-stars-empty">☆</span>';
         }
         const hasComment = item.comment && item.comment.trim();
-        const ratingLabels = { 5:'พึงพอใจมากที่สุด', 4:'พึงพอใจดี', 3:'พอใจระดับปานกลาง', 2:'ต่ำกว่าความคาดหวัง', 1:'ควรปรับปรุงอย่างมาก' };
+
+        // ── สื่อหลักฐาน: แยก URL จาก newline-separated string ──
+        const photoList = (item.photoUrls || '').toString().split('\n').map(u => u.trim()).filter(Boolean);
+        const videoList = (item.videoUrls || '').toString().split('\n').map(u => u.trim()).filter(Boolean);
+        const hasMedia  = photoList.length > 0 || videoList.length > 0;
+
+        // สร้าง thumbnail grid
+        let mediaHtml = '';
+        if (hasMedia) {
+          mediaHtml += `<div class="fp-media-label">📎 หลักฐาน</div><div class="fp-media-grid">`;
+
+          // รูปภาพ — ใช้ directUrl (uc?export=view) สำหรับ <img>
+          photoList.forEach((url, idx) => {
+            const directUrl = url.replace('drive.google.com/file/d/', 'drive.google.com/uc?export=view&id=')
+                                 .replace(/\/view$/, '');
+            const safeUrl   = escHtml(url);
+            const safeDirect = escHtml(directUrl);
+            const fname = 'รูปภาพ ' + (idx + 1);
+            mediaHtml += `<div class="fp-media-thumb" onclick="fpOpenLightbox('photo','${safeUrl}','${safeDirect}','${escHtml(fname)}')" title="${escHtml(fname)}">
+              <img src="${safeDirect}" alt="${escHtml(fname)}"
+                   onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+              <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:22px;background:#f0ecfb;">🖼️</div>
+              <span class="fp-media-badge">IMG</span>
+            </div>`;
+          });
+
+          // วีดีโอ — thumbnail เป็น placeholder + play icon
+          videoList.forEach((url, idx) => {
+            const safeUrl = escHtml(url);
+            const fname = 'วีดีโอ ' + (idx + 1);
+            mediaHtml += `<div class="fp-media-thumb" onclick="fpOpenLightbox('video','${safeUrl}','','${escHtml(fname)}')" title="${escHtml(fname)}">
+              <div style="width:100%;height:100%;background:linear-gradient(135deg,#1a1035,#2d1a6e);display:flex;align-items:center;justify-content:center;">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+              </div>
+              <div class="fp-media-play">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="rgba(255,255,255,.9)"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              </div>
+              <span class="fp-media-badge">VID</span>
+            </div>`;
+          });
+
+          mediaHtml += `</div>`;
+        }
+
         html += `<div class="fp-card">
           <div class="fp-card-top">
             <div class="fp-card-stars">${starsHtml}</div>
@@ -5501,6 +5648,7 @@ document.addEventListener('DOMContentLoaded', function() {
           ${item.purpose ? `<span class="fp-card-purpose">${escHtml(item.purpose)}</span>` : ''}
           <div class="fp-card-comment ${hasComment ? '' : 'muted'}">${hasComment ? escHtml(item.comment) : '(ไม่มีข้อเสนอแนะ)'}</div>
           ${item.driverName ? `<div class="fp-card-driver"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${escHtml(item.driverName)}</div>` : ''}
+          ${mediaHtml}
         </div>`;
       });
       html += `</div>`;
@@ -5545,6 +5693,58 @@ document.addEventListener('DOMContentLoaded', function() {
     html += `</div>`;
     return html;
   }
+
+  // ── LIGHTBOX ──────────────────────────────────────────
+  window.fpOpenLightbox = function(type, viewUrl, directUrl, label) {
+    const lb    = document.getElementById('fpLightbox');
+    const media = document.getElementById('fpLightboxMedia');
+    const info  = document.getElementById('fpLightboxInfo');
+    const openBtn = document.getElementById('fpLightboxOpenBtn');
+
+    // หยุดวีดีโอเก่าก่อน
+    const oldVideo = media.querySelector('video');
+    if (oldVideo) { oldVideo.pause(); oldVideo.src = ''; }
+
+    if (type === 'photo') {
+      const imgSrc = directUrl || viewUrl;
+      media.innerHTML = `<img src="${imgSrc}" alt="${label}" style="max-width:92vw;max-height:78vh;display:block;object-fit:contain;">`;
+      openBtn.href = viewUrl;
+    } else {
+      // วีดีโอจาก Google Drive — ใช้ preview embed
+      const fileId = viewUrl.match(/\/d\/([^/]+)/)?.[1] || '';
+      if (fileId) {
+        media.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview"
+          width="640" height="360"
+          style="max-width:92vw;max-height:78vh;border:none;display:block;background:#000;"
+          allow="autoplay" allowfullscreen></iframe>`;
+      } else {
+        media.innerHTML = `<video src="${viewUrl}" controls autoplay
+          style="max-width:92vw;max-height:78vh;display:block;background:#000;"></video>`;
+      }
+      openBtn.href = viewUrl;
+    }
+
+    info.textContent = label;
+    lb.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.fpCloseLightbox = function() {
+    const lb    = document.getElementById('fpLightbox');
+    const media = document.getElementById('fpLightboxMedia');
+    const oldVideo = media.querySelector('video');
+    if (oldVideo) { oldVideo.pause(); oldVideo.src = ''; }
+    const iframe = media.querySelector('iframe');
+    if (iframe) { iframe.src = ''; }
+    lb.classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
+  window.fpCloseLightboxOnBg = function(e) {
+    if (e.target === document.getElementById('fpLightbox')) {
+      window.fpCloseLightbox();
+    }
+  };
 
   // ── UTIL ──────────────────────────────────────────────
 
