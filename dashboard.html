@@ -1958,8 +1958,11 @@ function applyFilters() {
 // ── DATE/TIME HELPERS ──
 function fmtDateTime(val) {
   if (!val) return '—';
-  const str = String(val);
-  if (/^\d{2}\/\d{2}\/\d{4}/.test(str)) return str.slice(0,16);
+  const str = String(val).trim();
+  // รูปแบบ "dd/MM/yyyy HH:mm:ss" หรือ "dd/MM/yyyy HH:mm" — แสดงครบ
+  if (/^\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}/.test(str)) return str.slice(0, 19);
+  // รูปแบบ "dd/MM/yyyy" ล้วนๆ — แสดงวันที่เท่านั้น
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
   const d = val instanceof Date ? val : new Date(str);
   if (isNaN(d.getTime())) return str;
   const p = n => String(n).padStart(2,'0');
@@ -2062,6 +2065,26 @@ function extractTimeOnly(val) {
   return m ? m[1] : '';
 }
 
+/**
+ * getInspTime — ดึงเวลาตรวจที่แม่นยำที่สุด
+ * priority: timestamp (server time) > inspTime (user input)
+ * ส่งคืน "HH:MM" เสมอ
+ */
+function getInspTime(r) {
+  if (!r) return '';
+  // 1) timestamp = server time ที่ GAS บันทึก — แม่นยำที่สุด
+  if (r.timestamp) {
+    const t = extractTimeOnly(String(r.timestamp));
+    if (t) return t;
+  }
+  // 2) inspTime fallback (สำหรับข้อมูลเก่าก่อน patch)
+  if (r.inspTime) {
+    const t = extractTimeOnly(String(r.inspTime));
+    if (t) return t;
+  }
+  return '';
+}
+
 // ── helper: ดึงเฉพาะวันที่ dd/MM/yyyy จาก string ที่อาจมีเวลาต่อท้าย
 function extractDateOnly(val) {
   if (!val) return '';
@@ -2106,7 +2129,7 @@ function renderOdometer(checkData) {
     if (!plate) return;
     const nd = r._normDate || normalizeInspDate(r.inspDate || r.timestamp || '');
     if (nd !== todayStr) return;
-    if (!todayCheck[plate] || (r.inspTime||'') > (todayCheck[plate].inspTime||'')) {
+    if (!todayCheck[plate] || (r.timestamp||r.inspTime||'') > (todayCheck[plate].timestamp||todayCheck[plate].inspTime||'')) {
       todayCheck[plate] = r;
     }
   });
@@ -2135,7 +2158,7 @@ function renderOdometer(checkData) {
       initMileHtml = `
         <div class="odo-init">${m.toLocaleString()}</div>
         <div style="font-size:0.67rem;color:var(--text-light);margin-top:2px;">
-          🕐 ${extractTimeOnly(chk.inspTime)||chk.inspTime||''} · ${chk.driverName||''}
+          🕐 ${getInspTime(chk)||''} · ${chk.driverName||''}
         </div>`;
     } else {
       initMileHtml = `<span class="odo-no-check">ยังไม่ตรวจวันนี้</span>`;
@@ -2163,8 +2186,6 @@ function renderOdometer(checkData) {
         const timeOut  = extractTimeOnly(t['เวลาออก']  || '');
         const timeBack = extractTimeOnly(t['เวลากลับ'] || '');
 
-        const reqPt   = String(t['จุดขอใช้รถ'] || t['requestPoints'] || '');
-
         usageHtml += `<span class="trip-chip ${inUse ? 'in-use' : 'done'}" title="Trip ${ti+1}">
           ${inUse ? '🚗 กำลังออกรถ' : '✅ กลับแล้ว'}
           ${trips.length > 1 ? ` (${ti+1})` : ''}
@@ -2186,7 +2207,6 @@ function renderOdometer(checkData) {
 
         infoHtml += `<div style="font-size:0.72rem;color:var(--text-mid);margin-bottom:2px;">
           📍 ${dest}${driver ? ` · 👤 ${driver.split(' ').slice(-1)[0]}` : ''}
-          ${reqPt ? `<div style="font-size:0.67rem;color:#64748b;margin-top:1px;">🏥 ${reqPt}</div>` : ''}
         </div>`;
       });
 
@@ -2347,11 +2367,12 @@ function renderFuelSummary(_unused) {
     if (!plate) return;
     if (!byPlate[plate]) byPlate[plate] = {
       trips: 0, totalLiters: 0, totalPrice: 0,
-      lastDate: '', lastLiters: 0, lastPrice: 0, lastDriver: ''
+      lastDate: '', lastLiters: 0, lastPrice: 0, lastDriver: '', lastTime: ''
     };
     const liters = parseFloat(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || 0) || 0;
     const price  = parseFloat(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || 0) || 0;
-    const rowDate = normalizeInspDate(r['วันที่'] || '');
+    const rowDate = normalizeInspDate(r['วันที่'] || r['Timestamp'] || r['timestamp'] || '');
+    const rowTime = extractTimeOnly(r['เวลาออก'] || r['timestamp'] || r['Timestamp'] || '');
     byPlate[plate].trips++;
     byPlate[plate].totalLiters += liters;
     byPlate[plate].totalPrice  += price;
@@ -2360,6 +2381,7 @@ function renderFuelSummary(_unused) {
       byPlate[plate].lastLiters = liters;
       byPlate[plate].lastPrice  = price;
       byPlate[plate].lastDriver = String(r['พนักงานขับรถ'] || '');
+      byPlate[plate].lastTime   = rowTime;
     }
   });
 
@@ -2391,7 +2413,7 @@ function renderFuelSummary(_unused) {
       </td>
       <td style="padding:9px 12px;text-align:center;">
         <span style="background:var(--blue-soft);color:var(--blue);font-size:0.72rem;font-weight:700;padding:3px 9px;border-radius:4px;font-family:'IBM Plex Mono',monospace;">
-          ล่าสุด ${lastStr}${v.lastDriver ? ' · ' + v.lastDriver.split(' ').slice(-1)[0] : ''}
+          ล่าสุด ${lastStr}${v.lastTime ? ' ' + v.lastTime : ''}${v.lastDriver ? ' · ' + v.lastDriver.split(' ').slice(-1)[0] : ''}
         </span>
       </td>
     </tr>`;
@@ -2472,14 +2494,16 @@ function renderDistSummary(dateStr) {
   if (!tbody) return;
 
   // CheckLog: หาเลขไมล์ตอนตรวจเช็คเช้า (ต่อ plate ในวันนั้น)
-  const checkOdoMap = {}; // plate → odometer (จาก CheckLog)
+  const checkOdoMap = {}; // plate → { odometer, inspTime }
   (window.allData || []).forEach(r => {
     const nd = r._normDate || normalizeInspDate(r.inspDate || r.timestamp || '');
     if (nd !== dateStr) return;
     const plate = extractPlate(r.carType);
     if (!plate) return;
     const odo = Number(r.odometer || 0);
-    if (!checkOdoMap[plate] || odo < checkOdoMap[plate]) checkOdoMap[plate] = odo;
+    if (!checkOdoMap[plate] || odo < (checkOdoMap[plate].odometer || Infinity)) {
+      checkOdoMap[plate] = { odometer: odo, inspTime: getInspTime(r) || r.inspTime || '' };
+    }
   });
 
   // MileLog: หาเลขไมล์ล่าสุด + จำนวนเที่ยว (ต่อ plate ในวันนั้น)
@@ -2502,14 +2526,16 @@ function renderDistSummary(dateStr) {
 
   let totalKm = 0, activeCount = 0;
   const rows = ALL_VEHICLES.map(v => {
-    const checkOdo = checkOdoMap[v.plate] || 0;
+    const checkInfo = checkOdoMap[v.plate] || {};
+    const checkOdo = checkInfo.odometer || 0;
+    const checkTime = checkInfo.inspTime || '';
     const mile     = mileMap[v.plate] || { lastOdo: 0, trips: 0 };
     const lastOdo  = mile.lastOdo;
     const diff     = (lastOdo && checkOdo && lastOdo > checkOdo) ? lastOdo - checkOdo : 0;
     if (diff > 0) { totalKm += diff; activeCount++; }
 
     const checkOdoHtml = checkOdo
-      ? `<span style="font-weight:700;font-family:'Space Grotesk',monospace;color:#0369a1;">${checkOdo.toLocaleString()}</span>`
+      ? `<span style="font-weight:700;font-family:'Space Grotesk',monospace;color:#0369a1;">${checkOdo.toLocaleString()}</span>${checkTime ? `<div style="font-size:0.65rem;color:var(--text-light);">🕐 ${checkTime}</div>` : ''}`
       : `<span style="color:var(--text-light);font-size:0.75rem;">ไม่มีข้อมูล</span>`;
 
     const lastOdoHtml = lastOdo
@@ -2687,8 +2713,9 @@ function renderEquipChart(data, tab) {
 
 function renderRecentRecords(data) {
   const sorted = [...data].sort((a,b) => {
-    const da = parseDate((a.timestamp||'')+(a.inspDate||'')+(a.inspTime||''));
-    const db = parseDate((b.timestamp||'')+(b.inspDate||'')+(b.inspTime||''));
+    // ใช้ timestamp (server time) เป็น primary sort key
+    const da = parseDate(a.timestamp || (a.inspDate||'') + ' ' + (a.inspTime||''));
+    const db = parseDate(b.timestamp || (b.inspDate||'') + ' ' + (b.inspTime||''));
     return db - da;
   }).slice(0, 100);
 
@@ -3269,10 +3296,9 @@ function renderLiveVehicleGridFromCheckLog() {
   const inUseFakeList = (_mileLogToday || [])
     .filter(t => String(t['สถานะ']||'').trim() === 'กำลังใช้งาน')
     .map(t => ({
-      carType      : String(t['ทะเบียน/รถ'] || ''),
-      driver       : String(t['พนักงานขับรถ'] || ''),
-      destination  : String(t['ปลายทาง'] || ''),
-      requestPoints: String(t['จุดขอใช้รถ'] || t['requestPoints'] || ''),
+      carType    : String(t['ทะเบียน/รถ'] || ''),
+      driver     : String(t['พนักงานขับรถ'] || ''),
+      destination: String(t['ปลายทาง'] || ''),
     }));
 
   const fakeJson = {
@@ -3579,8 +3605,8 @@ function renderLiveVehicleGrid(json) {
       const ct = String(r.carType || '');
       return ct.includes(v.plate) || ct.split(' ')[0].trim() === v.plate;
     }).sort((a, b) => {
-      const da = (a.inspDate||'') + (a.inspTime||'');
-      const db = (b.inspDate||'') + (b.inspTime||'');
+      const da = a.timestamp || (a.inspDate||'') + ' ' + (a.inspTime||'');
+      const db = b.timestamp || (b.inspDate||'') + ' ' + (b.inspTime||'');
       return db.localeCompare(da);
     })[0];
 
@@ -4061,9 +4087,7 @@ function openLiveVehicleDetail(plate) {
   const _sheetSt = d.sheetStatus || '';
   if (d.isInUse || _sheetSt === 'กำลังใช้งาน') {
     headerBg   = 'linear-gradient(135deg,var(--navy-mid),var(--navy-light))';
-    const destLabel = d.inUseData?.destination ? ' → ' + d.inUseData.destination : '';
-    const reqPtLabel = d.inUseData?.requestPoints ? ` (${d.inUseData.requestPoints})` : '';
-    statusLine = '🚗 กำลังออกปฏิบัติงาน' + destLabel + reqPtLabel;
+    statusLine = '🚗 กำลังออกปฏิบัติงาน' + (d.inUseData?.destination ? ' → ' + d.inUseData.destination : '');
   } else if (_sheetSt === 'พร้อมใช้งาน') {
     // admin ตั้งสถานะ พร้อมใช้งาน → override hasIssue เสมอ
     headerBg   = 'linear-gradient(135deg,var(--teal),#0d9488)';
@@ -4094,10 +4118,11 @@ function openLiveVehicleDetail(plate) {
   const odo          = rec?.odometer ? Number(rec.odometer).toLocaleString('th-TH') + ' กม.' 
                        : chkData?.odometer ? Number(chkData.odometer).toLocaleString('th-TH') + ' กม.' : '—';
   const inspector    = rec?.driverName || chkData?.driverName || '—';
-  const lastInspDate = rec?.inspDate ? formatThaiDate(rec.inspDate) 
+  const lastInspDate = rec?.inspDate ? formatThaiDate(rec.inspDate)
                        : chkData?.inspTime ? '(วันนี้)' : '—';
-  const lastInspTime = rec?.inspTime ? formatThaiTime(extractTimeOnly(rec.inspTime) || rec.inspTime)
-                       : chkData?.inspTime ? formatThaiTime(extractTimeOnly(chkData.inspTime) || chkData.inspTime) : '—';
+  // ดึงเวลาจาก timestamp (server time) ก่อน inspTime เสมอ
+  const lastInspTime = rec ? formatThaiTime(getInspTime(rec) || rec.inspTime || '')
+                       : chkData ? formatThaiTime(getInspTime(chkData) || chkData.inspTime || '') : '—';
 
   // timestamp อัปเดตล่าสุด
   let lastUpdate = '—';
