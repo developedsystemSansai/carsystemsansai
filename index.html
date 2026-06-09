@@ -1405,10 +1405,11 @@ function renderVehicleCards(json) {
     const plate = String(c.carType || '').split(' ')[0].trim();
     const rawLevel = String(c.fuelLevel || '').trim();
     if (!rawLevel) return;
-    // fuelLevel จาก backend เป็น "25%" / "50%" / "75%" / "100%" อยู่แล้ว
     const numStr = rawLevel.replace('%', '').trim();
-    const pct = parseFloat(numStr);
+    let pct = parseFloat(numStr);
     if (isNaN(pct)) return;
+    // ถ้าได้ decimal (0–1) ให้คูณ 100 → เปอร์เซ็นต์จริง
+    if (pct > 0 && pct <= 1) pct = Math.round(pct * 100);
     window._fuelAlertMap[plate] = { carType: c.carType, fuelPct: pct };
   });
 
