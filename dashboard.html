@@ -2163,6 +2163,8 @@ function renderOdometer(checkData) {
         const timeOut  = extractTimeOnly(t['เวลาออก']  || '');
         const timeBack = extractTimeOnly(t['เวลากลับ'] || '');
 
+        const reqPt   = String(t['จุดขอใช้รถ'] || t['requestPoints'] || '');
+
         usageHtml += `<span class="trip-chip ${inUse ? 'in-use' : 'done'}" title="Trip ${ti+1}">
           ${inUse ? '🚗 กำลังออกรถ' : '✅ กลับแล้ว'}
           ${trips.length > 1 ? ` (${ti+1})` : ''}
@@ -2184,6 +2186,7 @@ function renderOdometer(checkData) {
 
         infoHtml += `<div style="font-size:0.72rem;color:var(--text-mid);margin-bottom:2px;">
           📍 ${dest}${driver ? ` · 👤 ${driver.split(' ').slice(-1)[0]}` : ''}
+          ${reqPt ? `<div style="font-size:0.67rem;color:#64748b;margin-top:1px;">🏥 ${reqPt}</div>` : ''}
         </div>`;
       });
 
@@ -3266,9 +3269,10 @@ function renderLiveVehicleGridFromCheckLog() {
   const inUseFakeList = (_mileLogToday || [])
     .filter(t => String(t['สถานะ']||'').trim() === 'กำลังใช้งาน')
     .map(t => ({
-      carType    : String(t['ทะเบียน/รถ'] || ''),
-      driver     : String(t['พนักงานขับรถ'] || ''),
-      destination: String(t['ปลายทาง'] || ''),
+      carType      : String(t['ทะเบียน/รถ'] || ''),
+      driver       : String(t['พนักงานขับรถ'] || ''),
+      destination  : String(t['ปลายทาง'] || ''),
+      requestPoints: String(t['จุดขอใช้รถ'] || t['requestPoints'] || ''),
     }));
 
   const fakeJson = {
@@ -4057,7 +4061,9 @@ function openLiveVehicleDetail(plate) {
   const _sheetSt = d.sheetStatus || '';
   if (d.isInUse || _sheetSt === 'กำลังใช้งาน') {
     headerBg   = 'linear-gradient(135deg,var(--navy-mid),var(--navy-light))';
-    statusLine = '🚗 กำลังออกปฏิบัติงาน' + (d.inUseData?.destination ? ' → ' + d.inUseData.destination : '');
+    const destLabel = d.inUseData?.destination ? ' → ' + d.inUseData.destination : '';
+    const reqPtLabel = d.inUseData?.requestPoints ? ` (${d.inUseData.requestPoints})` : '';
+    statusLine = '🚗 กำลังออกปฏิบัติงาน' + destLabel + reqPtLabel;
   } else if (_sheetSt === 'พร้อมใช้งาน') {
     // admin ตั้งสถานะ พร้อมใช้งาน → override hasIssue เสมอ
     headerBg   = 'linear-gradient(135deg,var(--teal),#0d9488)';
