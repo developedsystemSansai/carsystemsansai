@@ -2689,15 +2689,17 @@ function renderHistory() {
     return '';
   }
 
-  // ── helper: บิลออก — ดึงจาก "รูปบิลน้ำมันออกรถ" เป็นหลัก ──
+  // ── helper: บิลออก — ดึงจาก "รูปบิลน้ำมันออกรถ" (ชีทจริง col 16) ──
+  // GAS ส่ง key: รูปบิลน้ำมันออกรถ, รูปบิลน้ำมัน (alias), fuelPhotoUrl
   function getFuelUrl(r) {
     return extractDriveUrl(r['รูปบิลน้ำมันออกรถ'])
-        || extractDriveUrl(r['fuelPhotoUrl'])
         || extractDriveUrl(r['รูปบิลน้ำมัน'])
+        || extractDriveUrl(r['fuelPhotoUrl'])
         || '';
   }
 
-  // ── helper: บิลกลับ — ดึงจาก "รูปบิลน้ำมันขากลับ" เป็นหลัก ──
+  // ── helper: บิลกลับ — ดึงจาก "รูปบิลน้ำมันขากลับ" (ชีทจริง col 18) ──
+  // GAS ส่ง key: รูปบิลน้ำมันขากลับ, returnFuelPhotoUrl
   function getReturnFuelUrl(r) {
     return extractDriveUrl(r['รูปบิลน้ำมันขากลับ'])
         || extractDriveUrl(r['returnFuelPhotoUrl'])
