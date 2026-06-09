@@ -5696,32 +5696,76 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // ── LIGHTBOX ──────────────────────────────────────────
   window.fpOpenLightbox = function(type, viewUrl, directUrl, label) {
-    const lb    = document.getElementById('fpLightbox');
-    const media = document.getElementById('fpLightboxMedia');
-    const info  = document.getElementById('fpLightboxInfo');
+    const lb      = document.getElementById('fpLightbox');
+    const media   = document.getElementById('fpLightboxMedia');
+    const info    = document.getElementById('fpLightboxInfo');
     const openBtn = document.getElementById('fpLightboxOpenBtn');
-
-    // หยุดวีดีโอเก่าก่อน
-    const oldVideo = media.querySelector('video');
-    if (oldVideo) { oldVideo.pause(); oldVideo.src = ''; }
 
     if (type === 'photo') {
       const imgSrc = directUrl || viewUrl;
-      media.innerHTML = `<img src="${imgSrc}" alt="${label}" style="max-width:92vw;max-height:78vh;display:block;object-fit:contain;">`;
-      openBtn.href = viewUrl;
+      media.innerHTML = `<img src="${imgSrc}" alt="${label}"
+        style="max-width:92vw;max-height:78vh;display:block;object-fit:contain;border-radius:8px;"
+        onerror="this.outerHTML='<div style=\"padding:32px 24px;color:rgba(255,255,255,.6);text-align:center;font-size:13px;\">⚠️ ไม่สามารถโหลดรูปภาพได้<br><span style=\"font-size:11px;opacity:.6;\">ลองเปิดใน Drive แทน</span></div>'"
+      >`;
+      openBtn.href    = viewUrl;
+      openBtn.style.display = '';
+
     } else {
-      // วีดีโอจาก Google Drive — ใช้ preview embed
+      // วีดีโอจาก Google Drive — Drive block iframe จาก origin ภายนอก
+      // และไฟล์ที่เพิ่ง upload อาจยัง processing อยู่
+      // → แสดง UI แจ้งให้กดเปิดใน Drive โดยตรงแทน
       const fileId = viewUrl.match(/\/d\/([^/]+)/)?.[1] || '';
-      if (fileId) {
-        media.innerHTML = `<iframe src="https://drive.google.com/file/d/${fileId}/preview"
-          width="640" height="360"
-          style="max-width:92vw;max-height:78vh;border:none;display:block;background:#000;"
-          allow="autoplay" allowfullscreen></iframe>`;
-      } else {
-        media.innerHTML = `<video src="${viewUrl}" controls autoplay
-          style="max-width:92vw;max-height:78vh;display:block;background:#000;"></video>`;
-      }
-      openBtn.href = viewUrl;
+      media.innerHTML = `
+        <div style="
+          width:340px; max-width:88vw;
+          padding:32px 28px; text-align:center;
+          color:rgba(255,255,255,.85);
+        ">
+          <div style="
+            width:72px; height:72px; border-radius:50%;
+            background:rgba(109,63,192,.25); border:2px solid rgba(109,63,192,.4);
+            display:flex; align-items:center; justify-content:center;
+            margin:0 auto 18px;
+          ">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
+              stroke="rgba(196,176,245,.9)" stroke-width="1.8"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 7l-7 5 7 5V7z"/>
+              <rect x="1" y="5" width="15" height="14" rx="2"/>
+            </svg>
+          </div>
+          <div style="font-size:15px;font-weight:700;margin-bottom:8px;">${label}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:22px;">
+            วีดีโอจาก Google Drive ไม่สามารถเล่น<br>ภายในหน้านี้ได้โดยตรง<br>
+            <span style="color:rgba(255,200,100,.6);">
+              (Drive block embed จาก origin ภายนอก)
+            </span>
+          </div>
+          <a href="${viewUrl}" target="_blank" rel="noopener" style="
+            display:inline-flex; align-items:center; gap:8px;
+            padding:10px 22px; border-radius:9px;
+            background:linear-gradient(135deg,#4a2a9a,#6d3fc0);
+            color:#fff; font-size:13px; font-weight:700;
+            text-decoration:none; border:none;
+            box-shadow:0 4px 16px rgba(109,63,192,.45);
+            transition:opacity .15s;
+          " onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            เปิดวีดีโอใน Google Drive
+          </a>
+          ${fileId ? `<div style="margin-top:12px;">
+            <a href="https://drive.google.com/uc?export=download&id=${fileId}"
+              style="font-size:11px;color:rgba(255,255,255,.35);text-decoration:underline;">
+              ดาวน์โหลดไฟล์วีดีโอ
+            </a>
+          </div>` : ''}
+        </div>`;
+      openBtn.style.display = 'none'; // ซ่อน เพราะ inline button ด้านบนทำหน้าที่แทนแล้ว
     }
 
     info.textContent = label;
@@ -5730,14 +5774,12 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   window.fpCloseLightbox = function() {
-    const lb    = document.getElementById('fpLightbox');
+    const lb  = document.getElementById('fpLightbox');
     const media = document.getElementById('fpLightboxMedia');
-    const oldVideo = media.querySelector('video');
-    if (oldVideo) { oldVideo.pause(); oldVideo.src = ''; }
-    const iframe = media.querySelector('iframe');
-    if (iframe) { iframe.src = ''; }
     lb.classList.remove('open');
     document.body.style.overflow = '';
+    // ล้าง media เพื่อหยุด request
+    setTimeout(() => { if (!lb.classList.contains('open')) media.innerHTML = ''; }, 300);
   };
 
   window.fpCloseLightboxOnBg = function(e) {
