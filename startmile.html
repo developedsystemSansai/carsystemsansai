@@ -3041,7 +3041,7 @@ function openTripDetail(r) {
 
   const fuelOutUrl    = exUrl(r['รูปบิลน้ำมันออกรถ'])   || exUrl(r['รูปบิลน้ำมัน'])      || exUrl(r['fuelPhotoUrl'])       || '';
   const fuelBackUrl   = exUrl(r['รูปบิลน้ำมันขากลับ'])  || exUrl(r['returnFuelPhotoUrl']) || '';
-  const carOutUrls    = exUrls(r['รูปสภาพรถก่อนออก'])   || exUrls(r['รูปสภาพรถ'])         || [];
+  const carOutUrls    = exUrls(r['รูปสภาพรถขาออก'])     || exUrls(r['รูปสภาพรถก่อนออก']) || exUrls(r['รูปสภาพรถ']) || [];
   const carBackUrls   = exUrls(r['รูปสภาพรถขากลับ'])    || [];
 
   // ── build photo card ──
