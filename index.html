@@ -179,74 +179,117 @@
 
   /* ── PAGE BAND (sub-header) ── */
   .page-band {
-    background: linear-gradient(160deg, var(--navy-mid) 0%, #1a3f6a 55%, #173660 100%);
-    padding: 36px 24px 44px;
+    background: linear-gradient(150deg, #0d2847 0%, #123362 45%, #0f4a6e 100%);
+    padding: 52px 24px 60px;
     position: relative;
     overflow: hidden;
+    border-bottom: 1px solid rgba(255,255,255,.06);
   }
+  /* Ambient glow layers */
   .page-band::before {
     content: '';
     position: absolute; inset: 0;
     background:
-      radial-gradient(ellipse 700px 280px at 15% 60%, rgba(29,111,181,.1) 0%, transparent 70%),
-      radial-gradient(ellipse 500px 200px at 85% 20%, rgba(0,122,110,.08) 0%, transparent 70%);
+      radial-gradient(ellipse 900px 400px at 10% 80%, rgba(14,165,233,.13) 0%, transparent 65%),
+      radial-gradient(ellipse 600px 300px at 80% 10%, rgba(99,102,241,.10) 0%, transparent 65%),
+      radial-gradient(ellipse 400px 200px at 55% 100%, rgba(45,212,191,.07) 0%, transparent 60%);
     pointer-events: none;
   }
-  /* Subtle ruled lines */
+  /* Diagonal grid lines */
   .page-band::after {
     content: '';
     position: absolute; inset: 0;
-    background-image: linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px);
-    background-size: 100% 36px;
+    background-image:
+      linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+    background-size: 48px 48px;
     pointer-events: none;
   }
   .band-inner {
     position: relative; z-index: 1;
     max-width: 1140px; margin: auto;
-    display: flex; align-items: center; gap: 20px;
+    display: flex; align-items: center; gap: 28px;
   }
   .band-icon {
-    width: 60px; height: 60px;
-    background: rgba(255,255,255,.07);
-    border: 1px solid rgba(255,255,255,.13);
-    border-radius: 16px;
+    width: 76px; height: 76px;
+    background: linear-gradient(135deg, rgba(14,165,233,.25) 0%, rgba(99,102,241,.18) 100%);
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 20px;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(14,165,233,.15), inset 0 1px 0 rgba(255,255,255,.12);
   }
-  .band-icon svg { width: 30px; height: 30px; }
+  .band-icon svg { width: 38px; height: 38px; }
   .band-text { flex: 1; }
+  .band-eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 2.5px;
+    color: rgba(14,165,233,.85);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
   .band-text h1 {
     font-family: 'Noto Serif Thai', serif;
-    font-size: clamp(18px, 3.5vw, 24px);
+    font-size: clamp(22px, 4vw, 34px);
     font-weight: 700; color: #fff;
-    line-height: 1.25; letter-spacing: -.2px;
-    margin-bottom: 6px;
+    line-height: 1.2; letter-spacing: .35em;
+    margin-bottom: 4px;
+  }
+  .band-subtitle {
+    font-size: clamp(14px, 2vw, 17px);
+    color: rgba(255,255,255,.65);
+    font-weight: 400; letter-spacing: .1px;
+    margin-bottom: 12px;
   }
   .band-text p {
-    font-size: 13px; color: rgba(255,255,255,.5);
-    line-height: 1.65; max-width: 520px;
+    font-size: 13.5px; color: rgba(255,255,255,.42);
+    line-height: 1.7; max-width: 560px;
   }
   .band-meta {
-    display: flex; flex-wrap: wrap; gap: 6px;
-    margin-top: 14px;
+    display: flex; flex-wrap: wrap; gap: 7px;
+    margin-top: 18px;
   }
   .band-pill {
-    display: inline-flex; align-items: center; gap: 5px;
+    display: inline-flex; align-items: center; gap: 6px;
     background: rgba(255,255,255,.07);
-    border: 1px solid rgba(255,255,255,.12);
-    padding: 4px 10px; border-radius: 20px;
-    font-size: 11px; color: rgba(255,255,255,.55);
-    font-weight: 500;
+    border: 1px solid rgba(255,255,255,.13);
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 11.5px; color: rgba(255,255,255,.6);
+    font-weight: 500; letter-spacing: .2px;
+    backdrop-filter: blur(4px);
+  }
+  .band-pill.pill-active {
+    background: rgba(34,197,94,.12);
+    border-color: rgba(34,197,94,.3);
+    color: rgba(134,239,172,.9);
   }
   .pulse-dot {
-    width: 5px; height: 5px; border-radius: 50%;
+    width: 6px; height: 6px; border-radius: 50%;
     background: #22c55e;
-    box-shadow: 0 0 6px rgba(34,197,94,.7);
+    box-shadow: 0 0 8px rgba(34,197,94,.9);
     animation: pulse 2.2s ease-in-out infinite;
   }
   @keyframes pulse {
     0%,100% { opacity:1; transform:scale(1); }
-    50%      { opacity:.45; transform:scale(1.5); }
+    50%      { opacity:.4; transform:scale(1.6); }
+  }
+  /* Right accent block */
+  .band-stat-block {
+    display: flex; flex-direction: column; align-items: flex-end;
+    gap: 6px; flex-shrink: 0;
+  }
+  .band-stat-num {
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 700; color: #fff; line-height: 1;
+    letter-spacing: -1px;
+  }
+  .band-stat-label {
+    font-size: 11px; color: rgba(255,255,255,.4);
+    letter-spacing: 1.5px; text-transform: uppercase;
+  }
+  .band-divider {
+    width: 1px; height: 70px;
+    background: linear-gradient(to bottom, transparent, rgba(255,255,255,.15), transparent);
+    flex-shrink: 0;
   }
 
   /* ── MAIN ── */
@@ -751,7 +794,9 @@
   @media (max-width: 560px) {
     /* มือถือ: 1 col เต็มหน้า */
     .card-grid { grid-template-columns: 1fr; gap: 10px; }
-    .page-band { padding: 24px 16px 32px; }
+    .page-band { padding: 32px 16px 40px; }
+    .band-stat-block { display: none; }
+    .band-divider { display: none; }
     .main-wrap { padding: 20px 14px 48px; }
     .header-inner { padding: 0 16px; }
     .status-row { grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -811,11 +856,15 @@
 <header class="site-header">
   <div class="header-inner">
     <div class="header-logo">
-      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="1" y="3" width="15" height="13" rx="2"/>
-        <path d="M16 8h4l3 5v3h-7V8z"/>
-        <circle cx="5.5" cy="18.5" r="2.5"/>
-        <circle cx="18.5" cy="18.5" r="2.5"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12,3 21,18 3,18" stroke="#fff" stroke-width="1.6" fill="none"/>
+        <circle cx="12" cy="3" r="2" fill="#fff" stroke="none"/>
+        <circle cx="21" cy="18" r="2" fill="#fff" stroke="none"/>
+        <circle cx="3" cy="18" r="2" fill="#fff" stroke="none"/>
+        <circle cx="12" cy="13" r="1.4" fill="#fff" fill-opacity="0.55" stroke="none"/>
+        <line x1="12" y1="3" x2="12" y2="13" stroke="#fff" stroke-width="0.8" stroke-opacity="0.4"/>
+        <line x1="21" y1="18" x2="12" y2="13" stroke="#fff" stroke-width="0.8" stroke-opacity="0.4"/>
+        <line x1="3" y1="18" x2="12" y2="13" stroke="#fff" stroke-width="0.8" stroke-opacity="0.4"/>
       </svg>
     </div>
     <div class="header-titles">
@@ -859,21 +908,32 @@
 <section class="page-band">
   <div class="band-inner">
     <div class="band-icon">
-      <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="1" y="3" width="15" height="13" rx="2"/>
-        <path d="M16 8h4l3 5v3h-7V8z"/>
-        <circle cx="5.5" cy="18.5" r="2.5"/>
-        <circle cx="18.5" cy="18.5" r="2.5"/>
+      <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12,3 21,18 3,18" stroke="rgba(255,255,255,.85)" stroke-width="1.6" fill="none"/>
+        <circle cx="12" cy="3" r="2" fill="rgba(255,255,255,.85)" stroke="none"/>
+        <circle cx="21" cy="18" r="2" fill="rgba(255,255,255,.85)" stroke="none"/>
+        <circle cx="3" cy="18" r="2" fill="rgba(255,255,255,.85)" stroke="none"/>
+        <circle cx="12" cy="13" r="1.4" fill="rgba(255,255,255,.45)" stroke="none"/>
+        <line x1="12" y1="3" x2="12" y2="13" stroke="rgba(255,255,255,.4)" stroke-width="0.8"/>
+        <line x1="21" y1="18" x2="12" y2="13" stroke="rgba(255,255,255,.4)" stroke-width="0.8"/>
+        <line x1="3" y1="18" x2="12" y2="13" stroke="rgba(255,255,255,.4)" stroke-width="0.8"/>
       </svg>
     </div>
     <div class="band-text">
-      <h1>SAND<br><span style="font-size:0.75em;font-weight:500;">Sansai Administration Network Drive · โรงพยาบาลสันทราย</span></h1>
-      <p>ระบบติดตาม ตรวจสอบ และบันทึกการใช้ยานพาหนะ ครบวงจร เพื่อความโปร่งใส ปลอดภัย และมีประสิทธิภาพ</p>
+      <div class="band-eyebrow">Sansai Administration Network Drive</div>
+      <h1>SAND</h1>
+      <div class="band-subtitle">Sansai Administration Network Drive · โรงพยาบาลสันทราย</div>
+      <p>ระบบติดตาม ตรวจสอบ และบันทึกการใช้ยานพาหนะครบวงจร เพื่อความโปร่งใส ปลอดภัย และมีประสิทธิภาพ</p>
       <div class="band-meta">
-        <span class="band-pill"><span class="pulse-dot"></span>ระบบออนไลน์</span>
+        <span class="band-pill pill-active"><span class="pulse-dot"></span>ระบบออนไลน์</span>
         <span class="band-pill" id="statusUpdateTime">กำลังโหลดข้อมูล...</span>
         <span class="band-pill">รองรับมือถือ</span>
       </div>
+    </div>
+    <div class="band-divider"></div>
+    <div class="band-stat-block">
+      <div class="band-stat-num" id="bandVehicleCount">—</div>
+      <div class="band-stat-label">ยานพาหนะ</div>
     </div>
   </div>
 </section>
@@ -1357,6 +1417,8 @@ async function loadStatus() {
     document.getElementById('sv-ready').textContent      = json.readyCount       ?? '—';
     document.getElementById('sv-inuse').textContent      = json.inUseCount       ?? '—';
     document.getElementById('statusUpdateTime').textContent = fmtNow();
+    const bvc = document.getElementById('bandVehicleCount');
+    if (bvc) bvc.textContent = ALL_VEHICLES.length || '—';
 
     const nc = json.notCheckedCount || 0;
     const dotNc = document.getElementById('dot-nc');
