@@ -422,6 +422,99 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
 .modal-btn.cancel  { background: var(--bg); color: var(--text-mid); border: 1px solid var(--border); }
 .modal-btn:hover { opacity: .85; }
 
+/* ── Trip Detail Modal ── */
+.td-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.55); z-index: 1100;
+  align-items: center; justify-content: center; padding: 16px;
+}
+.td-overlay.show { display: flex; }
+.td-box {
+  background: var(--card); border-radius: 16px;
+  width: 100%; max-width: 540px; max-height: 92vh;
+  overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  animation: tdSlideUp .22s ease;
+}
+@keyframes tdSlideUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+.td-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--card); z-index: 1;
+  border-radius: 16px 16px 0 0;
+}
+.td-header-info { display: flex; flex-direction: column; gap: 2px; }
+.td-title { font-size: 15px; font-weight: 800; color: var(--navy); }
+.td-subtitle { font-size: 11px; color: var(--text-light); }
+.td-close {
+  width: 30px; height: 30px; border: none; background: var(--bg);
+  border-radius: 50%; cursor: pointer; font-size: 16px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-mid);
+}
+.td-body { padding: 16px 18px 20px; }
+.td-meta-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  margin-bottom: 16px;
+}
+.td-meta-item {
+  background: var(--bg); border-radius: 10px; padding: 10px 12px;
+}
+.td-meta-label { font-size: 10px; color: var(--text-light); font-weight: 600; text-transform: uppercase; margin-bottom: 2px; }
+.td-meta-val   { font-size: 13px; font-weight: 700; color: var(--text); }
+.td-section-title {
+  font-size: 11px; font-weight: 700; color: var(--text-mid);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  margin: 14px 0 8px; display: flex; align-items: center; gap: 6px;
+}
+.td-photo-row {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-bottom: 12px;
+}
+.td-photo-card {
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--border); background: var(--bg);
+}
+.td-photo-label {
+  font-size: 10px; font-weight: 700; padding: 6px 10px;
+  background: var(--bg); color: var(--text-mid);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 4px;
+}
+.td-photo-img {
+  width: 100%; aspect-ratio: 4/3; object-fit: cover; display: block;
+  cursor: pointer; transition: opacity .15s;
+}
+.td-photo-img:hover { opacity: .88; }
+.td-photo-empty {
+  width: 100%; aspect-ratio: 4/3;
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 6px; color: var(--text-light);
+  font-size: 11px;
+}
+.td-multi-photos {
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 6px;
+  margin-bottom: 12px;
+}
+.td-multi-thumb {
+  aspect-ratio: 1; border-radius: 8px; overflow: hidden;
+  border: 1px solid var(--border); cursor: pointer;
+  transition: transform .15s;
+}
+.td-multi-thumb:hover { transform: scale(1.03); }
+.td-multi-thumb img { width:100%; height:100%; object-fit:cover; display:block; }
+.td-btn-detail {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 9px; border-radius: 7px; border: 1px solid var(--border);
+  background: var(--bg); color: var(--text-mid); font-size: 11px;
+  font-weight: 700; cursor: pointer; white-space: nowrap;
+  transition: background .15s, color .15s;
+}
+.td-btn-detail:hover { background: var(--navy); color: #fff; border-color: var(--navy); }
+
 /* ── RESPONSIVE ── */
 @media (max-width: 600px) {
   .main-wrap { padding: 16px 12px 48px; }
@@ -1324,10 +1417,11 @@ input.odo-mismatch {
               <th>บิลออก</th>
               <th>บิลกลับ</th>
               <th>สถานะ</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="histBody">
-            <tr class="empty-row"><td colspan="13">กำลังโหลดข้อมูล...</td></tr>
+            <tr class="empty-row"><td colspan="14">กำลังโหลดข้อมูล...</td></tr>
           </tbody>
         </table>
       </div>
@@ -1351,6 +1445,22 @@ input.odo-mismatch {
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+
+<!-- TRIP DETAIL MODAL -->
+<div class="td-overlay" id="tripDetailOverlay" onclick="closeTripDetail(event)">
+  <div class="td-box" id="tripDetailBox">
+    <div class="td-header">
+      <div class="td-header-info">
+        <div class="td-title" id="td-title">รายละเอียดทริป</div>
+        <div class="td-subtitle" id="td-subtitle"></div>
+      </div>
+      <button class="td-close" onclick="closeTripDetail()">✕</button>
+    </div>
+    <div class="td-body" id="td-body">
+      <!-- inject by JS -->
+    </div>
+  </div>
+</div>
 
 <!-- CONFIRM MODAL -->
 <div class="modal-overlay" id="confirmModal">
@@ -1397,10 +1507,7 @@ const DEFAULT_DRIVERS = [
 const DEFAULT_DESTINATIONS = [
   // ── ภารกิจ รพ.สันทราย ──────────────────────────────────
   'ปั๊ม PT หน้า รพ.',
-  'รับ อาจารย์ สมชัย',
   'ส่งเลือด',
-  'ชันสูตรในพื้นที่',
-  'ส่งแลป',
   'ส่งเช็ค',
   'ธนาคาร',
   'เยี่ยมบ้าน',
@@ -2760,7 +2867,7 @@ function renderHistory() {
 
   const tbody = document.getElementById('histBody');
   if (!filtered.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="13">ยังไม่มีประวัติการใช้รถ</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="14">ยังไม่มีประวัติการใช้รถ</td></tr>';
     return;
   }
 
@@ -2880,11 +2987,165 @@ function renderHistory() {
         })()}
       </td>
       <td><span class="status-badge ${isActive ? 'active' : 'done'}">${isActive ? '🚗 กำลังใช้' : '✅ เสร็จแล้ว'}</span></td>
+      <td style="text-align:center;">
+        <button class="td-btn-detail" onclick="openTripDetail(${JSON.stringify(r).replace(/"/g,'&quot;')})">
+          📎 รายละเอียด
+        </button>
+      </td>
     </tr>`;
   }).join('');
 }
 
 function filterHistory() { renderHistory(); }
+
+// ════════════════════════════════════════════════════════
+//  TRIP DETAIL MODAL
+// ════════════════════════════════════════════════════════
+function openTripDetail(r) {
+  const plate     = String(r['ทะเบียน/รถ'] || '').split(' ')[0];
+  const driver    = String(r['พนักงานขับรถ'] || '—');
+  const dest      = String(r['ปลายทาง'] || '—');
+  const reqPt     = String(r['จุดขอใช้รถ'] || r['requestPoints'] || '—');
+  const dateStr   = (() => {
+    const v = String(r['วันที่'] || r['Timestamp'] || '');
+    const m = v.match(/^(\d{1,2}\/\d{1,2}\/\d{4})/);
+    return m ? m[1] : v.slice(0,10) || '—';
+  })();
+  const timeOut  = (() => { const v = String(r['เวลาออก']  || ''); const m = v.match(/(\d{1,2}:\d{2})/); return m ? m[1] : '—'; })();
+  const timeBack = (() => { const v = String(r['เวลากลับ'] || ''); const m = v.match(/(\d{1,2}:\d{2})/); return m ? m[1] : '—'; })();
+  const startMile = Number(r['เลขไมล์ต้น']  || 0);
+  const endMile   = Number(r['เลขไมล์ปลาย'] || 0);
+  const dist      = r['ระยะทาง(กม.)'] || (startMile && endMile ? endMile - startMile : '—');
+  const status    = String(r['สถานะ'] || '');
+
+  // ── extract URLs ──
+  function exUrl(v) {
+    if (!v) return '';
+    const s = String(v).trim();
+    const m = s.match(/=HYPERLINK\("([^"]+)"/i);
+    if (m) return m[1];
+    return s.startsWith('http') ? s : '';
+  }
+  function exUrls(v) {
+    if (!v) return [];
+    return String(v).split('\n').map(s => exUrl(s) || (s.startsWith('http') ? s : '')).filter(Boolean);
+  }
+  function getDriveThumb(url) {
+    const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    return m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w400` : '';
+  }
+  function getDriveView(url) {
+    const m = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    return m ? `https://drive.google.com/file/d/${m[1]}/view` : url;
+  }
+
+  const fuelOutUrl    = exUrl(r['รูปบิลน้ำมันออกรถ'])   || exUrl(r['รูปบิลน้ำมัน'])      || exUrl(r['fuelPhotoUrl'])       || '';
+  const fuelBackUrl   = exUrl(r['รูปบิลน้ำมันขากลับ'])  || exUrl(r['returnFuelPhotoUrl']) || '';
+  const carOutUrls    = exUrls(r['รูปสภาพรถก่อนออก'])   || exUrls(r['รูปสภาพรถ'])         || [];
+  const carBackUrls   = exUrls(r['รูปสภาพรถขากลับ'])    || [];
+
+  // ── build photo card ──
+  function photoCard(label, icon, color, url) {
+    const thumb = getDriveThumb(url);
+    const view  = getDriveView(url);
+    return `<div class="td-photo-card">
+      <div class="td-photo-label" style="color:${color};">
+        ${icon} ${label}
+      </div>
+      ${url
+        ? `<a href="${view}" target="_blank" rel="noopener">
+             <img class="td-photo-img" src="${thumb}" alt="${label}"
+                  onerror="this.src='';this.parentElement.innerHTML='<div style=\\'padding:12px;text-align:center;font-size:11px;color:#94a3b8;\\'>⚠️ โหลดรูปไม่ได้<br><a href=\\"${view}\\" target=\\"_blank\\" style=\\"color:#0ea5e9;\\">เปิดใน Drive</a></div>'">
+           </a>`
+        : `<div class="td-photo-empty"><span style="font-size:22px;opacity:.3;">📷</span><span>ไม่มีรูป</span></div>`
+      }
+    </div>`;
+  }
+
+  // ── build multi-photo row ──
+  function multiPhotos(label, icon, color, urls) {
+    if (!urls.length) return `
+      <div class="td-section-title">${icon} ${label}</div>
+      <div style="font-size:11px;color:var(--text-light);padding:8px 0 4px;">ไม่มีรูปสภาพรถ</div>`;
+    return `
+      <div class="td-section-title" style="color:${color};">${icon} ${label}
+        <span style="font-size:10px;font-weight:500;color:var(--text-light);margin-left:4px;">(${urls.length} รูป)</span>
+      </div>
+      <div class="td-multi-photos">
+        ${urls.map((u,i) => {
+          const thumb = getDriveThumb(u);
+          const view  = getDriveView(u);
+          return `<div class="td-multi-thumb">
+            <a href="${view}" target="_blank" rel="noopener">
+              <img src="${thumb}" alt="รูป ${i+1}"
+                   onerror="this.src='';this.parentElement.innerHTML='<div style=\\'width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f1f5f9;border-radius:8px;font-size:20px;\\'>📷</div>'">
+            </a>
+          </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  // ── render ──
+  document.getElementById('td-title').textContent    = `${plate} — ${dateStr}`;
+  document.getElementById('td-subtitle').textContent = `${driver} · ${dest}`;
+
+  document.getElementById('td-body').innerHTML = `
+    <!-- Meta grid -->
+    <div class="td-meta-grid">
+      <div class="td-meta-item">
+        <div class="td-meta-label">👤 พนักงานขับ</div>
+        <div class="td-meta-val">${driver}</div>
+      </div>
+      <div class="td-meta-item">
+        <div class="td-meta-label">📍 ปลายทาง</div>
+        <div class="td-meta-val">${dest}</div>
+      </div>
+      <div class="td-meta-item">
+        <div class="td-meta-label">🕐 เวลาออก</div>
+        <div class="td-meta-val">${timeOut} น.</div>
+      </div>
+      <div class="td-meta-item">
+        <div class="td-meta-label">🕔 เวลากลับ</div>
+        <div class="td-meta-val">${status === 'กำลังใช้งาน' ? '🚗 ยังไม่กลับ' : timeBack + ' น.'}</div>
+      </div>
+      <div class="td-meta-item">
+        <div class="td-meta-label">📏 ไมล์ต้น → ปลาย</div>
+        <div class="td-meta-val">${startMile ? startMile.toLocaleString() : '—'} → ${endMile ? endMile.toLocaleString() : '—'}</div>
+      </div>
+      <div class="td-meta-item">
+        <div class="td-meta-label">🛣️ ระยะทาง</div>
+        <div class="td-meta-val" style="color:var(--teal);">${dist !== '—' ? dist + ' กม.' : '—'}</div>
+      </div>
+      ${reqPt !== '—' ? `
+      <div class="td-meta-item" style="grid-column:1/-1;">
+        <div class="td-meta-label">🏥 จุดขอใช้รถ</div>
+        <div class="td-meta-val">${reqPt}</div>
+      </div>` : ''}
+    </div>
+
+    <!-- รูปสภาพรถ -->
+    <div class="td-section-title">📷 รูปสภาพรถ</div>
+
+    ${multiPhotos('รูปสภาพรถก่อนออก', '🚗', '#0369a1', carOutUrls)}
+    ${multiPhotos('รูปสภาพรถขากลับ',  '🏁', '#15803d', carBackUrls)}
+
+    <!-- บิลน้ำมัน -->
+    <div class="td-section-title" style="margin-top:4px;">⛽ บิลน้ำมัน</div>
+    <div class="td-photo-row">
+      ${photoCard('บิลออกรถ',  '📤', '#0369a1', fuelOutUrl)}
+      ${photoCard('บิลขากลับ', '📥', '#15803d', fuelBackUrl)}
+    </div>
+  `;
+
+  document.getElementById('tripDetailOverlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeTripDetail(e) {
+  if (e && e.target !== document.getElementById('tripDetailOverlay')) return;
+  document.getElementById('tripDetailOverlay').classList.remove('show');
+  document.body.style.overflow = '';
+}
 
 // ════════════════════════════════════════════════════════
 //  TABS
