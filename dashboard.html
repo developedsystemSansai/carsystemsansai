@@ -292,6 +292,178 @@ body {
 .refresh-btn:active { transform: none; }
 .last-updated { font-size: 11px; color: var(--text-light); font-family: 'IBM Plex Mono', monospace; }
 
+/* ── EXPORT BUTTON ── */
+.export-btn {
+  padding: 0 14px; height: 32px; border-radius: var(--radius-sm);
+  border: 1.5px solid rgba(16,185,129,.5);
+  background: rgba(16,185,129,.08); color: #0a7c57;
+  font-family: inherit; font-size: 12.5px; font-weight: 600;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+  transition: all var(--dur);
+}
+.export-btn:hover { background: rgba(16,185,129,.15); border-color: rgba(16,185,129,.8); transform: translateY(-1px); }
+.export-btn:active { transform: none; }
+
+/* ── EXPORT MODAL ── */
+.exp-overlay {
+  display: none; position: fixed; inset: 0; z-index: 2000;
+  background: rgba(10,20,38,.55); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+.exp-overlay.open { display: flex; }
+.exp-modal {
+  background: var(--card); border-radius: 16px;
+  box-shadow: var(--shadow-xl);
+  width: min(760px, 100%); max-height: 90vh;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.exp-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 12px;
+}
+.exp-header-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: linear-gradient(135deg, #0f4a6e, #1d6fb5);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.exp-title { font-size: 16px; font-weight: 700; color: var(--text); }
+.exp-subtitle { font-size: 11.5px; color: var(--text-light); margin-top: 1px; }
+.exp-close {
+  margin-left: auto; width: 32px; height: 32px; border-radius: 8px;
+  border: none; background: var(--bg); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-mid); transition: background var(--dur);
+}
+.exp-close:hover { background: var(--bg2); }
+.exp-body { padding: 20px 24px; overflow-y: auto; flex: 1; }
+
+/* analytics summary strip */
+.exp-analytics {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.exp-stat { text-align: center; }
+.exp-stat-num { font-size: 22px; font-weight: 700; color: var(--navy); font-family: 'IBM Plex Mono', monospace; line-height: 1; }
+.exp-stat-lbl { font-size: 10.5px; color: var(--text-light); margin-top: 3px; }
+.exp-stat-num.blue  { color: var(--blue); }
+.exp-stat-num.teal  { color: var(--teal); }
+.exp-stat-num.amber { color: var(--amber); }
+.exp-stat-num.red   { color: var(--red); }
+
+/* section blocks */
+.exp-section { margin-bottom: 16px; }
+.exp-section-title {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--text-light);
+  margin-bottom: 10px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.exp-cards {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+}
+.exp-card {
+  border: 1.5px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; cursor: pointer;
+  transition: all var(--dur); position: relative; overflow: hidden;
+  background: var(--card);
+}
+.exp-card:hover { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(29,111,181,.1); transform: translateY(-1px); }
+.exp-card.selected { border-color: var(--blue); background: var(--blue-soft); box-shadow: 0 0 0 3px rgba(29,111,181,.15); }
+.exp-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.exp-card-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.exp-card-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.exp-card-count { font-size: 11.5px; color: var(--text-light); margin-top: 1px; }
+.exp-card-desc { font-size: 11px; color: var(--text-light); line-height: 1.5; }
+.exp-card-check {
+  position: absolute; top: 10px; right: 10px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--blue); display: none;
+  align-items: center; justify-content: center;
+}
+.exp-card.selected .exp-card-check { display: flex; }
+
+/* format row */
+.exp-format-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.exp-fmt-btn {
+  flex: 1; min-width: 80px; padding: 10px 12px; border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border); background: var(--card);
+  cursor: pointer; text-align: center;
+  transition: all var(--dur); font-family: inherit;
+}
+.exp-fmt-btn:hover { border-color: var(--navy-light); }
+.exp-fmt-btn.active { border-color: var(--navy); background: var(--navy); color: #fff; }
+.exp-fmt-name { font-size: 13px; font-weight: 700; }
+.exp-fmt-desc { font-size: 10px; color: inherit; opacity: .65; margin-top: 2px; }
+
+/* options */
+.exp-opts { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.exp-opt-label { display: flex; align-items: center; gap: 7px; font-size: 12.5px; cursor: pointer; color: var(--text-mid); }
+.exp-opt-label input { accent-color: var(--blue); width: 14px; height: 14px; }
+
+/* date range */
+.exp-date-row { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.exp-date-row label { font-size: 12px; color: var(--text-light); }
+.exp-date-row input[type=date] {
+  padding: 5px 8px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); font-family: inherit; font-size: 12px;
+  color: var(--text); background: var(--card);
+}
+
+/* preview table */
+.exp-preview-wrap {
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  overflow: hidden; max-height: 200px; overflow-y: auto;
+  margin-bottom: 16px;
+}
+.exp-preview-wrap table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+.exp-preview-wrap th {
+  background: var(--navy); color: #fff; padding: 6px 10px;
+  text-align: left; font-weight: 600; position: sticky; top: 0; z-index: 1;
+  white-space: nowrap;
+}
+.exp-preview-wrap td { padding: 5px 10px; border-bottom: 1px solid var(--border); color: var(--text-mid); }
+.exp-preview-wrap tr:last-child td { border-bottom: none; }
+.exp-preview-wrap tr:hover td { background: var(--blue-soft); }
+
+/* footer */
+.exp-footer {
+  padding: 14px 24px; border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  background: var(--bg);
+}
+.exp-row-count { font-size: 12px; color: var(--text-light); font-family: 'IBM Plex Mono', monospace; }
+.exp-do-btn {
+  padding: 0 22px; height: 38px; border-radius: var(--radius-sm);
+  border: none; cursor: pointer; font-family: inherit;
+  font-size: 13.5px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 7px;
+  transition: all var(--dur);
+}
+.exp-do-btn.csv  { background: var(--teal);  color: #fff; }
+.exp-do-btn.xlsx { background: #1a6c35;       color: #fff; }
+.exp-do-btn:hover { filter: brightness(1.12); transform: translateY(-1px); }
+.exp-do-btn:active { transform: none; filter: none; }
+.exp-loading { display: none; font-size: 12px; color: var(--text-light); align-items: center; gap: 6px; }
+.exp-loading.show { display: flex; }
+@keyframes expSpin { to { transform: rotate(360deg); } }
+.exp-spinner { width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: expSpin .7s linear infinite; }
+
+@media (max-width: 600px) {
+  .exp-analytics { grid-template-columns: repeat(2, 1fr); }
+  .exp-cards { grid-template-columns: 1fr; }
+  .exp-format-row { flex-direction: column; }
+}
+
 /* ── KPI GRID ── */
 .kpi-grid {
   display: grid;
@@ -1443,6 +1615,12 @@ async function checkPw() {
     <div class="filter-actions">
       <button class="refresh-btn" onclick="loadData()">รีเฟรช</button>
       <button class="refresh-btn" style="background:var(--teal);" onclick="filterToday()">วันนี้</button>
+      <button class="export-btn" onclick="openExportModal()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Export & วิเคราะห์
+      </button>
       <span class="last-updated" id="lastUpdated">—</span>
     </div>
   </div>
@@ -4790,7 +4968,663 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
-<!-- ── SCROLL REVEAL ANIMATION ── -->
+<!-- ══════════════════════════════════════════════════════
+     EXPORT & ANALYTICS MODAL
+════════════════════════════════════════════════════════ -->
+<div class="exp-overlay" id="expOverlay" onclick="expOverlayClick(event)">
+  <div class="exp-modal" id="expModal">
+
+    <!-- Header -->
+    <div class="exp-header">
+      <div class="exp-header-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+      </div>
+      <div>
+        <div class="exp-title">Export ข้อมูล & วิเคราะห์</div>
+        <div class="exp-subtitle">ดาวน์โหลดข้อมูลระบบ SAND · โรงพยาบาลสันทราย</div>
+      </div>
+      <button class="exp-close" onclick="closeExportModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="exp-body">
+
+      <!-- Analytics Summary Strip -->
+      <div class="exp-analytics" id="expAnalytics">
+        <div class="exp-stat">
+          <div class="exp-stat-num blue" id="expStatChecks">—</div>
+          <div class="exp-stat-lbl">การตรวจสภาพ</div>
+        </div>
+        <div class="exp-stat">
+          <div class="exp-stat-num teal" id="expStatTrips">—</div>
+          <div class="exp-stat-lbl">การเดินทาง</div>
+        </div>
+        <div class="exp-stat">
+          <div class="exp-stat-num amber" id="expStatDist">—</div>
+          <div class="exp-stat-lbl">กม. รวม</div>
+        </div>
+        <div class="exp-stat">
+          <div class="exp-stat-num red" id="expStatIssues">—</div>
+          <div class="exp-stat-lbl">พบปัญหา</div>
+        </div>
+      </div>
+
+      <!-- 1. เลือกชุดข้อมูล -->
+      <div class="exp-section">
+        <div class="exp-section-title">1 · เลือกชุดข้อมูล</div>
+        <div class="exp-cards">
+
+          <div class="exp-card selected" id="expCardCheck" onclick="expSelectCard('check')">
+            <div class="exp-card-check">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="exp-card-top">
+              <div class="exp-card-icon" style="background:#e8f1fb;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1d6fb5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+              </div>
+              <div>
+                <div class="exp-card-name">ตรวจสภาพรถ</div>
+                <div class="exp-card-count" id="expCntCheck">กำลังโหลด...</div>
+              </div>
+            </div>
+            <div class="exp-card-desc">วันที่ตรวจ · ทะเบียน · ระดับน้ำมัน · น้ำ · ยาง · ผลการตรวจ · ผู้ตรวจ</div>
+          </div>
+
+          <div class="exp-card" id="expCardMile" onclick="expSelectCard('mile')">
+            <div class="exp-card-check">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="exp-card-top">
+              <div class="exp-card-icon" style="background:#e0f4f1;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#007a6e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div>
+                <div class="exp-card-name">บันทึกการเดินทาง</div>
+                <div class="exp-card-count" id="expCntMile">กำลังโหลด...</div>
+              </div>
+            </div>
+            <div class="exp-card-desc">TripID · ทะเบียน · เวลาออก/กลับ · ไมล์ต้น/ปลาย · ระยะทาง · น้ำมัน · ผู้ขับ</div>
+          </div>
+
+          <div class="exp-card" id="expCardEms" onclick="expSelectCard('ems')">
+            <div class="exp-card-check">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="exp-card-top">
+              <div class="exp-card-icon" style="background:#fdecea;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c0392b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                </svg>
+              </div>
+              <div>
+                <div class="exp-card-name">EMS อุปกรณ์การแพทย์</div>
+                <div class="exp-card-count" id="expCntEms">กำลังโหลด...</div>
+              </div>
+            </div>
+            <div class="exp-card-desc">วันที่ · รถ EMS · รายการอุปกรณ์ · สถานะ · ผู้รับผิดชอบ</div>
+          </div>
+
+          <div class="exp-card" id="expCardRepair" onclick="expSelectCard('repair')">
+            <div class="exp-card-check">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div class="exp-card-top">
+              <div class="exp-card-icon" style="background:#fdf4dc;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#c07a00" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                </svg>
+              </div>
+              <div>
+                <div class="exp-card-name">บันทึกซ่อมบำรุง</div>
+                <div class="exp-card-count" id="expCntRepair">กำลังโหลด...</div>
+              </div>
+            </div>
+            <div class="exp-card-desc">RepairID · ทะเบียน · อาการ · สถานะ · ค่าใช้จ่าย · วันนัด · ผู้ส่งซ่อม</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 2. ช่วงวันที่ -->
+      <div class="exp-section">
+        <div class="exp-section-title">2 · ช่วงวันที่ (ไม่บังคับ)</div>
+        <div class="exp-date-row">
+          <label>ตั้งแต่</label>
+          <input type="date" id="expDateFrom">
+          <label>ถึง</label>
+          <input type="date" id="expDateTo">
+          <button class="refresh-btn" style="height:28px;font-size:11.5px;" onclick="expSetDateRange('month')">เดือนนี้</button>
+          <button class="refresh-btn" style="height:28px;font-size:11.5px;" onclick="expSetDateRange('3month')">3 เดือน</button>
+          <button class="refresh-btn" style="height:28px;font-size:11.5px;" onclick="expSetDateRange('all')">ทั้งหมด</button>
+        </div>
+      </div>
+
+      <!-- 3. ตัวเลือกเพิ่มเติม -->
+      <div class="exp-section">
+        <div class="exp-section-title">3 · ตัวเลือก</div>
+        <div class="exp-opts">
+          <label class="exp-opt-label"><input type="checkbox" id="expOptHeader" checked> มี header row</label>
+          <label class="exp-opt-label"><input type="checkbox" id="expOptBOM" checked> UTF-8 BOM (เปิด Excel ถูก)</label>
+          <label class="exp-opt-label"><input type="checkbox" id="expOptSummary"> รวมแถวสรุปท้ายไฟล์</label>
+          <label class="exp-opt-label"><input type="checkbox" id="expOptIssueOnly"> เฉพาะรายการที่มีปัญหา</label>
+        </div>
+      </div>
+
+      <!-- 4. Preview -->
+      <div class="exp-section">
+        <div class="exp-section-title">4 · ตัวอย่างข้อมูล (5 แถวแรก)</div>
+        <div class="exp-preview-wrap" id="expPreviewWrap">
+          <div style="padding:20px;text-align:center;color:var(--text-light);font-size:12px;">กำลังโหลดข้อมูล...</div>
+        </div>
+      </div>
+
+    </div><!-- end exp-body -->
+
+    <!-- Footer -->
+    <div class="exp-footer">
+      <div>
+        <div class="exp-row-count" id="expRowCount">—</div>
+        <div class="exp-loading" id="expLoadingIndicator">
+          <div class="exp-spinner"></div>
+          <span>กำลังสร้างไฟล์...</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="exp-do-btn csv" onclick="expDownload('csv')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          ดาวน์โหลด CSV
+        </button>
+        <button class="exp-do-btn xlsx" onclick="expDownload('xlsx')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          </svg>
+          ดาวน์โหลด Excel
+        </button>
+      </div>
+    </div>
+
+  </div><!-- end exp-modal -->
+</div><!-- end exp-overlay -->
+
+<script>
+/* ════════════════════════════════════════════════════════
+   EXPORT & ANALYTICS MODULE  — SAND Dashboard
+   ════════════════════════════════════════════════════════ */
+(function() {
+'use strict';
+
+// ── State ──────────────────────────────────────────────
+const EXP = {
+  selectedCard: 'check',
+  cache: { check: null, mile: null, ems: null, repair: null },
+  loaded: { check: false, mile: false, ems: false, repair: false }
+};
+
+// ── Open / Close ───────────────────────────────────────
+window.openExportModal = async function() {
+  document.getElementById('expOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // set default date range = เดือนนี้
+  expSetDateRange('month');
+  // โหลดข้อมูลทั้งหมดพร้อมกัน
+  await expLoadAll();
+};
+
+window.closeExportModal = function() {
+  document.getElementById('expOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+};
+
+window.expOverlayClick = function(e) {
+  if (e.target === document.getElementById('expOverlay')) closeExportModal();
+};
+
+// ── Load all datasets ──────────────────────────────────
+async function expLoadAll() {
+  // ใช้ข้อมูลที่ dashboard โหลดไว้แล้วถ้ามี (allData, allMileData ฯลฯ)
+  const tasks = [
+    expLoadDataset('check'),
+    expLoadDataset('mile'),
+    expLoadDataset('ems'),
+    expLoadDataset('repair')
+  ];
+  await Promise.allSettled(tasks);
+  expUpdateAnalytics();
+  expRefreshPreview();
+}
+
+async function expLoadDataset(type) {
+  if (EXP.cache[type]) {
+    expUpdateCount(type, EXP.cache[type].length);
+    return;
+  }
+  const actionMap = {
+    check: 'getData', mile: 'getMileData',
+    ems: 'getEMSData', repair: 'getRepairJobs'
+  };
+  try {
+    const r   = await fetch(GAS_URL + '?action=' + actionMap[type]);
+    const res = await r.json();
+    if (res.status === 'ok') {
+      EXP.cache[type] = res.data || [];
+      EXP.loaded[type] = true;
+      expUpdateCount(type, EXP.cache[type].length);
+    }
+  } catch(e) {
+    expUpdateCount(type, 'โหลดไม่สำเร็จ');
+  }
+}
+
+function expUpdateCount(type, n) {
+  const el = document.getElementById('expCnt' + type.charAt(0).toUpperCase() + type.slice(1));
+  if (el) el.textContent = typeof n === 'number' ? n.toLocaleString() + ' รายการ' : n;
+}
+
+// ── Analytics Summary ──────────────────────────────────
+function expUpdateAnalytics() {
+  const checks  = EXP.cache.check  || [];
+  const miles   = EXP.cache.mile   || [];
+  const today   = bkkDateStr(new Date());
+
+  // จำนวนการตรวจ
+  document.getElementById('expStatChecks').textContent = checks.length.toLocaleString();
+
+  // จำนวนทริป
+  document.getElementById('expStatTrips').textContent = miles.length.toLocaleString();
+
+  // ระยะทางรวม
+  let totalDist = 0;
+  miles.forEach(function(r) {
+    const d = parseFloat(String(r['ระยะทาง(กม.)'] || r['distance'] || 0).replace(/[^0-9.]/g, ''));
+    if (!isNaN(d)) totalDist += d;
+  });
+  document.getElementById('expStatDist').textContent =
+    totalDist > 0 ? Math.round(totalDist).toLocaleString() : '—';
+
+  // รายการพบปัญหา
+  const issues = checks.filter(function(r) {
+    return r.hasIssue === true || r.hasIssue === 'TRUE' ||
+           (r.remarks && String(r.remarks).trim() !== '') ||
+           r.issueCount > 0;
+  });
+  document.getElementById('expStatIssues').textContent = issues.length.toLocaleString();
+}
+
+// ── Card Selection ─────────────────────────────────────
+window.expSelectCard = function(type) {
+  EXP.selectedCard = type;
+  ['check','mile','ems','repair'].forEach(function(t) {
+    document.getElementById('expCard' + t.charAt(0).toUpperCase() + t.slice(1))
+      .classList.toggle('selected', t === type);
+  });
+  expRefreshPreview();
+};
+
+// ── Date Range Preset ──────────────────────────────────
+window.expSetDateRange = function(preset) {
+  const now = new Date();
+  const pad = function(n) { return String(n).padStart(2,'0'); };
+  const fmt = function(d) { return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); };
+
+  if (preset === 'month') {
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
+    document.getElementById('expDateFrom').value = fmt(from);
+    document.getElementById('expDateTo').value   = fmt(now);
+  } else if (preset === '3month') {
+    const from = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    document.getElementById('expDateFrom').value = fmt(from);
+    document.getElementById('expDateTo').value   = fmt(now);
+  } else {
+    document.getElementById('expDateFrom').value = '';
+    document.getElementById('expDateTo').value   = '';
+  }
+  expRefreshPreview();
+};
+
+// ── Filter by date + options ───────────────────────────
+function expGetFilteredRows() {
+  const raw  = EXP.cache[EXP.selectedCard] || [];
+  const from = document.getElementById('expDateFrom').value; // yyyy-MM-dd
+  const to   = document.getElementById('expDateTo').value;
+  const issueOnly = document.getElementById('expOptIssueOnly').checked;
+
+  return raw.filter(function(r) {
+    // date filter
+    if (from || to) {
+      const dateVal = expExtractDate(r);
+      if (dateVal) {
+        const d = expNormDate(dateVal);
+        if (from && d && d < from) return false;
+        if (to   && d && d > to)   return false;
+      }
+    }
+    // issue only
+    if (issueOnly) {
+      const hasIssue = r.hasIssue === true || r.hasIssue === 'TRUE' ||
+                       r.issueCount > 0 || r.status === 'แจ้งซ่อม' ||
+                       (r.remarks && String(r.remarks).trim() !== '');
+      if (!hasIssue) return false;
+    }
+    return true;
+  });
+}
+
+function expExtractDate(r) {
+  return r.inspDate || r['วันที่'] || r['วันที่แจ้ง'] || r.date ||
+         (r.timestamp ? String(r.timestamp).substring(0,10) : '') || '';
+}
+
+function expNormDate(val) {
+  // รองรับ yyyy-MM-dd, dd/MM/yyyy
+  if (!val) return '';
+  const s = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0,10);
+  const m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (m) return m[3] + '-' + m[2] + '-' + m[1];
+  return s.substring(0,10);
+}
+
+// ── Build columns definition for each dataset ──────────
+function expGetColumns(type) {
+  const defs = {
+    check: [
+      { key: 'inspDate',    label: 'วันที่ตรวจ' },
+      { key: 'inspTime',    label: 'เวลาตรวจ' },
+      { key: 'carType',     label: 'ทะเบียน/รถ' },
+      { key: 'fuelLevel',   label: 'ระดับน้ำมัน' },
+      { key: 'engineOil',   label: 'น้ำมันเครื่อง' },
+      { key: 'coolant',     label: 'น้ำหล่อเย็น' },
+      { key: 'tireFL',      label: 'ยางหน้าซ้าย' },
+      { key: 'tireFR',      label: 'ยางหน้าขวา' },
+      { key: 'tireRL',      label: 'ยางหลังซ้าย' },
+      { key: 'tireRR',      label: 'ยางหลังขวา' },
+      { key: 'lightFront',  label: 'ไฟหน้า' },
+      { key: 'lightRear',   label: 'ไฟหลัง' },
+      { key: 'brake',       label: 'เบรก' },
+      { key: 'hasIssue',    label: 'พบปัญหา' },
+      { key: 'issueCount',  label: 'จำนวนปัญหา' },
+      { key: 'remarks',     label: 'หมายเหตุ' },
+      { key: 'inspector',   label: 'ผู้ตรวจ' },
+      { key: 'timestamp',   label: 'Timestamp' }
+    ],
+    mile: [
+      { key: 'TripID',          label: 'รหัสทริป' },
+      { key: 'วันที่',          label: 'วันที่' },
+      { key: 'ทะเบียน/รถ',     label: 'ทะเบียน/รถ' },
+      { key: 'ชื่อผู้ขับ',     label: 'ผู้ขับ' },
+      { key: 'เวลาออก',        label: 'เวลาออก' },
+      { key: 'เวลากลับ',       label: 'เวลากลับ' },
+      { key: 'เลขไมล์ต้น',    label: 'ไมล์ต้น' },
+      { key: 'เลขไมล์ปลาย',   label: 'ไมล์ปลาย' },
+      { key: 'ระยะทาง(กม.)',   label: 'ระยะทาง (กม.)' },
+      { key: 'จุดหมาย',        label: 'จุดหมาย' },
+      { key: 'วัตถุประสงค์',   label: 'วัตถุประสงค์' },
+      { key: 'fuelLiters',      label: 'น้ำมันที่เติม (ล.)' },
+      { key: 'fuelPrice',       label: 'ราคาน้ำมัน (บ.)' },
+      { key: 'สถานะ',           label: 'สถานะ' },
+      { key: 'timestamp',       label: 'Timestamp' }
+    ],
+    ems: [
+      { key: 'วันที่',       label: 'วันที่' },
+      { key: 'เวลา',         label: 'เวลา' },
+      { key: 'รถ',           label: 'รถ EMS' },
+      { key: 'ผู้ตรวจ',     label: 'ผู้ตรวจ' },
+      { key: 'อุปกรณ์',     label: 'อุปกรณ์' },
+      { key: 'รายละเอียด',  label: 'รายละเอียด' },
+      { key: 'สถานะ',       label: 'สถานะ' },
+      { key: 'timestamp',    label: 'Timestamp' }
+    ],
+    repair: [
+      { key: 'id',            label: 'RepairID' },
+      { key: 'reportDate',    label: 'วันที่แจ้ง' },
+      { key: 'carPlate',      label: 'ทะเบียน' },
+      { key: 'symptom',       label: 'อาการ' },
+      { key: 'repairItems',   label: 'รายการซ่อม' },
+      { key: 'urgency',       label: 'ความเร่งด่วน' },
+      { key: 'repairDest',    label: 'ส่งซ่อมที่' },
+      { key: 'appointDate',   label: 'วันนัด' },
+      { key: 'repairDoneDate',label: 'วันซ่อมเสร็จ' },
+      { key: 'cost',          label: 'ค่าซ่อม (บ.)' },
+      { key: 'status',        label: 'สถานะ' },
+      { key: 'senderName',    label: 'ผู้ส่งซ่อม' },
+      { key: 'remarks',       label: 'หมายเหตุ' },
+      { key: 'timestamp',     label: 'Timestamp' }
+    ]
+  };
+  return defs[type] || [];
+}
+
+function expCellValue(r, col) {
+  let v = r[col.key];
+  if (v === undefined || v === null) v = '';
+  if (Array.isArray(v)) v = v.join(', ');
+  return String(v);
+}
+
+// ── Preview Table ──────────────────────────────────────
+function expRefreshPreview() {
+  const rows = expGetFilteredRows();
+  const cols = expGetColumns(EXP.selectedCard);
+  const preview = rows.slice(0, 5);
+  const wrap = document.getElementById('expPreviewWrap');
+
+  // Update row count
+  const countEl = document.getElementById('expRowCount');
+  countEl.textContent = rows.length.toLocaleString() + ' แถว · ' + cols.length + ' คอลัมน์';
+
+  if (!rows.length) {
+    wrap.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-light);font-size:12px;">ไม่มีข้อมูลในช่วงที่เลือก</div>';
+    return;
+  }
+
+  // Build table
+  const visibleCols = cols.slice(0, 8); // show first 8 cols in preview
+  let html = '<table><thead><tr>';
+  visibleCols.forEach(function(c) { html += '<th>' + c.label + '</th>'; });
+  if (cols.length > 8) html += '<th style="opacity:.5">+' + (cols.length - 8) + ' คอลัมน์</th>';
+  html += '</tr></thead><tbody>';
+  preview.forEach(function(r) {
+    html += '<tr>';
+    visibleCols.forEach(function(c) {
+      const v = expCellValue(r, c);
+      html += '<td>' + (v.length > 30 ? v.substring(0,30) + '…' : (v || '<span style="opacity:.35">—</span>')) + '</td>';
+    });
+    if (cols.length > 8) html += '<td style="opacity:.4;font-size:10px;">...</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+}
+
+// listen to date change
+['expDateFrom','expDateTo','expOptIssueOnly'].forEach(function(id) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('change', expRefreshPreview);
+});
+
+// ── Download ───────────────────────────────────────────
+window.expDownload = function(format) {
+  const rows    = expGetFilteredRows();
+  const cols    = expGetColumns(EXP.selectedCard);
+  const addHdr  = document.getElementById('expOptHeader').checked;
+  const addBOM  = document.getElementById('expOptBOM').checked;
+  const addSum  = document.getElementById('expOptSummary').checked;
+
+  if (!rows.length) { alert('ไม่มีข้อมูลที่จะ export'); return; }
+
+  const loading = document.getElementById('expLoadingIndicator');
+  loading.classList.add('show');
+
+  setTimeout(function() {
+    try {
+      if (format === 'csv') {
+        expDownloadCSV(rows, cols, addHdr, addBOM, addSum);
+      } else {
+        expDownloadXLSX(rows, cols, addHdr, addSum);
+      }
+    } catch(e) {
+      alert('เกิดข้อผิดพลาด: ' + e.message);
+    }
+    loading.classList.remove('show');
+  }, 50);
+};
+
+// ── CSV Export ─────────────────────────────────────────
+function expDownloadCSV(rows, cols, addHdr, addBOM, addSum) {
+  const escCSV = function(v) {
+    const s = String(v === null || v === undefined ? '' : v);
+    if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
+    return s;
+  };
+
+  const lines = [];
+  if (addHdr) lines.push(cols.map(function(c){ return escCSV(c.label); }).join(','));
+
+  rows.forEach(function(r) {
+    lines.push(cols.map(function(c){ return escCSV(expCellValue(r, c)); }).join(','));
+  });
+
+  if (addSum) {
+    lines.push('');
+    lines.push('สรุป,จำนวนแถว,' + rows.length);
+    lines.push('วันที่ Export,' + new Date().toLocaleDateString('th-TH'));
+    lines.push('ชุดข้อมูล,' + EXP.selectedCard);
+  }
+
+  const content = lines.join('\r\n');
+  const bom     = addBOM ? '\uFEFF' : '';
+  const blob    = new Blob([bom + content], { type: 'text/csv;charset=utf-8;' });
+  expTriggerDownload(blob, expFilename('csv'));
+}
+
+// ── XLSX Export (pure JS — no external lib) ───────────
+function expDownloadXLSX(rows, cols, addHdr, addSum) {
+  // Build simple XLSX using SheetJS-style XML (Office Open XML)
+  // เพื่อไม่ต้องพึ่ง CDN: ใช้ CSV-in-XLSX workaround ที่ Excel เปิดได้ถูกต้อง
+  // → ส่ง .xlsx จริงๆ โดย encode เป็น base64 XML workbook
+
+  const xmlRows = [];
+
+  if (addHdr) {
+    xmlRows.push(cols.map(function(c){ return c.label; }));
+  }
+  rows.forEach(function(r) {
+    xmlRows.push(cols.map(function(c){ return expCellValue(r, c); }));
+  });
+
+  if (addSum) {
+    xmlRows.push([]);
+    xmlRows.push(['สรุป','จำนวนแถว', rows.length]);
+    xmlRows.push(['วันที่ Export', new Date().toLocaleDateString('th-TH'), '']);
+    xmlRows.push(['ชุดข้อมูล', EXP.selectedCard, '']);
+  }
+
+  // สร้าง HTML table → เปิดใน Excel ได้พร้อม Thai
+  let table = '<table border="1">';
+  if (addHdr) {
+    table += '<tr style="background:#163251;color:#fff;font-weight:bold;">';
+    cols.forEach(function(c){ table += '<th>' + expEscXml(c.label) + '</th>'; });
+    table += '</tr>';
+  }
+  rows.forEach(function(r, ri) {
+    const bg = ri % 2 === 0 ? '' : ' style="background:#f3f6fb;"';
+    table += '<tr' + bg + '>';
+    cols.forEach(function(c){ table += '<td>' + expEscXml(expCellValue(r, c)) + '</td>'; });
+    table += '</tr>';
+  });
+  if (addSum) {
+    table += '<tr><td colspan="' + cols.length + '"></td></tr>';
+    table += '<tr><td><b>สรุป</b></td><td>จำนวนแถว: ' + rows.length + '</td></tr>';
+    table += '<tr><td>วันที่ Export</td><td>' + new Date().toLocaleDateString('th-TH') + '</td></tr>';
+  }
+  table += '</table>';
+
+  const xls = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<?mso-application progid="Excel.Sheet"?>',
+    '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"',
+    ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">',
+    '<Styles>',
+    '<Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#163251" ss:Pattern="Solid"/></Style>',
+    '<Style ss:ID="e"><Font ss:Bold="1"/><Interior ss:Color="#fdf4dc" ss:Pattern="Solid"/></Style>',
+    '</Styles>',
+    '<Worksheet ss:Name="' + expEscXml(expDatasetName(EXP.selectedCard)) + '">',
+    '<Table>'
+  ].join('');
+
+  let xlsRows = '';
+  xmlRows.forEach(function(row, ri) {
+    const isHdr = addHdr && ri === 0;
+    const isSum = addSum && ri >= (xmlRows.length - 4);
+    xlsRows += '<Row>';
+    row.forEach(function(val) {
+      const isNum = !isNaN(parseFloat(val)) && val !== '' && !/[\/\-]/.test(String(val).substring(4));
+      const styleAttr = isHdr ? ' ss:StyleID="h"' : (isSum ? ' ss:StyleID="e"' : '');
+      const typeAttr  = isNum && !isHdr && !isSum ? ' ss:Type="Number"' : ' ss:Type="String"';
+      xlsRows += '<Cell' + styleAttr + '><Data' + typeAttr + '>' + expEscXml(String(val)) + '</Data></Cell>';
+    });
+    xlsRows += '</Row>';
+  });
+
+  const xlsEnd = '</Table></Worksheet></Workbook>';
+  const blob = new Blob([xls + xlsRows + xlsEnd], {
+    type: 'application/vnd.ms-excel;charset=UTF-8'
+  });
+  expTriggerDownload(blob, expFilename('xls'));
+}
+
+function expEscXml(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function expDatasetName(type) {
+  return { check:'ตรวจสภาพรถ', mile:'บันทึกการเดินทาง', ems:'EMS', repair:'ซ่อมบำรุง' }[type] || type;
+}
+
+function expFilename(ext) {
+  const now = new Date();
+  const d = now.getFullYear() + String(now.getMonth()+1).padStart(2,'0') + String(now.getDate()).padStart(2,'0');
+  return 'SAND_' + EXP.selectedCard + '_' + d + '.' + ext;
+}
+
+function expTriggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function() { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+}
+
+// keyboard ESC
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeExportModal();
+});
+
+})();
+</script>
+
+
 <script>
 (function() {
   'use strict';
