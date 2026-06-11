@@ -1460,35 +1460,30 @@ function renderVehicleCards(json) {
   (json.ready||[]).forEach(x => { readyMap[x.carType] = x; });
   (json.todayChecked||[]).forEach(x => { checkedMap[x.carType] = x; });
 
-  // ── fueledTodayMap: plate → true ถ้ามีการเติมน้ำมันใน MileLog วันนี้ ──
-  const fueledTodayMap = {};
-  (json.todayFueled||[]).forEach(function(f) {
-    const plate = String(f.carType || '').split(' ')[0].trim();
-    if (plate) fueledTodayMap[plate] = true;
-  });
-
   // ── สร้าง fuelMap: plate → fuelLevel ──────────────────────────────
-  //    ถ้ามีการเติมน้ำมันวันนี้ใน MileLog (ขาไปหรือขากลับ) → แสดง 100%
-  //    ถ้าไม่มี → ใช้ค่าจาก CheckLog ตามที่บันทึกไว้
+  //    Pass 1: วนจาก todayChecked (มีค่า fuelLevel จาก CheckLog)
+  //    Pass 2: วนจาก todayFueled → override/inject 100% เสมอ
   window._fuelAlertMap = {};
+
+  // Pass 1 — ค่าจาก CheckLog (ก่อนเติม)
   (json.todayChecked||[]).forEach(function(c) {
     const plate = String(c.carType || '').split(' ')[0].trim();
-
-    // ถ้าเติมน้ำมันวันนี้ใน MileLog → 100% ทันที
-    if (fueledTodayMap[plate]) {
-      window._fuelAlertMap[plate] = { carType: c.carType, fuelPct: 100, refueled: true };
-      return;
-    }
-
-    // ไม่มีการเติม → ใช้ค่าจาก CheckLog
+    if (!plate) return;
     const rawLevel = String(c.fuelLevel || '').trim();
     if (!rawLevel) return;
     const numStr = rawLevel.replace('%', '').trim();
     let pct = parseFloat(numStr);
     if (isNaN(pct)) return;
-    // ถ้าได้ decimal (0–1) ให้คูณ 100 → เปอร์เซ็นต์จริง
+    // decimal (0–1) → เปอร์เซ็นต์จริง
     if (pct > 0 && pct <= 1) pct = Math.round(pct * 100);
     window._fuelAlertMap[plate] = { carType: c.carType, fuelPct: pct, refueled: false };
+  });
+
+  // Pass 2 — override ด้วย todayFueled → 100% เสมอ ไม่ว่าจะตรวจสภาพหรือยัง
+  (json.todayFueled||[]).forEach(function(f) {
+    const plate = String(f.carType || '').split(' ')[0].trim();
+    if (!plate) return;
+    window._fuelAlertMap[plate] = { carType: f.carType, fuelPct: 100, refueled: true };
   });
 
   // helper: หา key ใน map ที่ plate ตรงกัน (fuzzy match)
