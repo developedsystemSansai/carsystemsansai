@@ -3053,8 +3053,8 @@ function openTripDetail(r) {
       </div>
       ${url
         ? `<a href="${view}" target="_blank" rel="noopener">
-             <img class="td-photo-img" src="${thumb}" alt="${label}"
-                  onerror="this.src='';this.parentElement.innerHTML='<div style=\\'padding:12px;text-align:center;font-size:11px;color:#94a3b8;\\'>⚠️ โหลดรูปไม่ได้<br><a href=\\"${view}\\" target=\\"_blank\\" style=\\"color:#0ea5e9;\\">เปิดใน Drive</a></div>'">
+             <img class="td-photo-img" src="${thumb}" alt="${label}" data-view="${view}"
+                  onerror="this.src='';var v=this.getAttribute('data-view');this.parentElement.innerHTML='<div style=\\'padding:12px;text-align:center;font-size:11px;color:#94a3b8;\\'>⚠️ โหลดรูปไม่ได้<br><a href=\\'' + v + '\\' target=\\'_blank\\' style=\\'color:#0ea5e9;\\'>เปิดใน Drive</a></div>'">
            </a>`
         : `<div class="td-photo-empty"><span style="font-size:22px;opacity:.3;">📷</span><span>ไม่มีรูป</span></div>`
       }
