@@ -1016,11 +1016,15 @@ input.odo-mismatch {
               <div id="rp-picker" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;
                 background:#fff;border:1.5px solid var(--border);border-radius:10px;
                 box-shadow:0 4px 16px rgba(0,0,0,.12);z-index:300;overflow:hidden;">
-                <div style="padding:8px;border-bottom:1px solid var(--border);background:#f8fafc;">
+                <div style="padding:8px;border-bottom:1px solid var(--border);background:#f8fafc;display:flex;gap:6px;align-items:center;">
                   <input type="text" id="rp-search" placeholder="ค้นหาแผนก..."
                     oninput="filterRPPicker()"
-                    style="width:100%;height:32px;border-radius:6px;border:1px solid var(--border);
+                    style="flex:1;height:32px;border-radius:6px;border:1px solid var(--border);
                            padding:0 8px;font-size:12px;font-family:var(--font);">
+                  <button type="button" onclick="toggleRPPicker()"
+                    style="flex-shrink:0;height:32px;padding:0 10px;border-radius:6px;
+                           border:1px solid var(--border);background:#fff;cursor:pointer;
+                           font-size:12px;font-weight:700;color:var(--text-mid);">✕ ปิด</button>
                 </div>
                 <div id="rp-list" style="max-height:180px;overflow-y:auto;padding:6px;"></div>
               </div>
@@ -2189,6 +2193,15 @@ function destKeyNav(e) {
 // Close on outside click
 document.addEventListener('click', e => {
   if (!document.getElementById('destWrap')?.contains(e.target)) closeDestDropdown();
+  // ปิด RP Picker เมื่อคลิกนอก
+  const rpWrap = document.getElementById('rp-toggle')?.closest('div[style*="position:relative"]')?.parentElement;
+  const picker = document.getElementById('rp-picker');
+  if (picker && picker.style.display !== 'none') {
+    const toggleBtn = document.getElementById('rp-toggle');
+    if (!picker.contains(e.target) && e.target !== toggleBtn && !toggleBtn?.contains(e.target)) {
+      picker.style.display = 'none';
+    }
+  }
 });
 
 function populateCarSelects() {
