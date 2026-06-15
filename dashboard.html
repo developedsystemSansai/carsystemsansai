@@ -2377,6 +2377,7 @@ function renderOdometer(checkData) {
         const dist     = Number(t['ระยะทาง(กม.)'] || 0);
         const dest     = String(t['ปลายทาง'] || '—');
         const driver   = String(t['พนักงานขับรถ'] || '');
+        const tRemarks = String(t['หมายเหตุ'] || '').trim();
         const timeOut  = extractTimeOnly(t['เวลาออก']  || '');
         const timeBack = extractTimeOnly(t['เวลากลับ'] || '');
 
@@ -2399,8 +2400,9 @@ function renderOdometer(checkData) {
           ? `<span class="mile-dist">+${dist.toLocaleString()} กม.</span><br>`
           : (inUse ? `<span style="font-size:0.7rem;color:#f59e0b;">กำลังใช้...</span><br>` : `<span style="color:#94a3b8;font-size:0.72rem;">—</span><br>`);
 
+        const isOtherDest = dest.includes('อื่นๆ') || dest.includes('โปรดระบุ');
         infoHtml += `<div style="font-size:0.72rem;color:var(--text-mid);margin-bottom:2px;">
-          📍 ${dest}${driver ? ` · 👤 ${driver.split(' ').slice(-1)[0]}` : ''}
+          📍 ${dest}${isOtherDest && tRemarks ? ` <span style="color:#b45309;font-weight:600;">(${tRemarks})</span>` : ''}${driver ? ` · 👤 ${driver.split(' ').slice(-1)[0]}` : ''}
         </div>`;
       });
 
