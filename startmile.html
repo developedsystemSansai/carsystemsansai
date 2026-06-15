@@ -1219,7 +1219,7 @@ input.odo-mismatch {
                 placeholder="กำลังโหลด..." title="แตะเพื่อแก้ไข">
               <input type="datetime-local" id="e_returnDateTime" class="dt-picker" required
                 onchange="onEndDTChange()">
-              <span class="dt-edit-hint">แตะเพื่อแก้ไขวัน/เวลา</span>
+
             </div>
             <input type="hidden" id="e_returnTime">
           </div>
@@ -1644,7 +1644,59 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // โหลดข้อมูลจาก Google Sheets แบบ parallel
   loadAllData();
+
+  // ── เริ่ม polling reload signal (รีเฟรชหน้าอัตโนมัติทุกอุปกรณ์เมื่อมีการบันทึกใหม่) ──
+  initReloadSignalPolling();
 });
+
+// ════════════════════════════════════════════════════════
+//  RELOAD SIGNAL POLLING
+//  ──────────────────────────────────────────────────────
+//  เมื่อบันทึก startMile/endMile สำเร็จที่อุปกรณ์ใดอุปกรณ์หนึ่ง
+//  GAS จะ bump ค่า RELOAD_SIGNAL_MILE → ทุกอุปกรณ์ที่เปิดหน้านี้
+//  จะ poll แล้ว reload อัตโนมัติ เพื่อล้างข้อมูลค้าง (เลขไมล์/สถานะรถ)
+// ════════════════════════════════════════════════════════
+const RELOAD_SIGNAL_STORAGE_KEY = 'reloadSignal_mile';
+const RELOAD_SIGNAL_POLL_MS     = 15000; // ทุก 15 วินาที
+
+// flag: กันไม่ให้ polling สั่ง location.reload() ทับ loadAllData() หลังกดบันทึก
+let _justSubmitted = false;
+
+function initReloadSignalPolling() {
+  // ครั้งแรก: เก็บค่าปัจจุบันไว้เป็น baseline โดยไม่ reload
+  fetchReloadSignal().then(sig => {
+    if (sig) localStorage.setItem(RELOAD_SIGNAL_STORAGE_KEY, sig);
+  });
+
+  setInterval(async () => {
+    // ถ้ากำลังอัปโหลดรูป หรือกำลังกรอกฟอร์ม/ยืนยัน ไม่ควร reload กลางคัน
+    if (_anyUploadActive) return;
+    if (typeof pendingAction !== 'undefined' && pendingAction) return;
+    // ถ้าเพิ่งบันทึกสำเร็จ → loadAllData() กำลังทำงานอยู่ ไม่ต้อง reload ซ้อน
+    if (_justSubmitted) return;
+
+    const sig = await fetchReloadSignal();
+    if (!sig) return;
+    const last = localStorage.getItem(RELOAD_SIGNAL_STORAGE_KEY);
+    if (last && sig !== last) {
+      console.log('[ReloadSignal] mile data changed — reloading page');
+      localStorage.setItem(RELOAD_SIGNAL_STORAGE_KEY, sig);
+      location.reload();
+    } else if (!last) {
+      localStorage.setItem(RELOAD_SIGNAL_STORAGE_KEY, sig);
+    }
+  }, RELOAD_SIGNAL_POLL_MS);
+}
+
+async function fetchReloadSignal() {
+  try {
+    const res  = await fetch(GAS_URL + '?action=getReloadSignal', { cache: 'no-cache' });
+    const json = await res.json();
+    return (json && json.status === 'ok') ? String(json.mile || '0') : null;
+  } catch (_) {
+    return null;
+  }
+}
 
 // ── DAILY RESET GUARD ─────────────────────────────────
 // ตรวจสอบว่าหน้านี้ถูกโหลดหลังตี 3 ของวันใหม่หรือไม่
@@ -2745,41 +2797,19 @@ async function doConfirm() {
         }
       }
     }
-    showToast(msg, 'success', 8000);
+    showToast(msg, 'success', 3000);
 
-    // รีเซ็ตฟอร์ม
-    if (type === 'start') {
-      document.getElementById('s_carType').value = '';
-      document.getElementById('s_odometerStart').value = '';
-      document.getElementById('s_destination').value = '';
-      clearAllRPs(); // ล้าง chips จุดขอใช้รถ
-      document.getElementById('s_remarks').value = '';
-      document.getElementById('s_lastMileHint').textContent = '';
-      startDTEdited = false;  // live clock เริ่มทำงานใหม่
-      // รีเซ็ตส่วนเติมน้ำมัน
-      document.getElementById('s_hasFuel').checked = false;
-      document.getElementById('fuelUploadArea').classList.remove('show');
-      removeFuelPhoto();
-      // รีเซ็ตรูปสภาพรถ
-      tripPhotos = [];
-      renderTripPhotoGrid();
-      renderTripDriveLinks();
-    } else {
-      document.getElementById('e_carType').value = '';
-      document.getElementById('e_odometerEnd').value = '';
-      document.getElementById('e_remarks').value = '';
-      document.getElementById('routePreview').style.display = 'none';
-      endDTEdited = false;  // live clock เริ่มทำงานใหม่
-      // รีเซตส่วนเติมน้ำมันขากลับ
-      document.getElementById('e_hasFuel').checked = false;
-      document.getElementById('returnFuelUploadArea').classList.remove('show');
-      removeReturnFuelPhoto();
-      // รีเซตรูปสภาพรถขากลับ
-      clearAllReturnCarPhotos();
-    }
-
-    // รีโหลดข้อมูล
-    setTimeout(() => loadAllData(), 1500);
+    // ── reload หน้าทุกครั้งหลังบันทึกสำเร็จ ──────────────────────────────
+    // เพื่อล้าง state ทั้งหมด: ฟอร์ม, รูป, tripId, activeTripMap, fuelPhotoB64
+    // ป้องกันข้อมูลค้างจากรายการก่อนทำให้เกิดการบันทึกซ้ำ / วางไฟล์ซ้ำใน Sheet
+    // อัปเดต baseline signal ก่อน reload เพื่อไม่ให้ polling สั่ง reload ซ้ำทันทีหลังโหลดใหม่
+    setTimeout(() => {
+      fetchReloadSignal().then(sig => {
+        if (sig) localStorage.setItem(RELOAD_SIGNAL_STORAGE_KEY, sig);
+      }).finally(() => {
+        location.reload();
+      });
+    }, 3000); // รอ 3 วิ ให้ toast แสดงก่อน reload
 
   } catch(err) {
     showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
