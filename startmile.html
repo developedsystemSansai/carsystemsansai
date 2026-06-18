@@ -2495,6 +2495,16 @@ function renderMileHint(enteredVal) {
 async function onEndCarChange() {
   const carType = document.getElementById('e_carType').value;
   const hint    = document.getElementById('e_odoHint');
+
+  // ✅ FIX: เคลียร์รูปสภาพรถขากลับ/บิลน้ำมันขากลับที่อาจค้างจากรถคันก่อนหน้า
+  // ป้องกันบัค: เลือกรถ A แนบรูป แล้วเปลี่ยนไปเลือกรถ B โดยไม่ได้ลบรูปออกก่อน
+  // ทำให้รูปของรถ A ติดไปกับการบันทึกของรถ B
+  if (carType !== _lastEndCarPlate) {
+    if (returnCarPhotos.length) clearAllReturnCarPhotos();
+    if (returnFuelPhotoB64 || returnFuelPhotoFile) removeReturnFuelPhoto();
+    _lastEndCarPlate = carType;
+  }
+
   if (!carType) { hint.textContent = ''; return; }
 
   const plate = carType.split(' ')[0].trim();
@@ -2787,6 +2797,21 @@ async function doConfirm() {
     }
 
     await new Promise(r => setTimeout(r, 600)); // รอ GAS ประมวลผล
+
+    // ✅ FIX: เคลียร์ state รูปภาพทันทีหลังบันทึกสำเร็จ ไม่รอให้ reload เพียงอย่างเดียว
+    // (กันกรณี reload ถูกขัดจังหวะ/ล้มเหลว แล้วผู้ใช้ทำรายการถัดไปก่อนหน้าจะ reload จริง
+    // ซึ่งจะทำให้รูปของทริป/รถคันก่อนติดไปกับทริปถัดไป)
+    if (respOk) {
+      if (type === 'end') {
+        clearAllReturnCarPhotos();
+        removeReturnFuelPhoto();
+      } else {
+        tripPhotos = [];
+        renderTripPhotoGrid();
+        renderTripDriveLinks();
+        removeFuelPhoto();
+      }
+    }
 
     const plate = data.carType ? data.carType.split(' ')[0] : '';
     let msg;
@@ -3746,6 +3771,7 @@ function renderTripDriveLinks() {
 //  RETURN CAR PHOTOS — ถ่ายรูปสภาพรถขากลับ (multi-photo)
 // ════════════════════════════════════════════════════════
 let returnCarPhotos = [];  // { name, data, type, driveUrl, status }
+let _lastEndCarPlate = '';  // ✅ FIX: ติดตามทะเบียนรถที่เลือกไว้ล่าสุดในแท็บ "กลับ รพ." เพื่อเคลียร์รูปเมื่อเปลี่ยนรถ
 
 let _returnCarUploadTotal = 0;
 let _returnCarUploadDone  = 0;
@@ -3834,6 +3860,15 @@ async function uploadReturnCarPhoto(photo) {
   try {
     const carType = document.getElementById('e_carType')?.value
                  || document.getElementById('s_carType')?.value || '';
+    // ✅ FIX: ส่ง tripId ของทริปที่กำลังใช้งานไปด้วย เพื่อให้ backend
+    // เขียนรูปลงแถวที่ถูกต้องเสมอ (ไม่ fallback ไปจับคู่ด้วยทะเบียนรถอย่างเดียว
+    // ซึ่งอาจไปจับแถวเก่าของทริป/รถคันอื่นที่ปิดงานไปแล้ว)
+    const plate = carType.split(' ')[0].trim();
+    const trip  = Object.values(activeTripMap).find(t => {
+      const tp = String(t.carType || '').split(' ')[0].trim();
+      return tp === plate || tp.includes(plate) || plate.includes(tp);
+    });
+    const tripId = trip?.tripId || '';
     const today   = new Date().toISOString().slice(0, 10);
     const b64     = photo.data.replace(/^data:[^;]+;base64,/, '');
     const uploadPayload = JSON.stringify({
@@ -3843,6 +3878,7 @@ async function uploadReturnCarPhoto(photo) {
       mimeType  : photo.type || 'image/jpeg',
       base64Data: b64,
       carType   : carType,
+      tripId    : tripId,
       inspDate  : today
     });
     const resp = await fetch(GAS_URL, {
