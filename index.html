@@ -534,6 +534,11 @@
     border-left-color: var(--border-strong);
     background: var(--card);
   }
+  /* ── ⛽ เติมน้ำมันแล้ว (กลับมาจากปั๊มแล้ว) ── */
+  .vehicle-mini.vm-fueled {
+    border-left-color: #16a34a;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  }
 
   .vehicle-mini .vm-plate {
     font-family: 'IBM Plex Mono', monospace;
@@ -563,6 +568,12 @@
     background: var(--bg2); color: var(--text-mid);
     border: 1px solid var(--border);
   }
+  /* ⛽ เติมน้ำมันแล้ว */
+  .vm-status.st-fueled {
+    background: #dcfce7; color: #14532d;
+    border: 1px solid rgba(22,163,74,.28);
+  }
+  .vm-status-dot.fueled { background: #16a34a; }
   .vm-status-dot {
     width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
   }
@@ -1460,6 +1471,15 @@ function renderVehicleCards(json) {
   (json.ready||[]).forEach(x => { readyMap[x.carType] = x; });
   (json.todayChecked||[]).forEach(x => { checkedMap[x.carType] = x; });
 
+  // ── build fueledMap: plateKey → trip info สำหรับรถที่ไปปั๊มแล้วกลับมา ──
+  // ครอบคลุม: มีรูปบิล (6.2/6.3), ปลายทางเป็นปั๊ม+กลับมาแล้ว (6.4), CheckLog fuelFill='เติม'
+  const fueledMap = {};
+  (json.todayFueled||[]).forEach(function(f) {
+    const plate = String(f.carType || '').split(' ')[0].trim();
+    if (!plate) return;
+    fueledMap[plate] = f;
+  });
+
   // ── สร้าง fuelMap: plate → fuelLevel ──────────────────────────────
   //    Pass 1: วนจาก todayChecked (มีค่า fuelLevel จาก CheckLog)
   //    Pass 2: วนจาก todayFueled → override/inject 100% เสมอ
@@ -1504,6 +1524,12 @@ function renderVehicleCards(json) {
     const isInUse   = !!inUseKey;
     const isChecked = !!chkKey || !!readyKey;
 
+    // ── ตรวจสอบว่าไปปั๊มน้ำมันแล้วกลับมาหรือยัง ──
+    // fueledMap ครอบคลุม: รูปบิล + ปลายทางปั๊ม + CheckLog fuelFill='เติม'
+    const fueledInfo = fueledMap[plateKey] || null;
+    // รถที่ "กำลังใช้งาน" อยู่ยังไม่นับว่ากลับมาแล้ว (ยังออกอยู่)
+    const isFueled = !!fueledInfo && !isInUse;
+
     // ── fallback: ใช้ sheetStatus จาก Vehicles sheet (ถ้า API ไม่มีข้อมูล) ──
     const meta        = sheetMeta[plateKey] || {};
     const sheetStatus = String(meta.sheetStatus || '').trim();
@@ -1518,6 +1544,14 @@ function renderVehicleCards(json) {
       vmClass    = 'vm-inuse';
       statusHtml = '<span class="vm-status st-inuse"><span class="vm-status-dot inuse"></span>กำลังใช้งาน'
                  + (x && x.destination ? ' — ' + x.destination : '') + '</span>';
+    } else if (isFueled) {
+      // ✅ กลับมาจากปั๊มน้ำมันแล้ว — แสดงสถานะ "เติมน้ำมันแล้ว"
+      vmClass    = 'vm-fueled';
+      const src = fueledInfo.source || '';
+      const srcLabel = src === 'destination' ? ' (ตรวจจับจากปลายทาง)'
+                     : src === 'check'       ? ' (บันทึกตรวจสภาพ)'
+                     : '';
+      statusHtml = '<span class="vm-status st-fueled"><span class="vm-status-dot fueled"></span>⛽ เติมน้ำมันแล้ว' + srcLabel + '</span>';
     } else if (isChecked) {
       // ✅ ตรวจสภาพแล้ว / พร้อมใช้งาน
       vmClass    = 'vm-ready';
@@ -1541,10 +1575,16 @@ function renderVehicleCards(json) {
       statusHtml = '<span class="vm-status st-wait"><span class="vm-status-dot wait"></span>รอตรวจสภาพ</span>';
     }
 
-    // ── subtext: ผู้ขับ / เวลาตรวจ ──
+    // ── subtext: ผู้ขับ / เวลาตรวจ / เวลาเติมน้ำมัน ──
     const chkInfo = chkKey ? checkedMap[chkKey] : null;
     let chkSub;
-    if (chkInfo) {
+    if (isFueled) {
+      // แสดงข้อมูลการเติมน้ำมัน: เวลา + ผู้ขับ
+      const fTime = fueledInfo.time || '';
+      const fDrv  = fueledInfo.driverName || (chkInfo && chkInfo.driverName) || sheetDriver || '';
+      const fLit  = fueledInfo.fuelLiters ? ' · ' + fueledInfo.fuelLiters + ' ล.' : '';
+      chkSub = (fTime ? 'เติม ' + fTime : 'เติมน้ำมันวันนี้') + (fDrv ? ' · ' + fDrv : '') + fLit;
+    } else if (chkInfo) {
       chkSub = 'ตรวจ ' + (extractTimeOnly(chkInfo.inspTime) || chkInfo.inspTime || '') + (chkInfo.driverName ? ' · ' + chkInfo.driverName : '');
     } else if (isInUse && inUseKey) {
       const x = inUseMap[inUseKey];
@@ -1558,19 +1598,22 @@ function renderVehicleCards(json) {
     // ── EMS badge: แสดงเฉพาะ isEms:true ──
     const emsBadge = v.isEms ? '<span class="ems-badge">EMS</span>' : '';
 
-    // ── Fuel mark: ดึงจาก _fuelAlertMap ──────────────────────────────
+    // ── Fuel mark: ดึงจาก _fuelAlertMap หรือ fueledMap ──────────────────────
     //    refueled=true → เติมวันนี้ใน MileLog → แสดง 100% สีเขียว + badge
+    //    isFueled (ปั๊มน้ำมัน/ไม่มีรูปบิล) → แสดง 100% สีเขียว + badge เช่นกัน
     let fuelMarkHtml = '';
     const fuelAlert = (window._fuelAlertMap || {})[plateKey];
+
     if (fuelAlert) {
       const barPct   = Math.max(0, Math.min(100, fuelAlert.fuelPct));
-      const refueled = !!fuelAlert.refueled;
+      const refueled = !!fuelAlert.refueled || isFueled; // isFueled override
       const isLow    = !refueled && barPct <= 50;
       const barColor = refueled ? '#16a34a'
                      : barPct >= 75 ? '#22c55e'
                      : barPct >= 51 ? '#f59e0b'
                      : barPct <= 25 ? '#ef4444' : '#f97316';
       const pctColor = refueled ? '#065f3a' : (isLow ? '#b45309' : '#065f3a');
+      const displayPct = refueled ? 100 : fuelAlert.fuelPct;
       const refuelBadge = refueled
         ? '<span style="font-size:9px;font-weight:800;background:#dcfce7;color:#15803d;' +
           'border:1px solid #86efac;border-radius:4px;padding:1px 5px;margin-left:4px;">✓ เติมแล้ว</span>'
@@ -1578,10 +1621,22 @@ function renderVehicleCards(json) {
       fuelMarkHtml =
         '<div class="vm-fuel-row">' +
           '<span style="font-size:9.5px;color:var(--text-light);">⛽</span>' +
-          '<span style="font-size:10px;font-weight:700;color:' + pctColor + ';">' + fuelAlert.fuelPct + '%</span>' +
+          '<span style="font-size:10px;font-weight:700;color:' + pctColor + ';">' + displayPct + '%</span>' +
           refuelBadge +
           '<div class="vm-fuel-bar-wrap">' +
-            '<div class="vm-fuel-bar refueled" style="width:' + barPct + '%;background:' + barColor + ';"></div>' +
+            '<div class="vm-fuel-bar refueled" style="width:' + (refueled ? 100 : barPct) + '%;background:' + barColor + ';"></div>' +
+          '</div>' +
+        '</div>';
+    } else if (isFueled) {
+      // ไม่มีข้อมูล fuelLevel จาก CheckLog แต่รู้ว่าเติมน้ำมันแล้ว (จากปลายทาง/บิล)
+      fuelMarkHtml =
+        '<div class="vm-fuel-row">' +
+          '<span style="font-size:9.5px;color:var(--text-light);">⛽</span>' +
+          '<span style="font-size:10px;font-weight:700;color:#065f3a;">100%</span>' +
+          '<span style="font-size:9px;font-weight:800;background:#dcfce7;color:#15803d;' +
+          'border:1px solid #86efac;border-radius:4px;padding:1px 5px;margin-left:4px;">✓ เติมแล้ว</span>' +
+          '<div class="vm-fuel-bar-wrap">' +
+            '<div class="vm-fuel-bar refueled" style="width:100%;background:#16a34a;"></div>' +
           '</div>' +
         '</div>';
     }
