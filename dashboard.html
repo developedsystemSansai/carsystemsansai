@@ -2211,14 +2211,22 @@ function renderKPIs(data) {
   const uniqueVehicles = new Set(data.map(r => extractPlate(r.carType))).size;
   const issues = total - okCount;
 
-  // นับรถที่เติมน้ำมันวันนี้จาก allData (ถ้ายังไม่มีจาก liveStatus)
+  // นับรถที่เติมน้ำมันวันนี้จาก allData (CheckLog: fuelFill='เติม') + MileLog (auto marker)
   const todayStr = bkkDateStr();
-  const fueledToday = new Set(
+  const fueledCheckPlates = new Set(
     data.filter(r => {
       const nd = normalizeInspDate(r.inspDate || r.timestamp || '');
       return nd === todayStr && r.fuelFill === 'เติม';
     }).map(r => extractPlate(r.carType))
-  ).size;
+  );
+  // ✅ v2.1: รวม plate ที่ตรวจจับอัตโนมัติจาก MileLog ปลายทาง (auto marker)
+  const fueledAutoPlates = new Set(
+    (_mileLogToday || []).filter(r => {
+      const v = String(r['น้ำมันที่เติม(ลิตร)'] || '').trim();
+      return v === 'auto' || v === 'ตรวจจับอัตโนมัติ';
+    }).map(r => String(r['ทะเบียน/รถ'] || '').split(' ')[0].trim()).filter(Boolean)
+  );
+  const fueledToday = new Set([...fueledCheckPlates, ...fueledAutoPlates]).size;
 
   document.getElementById('kpi-total').textContent = total;
   document.getElementById('kpi-ok').textContent = total ? Math.round(okCount/total*100)+'%' : '—';
@@ -3589,7 +3597,11 @@ function renderFuelTracker(json) {
   const cards = ALL_VEHICLES.map(v => {
     const fd = fueledMap[v.plate];
     const filled = !!fd;
-    const sourceLabel = fd?.source === 'check' ? '🔍 ตรวจรถ' : fd?.source === 'mile' ? '🚗 ออกรถ' : '';
+    const sourceLabel = fd?.source === 'check' ? '🔍 ตรวจรถ'
+      : fd?.source === 'mile' ? '🚗 ออกรถ (มีบิล)'
+      : fd?.source === 'destination'
+        ? ('⛽ ตรวจจับอัตโนมัติ' + (fd?.destination ? ' · ' + fd.destination.substring(0, 16) : ''))
+      : '';
     const litersLabel = fd?.fuelLiters ? fd.fuelLiters + ' ลิตร' : '';
     const priceLabel  = fd?.fuelPrice  ? parseFloat(fd.fuelPrice).toLocaleString() + ' บาท' : '';
     const timeLabel   = fd?.time ? extractTimeOnly(fd.time) : '';
@@ -3627,7 +3639,9 @@ function renderFuelTracker(json) {
       const noBill    = (!outBtn && !returnBtn)
         ? `<div class="ft-no-bill">
              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-             <span>ยังไม่มีรูปบิล</span>
+             <span>${fd?.source === 'destination'
+               ? ('⛽ ตรวจจับอัตโนมัติจากปลายทาง' + (fd?.destination ? ' (' + fd.destination + ')' : '') + ' — ยังไม่มีรูปบิล')
+               : 'ยังไม่มีรูปบิล'}</span>
            </div>` : '';
       const billSection = (outBtn || returnBtn)
         ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;">${outBtn}${returnBtn}</div>`
@@ -3650,6 +3664,7 @@ function renderFuelTracker(json) {
           ${sourceLabel ? `<span class="ft-tag ft-tag--source">${sourceLabel}</span>` : ''}
         </div>
         ${fd?.driverName ? `<div class="ft-driver"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${fd.driverName}${timeLabel ? ' · ' + timeLabel : ''}</div>` : ''}
+        ${fd?.source === 'destination' && fd?.destination ? `<div class="ft-driver" style="color:var(--teal);font-size:10.5px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>ปลายทาง: ${fd.destination}</div>` : ''}
         ${billSection}
       </div>`;
     } else {
@@ -3691,7 +3706,9 @@ function renderFuelTrackerFromMileLog() {
 
   (_mileLogToday || []).forEach(r => {
     const hasFuel = String(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || '').trim();
+    // ✅ v2.1: รองรับ 'auto' marker จาก endMile() ที่ตรวจจับปลายทางเป็นปั๊มน้ำมัน
     const hasFuelVal = hasFuel && hasFuel !== '0' && hasFuel !== '';
+    const hasAutoMarker = hasFuel === 'auto' || hasFuel === 'ตรวจจับอัตโนมัติ';
     // แยก URL ขาไป / ขากลับ อย่างชัดเจน
     const outPhotoUrl    = extractDriveUrl(r['fuelPhotoUrl'])
                         || extractDriveUrl(r['รูปบิลน้ำมันออกรถ'])
@@ -3700,7 +3717,7 @@ function renderFuelTrackerFromMileLog() {
     const returnPhotoUrl = extractDriveUrl(r['returnFuelPhotoUrl'])
                         || extractDriveUrl(r['รูปบิลน้ำมันขากลับ'])
                         || '';
-    if (!hasFuelVal && !outPhotoUrl && !returnPhotoUrl) return;
+    if (!hasFuelVal && !hasAutoMarker && !outPhotoUrl && !returnPhotoUrl) return;
     const plate = (String(r['ทะเบียน/รถ'] || r['carType'] || '')).split(' ')[0].trim();
     if (!plate || seenPlate.has(plate)) return;
     seenPlate.add(plate);
