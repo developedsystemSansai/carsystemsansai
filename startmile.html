@@ -2473,6 +2473,22 @@ async function onStartCarChange() {
   lastKnownOdo  = 0; lastKnownDate = '';
   inp.classList.remove('odo-mismatch');
   hint.innerHTML = ''; hint.className = 'odo-hint';
+
+  // ✅ FIX: เคลียร์รูปสภาพรถขาออก/รูปบิลน้ำมัน ที่อาจค้างจากรถคันก่อนหน้า
+  // ป้องกันบัค: เลือกรถ A แนบรูป แล้วเปลี่ยนไปเลือกรถ B โดยไม่ได้ลบรูปออกก่อน
+  // ทำให้รูปของรถ A หลุดติดไปกับการบันทึกออกรถของรถ B (รูปคันก่อนหน้าไปโผล่ในบันทึกถัดไป)
+  if (carType !== _lastStartCarPlate) {
+    if (tripPhotos.length) {
+      tripPhotos = [];
+      renderTripPhotoGrid();
+      renderTripDriveLinks();
+    }
+    if (fuelPhotoB64 || fuelPhotoFile) {
+      removeFuelPhoto();
+    }
+    _lastStartCarPlate = carType;
+  }
+
   if (!carType) return;
 
   hint.innerHTML = '<span style="color:var(--text-light)">กำลังตรวจสอบเลขไมล์อ้างอิง...</span>';
@@ -2683,8 +2699,14 @@ function submitStart() {
     fuelPhotoB64  : (hasFuel && fuelPhotoB64) ? fuelPhotoB64 : '',
     fuelPhotoMime : (hasFuel && fuelPhotoB64) ? (fuelPhotoMime || 'image/jpeg') : '',
     fuelPhotoName : (hasFuel && fuelPhotoB64) ? (fuelPhotoName || ('fuel_' + Date.now() + '.jpg')) : '',
-    // รูปสภาพรถ — ส่ง driveUrls ที่อัปโหลดสำเร็จแล้ว
-    driveUrls: tripPhotos.filter(p => p.driveUrl).map(p => p.driveUrl)
+    // ✅ DEFERRED UPLOAD: รูปสภาพรถขาออก — ส่งเป็น base64 ไปพร้อม payload เดียวกับการบันทึก
+    // backend (startMile) จะเป็นผู้อัปโหลดขึ้น Drive เองตอนบันทึกจริงเท่านั้น
+    // (เดิมอัปโหลดทันทีที่เลือกรูป ทำให้รูปค้างจากรถคันก่อนหน้าหลุดติดไปกับรถคันถัดไปได้)
+    tripPhotosB64: tripPhotos.map(p => ({
+      data: (p.data || '').replace(/^data:[^;]+;base64,/, ''),
+      mimeType: p.type || 'image/jpeg',
+      fileName: p.name || ('trip_' + Date.now() + '.jpg')
+    }))
   } };
 
   const rpLabel = requestPoints.length > 1
@@ -3635,55 +3657,8 @@ window.addEventListener('beforeunload', function(e) {
   }
 });
 
-// ── TRIP PHOTO UPLOAD PROGRESS HELPERS ───────────────────
-let _tripUploadTotal = 0;
-let _tripUploadDone  = 0;
-
-function tripProgressShow(fileName) {
-  setUploadActive(true);
-  const wrap = document.getElementById('tripUploadProgress');
-  if (!wrap) return;
-  wrap.className = 'upload-progress-wrap show';
-  const msg  = document.getElementById('tripUploadMsg');
-  const pct  = document.getElementById('tripUploadPct');
-  const file = document.getElementById('tripUploadFile');
-  const fill = document.getElementById('tripUploadFill');
-  if (msg)  msg.textContent  = 'กำลังอัปโหลดรูปสภาพรถ...';
-  if (pct)  pct.textContent  = Math.round((_tripUploadDone/_tripUploadTotal||0)*100) + '%';
-  if (file) file.textContent = fileName || '';
-  if (fill) fill.style.width = (_tripUploadDone/_tripUploadTotal*100||0) + '%';
-}
-function tripProgressDone(ok, fileName) {
-  _tripUploadDone++;
-  const wrap = document.getElementById('tripUploadProgress');
-  if (!wrap) return;
-  const pct  = document.getElementById('tripUploadPct');
-  const fill = document.getElementById('tripUploadFill');
-  const done = _tripUploadDone;
-  const total = _tripUploadTotal;
-  const pctVal = Math.round((done / total) * 100);
-  if (fill) fill.style.width = pctVal + '%';
-  if (pct)  pct.textContent  = pctVal + '%';
-  if (done >= total) {
-    const hasErr = tripPhotos.some(p => p.status === 'err');
-    wrap.classList.remove('state-ok','state-err');
-    const msg = document.getElementById('tripUploadMsg');
-    const f   = document.getElementById('tripUploadFile');
-    if (hasErr) {
-      wrap.classList.add('state-err');
-      if (msg) msg.textContent = 'อัปโหลดบางรูปไม่สำเร็จ';
-    } else {
-      wrap.classList.add('state-ok');
-      if (msg) msg.textContent = '✓ อัปโหลดสำเร็จ ' + done + ' รูป';
-    }
-    if (f) f.textContent = '';
-    setUploadActive(false);
-    setTimeout(() => { if (wrap) wrap.classList.remove('show'); }, 4000);
-  } else {
-    const f = document.getElementById('tripUploadFile');
-    if (f) f.textContent = fileName || '';
-  }
-}
+// หมายเหตุ: หลังเปลี่ยนเป็น deferred upload รูปสภาพรถขาออกจะถูกอัปโหลดพร้อมกับ
+// การกดบันทึก (ดู doConfirm) ไม่มีการอัปโหลดทันทีที่เลือกรูปอีกต่อไป
 
 function handleTripPhotos(files) {
   const newFiles = Array.from(files).filter(f => {
@@ -3693,69 +3668,21 @@ function handleTripPhotos(files) {
   });
   if (!newFiles.length) return;
 
-  if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
-    _tripUploadTotal += newFiles.length;
-    const wrap = document.getElementById('tripUploadProgress');
-    if (wrap) wrap.classList.remove('state-ok','state-err');
-  }
-
+  // ✅ DEFERRED UPLOAD: เก็บรูปไว้เป็น base64 ใน browser เท่านั้น preview ทันที
+  // ไม่อัปโหลดขึ้น Drive จนกว่าจะกดบันทึกออกรถ (submitStart → doConfirm)
+  // ป้องกันรูปค้างจาก "เลือกไว้แล้วเปลี่ยนรถ" หลุดไปติดกับรถคันอื่น เพราะรูปจะถูกส่ง
+  // ไปพร้อม payload เดียวกับการบันทึกจริงเท่านั้น ไม่มีการอัปโหลด/เขียนชีทแยกต่างหากก่อนหน้า
   newFiles.forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
-      const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
+      const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'ready' };
       tripPhotos.push(photo);
       renderTripPhotoGrid();
-      if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
-        tripProgressShow(file.name);
-        uploadTripPhoto(photo);
-      }
     };
     reader.readAsDataURL(file);
   });
   document.getElementById('s_tripPhoto').value = '';
   document.getElementById('s_tripPhotoGallery').value = '';
-}
-
-async function uploadTripPhoto(photo) {
-  photo.status = 'uploading';
-  renderTripPhotoGrid();
-  try {
-    const carType = document.getElementById('s_carType')?.value || '';
-    const today   = new Date().toISOString().slice(0, 10);
-    const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
-    const uploadPayload = JSON.stringify({
-      action    : 'uploadPhotoPost',
-      subFolder : 'TripPhotos',
-      fileName  : photo.name || ('trip_' + Date.now() + '.jpg'),
-      mimeType  : photo.type || 'image/jpeg',
-      base64Data: b64,
-      carType   : carType,
-      inspDate  : today
-    });
-    const resp = await fetch(GAS_URL, {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body   : 'payload=' + encodeURIComponent(uploadPayload)
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.status === 'ok' && data.url) {
-        photo.driveUrl = data.url;
-        photo.status   = 'ok';
-        showToast('✓ อัปโหลดรูปสภาพรถสำเร็จ', 'success');
-        renderTripPhotoGrid();
-        renderTripDriveLinks();
-        tripProgressDone(true, photo.name);
-        return;
-      }
-    }
-    photo.status = 'err';
-  } catch(e) {
-    photo.status = 'err';
-    console.warn('uploadTripPhoto:', e);
-  }
-  renderTripPhotoGrid();
-  tripProgressDone(false, photo.name);
 }
 
 function renderTripPhotoGrid() {
@@ -3766,7 +3693,7 @@ function renderTripPhotoGrid() {
     const div = document.createElement('div');
     div.className = 'photo-thumb-sm';
     const badgeC = p.status === 'ok' ? 'ok' : p.status === 'uploading' ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
-    const badgeI = p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '!' : '…';
+    const badgeI = p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '!' : '📎';
     div.innerHTML = `
       <img src="${p.data}" alt="รูปที่ ${i+1}" onclick="openLb('trip',${i})">
       <span class="up-badge ${badgeC}">${badgeI}</span>
@@ -3787,16 +3714,22 @@ function renderTripDriveLinks() {
   const panel   = document.getElementById('tripDrivePanel');
   const linksEl = document.getElementById('tripDriveLinks');
   if (!panel || !linksEl) return;
+  // หลังบันทึกสำเร็จ (มี driveUrl) → แสดงลิงก์ Drive จริง
   const uploaded = tripPhotos.filter(p => p.driveUrl);
-  if (!uploaded.length) { panel.classList.remove('show'); return; }
-  panel.classList.add('show');
-  linksEl.innerHTML = uploaded.map(p => `
-    <div class="dmp-item">
-      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</span>
-      <a href="${p.driveUrl}" target="_blank" rel="noopener" class="dmp-link">เปิด Drive</a>
-    </div>
-  `).join('');
+  if (uploaded.length) {
+    panel.classList.add('show');
+    linksEl.innerHTML = uploaded.map(p => `
+      <div class="dmp-item">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.name}</span>
+        <a href="${p.driveUrl}" target="_blank" rel="noopener" class="dmp-link">เปิด Drive</a>
+      </div>
+    `).join('');
+    return;
+  }
+  // ก่อนบันทึก: ยังไม่มี driveUrl เพราะรอกดบันทึกออกรถ — ไม่ต้องแสดง panel
+  // (ใช้ tripPhotoGrid preview แทน เพื่อไม่ให้สับสนว่า "อัปโหลดแล้ว")
+  panel.classList.remove('show');
 }
 
 // ════════════════════════════════════════════════════════
@@ -3804,56 +3737,10 @@ function renderTripDriveLinks() {
 // ════════════════════════════════════════════════════════
 let returnCarPhotos = [];  // { name, data, type, driveUrl, status }
 let _lastEndCarPlate = '';  // ✅ FIX: ติดตามทะเบียนรถที่เลือกไว้ล่าสุดในแท็บ "กลับ รพ." เพื่อเคลียร์รูปเมื่อเปลี่ยนรถ
+let _lastStartCarPlate = ''; // ✅ FIX: ติดตามทะเบียนรถที่เลือกไว้ล่าสุดในแท็บ "ออกรถ" เพื่อเคลียร์รูปเมื่อเปลี่ยนรถ (กันรูปรถ A ติดไปกับรถ B)
 
-let _returnCarUploadTotal = 0;
-let _returnCarUploadDone  = 0;
-
-function returnCarProgressShow(fileName) {
-  setUploadActive(true);
-  const wrap = document.getElementById('returnCarUploadProgress');
-  if (!wrap) return;
-  wrap.className = 'upload-progress-wrap show';
-  const msg  = document.getElementById('returnCarUploadMsg');
-  const pct  = document.getElementById('returnCarUploadPct');
-  const file = document.getElementById('returnCarUploadFile');
-  const fill = document.getElementById('returnCarUploadFill');
-  if (msg)  msg.textContent  = 'กำลังอัปโหลดรูปสภาพรถขากลับ...';
-  if (pct)  pct.textContent  = Math.round((_returnCarUploadDone / (_returnCarUploadTotal || 1)) * 100) + '%';
-  if (file) file.textContent = fileName || '';
-  if (fill) fill.style.width = (_returnCarUploadDone / (_returnCarUploadTotal || 1) * 100) + '%';
-}
-
-function returnCarProgressDone(ok, fileName) {
-  _returnCarUploadDone++;
-  const wrap  = document.getElementById('returnCarUploadProgress');
-  if (!wrap) return;
-  const pct   = document.getElementById('returnCarUploadPct');
-  const fill  = document.getElementById('returnCarUploadFill');
-  const done  = _returnCarUploadDone;
-  const total = _returnCarUploadTotal;
-  const pctVal = Math.round((done / total) * 100);
-  if (fill) fill.style.width = pctVal + '%';
-  if (pct)  pct.textContent  = pctVal + '%';
-  if (done >= total) {
-    const hasErr = returnCarPhotos.some(p => p.status === 'err');
-    wrap.classList.remove('state-ok', 'state-err');
-    const msg = document.getElementById('returnCarUploadMsg');
-    const f   = document.getElementById('returnCarUploadFile');
-    if (hasErr) {
-      wrap.classList.add('state-err');
-      if (msg) msg.textContent = 'อัปโหลดบางรูปไม่สำเร็จ';
-    } else {
-      wrap.classList.add('state-ok');
-      if (msg) msg.textContent = '✓ อัปโหลดสำเร็จ ' + done + ' รูป';
-    }
-    if (f) f.textContent = '';
-    setUploadActive(false);
-    setTimeout(() => { if (wrap) wrap.classList.remove('show'); }, 4000);
-  } else {
-    const f = document.getElementById('returnCarUploadFile');
-    if (f) f.textContent = fileName || '';
-  }
-}
+// หมายเหตุ: หลังเปลี่ยนเป็น deferred upload รูปสภาพรถขากลับจะถูกอัปโหลดพร้อมกับ
+// การกดบันทึก (ดู doConfirm) ไม่มีการอัปโหลดทันทีที่เลือกรูปอีกต่อไป
 
 function handleReturnCarPhotos(files) {
   const newFiles = Array.from(files).filter(f => {
@@ -3863,80 +3750,19 @@ function handleReturnCarPhotos(files) {
   });
   if (!newFiles.length) return;
 
-  if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
-    _returnCarUploadTotal += newFiles.length;
-    const wrap = document.getElementById('returnCarUploadProgress');
-    if (wrap) wrap.classList.remove('state-ok', 'state-err');
-  }
-
+  // ✅ DEFERRED UPLOAD: เก็บรูปไว้เป็น base64 ใน browser เท่านั้น preview ทันที
+  // ไม่อัปโหลดขึ้น Drive จนกว่าจะกดบันทึกกลับ รพ. (submitEnd → doConfirm)
   newFiles.forEach(file => {
     const reader = new FileReader();
     reader.onload = e => {
-      const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
+      const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'ready' };
       returnCarPhotos.push(photo);
       renderReturnCarPhotoGrid();
-      if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
-        returnCarProgressShow(file.name);
-        uploadReturnCarPhoto(photo);
-      }
     };
     reader.readAsDataURL(file);
   });
   document.getElementById('e_returnCarPhoto').value        = '';
   document.getElementById('e_returnCarPhotoGallery').value = '';
-}
-
-async function uploadReturnCarPhoto(photo) {
-  photo.status = 'uploading';
-  renderReturnCarPhotoGrid();
-  try {
-    const carType = document.getElementById('e_carType')?.value
-                 || document.getElementById('s_carType')?.value || '';
-    // ✅ FIX: ส่ง tripId ของทริปที่กำลังใช้งานไปด้วย เพื่อให้ backend
-    // เขียนรูปลงแถวที่ถูกต้องเสมอ (ไม่ fallback ไปจับคู่ด้วยทะเบียนรถอย่างเดียว
-    // ซึ่งอาจไปจับแถวเก่าของทริป/รถคันอื่นที่ปิดงานไปแล้ว)
-    const plate = carType.split(' ')[0].trim();
-    const trip  = Object.values(activeTripMap).find(t => {
-      const tp = String(t.carType || '').split(' ')[0].trim();
-      return tp === plate || tp.includes(plate) || plate.includes(tp);
-    });
-    const tripId = trip?.tripId || '';
-    const today   = new Date().toISOString().slice(0, 10);
-    const b64     = photo.data.replace(/^data:[^;]+;base64,/, '');
-    const uploadPayload = JSON.stringify({
-      action    : 'uploadPhotoPost',
-      subFolder : 'ReturnCarPhotos',
-      fileName  : 'return_car_' + Date.now() + '_' + (photo.name || 'photo.jpg'),
-      mimeType  : photo.type || 'image/jpeg',
-      base64Data: b64,
-      carType   : carType,
-      tripId    : tripId,
-      inspDate  : today
-    });
-    const resp = await fetch(GAS_URL, {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body   : 'payload=' + encodeURIComponent(uploadPayload)
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.status === 'ok' && data.url) {
-        photo.driveUrl = data.url;
-        photo.status   = 'ok';
-        showToast('✓ อัปโหลดรูปสภาพรถขากลับสำเร็จ', 'success');
-        renderReturnCarPhotoGrid();
-        renderReturnCarDriveLinks();
-        returnCarProgressDone(true, photo.name);
-        return;
-      }
-    }
-    photo.status = 'err';
-  } catch(e) {
-    photo.status = 'err';
-    console.warn('uploadReturnCarPhoto:', e);
-  }
-  renderReturnCarPhotoGrid();
-  returnCarProgressDone(false, photo.name);
 }
 
 function renderReturnCarPhotoGrid() {
@@ -3950,7 +3776,7 @@ function renderReturnCarPhotoGrid() {
     div.innerHTML = `
       <img src="${p.data}" alt="${p.name}" onclick="openLb('returnCar',${i})" style="cursor:pointer;">
       <div class="photo-badge ${badgeC}">
-        ${p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '✕' : '…'}
+        ${p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '✕' : '📎'}
       </div>
       <button class="photo-remove" onclick="removeReturnCarPhoto(${i})" title="ลบรูป">✕</button>
     `;
@@ -3982,8 +3808,6 @@ function renderReturnCarDriveLinks() {
 
 function clearAllReturnCarPhotos() {
   returnCarPhotos = [];
-  _returnCarUploadTotal = 0;
-  _returnCarUploadDone  = 0;
   renderReturnCarPhotoGrid();
   renderReturnCarDriveLinks();
   const wrap = document.getElementById('returnCarUploadProgress');
