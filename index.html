@@ -1544,14 +1544,6 @@ function renderVehicleCards(json) {
       vmClass    = 'vm-inuse';
       statusHtml = '<span class="vm-status st-inuse"><span class="vm-status-dot inuse"></span>กำลังใช้งาน'
                  + (x && x.destination ? ' — ' + x.destination : '') + '</span>';
-    } else if (isFueled) {
-      // ✅ กลับมาจากปั๊มน้ำมันแล้ว — แสดงสถานะ "เติมน้ำมันแล้ว"
-      vmClass    = 'vm-fueled';
-      const src = fueledInfo.source || '';
-      const srcLabel = src === 'destination' ? ' (ตรวจจับจากปลายทาง)'
-                     : src === 'check'       ? ' (บันทึกตรวจสภาพ)'
-                     : '';
-      statusHtml = '<span class="vm-status st-fueled"><span class="vm-status-dot fueled"></span>⛽ เติมน้ำมันแล้ว' + srcLabel + '</span>';
     } else if (isChecked) {
       // ✅ ตรวจสภาพแล้ว / พร้อมใช้งาน
       vmClass    = 'vm-ready';
