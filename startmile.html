@@ -1661,23 +1661,55 @@ document.addEventListener('DOMContentLoaded', () => {
 //  จะ poll แล้ว reload อัตโนมัติ เพื่อล้างข้อมูลค้าง (เลขไมล์/สถานะรถ)
 // ════════════════════════════════════════════════════════
 const RELOAD_SIGNAL_STORAGE_KEY = 'reloadSignal_mile';
-const RELOAD_SIGNAL_POLL_MS     = 15000; // ทุก 15 วินาที
+const RELOAD_SIGNAL_POLL_MS     = 30000; // ทุก 30 วินาที (เพิ่มจาก 15 เป็น 30)
 
 // flag: กันไม่ให้ polling สั่ง location.reload() ทับ loadAllData() หลังกดบันทึก
 let _justSubmitted = false;
 
+// ── ติดตาม "ผู้ใช้กำลังโต้ตอบกับฟอร์ม" ──────────────────────
+// ถ้า focus อยู่ใน input/select/textarea หรือเพิ่งพิมพ์ใน 60 วิที่ผ่านมา → ห้าม reload
+let _lastUserInteraction = 0;
+const USER_INTERACTION_GRACE_MS = 60000; // 60 วิ หลัง interaction ล่าสุด
+
+function _markUserInteraction() {
+  _lastUserInteraction = Date.now();
+}
+
+function _isUserInteracting() {
+  // ตรวจว่า focus อยู่ที่ input/select/textarea/button ขณะนี้หรือไม่
+  const active = document.activeElement;
+  if (active && (
+    active.tagName === 'INPUT' ||
+    active.tagName === 'SELECT' ||
+    active.tagName === 'TEXTAREA' ||
+    active.tagName === 'BUTTON' ||
+    active.isContentEditable
+  )) return true;
+  // ตรวจว่าเพิ่งมี interaction ใน 60 วิที่ผ่านมาหรือไม่
+  if (Date.now() - _lastUserInteraction < USER_INTERACTION_GRACE_MS) return true;
+  return false;
+}
+
 function initReloadSignalPolling() {
+  // ลงทะเบียน event listeners เพื่อติดตาม user interaction
+  ['input', 'change', 'focus', 'click', 'keydown', 'touchstart'].forEach(ev => {
+    document.addEventListener(ev, _markUserInteraction, { passive: true });
+  });
+
   // ครั้งแรก: เก็บค่าปัจจุบันไว้เป็น baseline โดยไม่ reload
   fetchReloadSignal().then(sig => {
     if (sig) localStorage.setItem(RELOAD_SIGNAL_STORAGE_KEY, sig);
   });
 
   setInterval(async () => {
-    // ถ้ากำลังอัปโหลดรูป หรือกำลังกรอกฟอร์ม/ยืนยัน ไม่ควร reload กลางคัน
+    // ถ้ากำลังอัปโหลดรูป ไม่ควร reload กลางคัน
     if (_anyUploadActive) return;
+    // ถ้ากำลัง confirm modal / pendingAction อยู่
     if (typeof pendingAction !== 'undefined' && pendingAction) return;
     // ถ้าเพิ่งบันทึกสำเร็จ → loadAllData() กำลังทำงานอยู่ ไม่ต้อง reload ซ้อน
     if (_justSubmitted) return;
+    // ✅ ถ้าผู้ใช้กำลังกรอกฟอร์ม / focus อยู่ที่ input / เพิ่งใช้งานใน 60 วิ → ห้าม reload
+    if (_isUserInteracting()) return;
 
     const sig = await fetchReloadSignal();
     if (!sig) return;
@@ -2847,7 +2879,7 @@ async function doConfirm() {
       }).finally(() => {
         location.reload();
       });
-    }, 3000); // รอ 3 วิ ให้ toast แสดงก่อน reload
+    }, 5000); // รอ 5 วิ ให้ toast แสดงก่อน reload (เพิ่มจาก 3 วิ)
 
   } catch(err) {
     showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
