@@ -5341,83 +5341,188 @@ function expNormDate(val) {
 }
 
 // ── Build columns definition for each dataset ──────────
+// อัปเดต: แก้ไข key ให้ตรงกับข้อมูลจริงที่ backend (Code.gs) ส่งมา ครบทุกคอลัมน์
+// รวมรายการตรวจสภาพทั้งหมด (เบรค, ไฟ, ยาง, ความสะอาด ฯลฯ), อุปกรณ์ EMS บนรถ,
+// และเพิ่มคอลัมน์ลิงก์ Google Drive (รูปถ่าย/ไฟล์แนบ) ของแต่ละชุดข้อมูล
 function expGetColumns(type) {
   const defs = {
+    // ── ตรวจสภาพรถ (CheckLog) ──
     check: [
-      { key: 'inspDate',    label: 'วันที่ตรวจ' },
-      { key: 'inspTime',    label: 'เวลาตรวจ' },
-      { key: 'carType',     label: 'ทะเบียน/รถ' },
-      { key: 'fuelLevel',   label: 'ระดับน้ำมัน' },
-      { key: 'engineOil',   label: 'น้ำมันเครื่อง' },
-      { key: 'coolant',     label: 'น้ำหล่อเย็น' },
-      { key: 'tireFL',      label: 'ยางหน้าซ้าย' },
-      { key: 'tireFR',      label: 'ยางหน้าขวา' },
-      { key: 'tireRL',      label: 'ยางหลังซ้าย' },
-      { key: 'tireRR',      label: 'ยางหลังขวา' },
-      { key: 'lightFront',  label: 'ไฟหน้า' },
-      { key: 'lightRear',   label: 'ไฟหลัง' },
-      { key: 'brake',       label: 'เบรก' },
-      { key: 'hasIssue',    label: 'พบปัญหา' },
-      { key: 'issueCount',  label: 'จำนวนปัญหา' },
-      { key: 'remarks',     label: 'หมายเหตุ' },
-      { key: 'inspector',   label: 'ผู้ตรวจ' },
-      { key: 'timestamp',   label: 'Timestamp' }
+      { key: 'inspDate',          label: 'วันที่ตรวจ' },
+      { key: 'inspTime',          label: 'เวลาตรวจ' },
+      { key: 'carType',           label: 'ทะเบียน/รถ' },
+      { key: 'driverName',        label: 'ผู้ตรวจ' },
+      { key: 'odometer',          label: 'เลขไมล์' },
+      // การเปลี่ยนอุปกรณ์ (เปลี่ยน / ไม่เปลี่ยน)
+      { key: 'eq_oil',            label: 'น้ำมันเครื่อง (เปลี่ยน)' },
+      { key: 'eq_battery',        label: 'แบตเตอรี่ (เปลี่ยน)' },
+      { key: 'eq_tire',           label: 'ยาง (เปลี่ยน)' },
+      { key: 'fuelLevel',         label: 'ระดับน้ำมันเชื้อเพลิง' },
+      { key: 'fuelFill',          label: 'เติมน้ำมัน' },
+      // รายการตรวจสภาพ (ปกติ / ผิดปกติ)
+      { key: 'chk_mirror',        label: 'กระจกมองข้าง' },
+      { key: 'chk_brake',         label: 'ระบบเบรค' },
+      { key: 'chk_coolant',       label: 'น้ำในหม้อน้ำ' },
+      { key: 'chk_suspension',    label: 'ช่วงล่าง' },
+      { key: 'chk_oilLevel',      label: 'ระดับน้ำมันเครื่อง' },
+      { key: 'chk_tirePressure',  label: 'ลมยาง' },
+      { key: 'chk_headlight',     label: 'ไฟหน้า' },
+      { key: 'chk_taillight',     label: 'ไฟท้าย/ไฟเบรค' },
+      { key: 'chk_reverseLight',  label: 'ไฟถอย' },
+      { key: 'chk_horn',          label: 'เสียงแตร' },
+      { key: 'chk_wiper',         label: 'ที่ปัดน้ำฝน' },
+      { key: 'chk_aircon',        label: 'เครื่องปรับอากาศ' },
+      { key: 'chk_exteriorClean', label: 'ความสะอาดภายนอก' },
+      { key: 'chk_interiorClean', label: 'ความสะอาดภายใน' },
+      // อุปกรณ์ EMS บนรถ (แสดงเฉพาะรถ EMS — ถ้าไม่มีข้อมูลจะว่าง)
+      { key: 'chk_o2Level',        label: 'ระดับ O₂ (PSI)' },
+      { key: 'chk_emergencyLight', label: 'แสงไฟฉุกเฉิน' },
+      { key: 'chk_siren',          label: 'เสียงไซเรน' },
+      { key: 'chk_stretcherLock',  label: 'เปลและระบบล็อกเปล' },
+      { key: 'chk_suction',        label: 'เครื่อง Suction' },
+      { key: 'chk_aed',            label: 'AED/Defibrillator' },
+      // สรุปผล (คำนวณจากรายการตรวจ ผิดปกติ)
+      { key: 'hasIssue',          label: 'พบปัญหา', derived: true },
+      { key: 'issueCount',        label: 'จำนวนปัญหา', derived: true },
+      { key: 'remarks',           label: 'หมายเหตุ' },
+      { key: 'hasPhotos',         label: 'มีรูปแนบ' },
+      { key: 'driveLinks',        label: 'ลิงก์ Google Drive', isDriveLink: true },
+      { key: 'timestamp',         label: 'Timestamp' }
     ],
+    // ── บันทึกการเดินทาง (MileLog) ──
     mile: [
-      { key: 'TripID',          label: 'รหัสทริป' },
-      { key: 'วันที่',          label: 'วันที่' },
-      { key: 'ทะเบียน/รถ',     label: 'ทะเบียน/รถ' },
-      { key: 'ชื่อผู้ขับ',     label: 'ผู้ขับ' },
-      { key: 'เวลาออก',        label: 'เวลาออก' },
-      { key: 'เวลากลับ',       label: 'เวลากลับ' },
-      { key: 'เลขไมล์ต้น',    label: 'ไมล์ต้น' },
-      { key: 'เลขไมล์ปลาย',   label: 'ไมล์ปลาย' },
-      { key: 'ระยะทาง(กม.)',   label: 'ระยะทาง (กม.)' },
-      { key: 'จุดหมาย',        label: 'จุดหมาย' },
-      { key: 'วัตถุประสงค์',   label: 'วัตถุประสงค์' },
-      { key: 'fuelLiters',      label: 'น้ำมันที่เติม (ล.)' },
-      { key: 'fuelPrice',       label: 'ราคาน้ำมัน (บ.)' },
-      { key: 'สถานะ',           label: 'สถานะ' },
-      { key: 'timestamp',       label: 'Timestamp' }
+      { key: 'TripID',                label: 'รหัสทริป' },
+      { key: 'วันที่',                label: 'วันที่' },
+      { key: 'ทะเบียน/รถ',           label: 'ทะเบียน/รถ' },
+      { key: 'พนักงานขับรถ',         label: 'ผู้ขับ' },
+      { key: 'เวลาออก',              label: 'เวลาออก' },
+      { key: 'เวลากลับ',             label: 'เวลากลับ' },
+      { key: 'เลขไมล์ต้น',          label: 'ไมล์ต้น' },
+      { key: 'เลขไมล์ปลาย',         label: 'ไมล์ปลาย' },
+      { key: 'ระยะทาง(กม.)',         label: 'ระยะทาง (กม.)' },
+      { key: 'ปลายทาง',              label: 'ปลายทาง' },
+      { key: 'fuelLiters',            label: 'น้ำมันที่เติม (ล.)' },
+      { key: 'fuelPrice',             label: 'ราคาน้ำมัน (บ.)' },
+      { key: 'สถานะ',                 label: 'สถานะ' },
+      { key: 'หมายเหตุ',              label: 'หมายเหตุ' },
+      { key: '__mileDriveLinks',      label: 'ลิงก์ Google Drive', isDriveLink: true, derived: true },
+      { key: 'timestamp',             label: 'Timestamp' }
     ],
+    // ── ตรวจอุปกรณ์ EMS (EMSLog) — เก็บ key เป็นภาษาไทยตาม header จริง ──
     ems: [
-      { key: 'วันที่',       label: 'วันที่' },
-      { key: 'เวลา',         label: 'เวลา' },
-      { key: 'รถ',           label: 'รถ EMS' },
-      { key: 'ผู้ตรวจ',     label: 'ผู้ตรวจ' },
-      { key: 'อุปกรณ์',     label: 'อุปกรณ์' },
-      { key: 'รายละเอียด',  label: 'รายละเอียด' },
-      { key: 'สถานะ',       label: 'สถานะ' },
-      { key: 'timestamp',    label: 'Timestamp' }
-    ],
-    repair: [
-      { key: 'id',            label: 'RepairID' },
-      { key: 'reportDate',    label: 'วันที่แจ้ง' },
-      { key: 'carPlate',      label: 'ทะเบียน' },
-      { key: 'symptom',       label: 'อาการ' },
-      { key: 'repairItems',   label: 'รายการซ่อม' },
-      { key: 'urgency',       label: 'ความเร่งด่วน' },
-      { key: 'repairDest',    label: 'ส่งซ่อมที่' },
-      { key: 'appointDate',   label: 'วันนัด' },
-      { key: 'repairDoneDate',label: 'วันซ่อมเสร็จ' },
-      { key: 'cost',          label: 'ค่าซ่อม (บ.)' },
-      { key: 'status',        label: 'สถานะ' },
-      { key: 'senderName',    label: 'ผู้ส่งซ่อม' },
-      { key: 'remarks',       label: 'หมายเหตุ' },
+      { key: 'วันที่',         label: 'วันที่' },
+      { key: 'เวลา',           label: 'เวลา' },
+      { key: 'รถ EMS',         label: 'รถ EMS' },
+      { key: 'ผู้ตรวจ',       label: 'ผู้ตรวจ' },
+      { key: 'รหัสอุปกรณ์',   label: 'รหัสอุปกรณ์' },
+      { key: 'ชื่ออุปกรณ์',   label: 'ชื่ออุปกรณ์' },
+      { key: 'หมวด',           label: 'หมวด' },
+      { key: 'สถานะ',         label: 'สถานะ' },
+      { key: 'วันหมดอายุ',    label: 'วันหมดอายุ' },
+      { key: 'หมายเหตุ',      label: 'หมายเหตุ' },
+      { key: 'ผลรวม',         label: 'ผลรวม' },
+      { key: 'ผ่าน',          label: 'ผ่าน' },
+      { key: 'ไม่ผ่าน/ขาด/ชำรุด', label: 'ไม่ผ่าน/ขาด/ชำรุด' },
       { key: 'timestamp',     label: 'Timestamp' }
+    ],
+    // ── ซ่อมบำรุง (RepairLog) ──
+    repair: [
+      { key: 'id',             label: 'RepairID' },
+      { key: 'reportDate',     label: 'วันที่แจ้ง' },
+      { key: 'carPlate',       label: 'ทะเบียน' },
+      { key: 'symptom',        label: 'อาการ' },
+      { key: 'repairItems',    label: 'รายการซ่อม' },
+      { key: 'urgency',        label: 'ความเร่งด่วน' },
+      { key: 'repairDest',     label: 'แจ้งซ่อมไปยัง' },
+      { key: 'repairDestName', label: 'ชื่อสถานที่' },
+      { key: 'appointDate',    label: 'วันนัดหมาย' },
+      { key: 'repairInDate',   label: 'วันเข้าซ่อม' },
+      { key: 'pickupDate',     label: 'วันนัดรับ' },
+      { key: 'repairDoneDate', label: 'วันซ่อมเสร็จ' },
+      { key: 'cost',           label: 'ค่าซ่อม (บ.)' },
+      { key: 'status',         label: 'สถานะ' },
+      { key: 'senderName',     label: 'ผู้ส่งซ่อม' },
+      { key: 'senderPhone',    label: 'เบอร์โทรผู้ส่ง' },
+      { key: 'receiverName',   label: 'ผู้รับรถออก' },
+      { key: 'receiverPhone',  label: 'เบอร์โทรผู้รับ' },
+      { key: 'remarks',        label: 'หมายเหตุ' },
+      { key: 'PhotoUrls',      label: 'ลิงก์ Google Drive', isDriveLink: true },
+      { key: 'timestamp',      label: 'Timestamp' }
     ]
   };
   return defs[type] || [];
 }
 
+// รายการ key ของ "รายการตรวจสภาพ" ที่ใช้ค้นหาความผิดปกติ (ตรงกับ STATUS_KEYS ในหน้า dashboard)
+const EXP_STATUS_CHK_KEYS = [
+  'mirror','brake','coolant','suspension','oilLevel','tirePressure',
+  'headlight','taillight','reverseLight','horn','wiper','aircon',
+  'exteriorClean','interiorClean',
+  'o2Level','emergencyLight','siren','stretcherLock','suction','aed'
+];
+
+// คำนวณ "พบปัญหา" / "จำนวนปัญหา" จากรายการ chk_* ที่มีค่า "ผิดปกติ"
+// (เดิม backend ไม่มี field นี้ส่งมาตรงๆ ต้องคำนวณฝั่งหน้าเว็บเช่นเดียวกับที่ dashboard ใช้แสดงผล)
+function expComputeIssue(r) {
+  let count = 0;
+  EXP_STATUS_CHK_KEYS.forEach(function(k) {
+    if (r['chk_' + k] === 'ผิดปกติ') count++;
+  });
+  return { hasIssue: count > 0 ? 'พบปัญหา' : 'ปกติ', issueCount: count };
+}
+
+// รวมลิงก์ Google Drive ทุกคอลัมน์รูปของ MileLog ให้เป็นค่าเดียว (คั่นด้วยขึ้นบรรทัดใหม่)
+function expComputeMileDriveLinks(r) {
+  const urls = [];
+  ['fuelPhotoUrl', 'returnFuelPhotoUrl', 'รูปสภาพรถขาออก', 'รูปสภาพรถขากลับ'].forEach(function(k) {
+    const v = r[k];
+    if (!v) return;
+    String(v).split('\n').forEach(function(u) {
+      u = u.trim();
+      if (u.startsWith('http') && urls.indexOf(u) === -1) urls.push(u);
+    });
+  });
+  return urls.join('\n');
+}
+
 function expCellValue(r, col) {
+  // ── ฟิลด์คำนวณ (derived) ──
+  if (col.key === 'hasIssue' || col.key === 'issueCount') {
+    const computed = expComputeIssue(r);
+    return String(computed[col.key]);
+  }
+  if (col.key === '__mileDriveLinks') {
+    return expComputeMileDriveLinks(r);
+  }
+
   let v = r[col.key];
   if (v === undefined || v === null) v = '';
   if (Array.isArray(v)) v = v.join(', ');
+
+  // ── ลิงก์ Google Drive: ถ้ามีหลายลิงก์ (driveUrls) ให้รวมทุกลิงก์ ไม่ใช่แค่ลิงก์แรก ──
+  if (col.isDriveLink && col.key === 'driveLinks' && Array.isArray(r.driveUrls) && r.driveUrls.length) {
+    v = r.driveUrls.join('\n');
+  }
+
   return String(v);
 }
 
+// ใช้สำหรับตาราง preview เท่านั้น (ตัดให้สั้น ไม่ต้องโชว์ลิงก์เต็ม)
+function expCellPreviewValue(r, col) {
+  const v = expCellValue(r, col);
+  if (col.isDriveLink && v) {
+    const n = v.split('\n').filter(Boolean).length;
+    return n > 1 ? `📎 ${n} ไฟล์` : (v ? '📎 1 ไฟล์' : '');
+  }
+  return v;
+}
+
 // ── Preview Table ──────────────────────────────────────
+function expPreviewEsc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function expRefreshPreview() {
   const rows = expGetFilteredRows();
   const cols = expGetColumns(EXP.selectedCard);
@@ -5436,14 +5541,14 @@ function expRefreshPreview() {
   // Build table
   const visibleCols = cols.slice(0, 8); // show first 8 cols in preview
   let html = '<table><thead><tr>';
-  visibleCols.forEach(function(c) { html += '<th>' + c.label + '</th>'; });
+  visibleCols.forEach(function(c) { html += '<th>' + expPreviewEsc(c.label) + '</th>'; });
   if (cols.length > 8) html += '<th style="opacity:.5">+' + (cols.length - 8) + ' คอลัมน์</th>';
   html += '</tr></thead><tbody>';
   preview.forEach(function(r) {
     html += '<tr>';
     visibleCols.forEach(function(c) {
-      const v = expCellValue(r, c);
-      html += '<td>' + (v.length > 30 ? v.substring(0,30) + '…' : (v || '<span style="opacity:.35">—</span>')) + '</td>';
+      const v = expCellPreviewValue(r, c);
+      html += '<td>' + (v.length > 30 ? expPreviewEsc(v.substring(0,30)) + '…' : (v ? expPreviewEsc(v) : '<span style="opacity:.35">—</span>')) + '</td>';
     });
     if (cols.length > 8) html += '<td style="opacity:.4;font-size:10px;">...</td>';
     html += '</tr>';
