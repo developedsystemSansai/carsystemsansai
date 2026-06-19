@@ -2639,6 +2639,35 @@ function calcDistance() {
 // ════════════════════════════════════════════════════════
 //  SUBMIT
 // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+//  PAYLOAD GUARD — ตรวจสอบก่อนส่งจริง ป้องกัน payload ใหญ่เกิน/รูปย่อไม่เสร็จ
+// ════════════════════════════════════════════════════════
+// เพดานขนาด payload รวม (base64 ทุกรูปรวมกัน) ก่อนส่ง — ตั้งไว้ที่ ~6MB ของ
+// ตัวอักษร base64 (เทียบเท่าไฟล์จริงราว 4.3MB) ให้เผื่อระยะปลอดภัยห่างจากเพดาน
+// จริงของ GAS web app มากพอ (แม้จะไม่มีตัวเลขที่ Google ระบุไว้ชัดเจน) เพราะ
+// payload ยังต้องผ่าน "สองด่าน" คือ Proxy GAS ก่อนต่อไปยัง Backend GAS จริงอีกที
+const PAYLOAD_WARN_BYTES = 6 * 1024 * 1024;
+
+/**
+ * checkPhotosReadyAndSize — ตรวจว่ารูปทุกใบย่อเสร็จแล้ว (ไม่มี status 'compressing')
+ * และขนาด base64 รวมไม่เกินเพดานที่ตั้งไว้ ก่อนอนุญาตให้กดยืนยันบันทึก
+ * @param {Array} photosArr - tripPhotos หรือ returnCarPhotos
+ * @param {string} extraB64 - fuelPhotoB64/returnFuelPhotoB64 (ถ้ามี) รวมเข้าไปคำนวณขนาดด้วย
+ * @returns {{ok: boolean, message: string}}
+ */
+function checkPhotosReadyAndSize(photosArr, extraB64) {
+  const stillCompressing = photosArr.some(p => p.status === 'compressing' || !p.data);
+  if (stillCompressing) {
+    return { ok: false, message: 'กรุณารอให้ระบบย่อขนาดรูปให้เสร็จก่อน (สังเกตไอคอน ↻ บนรูป) แล้วลองอีกครั้ง' };
+  }
+  let totalBytes = (extraB64 || '').length;
+  photosArr.forEach(p => { totalBytes += (p.data || '').length; });
+  if (totalBytes > PAYLOAD_WARN_BYTES) {
+    return { ok: false, message: `ขนาดรูปรวมใหญ่เกินไป (${Math.round(totalBytes/1024/1024)}MB) — กรุณาลบบางรูปออก หรือเลือกรูปที่น้อยลง` };
+  }
+  return { ok: true, message: '' };
+}
+
 function submitStart() {
   const carType    = document.getElementById('s_carType').value.trim();
   const driverName = document.getElementById('s_driverName').value.trim();
@@ -2687,6 +2716,12 @@ function submitStart() {
   const hasFuel = document.getElementById('s_hasFuel').checked;
   if (hasFuel && !fuelPhotoFile) {
     showToast('กรุณาแนบรูปบิลน้ำมันทุกครั้งที่มีการเติมน้ำมัน', 'error'); return;
+  }
+
+  // ── ตรวจสอบ: รูปสภาพรถย่อขนาดเสร็จหรือยัง + ขนาด payload รวมไม่เกินเพดาน ──
+  {
+    const check = checkPhotosReadyAndSize(tripPhotos, hasFuel ? fuelPhotoB64 : '');
+    if (!check.ok) { showToast(check.message, 'error'); return; }
   }
 
   pendingAction = { type: 'start', data: { carType, driverName, tripDate, tripTime,
@@ -2767,6 +2802,12 @@ function submitEnd() {
   const hasReturnFuel = document.getElementById('e_hasFuel').checked;
   if (hasReturnFuel && !returnFuelPhotoFile) {
     showToast('กรุณาแนบรูปบิลน้ำมันทุกครั้งที่มีการเติมน้ำมัน', 'error'); return;
+  }
+
+  // ── ตรวจสอบ: รูปสภาพรถขากลับย่อขนาดเสร็จหรือยัง + ขนาด payload รวมไม่เกินเพดาน ──
+  {
+    const check = checkPhotosReadyAndSize(returnCarPhotos, hasReturnFuel ? returnFuelPhotoB64 : '');
+    if (!check.ok) { showToast(check.message, 'error'); return; }
   }
 
   pendingAction = { type: 'end', data: {
@@ -2851,6 +2892,37 @@ async function doConfirm() {
           const rlinkBox = document.getElementById('returnFuelLinkBox');
           if (rlinkEl)  rlinkEl.href = gasJson.returnFuelPhotoUrl;
           if (rlinkBox) rlinkBox.classList.add('show');
+        }
+
+        // ✅ ตรวจสอบผลอัพโหลดรูปสภาพรถ — log + แจ้งเตือนถ้าจำนวนที่อัพโหลดสำเร็จ
+        // ไม่ตรงกับจำนวนรูปที่เลือกไว้ (เช่น backend ยังไม่ได้ deploy ใหม่ จึงไม่รู้จัก field
+        // tripPhotosB64/returnCarPhotosB64 เลย ทำให้ tripPhotoCount เป็น undefined)
+        if (type === 'start') {
+          const selected = tripPhotos.length;
+          console.log('startMile photo upload result:', {
+            selected, uploaded: gasJson.tripPhotoCount, urls: gasJson.tripPhotoUrls,
+            errors: gasJson.tripPhotoErrors
+          });
+          if (selected > 0 && (gasJson.tripPhotoCount === undefined)) {
+            showToast('⚠️ บันทึกสำเร็จ แต่ backend เวอร์ชันเก่ายังไม่รองรับรูปสภาพรถ (กรุณา deploy Code.gs ใหม่)', 'error', 5000);
+          } else if (selected > 0 && gasJson.tripPhotoCount === 0) {
+            const errMsg = (gasJson.tripPhotoErrors && gasJson.tripPhotoErrors.length)
+              ? gasJson.tripPhotoErrors.join(' / ') : 'ไม่ทราบสาเหตุ';
+            showToast('⚠️ บันทึกสำเร็จ แต่อัพโหลดรูปสภาพรถไม่สำเร็จ: ' + errMsg, 'error', 6000);
+          }
+        } else {
+          const selected = returnCarPhotos.length;
+          console.log('endMile photo upload result:', {
+            selected, uploaded: gasJson.returnCarPhotoCount, urls: gasJson.returnCarPhotoUrls,
+            errors: gasJson.returnCarPhotoErrors
+          });
+          if (selected > 0 && (gasJson.returnCarPhotoCount === undefined)) {
+            showToast('⚠️ บันทึกสำเร็จ แต่ backend เวอร์ชันเก่ายังไม่รองรับรูปสภาพรถขากลับ (กรุณา deploy Code.gs ใหม่)', 'error', 5000);
+          } else if (selected > 0 && gasJson.returnCarPhotoCount === 0) {
+            const errMsg = (gasJson.returnCarPhotoErrors && gasJson.returnCarPhotoErrors.length)
+              ? gasJson.returnCarPhotoErrors.join(' / ') : 'ไม่ทราบสาเหตุ';
+            showToast('⚠️ บันทึกสำเร็จ แต่อัพโหลดรูปสภาพรถขากลับไม่สำเร็จ: ' + errMsg, 'error', 6000);
+          }
         }
       }
     } catch(corsErr) {
@@ -3376,18 +3448,7 @@ function onFuelPhotoSelected() {
 
   fuelPhotoFile = file;
 
-  // แสดง preview local
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    fuelPhotoB64 = e.target.result;
-    const preview = document.getElementById('fuelPhotoPreview');
-    const img     = document.getElementById('fuelPhotoImg');
-    img.src = fuelPhotoB64;
-    preview.style.display = 'block';
-    document.getElementById('fuelFileLabelText').textContent = '✓ ' + file.name;
-  };
-  reader.readAsDataURL(file);
-
+  // ✅ COMPRESSION: ย่อขนาดรูปก่อน preview + เก็บ base64 (ดู compressImageFile)
   // อัปโหลดไป GAS/Drive
   uploadFuelPhoto(file);
 }
@@ -3441,7 +3502,9 @@ function fuelProgressEnd(ok, fileName) {
 }
 
 async function uploadFuelPhoto(file) {
-  // อ่านไฟล์เป็น base64 เพื่อ preview + เก็บไว้ส่งพร้อม startMile
+  // ✅ COMPRESSION: ย่อขนาดรูปด้วย canvas ก่อนแปลงเป็น base64 (ดู compressImageFile)
+  // เพื่อ preview + เก็บไว้ส่งพร้อม startMile โดย payload เล็กลงมาก ลดความเสี่ยง
+  // ที่รูปบิลน้ำมันจะหายไปเพราะ payload ใหญ่เกินไปเช่นเดียวกับรูปสภาพรถ
   // ไม่ pre-upload ก่อน — GAS จะอัพโหลดและเขียน URL ลง sheet พร้อม startMile
   fuelPhotoUrl = '';
   fuelProgressStart(file.name);
@@ -3449,22 +3512,19 @@ async function uploadFuelPhoto(file) {
   if (linkBox) linkBox.classList.remove('show');
 
   try {
-    const dataUrl = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload  = () => res(r.result);
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    });
-    fuelPhotoB64  = dataUrl;   // base64 เต็ม (รวม data:image/...;base64,)
+    const dataUrl = await compressImageFile(file);
+    fuelPhotoB64  = dataUrl;   // base64 หลังย่อขนาด (data:image/jpeg;base64,...)
     fuelPhotoFile = file;
-    fuelPhotoMime = file.type || 'image/jpeg';
+    fuelPhotoMime = 'image/jpeg';
     fuelPhotoName = file.name || ('fuel_' + Date.now() + '.jpg');
 
     // แสดง preview local
     const preview = document.getElementById('fuelPhotoPreview');
     const img     = document.getElementById('fuelPhotoImg');
     if (img) img.src = dataUrl;
-    if (preview) preview.classList.add('show');
+    if (preview) preview.style.display = 'block'; // ✅ FIX: .show class ไม่มี CSS rule รองรับ ใช้ style.display ตรงๆ
+    const labelText = document.getElementById('fuelFileLabelText');
+    if (labelText) labelText.textContent = '✓ ' + file.name;
 
     fuelProgressEnd(true, file.name);   // แสดง ✓ พร้อมแนบรูป
     console.log('[FuelPhoto] ready to upload with startMile:', file.name);
@@ -3533,16 +3593,7 @@ function onReturnFuelPhotoSelected() {
     return;
   }
   returnFuelPhotoFile = file;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    returnFuelPhotoB64 = e.target.result;
-    const preview = document.getElementById('returnFuelPhotoPreview');
-    const img     = document.getElementById('returnFuelPhotoImg');
-    img.src = returnFuelPhotoB64;
-    preview.style.display = 'block';
-    document.getElementById('returnFuelFileLabelText').textContent = '✓ ' + file.name;
-  };
-  reader.readAsDataURL(file);
+  // ✅ COMPRESSION: ย่อขนาดรูปก่อน preview + เก็บ base64 (ดู compressImageFile, uploadReturnFuelPhoto)
   uploadReturnFuelPhoto(file);
 }
 
@@ -3590,25 +3641,23 @@ function returnFuelProgressEnd(ok, fileName) {
 }
 
 async function uploadReturnFuelPhoto(file) {
+  // ✅ COMPRESSION: ย่อขนาดรูปด้วย canvas ก่อนแปลงเป็น base64 (ดู compressImageFile)
   returnFuelPhotoUrl = '';
   returnFuelProgressStart(file.name);
   const linkBox = document.getElementById('returnFuelLinkBox');
   if (linkBox) linkBox.classList.remove('show');
   try {
-    const dataUrl = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload  = () => res(r.result);
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    });
+    const dataUrl = await compressImageFile(file);
     returnFuelPhotoB64  = dataUrl;
     returnFuelPhotoFile = file;
-    returnFuelPhotoMime = file.type || 'image/jpeg';
+    returnFuelPhotoMime = 'image/jpeg';
     returnFuelPhotoName = file.name || ('fuel_return_' + Date.now() + '.jpg');
     const preview = document.getElementById('returnFuelPhotoPreview');
     const img     = document.getElementById('returnFuelPhotoImg');
     if (img) img.src = dataUrl;
-    if (preview) preview.classList.add('show');
+    if (preview) preview.style.display = 'block'; // ✅ FIX: .show class ไม่มี CSS rule รองรับ ใช้ style.display ตรงๆ
+    const labelText = document.getElementById('returnFuelFileLabelText');
+    if (labelText) labelText.textContent = '✓ ' + file.name;
     returnFuelProgressEnd(true, file.name);
   } catch(err) {
     console.warn('uploadReturnFuelPhoto read error:', err);
@@ -3648,6 +3697,86 @@ function showToast(msg, type = '', duration = 3500) {
 }
 
 // ════════════════════════════════════════════════════════
+//  IMAGE COMPRESSION — ย่อรูปก่อนแปลงเป็น base64 (ทุกจุดอัปโหลด)
+// ════════════════════════════════════════════════════════
+// ✅ FIX (root cause ของบัค "รูปสภาพรถไม่เคยถูกบันทึก"):
+// เดิม FileReader.readAsDataURL(file) แปลงรูปต้นฉบับจากกล้องมือถือ (มักมีขนาด
+// 3-10MB/รูป, ความละเอียด 3000-4000px) เป็น base64 ตรงๆ โดยไม่ย่อขนาดเลย แล้วส่ง
+// ไปกับ payload เดียวกับ startMile/endMile ผ่าน fetch() → Proxy GAS → UrlFetchApp
+// → Backend GAS จริง (สอง "ด่าน" ของ Apps Script web app) ซึ่งแต่ละด่านมีเพดานขนาด
+// คำขอ (request body) ที่ GAS จะ parse เป็น e.parameter/e.postData ได้จริงต่ำกว่าที่คิด
+// มากเมื่อเทียบกับรูปถ่ายความละเอียดเต็มหลายรูปรวมกัน (โดยเฉพาะตอนเลือกถ่าย/แนบ
+// รูปสภาพรถหลายรูปพร้อมกันด้วย multiple) — ผลคือ payload ใหญ่เกินไป ทำให้ parse ไม่ผ่าน
+// หรือถูกตัดทอนแบบไม่มี error ชัดเจน → รูปสภาพรถไม่ถูกเขียนลงคอลัมน์ "รูปสภาพรถ" เลย
+// ทั้งที่ผู้ใช้เห็นว่าระบบ "บันทึกสำเร็จ" (เพราะ action อื่นที่ไม่ใช่ startMile/endMile
+// เช่น saveCheck อาจถูกเรียกแทนแบบเงียบๆ จาก default action ของ backend)
+//
+// วิธีแก้ที่ถูกจุด: ย่อขนาดรูปด้วย canvas ก่อนแปลงเป็น base64 ทุกครั้ง (resize ด้านยาว
+// สุดไม่เกิน ~1600px + บีบอัด JPEG quality ~0.72) ทำให้รูปจากกล้องมือถือที่เคย 3-10MB
+// เหลือเพียงหลักร้อย KB ต่อรูป ลดขนาด payload โดยรวมลงได้หลายสิบเท่า ป้องกันปัญหานี้
+// ที่ต้นเหตุ แทนที่จะพยายามเดา/ขยายเพดานของ GAS ซึ่งไม่มีเอกสารระบุตัวเลขชัดเจน
+//
+// ใช้กับทุกจุดที่อ่านไฟล์รูป: รูปสภาพรถขาออก, รูปสภาพรถขากลับ, รูปบิลน้ำมัน,
+// รูปบิลน้ำมันขากลับ — เพื่อให้ทุกจุดอัปโหลดมีความเชื่อถือได้เท่ากัน
+const IMG_MAX_DIMENSION = 1600;   // px ด้านยาวสุดหลังย่อ
+const IMG_JPEG_QUALITY  = 0.72;   // 0-1 คุณภาพ JPEG หลังบีบอัด
+
+/**
+ * compressImageFile — อ่านไฟล์รูป แล้ว resize + บีบอัดผ่าน canvas เป็น JPEG dataURL
+ * คืนค่า dataURL เดิม (ไม่ย่อ) ถ้าเกิด error ใดๆ ระหว่างประมวลผล (เช่น browser
+ * ไม่รองรับ, ไฟล์เสีย) เพื่อไม่ให้ผู้ใช้เสียรูปไปเฉยๆ — แต่ log คำเตือนไว้
+ * @param {File} file
+ * @returns {Promise<string>} dataURL (data:image/jpeg;base64,...)
+ */
+function compressImageFile(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onerror = () => {
+      console.warn('compressImageFile: FileReader error, fallback to original');
+      resolve('');
+    };
+    reader.onload = (e) => {
+      const rawDataUrl = e.target.result;
+      const img = new Image();
+      img.onerror = () => {
+        console.warn('compressImageFile: image decode error — ใช้รูปต้นฉบับ (ไม่ย่อ) สำหรับ ' + file.name);
+        resolve(rawDataUrl);
+      };
+      img.onload = () => {
+        try {
+          let { width, height } = img;
+          const longSide = Math.max(width, height);
+          if (longSide > IMG_MAX_DIMENSION) {
+            const scale = IMG_MAX_DIMENSION / longSide;
+            width  = Math.round(width  * scale);
+            height = Math.round(height * scale);
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width  = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const compressedDataUrl = canvas.toDataURL('image/jpeg', IMG_JPEG_QUALITY);
+          // ป้องกันกรณีย่อแล้วใหญ่กว่าเดิม (ไฟล์ต้นฉบับเล็กอยู่แล้ว) — ใช้ตัวที่เล็กกว่า
+          if (compressedDataUrl.length < rawDataUrl.length) {
+            console.log('compressImageFile: ' + file.name + ' ' +
+              Math.round(rawDataUrl.length/1024) + 'KB → ' + Math.round(compressedDataUrl.length/1024) + 'KB');
+            resolve(compressedDataUrl);
+          } else {
+            resolve(rawDataUrl);
+          }
+        } catch (err) {
+          console.warn('compressImageFile: canvas error, fallback to original:', err.message);
+          resolve(rawDataUrl);
+        }
+      };
+      img.src = rawDataUrl;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ════════════════════════════════════════════════════════
 //  TRIP PHOTOS — ถ่ายรูปสภาพรถก่อนออก (multi-photo)
 // ════════════════════════════════════════════════════════
 let tripPhotos = [];   // { name, data, type, driveUrl, status }
@@ -3676,18 +3805,25 @@ function handleTripPhotos(files) {
   });
   if (!newFiles.length) return;
 
-  // ✅ DEFERRED UPLOAD: เก็บรูปไว้เป็น base64 ใน browser เท่านั้น preview ทันที
+  // ✅ DEFERRED UPLOAD + COMPRESSION: ย่อขนาดรูปด้วย canvas ก่อนเก็บเป็น base64 ใน
+  // browser (ดู compressImageFile ด้านบน) — ลดขนาด payload ที่ต้องส่งผ่าน Proxy →
+  // Backend หลายสิบเท่า ป้องกันปัญหา payload ใหญ่เกินจน parse ไม่ผ่านที่ฝั่ง GAS
+  // (เดิมเป็นสาเหตุที่ "รูปสภาพรถ" ไม่ถูกบันทึกลงชีทแม้บันทึกออกรถสำเร็จ)
   // ไม่อัปโหลดขึ้น Drive จนกว่าจะกดบันทึกออกรถ (submitStart → doConfirm)
-  // ป้องกันรูปค้างจาก "เลือกไว้แล้วเปลี่ยนรถ" หลุดไปติดกับรถคันอื่น เพราะรูปจะถูกส่ง
-  // ไปพร้อม payload เดียวกับการบันทึกจริงเท่านั้น ไม่มีการอัปโหลด/เขียนชีทแยกต่างหากก่อนหน้า
-  newFiles.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'ready' };
-      tripPhotos.push(photo);
-      renderTripPhotoGrid();
-    };
-    reader.readAsDataURL(file);
+  newFiles.forEach(async file => {
+    const placeholder = { name: file.name, data: '', type: 'image/jpeg', driveUrl: '', status: 'compressing' };
+    tripPhotos.push(placeholder);
+    renderTripPhotoGrid();
+    try {
+      const dataUrl = await compressImageFile(file);
+      placeholder.data   = dataUrl;
+      placeholder.type   = 'image/jpeg';
+      placeholder.status = 'ready';
+    } catch (err) {
+      console.warn('handleTripPhotos compress error:', err);
+      placeholder.status = 'err';
+    }
+    renderTripPhotoGrid();
   });
   document.getElementById('s_tripPhoto').value = '';
   document.getElementById('s_tripPhotoGallery').value = '';
@@ -3700,10 +3836,14 @@ function renderTripPhotoGrid() {
   tripPhotos.forEach((p, i) => {
     const div = document.createElement('div');
     div.className = 'photo-thumb-sm';
-    const badgeC = p.status === 'ok' ? 'ok' : p.status === 'uploading' ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
-    const badgeI = p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '!' : '📎';
+    const isCompressing = p.status === 'compressing' || !p.data;
+    const badgeC = p.status === 'ok' ? 'ok' : isCompressing ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
+    const badgeI = p.status === 'ok' ? '✓' : isCompressing ? '↻' : p.status === 'err' ? '!' : '📎';
+    const imgHtml = isCompressing
+      ? `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f1f5f9;font-size:11px;color:var(--text-light);">กำลังย่อรูป...</div>`
+      : `<img src="${p.data}" alt="รูปที่ ${i+1}" onclick="openLb('trip',${i})">`;
     div.innerHTML = `
-      <img src="${p.data}" alt="รูปที่ ${i+1}" onclick="openLb('trip',${i})">
+      ${imgHtml}
       <span class="up-badge ${badgeC}">${badgeI}</span>
       <button class="vw-btn" onclick="openLb('trip',${i})">ดู</button>
       <button class="rm-btn" onclick="removeTripPhoto(${i})" title="ลบ">✕</button>
@@ -3758,16 +3898,23 @@ function handleReturnCarPhotos(files) {
   });
   if (!newFiles.length) return;
 
-  // ✅ DEFERRED UPLOAD: เก็บรูปไว้เป็น base64 ใน browser เท่านั้น preview ทันที
+  // ✅ DEFERRED UPLOAD + COMPRESSION: ย่อขนาดรูปด้วย canvas ก่อนเก็บเป็น base64
+  // (ดู compressImageFile) — ป้องกัน payload ใหญ่เกินจนรูปสภาพรถขากลับไม่ถูกบันทึก
   // ไม่อัปโหลดขึ้น Drive จนกว่าจะกดบันทึกกลับ รพ. (submitEnd → doConfirm)
-  newFiles.forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'ready' };
-      returnCarPhotos.push(photo);
-      renderReturnCarPhotoGrid();
-    };
-    reader.readAsDataURL(file);
+  newFiles.forEach(async file => {
+    const placeholder = { name: file.name, data: '', type: 'image/jpeg', driveUrl: '', status: 'compressing' };
+    returnCarPhotos.push(placeholder);
+    renderReturnCarPhotoGrid();
+    try {
+      const dataUrl = await compressImageFile(file);
+      placeholder.data   = dataUrl;
+      placeholder.type   = 'image/jpeg';
+      placeholder.status = 'ready';
+    } catch (err) {
+      console.warn('handleReturnCarPhotos compress error:', err);
+      placeholder.status = 'err';
+    }
+    renderReturnCarPhotoGrid();
   });
   document.getElementById('e_returnCarPhoto').value        = '';
   document.getElementById('e_returnCarPhotoGallery').value = '';
@@ -3780,11 +3927,15 @@ function renderReturnCarPhotoGrid() {
   returnCarPhotos.forEach((p, i) => {
     const div = document.createElement('div');
     div.className = 'photo-thumb-sm';
-    const badgeC = p.status === 'ok' ? 'ok' : p.status === 'uploading' ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
+    const isCompressing = p.status === 'compressing' || !p.data;
+    const badgeC = p.status === 'ok' ? 'ok' : isCompressing ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
+    const imgHtml = isCompressing
+      ? `<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f1f5f9;font-size:11px;color:var(--text-light);">กำลังย่อรูป...</div>`
+      : `<img src="${p.data}" alt="${p.name}" onclick="openLb('returnCar',${i})" style="cursor:pointer;">`;
     div.innerHTML = `
-      <img src="${p.data}" alt="${p.name}" onclick="openLb('returnCar',${i})" style="cursor:pointer;">
+      ${imgHtml}
       <div class="photo-badge ${badgeC}">
-        ${p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '✕' : '📎'}
+        ${p.status === 'ok' ? '✓' : isCompressing ? '↻' : p.status === 'err' ? '✕' : '📎'}
       </div>
       <button class="photo-remove" onclick="removeReturnCarPhoto(${i})" title="ลบรูป">✕</button>
     `;
