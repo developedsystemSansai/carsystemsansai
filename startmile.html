@@ -2779,8 +2779,16 @@ function submitEnd() {
     returnFuelPhotoB64  : (hasReturnFuel && returnFuelPhotoB64) ? returnFuelPhotoB64 : '',
     returnFuelPhotoMime : (hasReturnFuel && returnFuelPhotoB64) ? (returnFuelPhotoMime || 'image/jpeg') : '',
     returnFuelPhotoName : (hasReturnFuel && returnFuelPhotoB64) ? (returnFuelPhotoName || ('fuel_return_' + Date.now() + '.jpg')) : '',
-    // รูปสภาพรถขากลับ — ส่ง driveUrls ที่อัปโหลดสำเร็จแล้ว
-    returnCarDriveUrls  : returnCarPhotos.filter(p => p.driveUrl).map(p => p.driveUrl)
+    // ✅ DEFERRED UPLOAD: รูปสภาพรถขากลับ — ส่งเป็น base64 ไปพร้อม payload เดียวกับการบันทึก
+    // backend (endMile) จะเป็นผู้อัปโหลดขึ้น Drive เองตอนบันทึกจริงเท่านั้น
+    // (เดิมพยายามส่ง returnCarDriveUrls จาก p.driveUrl แต่หลังเปลี่ยนเป็น deferred upload
+    // ฝั่ง handleReturnCarPhotos() จะไม่ตั้งค่า driveUrl อีกต่อไป ทำให้ returnCarDriveUrls
+    // ว่างเปล่าเสมอ และรูปสภาพรถขากลับไม่เคยถูกอัปโหลด/บันทึกลงชีทเลย)
+    returnCarPhotosB64: returnCarPhotos.map(p => ({
+      data: (p.data || '').replace(/^data:[^;]+;base64,/, ''),
+      mimeType: p.type || 'image/jpeg',
+      fileName: p.name || ('return_' + Date.now() + '.jpg')
+    }))
   }};
 
   const modalDeets = { 'ทะเบียน': plate,
