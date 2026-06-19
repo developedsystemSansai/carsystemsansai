@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SAND · แผงควบคุมภาพรวม — โรงพยาบาลสันทราย</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<!-- SheetJS: ใช้สร้างไฟล์ .xlsx จริงตามมาตรฐาน Office Open XML (แทนวิธี SpreadsheetML เดิมที่ Excel/Google Sheets บางเครื่องเปิดแล้วแจ้งไฟล์เสียหาย) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 /* ════════════════════════════════════════════════════════
    DASHBOARD — UNIFIED THEME (matches index.html)
@@ -5466,6 +5468,11 @@ window.expDownload = function(format) {
 
   if (!rows.length) { alert('ไม่มีข้อมูลที่จะ export'); return; }
 
+  if (format === 'xlsx' && typeof XLSX === 'undefined') {
+    alert('ไม่สามารถโหลดไลบรารีสำหรับสร้างไฟล์ Excel ได้ (ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต) กรุณาลองใหม่ หรือเลือกดาวน์โหลดเป็น CSV แทน');
+    return;
+  }
+
   const loading = document.getElementById('expLoadingIndicator');
   loading.classList.add('show');
 
@@ -5513,89 +5520,117 @@ function expDownloadCSV(rows, cols, addHdr, addBOM, addSum) {
   expTriggerDownload(blob, expFilename('csv'));
 }
 
-// ── XLSX Export (pure JS — no external lib) ───────────
+// ── XLSX Export (SheetJS — สร้างไฟล์ .xlsx จริงตามมาตรฐาน Office Open XML) ───
+// หมายเหตุ: เดิมฟังก์ชันนี้สร้างไฟล์ด้วยวิธี SpreadsheetML (XML) เขียนมือ ซึ่งบางครั้ง
+// Excel / Google Sheets เปิดแล้วแจ้งว่าไฟล์เสียหาย เนื่องจากไม่ใช่รูปแบบ .xlsx ที่ถูกต้องจริง
+// เปลี่ยนมาใช้ไลบรารี SheetJS (โหลดจาก CDN ใน <head>) เพื่อสร้างไฟล์ .xlsx ที่ถูกต้อง 100%
 function expDownloadXLSX(rows, cols, addHdr, addSum) {
-  // Build simple XLSX using SheetJS-style XML (Office Open XML)
-  // เพื่อไม่ต้องพึ่ง CDN: ใช้ CSV-in-XLSX workaround ที่ Excel เปิดได้ถูกต้อง
-  // → ส่ง .xlsx จริงๆ โดย encode เป็น base64 XML workbook
+  if (typeof XLSX === 'undefined') {
+    throw new Error('ไลบรารีสร้างไฟล์ Excel โหลดไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่');
+  }
 
-  const xmlRows = [];
-
+  // ── 1) สร้างข้อมูลแบบ Array-of-Arrays (AOA) ──
+  const aoa = [];
   if (addHdr) {
-    xmlRows.push(cols.map(function(c){ return c.label; }));
+    aoa.push(cols.map(function(c){ return c.label; }));
   }
   rows.forEach(function(r) {
-    xmlRows.push(cols.map(function(c){ return expCellValue(r, c); }));
+    aoa.push(cols.map(function(c){ return expCellForSheet(r, c); }));
   });
 
+  const summaryStartRow = aoa.length; // เก็บตำแหน่งก่อนเริ่มส่วนสรุป (0-indexed)
   if (addSum) {
-    xmlRows.push([]);
-    xmlRows.push(['สรุป','จำนวนแถว', rows.length]);
-    xmlRows.push(['วันที่ Export', new Date().toLocaleDateString('th-TH'), '']);
-    xmlRows.push(['ชุดข้อมูล', EXP.selectedCard, '']);
+    aoa.push([]);
+    aoa.push(['สรุป', 'จำนวนแถว', rows.length]);
+    aoa.push(['วันที่ Export', new Date().toLocaleDateString('th-TH'), '']);
+    aoa.push(['ชุดข้อมูล', expDatasetName(EXP.selectedCard), '']);
   }
 
-  // สร้าง HTML table → เปิดใน Excel ได้พร้อม Thai
-  let table = '<table border="1">';
+  // ── 2) สร้าง worksheet จาก AOA ──
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // ── 3) กำหนดความกว้างคอลัมน์ให้พออ่านง่าย ──
+  ws['!cols'] = cols.map(function(c) {
+    const headerLen = String(c.label || '').length;
+    return { wch: Math.min(Math.max(headerLen + 4, 10), 40) };
+  });
+
+  // ── 4) จัดสไตล์ส่วนหัวตาราง (สีพื้นกรมท่า ตัวอักษรขาวตัวหนา) ──
   if (addHdr) {
-    table += '<tr style="background:#163251;color:#fff;font-weight:bold;">';
-    cols.forEach(function(c){ table += '<th>' + expEscXml(c.label) + '</th>'; });
-    table += '</tr>';
-  }
-  rows.forEach(function(r, ri) {
-    const bg = ri % 2 === 0 ? '' : ' style="background:#f3f6fb;"';
-    table += '<tr' + bg + '>';
-    cols.forEach(function(c){ table += '<td>' + expEscXml(expCellValue(r, c)) + '</td>'; });
-    table += '</tr>';
-  });
-  if (addSum) {
-    table += '<tr><td colspan="' + cols.length + '"></td></tr>';
-    table += '<tr><td><b>สรุป</b></td><td>จำนวนแถว: ' + rows.length + '</td></tr>';
-    table += '<tr><td>วันที่ Export</td><td>' + new Date().toLocaleDateString('th-TH') + '</td></tr>';
-  }
-  table += '</table>';
-
-  const xls = [
-    '<?xml version="1.0" encoding="UTF-8"?>',
-    '<?mso-application progid="Excel.Sheet"?>',
-    '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"',
-    ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">',
-    '<Styles>',
-    '<Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#163251" ss:Pattern="Solid"/></Style>',
-    '<Style ss:ID="e"><Font ss:Bold="1"/><Interior ss:Color="#fdf4dc" ss:Pattern="Solid"/></Style>',
-    '</Styles>',
-    '<Worksheet ss:Name="' + expEscXml(expDatasetName(EXP.selectedCard)) + '">',
-    '<Table>'
-  ].join('');
-
-  let xlsRows = '';
-  xmlRows.forEach(function(row, ri) {
-    const isHdr = addHdr && ri === 0;
-    const isSum = addSum && ri >= (xmlRows.length - 4);
-    xlsRows += '<Row>';
-    row.forEach(function(val) {
-      const isNum = !isNaN(parseFloat(val)) && val !== '' && !/[\/\-]/.test(String(val).substring(4));
-      const styleAttr = isHdr ? ' ss:StyleID="h"' : (isSum ? ' ss:StyleID="e"' : '');
-      const typeAttr  = isNum && !isHdr && !isSum ? ' ss:Type="Number"' : ' ss:Type="String"';
-      xlsRows += '<Cell' + styleAttr + '><Data' + typeAttr + '>' + expEscXml(String(val)) + '</Data></Cell>';
+    cols.forEach(function(c, ci) {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c: ci });
+      if (ws[cellRef]) {
+        ws[cellRef].s = {
+          font: { bold: true, color: { rgb: 'FFFFFF' } },
+          fill: { fgColor: { rgb: '163251' } },
+          alignment: { horizontal: 'center', vertical: 'center' }
+        };
+      }
     });
-    xlsRows += '</Row>';
-  });
+  }
 
-  const xlsEnd = '</Table></Worksheet></Workbook>';
-  const blob = new Blob([xls + xlsRows + xlsEnd], {
-    type: 'application/vnd.ms-excel;charset=UTF-8'
-  });
-  expTriggerDownload(blob, expFilename('xls'));
+  // ── 5) จัดสไตล์ส่วนสรุป (พื้นเหลืองอ่อน ตัวหนา) ──
+  if (addSum) {
+    for (let r = summaryStartRow + 1; r < aoa.length; r++) {
+      for (let c = 0; c < 3; c++) {
+        const cellRef = XLSX.utils.encode_cell({ r: r, c: c });
+        if (ws[cellRef]) {
+          ws[cellRef].s = {
+            font: { bold: true },
+            fill: { fgColor: { rgb: 'FDF4DC' } }
+          };
+        }
+      }
+    }
+  }
+
+  // ── 6) ตรึงแถวหัวตาราง (freeze header row) ──
+  if (addHdr) {
+    ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+    ws['!view']   = [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }];
+  }
+
+  // ── 7) สร้าง workbook แล้วใส่ worksheet ──
+  const wb = XLSX.utils.book_new();
+  const sheetName = expSheetSafeName(expDatasetName(EXP.selectedCard));
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+
+  // ── 8) เขียนไฟล์ .xlsx จริง แล้วดาวน์โหลด ──
+  // ใช้ writeFileXLSX/writeFile ของ SheetJS ซึ่งจัดการ MIME type และการดาวน์โหลดให้ถูกต้องเอง
+  const filename = expFilename('xlsx');
+  if (typeof XLSX.writeFileXLSX === 'function') {
+    XLSX.writeFileXLSX(wb, filename);
+  } else {
+    XLSX.writeFile(wb, filename, { bookType: 'xlsx' });
+  }
 }
 
-function expEscXml(s) {
-  return String(s || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+// แปลงค่าเซลล์ให้เหมาะสมกับชนิดข้อมูลจริงใน Excel (ตัวเลขเป็น Number, ที่เหลือเป็น String)
+// แทนการเดาจาก regex แบบเดิมซึ่งทำให้ทะเบียนรถ/รหัสที่เป็นตัวเลขถูกตีความผิดเป็นตัวเลขบ้าง
+function expCellForSheet(r, col) {
+  let v = r[col.key];
+  if (v === undefined || v === null) return '';
+  if (Array.isArray(v)) return v.join(', ');
+
+  // คอลัมน์ที่ควรเป็นข้อความเสมอ แม้ค่าจะดูเหมือนตัวเลข (เลขทะเบียน, รหัส, เวลา ฯลฯ)
+  const forceTextKeys = ['carType', 'ทะเบียน/รถ', 'carPlate', 'TripID', 'id',
+    'inspTime', 'เวลาออก', 'เวลากลับ', 'เวลา', 'timestamp'];
+  if (forceTextKeys.indexOf(col.key) !== -1) return String(v);
+
+  // ถ้าเป็นตัวเลขล้วนๆ (ไม่มี / หรือ - ปนแบบวันที่) ให้เก็บเป็น Number จริง
+  const s = String(v).trim();
+  if (s !== '' && /^-?\d+(\.\d+)?$/.test(s)) {
+    const n = parseFloat(s);
+    if (!isNaN(n)) return n;
+  }
+  return s;
+}
+
+// ชื่อ sheet ของ Excel ห้ามมีอักขระ \ / ? * [ ] และห้ามยาวเกิน 31 ตัวอักษร
+function expSheetSafeName(name) {
+  return String(name || 'Sheet1')
+    .replace(/[\\/?*\[\]:]/g, ' ')
+    .substring(0, 31) || 'Sheet1';
 }
 
 function expDatasetName(type) {
