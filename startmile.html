@@ -2681,15 +2681,6 @@ function submitStart() {
     showToast('กรุณาแนบรูปบิลน้ำมันทุกครั้งที่มีการเติมน้ำมัน', 'error'); return;
   }
 
-  // ✅ FIX: เตือนถ้ายังมีรูปสภาพรถที่กำลังอัปโหลดอยู่ (ยังไม่เสร็จ)
-  // รูปที่ status='uploading' จะยังไม่มี driveUrl → ถ้า submit ตอนนี้จะหาย
-  // ถ้า pending ≤ 3 วินาที ให้รอต่อ ถ้าเกิน 10 วินาทีแล้วยังค้างให้ submit ไปเลย (backfill ช่วยได้)
-  const uploadingPhotos = tripPhotos.filter(p => p.status === 'uploading');
-  if (uploadingPhotos.length > 0) {
-    showToast(`⏳ กำลังอัปโหลดรูปสภาพรถ ${uploadingPhotos.length} รูป — รอสักครู่แล้วกด "ยืนยัน" อีกครั้ง`, 'error', 3500);
-    return;
-  }
-
   pendingAction = { type: 'start', data: { carType, driverName, tripDate, tripTime,
     destination: dest, odometerStart: odoStart, remarks,
     requestPoints: requestPoints.join(' / '), // จุดขอใช้รถ (อาจมีหลายจุด)
@@ -2700,8 +2691,14 @@ function submitStart() {
     fuelPhotoB64  : (hasFuel && fuelPhotoB64) ? fuelPhotoB64 : '',
     fuelPhotoMime : (hasFuel && fuelPhotoB64) ? (fuelPhotoMime || 'image/jpeg') : '',
     fuelPhotoName : (hasFuel && fuelPhotoB64) ? (fuelPhotoName || ('fuel_' + Date.now() + '.jpg')) : '',
-    // รูปสภาพรถ — ส่ง driveUrls ที่อัปโหลดสำเร็จแล้ว
-    driveUrls: tripPhotos.filter(p => p.driveUrl).map(p => p.driveUrl)
+    // รูปสภาพรถขาออก — ส่ง base64 ทุกรูปไปพร้อมกับ startMile
+    // GAS จะอัปโหลดขึ้น Drive และเขียนลงคอลัมน์ 'รูปสภาพรถขาออก' ทันที
+    driveUrls  : tripPhotos.filter(p => p.driveUrl).map(p => p.driveUrl),
+    tripPhotosB64: tripPhotos.filter(p => p.data).map(p => ({
+      b64     : p.data.replace(/^data:[^;]+;base64,/, ''),
+      mimeType: p.type || 'image/jpeg',
+      fileName: p.name || ('trip_' + Date.now() + '.jpg')
+    }))
   } };
 
   const rpLabel = requestPoints.length > 1
@@ -2821,7 +2818,7 @@ async function doConfirm() {
       if (resp.ok) {
         gasJson = await resp.json().catch(() => ({}));
         if (gasJson.status === 'ok') respOk = true;
-        // รับ URL รูปบิลที่ GAS อัพโหลดสำเร็จ
+        // ✅ รับ URL รูปบิลที่ GAS อัพโหลดสำเร็จ
         if (gasJson.fuelPhotoUrl) {
           data.fuelPhotoUrl = gasJson.fuelPhotoUrl;
           fuelPhotoUrl = gasJson.fuelPhotoUrl;
@@ -2839,13 +2836,6 @@ async function doConfirm() {
           if (rlinkEl)  rlinkEl.href = gasJson.returnFuelPhotoUrl;
           if (rlinkBox) rlinkBox.classList.add('show');
         }
-        // ✅ FIX: backfill รูปสภาพรถก่อนออกที่อัปโหลดก่อน startMile
-        // (tripId ว่างตอนอัปโหลด → needsBackfill=true → ส่ง tripId ที่ได้จาก GAS มา write ลง Sheet)
-        if (type === 'start' && gasJson.tripId) {
-          backfillTripPhotos(gasJson.tripId, data.carType).catch(e => {
-            console.warn('backfillTripPhotos failed:', e);
-          });
-        }
       }
     } catch(corsErr) {
       console.warn('doConfirm error:', corsErr.message);
@@ -2862,6 +2852,24 @@ async function doConfirm() {
         clearAllReturnCarPhotos();
         removeReturnFuelPhoto();
       } else {
+        // ✅ FIX: link รูปที่ pre-upload ไว้แล้ว → เขียนลง MileLog ด้วย tripId ที่เพิ่งได้
+        if (gasJson.tripId) {
+          const preUploaded = tripPhotos.filter(p => p.driveUrl && p.status === 'ok');
+          for (const p of preUploaded) {
+            try {
+              await fetch(GAS_URL, {
+                method : 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body   : 'payload=' + encodeURIComponent(JSON.stringify({
+                  action  : 'linkTripPhoto',
+                  tripId  : gasJson.tripId,
+                  carType : data.carType || '',
+                  driveUrl: p.driveUrl
+                }))
+              });
+            } catch(le) { console.warn('linkTripPhoto error:', le); }
+          }
+        }
         // ✅ FIX: reset ทั้ง array + counters + progress UI ให้ครบ
         // ป้องกัน driveUrl เก่าติดไปกับทริปถัดไปเมื่อหน้ายัง reload ไม่ทัน
         tripPhotos = [];
@@ -3771,114 +3779,56 @@ function handleTripPhotos(files) {
 }
 
 async function uploadTripPhoto(photo) {
-  photo.status = 'uploading';
+  photo.status  = 'uploading';
+  photo.carType = document.getElementById('s_carType')?.value || '';
   renderTripPhotoGrid();
+
+  if (!GAS_URL || GAS_URL.includes('YOUR_GOOGLE')) {
+    // dev mode — เก็บ base64 รอส่งพร้อม startMile
+    photo.status = 'ready';
+    renderTripPhotoGrid();
+    tripProgressDone(true, photo.name);
+    showToast('✓ เลือกรูปสภาพรถแล้ว (จะบันทึกพร้อมการออกรถ)', 'success', 2000);
+    return;
+  }
+
   try {
-    const carType = document.getElementById('s_carType')?.value || '';
-    const today   = new Date().toISOString().slice(0, 10);
-    const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
-
-    // ✅ ส่ง tripId ของทริปที่กำลังใช้งานไปด้วย (ถ้ามี)
-    // กรณีรูปสภาพรถก่อนออก: อัปโหลดก่อน startMile → tripId มักว่างเปล่า
-    // → GAS จะหา row ที่ สถานะ='กำลังใช้งาน' ซึ่งยังไม่มีอยู่
-    // → รูปจะ upload ขึ้น Drive สำเร็จ แต่ยังไม่ถูกเขียนลง Sheet
-    // → ตั้ง photo.needsBackfill = true เพื่อให้ backfillTripPhotos() จัดการหลัง startMile สำเร็จ
-    const plate = carType.split(' ')[0].trim();
-    const trip  = Object.values(activeTripMap || {}).find(t => {
-      const tp = String(t.carType || '').split(' ')[0].trim();
-      return tp === plate || tp.includes(plate) || plate.includes(tp);
-    });
-    const tripId = trip?.tripId || '';
-
+    const carType = photo.carType;
+    const b64     = photo.data.replace(/^data:[^;]+;base64,/, '');
     const uploadPayload = JSON.stringify({
       action    : 'uploadPhotoPost',
       subFolder : 'TripPhotos',
-      fileName  : photo.name || ('trip_' + Date.now() + '.jpg'),
+      fileName  : 'trip_out_' + Date.now() + '_' + (photo.name || 'photo.jpg'),
       mimeType  : photo.type || 'image/jpeg',
       base64Data: b64,
-      carType   : carType,
-      tripId    : tripId,
-      inspDate  : today
+      carType   : carType
+      // ยังไม่มี tripId ตอนนี้ — จะ linkTripPhoto อีกครั้งหลัง startMile สำเร็จ
     });
-    photo.tripId   = tripId;
-    photo.carType  = carType;
     const resp = await fetch(GAS_URL, {
       method : 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body   : 'payload=' + encodeURIComponent(uploadPayload)
     });
     if (resp.ok) {
-      const data = await resp.json();
-      if (data.status === 'ok' && data.url) {
-        photo.driveUrl = data.url;
+      const result = await resp.json().catch(() => ({}));
+      if (result.status === 'ok' && result.url) {
+        photo.driveUrl = result.url;
         photo.status   = 'ok';
-        // ถ้าไม่มี tripId ตอนอัปโหลด → ต้องรอ backfill หลัง startMile สำเร็จ
-        if (!tripId) {
-          photo.needsBackfill = true;
-          console.log('uploadTripPhoto: รูปอัปโหลดสำเร็จ แต่ยังไม่มี tripId — จะ backfill หลัง startMile');
-        }
-        showToast('✓ อัปโหลดรูปสภาพรถสำเร็จ', 'success');
         renderTripPhotoGrid();
         renderTripDriveLinks();
         tripProgressDone(true, photo.name);
+        showToast('✓ อัปโหลดรูปขาออกสำเร็จ', 'success', 2000);
         return;
       }
     }
-    photo.status = 'err';
-  } catch(e) {
-    photo.status = 'err';
-    console.warn('uploadTripPhoto:', e);
-  }
-  renderTripPhotoGrid();
-  tripProgressDone(false, photo.name);
-}
-
-/**
- * backfillTripPhotos — เรียกหลัง startMile สำเร็จ เพื่อเขียน URL รูปสภาพรถลง Sheet
- * สำหรับรูปที่ needsBackfill=true (อัปโหลดก่อน tripId ถูกสร้าง)
- */
-async function backfillTripPhotos(tripId, carType) {
-  if (!tripId) return;
-  const needBackfill = tripPhotos.filter(p => p.needsBackfill && p.driveUrl);
-  if (!needBackfill.length) return;
-  console.log('backfillTripPhotos: ' + needBackfill.length + ' รูป → tripId=' + tripId);
-  for (const photo of needBackfill) {
-    try {
-      const bp = JSON.stringify({
-        action    : 'uploadPhotoPost',
-        subFolder : 'TripPhotos',
-        fileName  : photo.name || 'backfill.jpg',
-        mimeType  : photo.type || 'image/jpeg',
-        base64Data: photo.driveUrl,   // ส่ง URL แทน base64 ไม่ได้ — ใช้ action แยก
-        carType   : carType || photo.carType || '',
-        tripId    : tripId,
-        inspDate  : new Date().toISOString().slice(0,10)
-      });
-      // ✅ ใช้ action 'linkTripPhoto' แทน — เพื่อให้ GAS เขียน URL ที่มีอยู่แล้วลง Sheet
-      // โดยไม่ต้องส่ง base64 ซ้ำ (ประหยัด bandwidth)
-      const linkPayload = JSON.stringify({
-        action   : 'linkTripPhoto',
-        tripId   : tripId,
-        carType  : carType || photo.carType || '',
-        driveUrl : photo.driveUrl
-      });
-      const resp = await fetch(GAS_URL, {
-        method : 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body   : 'payload=' + encodeURIComponent(linkPayload)
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data.status === 'ok') {
-          photo.needsBackfill = false;
-          console.log('backfillTripPhotos: ✅ เขียน URL สำเร็จ → ' + photo.driveUrl);
-        } else {
-          console.warn('backfillTripPhotos: GAS ตอบ error:', data.message);
-        }
-      }
-    } catch(e) {
-      console.warn('backfillTripPhotos error:', e);
-    }
+    throw new Error('upload response not ok');
+  } catch (err) {
+    console.warn('uploadTripPhoto pre-upload error:', err);
+    // fallback — เก็บ base64 ส่งพร้อม startMile แทน
+    photo.status = 'ready';
+    renderTripPhotoGrid();
+    tripProgressDone(true, photo.name);
+    showToast('✓ เลือกรูปแล้ว (จะบันทึกพร้อมการออกรถ)', 'info', 2000);
   }
 }
 
@@ -3889,8 +3839,8 @@ function renderTripPhotoGrid() {
   tripPhotos.forEach((p, i) => {
     const div = document.createElement('div');
     div.className = 'photo-thumb-sm';
-    const badgeC = p.status === 'ok' ? 'ok' : p.status === 'uploading' ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
-    const badgeI = p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '!' : '…';
+    const badgeC = (p.status === 'ok' || p.status === 'ready') ? 'ok' : p.status === 'uploading' ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
+    const badgeI = (p.status === 'ok' || p.status === 'ready') ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '!' : '…';
     div.innerHTML = `
       <img src="${p.data}" alt="รูปที่ ${i+1}" onclick="openLb('trip',${i})">
       <span class="up-badge ${badgeC}">${badgeI}</span>
