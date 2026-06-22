@@ -2667,6 +2667,15 @@ function submitStart() {
     showToast('กรุณาแนบรูปบิลน้ำมันทุกครั้งที่มีการเติมน้ำมัน', 'error'); return;
   }
 
+  // ✅ FIX: เตือนถ้ายังมีรูปสภาพรถที่กำลังอัปโหลดอยู่ (ยังไม่เสร็จ)
+  // รูปที่ status='uploading' จะยังไม่มี driveUrl → ถ้า submit ตอนนี้จะหาย
+  // ถ้า pending ≤ 3 วินาที ให้รอต่อ ถ้าเกิน 10 วินาทีแล้วยังค้างให้ submit ไปเลย (backfill ช่วยได้)
+  const uploadingPhotos = tripPhotos.filter(p => p.status === 'uploading');
+  if (uploadingPhotos.length > 0) {
+    showToast(`⏳ กำลังอัปโหลดรูปสภาพรถ ${uploadingPhotos.length} รูป — รอสักครู่แล้วกด "ยืนยัน" อีกครั้ง`, 'error', 3500);
+    return;
+  }
+
   pendingAction = { type: 'start', data: { carType, driverName, tripDate, tripTime,
     destination: dest, odometerStart: odoStart, remarks,
     requestPoints: requestPoints.join(' / '), // จุดขอใช้รถ (อาจมีหลายจุด)
@@ -2815,6 +2824,13 @@ async function doConfirm() {
           const rlinkBox = document.getElementById('returnFuelLinkBox');
           if (rlinkEl)  rlinkEl.href = gasJson.returnFuelPhotoUrl;
           if (rlinkBox) rlinkBox.classList.add('show');
+        }
+        // ✅ FIX: backfill รูปสภาพรถก่อนออกที่อัปโหลดก่อน startMile
+        // (tripId ว่างตอนอัปโหลด → needsBackfill=true → ส่ง tripId ที่ได้จาก GAS มา write ลง Sheet)
+        if (type === 'start' && gasJson.tripId) {
+          backfillTripPhotos(gasJson.tripId, data.carType).catch(e => {
+            console.warn('backfillTripPhotos failed:', e);
+          });
         }
       }
     } catch(corsErr) {
@@ -3748,8 +3764,11 @@ async function uploadTripPhoto(photo) {
     const today   = new Date().toISOString().slice(0, 10);
     const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
 
-    // ✅ FIX: ส่ง tripId ของทริปที่กำลังใช้งานไปด้วย เพื่อให้ GAS
-    // เขียนรูปลงแถวที่ถูกต้องเสมอ ไม่ fallback ไปจับแถวเก่าของรถคันเดิม
+    // ✅ ส่ง tripId ของทริปที่กำลังใช้งานไปด้วย (ถ้ามี)
+    // กรณีรูปสภาพรถก่อนออก: อัปโหลดก่อน startMile → tripId มักว่างเปล่า
+    // → GAS จะหา row ที่ สถานะ='กำลังใช้งาน' ซึ่งยังไม่มีอยู่
+    // → รูปจะ upload ขึ้น Drive สำเร็จ แต่ยังไม่ถูกเขียนลง Sheet
+    // → ตั้ง photo.needsBackfill = true เพื่อให้ backfillTripPhotos() จัดการหลัง startMile สำเร็จ
     const plate = carType.split(' ')[0].trim();
     const trip  = Object.values(activeTripMap || {}).find(t => {
       const tp = String(t.carType || '').split(' ')[0].trim();
@@ -3764,11 +3783,11 @@ async function uploadTripPhoto(photo) {
       mimeType  : photo.type || 'image/jpeg',
       base64Data: b64,
       carType   : carType,
-      tripId    : tripId,   // ✅ ระบุทริปให้ชัดเจน
+      tripId    : tripId,
       inspDate  : today
     });
-    // ✅ FIX: บันทึก tripId ลงใน photo object ด้วย เพื่อให้ guard ตรวจสอบได้
-    photo.tripId = tripId;
+    photo.tripId   = tripId;
+    photo.carType  = carType;
     const resp = await fetch(GAS_URL, {
       method : 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -3779,6 +3798,11 @@ async function uploadTripPhoto(photo) {
       if (data.status === 'ok' && data.url) {
         photo.driveUrl = data.url;
         photo.status   = 'ok';
+        // ถ้าไม่มี tripId ตอนอัปโหลด → ต้องรอ backfill หลัง startMile สำเร็จ
+        if (!tripId) {
+          photo.needsBackfill = true;
+          console.log('uploadTripPhoto: รูปอัปโหลดสำเร็จ แต่ยังไม่มี tripId — จะ backfill หลัง startMile');
+        }
         showToast('✓ อัปโหลดรูปสภาพรถสำเร็จ', 'success');
         renderTripPhotoGrid();
         renderTripDriveLinks();
@@ -3793,6 +3817,55 @@ async function uploadTripPhoto(photo) {
   }
   renderTripPhotoGrid();
   tripProgressDone(false, photo.name);
+}
+
+/**
+ * backfillTripPhotos — เรียกหลัง startMile สำเร็จ เพื่อเขียน URL รูปสภาพรถลง Sheet
+ * สำหรับรูปที่ needsBackfill=true (อัปโหลดก่อน tripId ถูกสร้าง)
+ */
+async function backfillTripPhotos(tripId, carType) {
+  if (!tripId) return;
+  const needBackfill = tripPhotos.filter(p => p.needsBackfill && p.driveUrl);
+  if (!needBackfill.length) return;
+  console.log('backfillTripPhotos: ' + needBackfill.length + ' รูป → tripId=' + tripId);
+  for (const photo of needBackfill) {
+    try {
+      const bp = JSON.stringify({
+        action    : 'uploadPhotoPost',
+        subFolder : 'TripPhotos',
+        fileName  : photo.name || 'backfill.jpg',
+        mimeType  : photo.type || 'image/jpeg',
+        base64Data: photo.driveUrl,   // ส่ง URL แทน base64 ไม่ได้ — ใช้ action แยก
+        carType   : carType || photo.carType || '',
+        tripId    : tripId,
+        inspDate  : new Date().toISOString().slice(0,10)
+      });
+      // ✅ ใช้ action 'linkTripPhoto' แทน — เพื่อให้ GAS เขียน URL ที่มีอยู่แล้วลง Sheet
+      // โดยไม่ต้องส่ง base64 ซ้ำ (ประหยัด bandwidth)
+      const linkPayload = JSON.stringify({
+        action   : 'linkTripPhoto',
+        tripId   : tripId,
+        carType  : carType || photo.carType || '',
+        driveUrl : photo.driveUrl
+      });
+      const resp = await fetch(GAS_URL, {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body   : 'payload=' + encodeURIComponent(linkPayload)
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data.status === 'ok') {
+          photo.needsBackfill = false;
+          console.log('backfillTripPhotos: ✅ เขียน URL สำเร็จ → ' + photo.driveUrl);
+        } else {
+          console.warn('backfillTripPhotos: GAS ตอบ error:', data.message);
+        }
+      }
+    } catch(e) {
+      console.warn('backfillTripPhotos error:', e);
+    }
+  }
 }
 
 function renderTripPhotoGrid() {
