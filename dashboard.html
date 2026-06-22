@@ -3557,16 +3557,32 @@ function renderFuelTrackerFromCheckLog() {
     const nd = r._normDate || normalizeInspDate(r.inspDate || r.timestamp || '');
     return nd === todayStr;
   });
+  // ✅ FIX: cross-match รูปบิลน้ำมันจาก _mileLogToday เพื่อให้ card แสดงรูปได้
+  const mileFuelPhotoMap = {};
+  (_mileLogToday || []).forEach(r => {
+    const plate = String(r['\u0e17\u0e30\u0e40บียน/รถ'] || r['carType'] || '').split(' ')[0].trim();
+    if (!plate) return;
+    const outUrl = extractDriveUrl(r['fuelPhotoUrl']) || extractDriveUrl(r['รูปบิลน้ำมันออกรถ']) || extractDriveUrl(r['รูปบิลน้ำมัน']);
+    const retUrl = extractDriveUrl(r['returnFuelPhotoUrl']) || extractDriveUrl(r['รูปบิลน้ำมันขากลับ']);
+    if (outUrl || retUrl) mileFuelPhotoMap[plate] = { fuelPhotoUrl: outUrl, returnFuelPhotoUrl: retUrl };
+  });
+
   const fakeJson = {
     todayFueled: todayRecords
       .filter(r => r.fuelFill === 'เติม')
-      .map(r => ({
-        carType: r.carType || '',
-        fuelLevel: r.fuelLevel || '',
-        driverName: r.driverName || '',
-        time: r.inspTime || '',
-        source: 'check',
-      })),
+      .map(r => {
+        const plate = (r.carType || '').split(' ')[0].trim();
+        const mp = mileFuelPhotoMap[plate] || {};
+        return {
+          carType            : r.carType || '',
+          fuelLevel          : r.fuelLevel || '',
+          driverName         : r.driverName || '',
+          time               : r.inspTime || '',
+          source             : 'check',
+          fuelPhotoUrl       : mp.fuelPhotoUrl || '',
+          returnFuelPhotoUrl : mp.returnFuelPhotoUrl || '',
+        };
+      }),
   };
   renderFuelTracker(fakeJson);
   // อัปเดต KPI
@@ -3692,7 +3708,8 @@ function renderFuelTrackerFromMileLog() {
   const todayStr = bkkDateStr();
   // กรอง MileLog วันนี้ที่มีการเติมน้ำมัน (น้ำมันที่เติม(ลิตร) มีค่า หรือ = 'ใช่')
   const todayFueled = [];
-  const seenPlate = new Set();
+  const seenPlate = new Set(); // kept for backward compat
+  const plateFuelAccum = {}; // ✅ FIX: plate → accumulated fuel info (merge ทุก trip)
 
   // helper: แกะ URL จาก plain URL หรือ =HYPERLINK formula
   function extractDriveUrl(val) {
@@ -3719,17 +3736,33 @@ function renderFuelTrackerFromMileLog() {
                         || '';
     if (!hasFuelVal && !hasAutoMarker && !outPhotoUrl && !returnPhotoUrl) return;
     const plate = (String(r['ทะเบียน/รถ'] || r['carType'] || '')).split(' ')[0].trim();
-    if (!plate || seenPlate.has(plate)) return;
-    seenPlate.add(plate);
+    // ✅ FIX: accumulate รูปข้าม trip คู่เดียวกัน (ขาไป+ขากลับ)
+    if (!plateFuelAccum[plate]) {
+      plateFuelAccum[plate] = {
+        carType   : r['ทะเบียน/รถ'] || r['carType'] || plate,
+        driverName: r['พนักงานขับรถ'] || '',
+        time      : extractTimeOnly(r['เวลาออก'] || ''),
+        fuelLiters: hasFuelVal ? hasFuel : '',
+        fuelPrice : String(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || ''),
+        outUrl    : outPhotoUrl,
+        retUrl    : returnPhotoUrl,
+      };
+    } else {
+      if (!plateFuelAccum[plate].outUrl && outPhotoUrl) plateFuelAccum[plate].outUrl = outPhotoUrl;
+      if (!plateFuelAccum[plate].retUrl && returnPhotoUrl) plateFuelAccum[plate].retUrl = returnPhotoUrl;
+      if (!plateFuelAccum[plate].fuelLiters && hasFuelVal) plateFuelAccum[plate].fuelLiters = hasFuel;
+    }
+  });
+  Object.values(plateFuelAccum).forEach(acc => {
     todayFueled.push({
-      carType            : r['ทะเบียน/รถ'] || r['carType'] || plate,
-      driverName         : r['พนักงานขับรถ'] || '',
-      time               : extractTimeOnly(r['เวลาออก'] || ''),
+      carType            : acc.carType,
+      driverName         : acc.driverName,
+      time               : acc.time,
       fuelLevel          : '',
-      fuelLiters         : hasFuelVal ? hasFuel : '',
-      fuelPrice          : String(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || ''),
-      fuelPhotoUrl       : outPhotoUrl,       // รูปบิลน้ำมัน ขาไป
-      returnFuelPhotoUrl : returnPhotoUrl,    // รูปบิลน้ำมัน ขากลับ
+      fuelLiters         : acc.fuelLiters,
+      fuelPrice          : acc.fuelPrice,
+      fuelPhotoUrl       : acc.outUrl,
+      returnFuelPhotoUrl : acc.retUrl,
       source             : 'mile'
     });
   });
