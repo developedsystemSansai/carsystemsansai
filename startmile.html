@@ -2691,10 +2691,16 @@ function submitStart() {
     fuelPhotoB64  : (hasFuel && fuelPhotoB64) ? fuelPhotoB64 : '',
     fuelPhotoMime : (hasFuel && fuelPhotoB64) ? (fuelPhotoMime || 'image/jpeg') : '',
     fuelPhotoName : (hasFuel && fuelPhotoB64) ? (fuelPhotoName || ('fuel_' + Date.now() + '.jpg')) : '',
-    // รูปสภาพรถขาออก — ส่ง base64 ทุกรูปไปพร้อมกับ startMile
-    // GAS จะอัปโหลดขึ้น Drive และเขียนลงคอลัมน์ 'รูปสภาพรถขาออก' ทันที
-    driveUrls  : tripPhotos.filter(p => p.driveUrl).map(p => p.driveUrl),
-    tripPhotosB64: tripPhotos.filter(p => p.data).map(p => ({
+    // รูปสภาพรถขาออก
+    // ✅ FIX: เดิม tripPhotosB64 ส่ง "ทุกรูปที่มี .data" ซึ่งรวมรูปที่ pre-upload
+    // สำเร็จไปแล้วด้วย (driveUrl มีค่าแล้ว แต่ .data ไม่เคยถูกล้าง เพราะ UI ยังใช้
+    // .data แสดง thumbnail/lightbox อยู่) ผลคือ startMile ใน GAS จะอัปโหลดรูปเดิม
+    // ขึ้น Drive ซ้ำอีกรอบ กลายเป็นไฟล์ซ้ำ + ลิงก์ซ้ำในคอลัมน์ 'รูปสภาพรถขาออก'
+    // และ payload ใหญ่ขึ้นเปล่าๆ (เสี่ยงเกิน limit ของ GAS/proxy)
+    // ใหม่: driveUrls = รูปที่อัปโหลดสำเร็จแล้ว (status 'ok' เท่านั้น)
+    //       tripPhotosB64 = เฉพาะรูปที่ "ยังไม่มี driveUrl" เท่านั้น (pre-upload ล้มเหลว/ยังไม่ได้ลอง)
+    driveUrls  : tripPhotos.filter(p => p.driveUrl && p.status === 'ok').map(p => p.driveUrl),
+    tripPhotosB64: tripPhotos.filter(p => p.data && !p.driveUrl).map(p => ({
       b64     : p.data.replace(/^data:[^;]+;base64,/, ''),
       mimeType: p.type || 'image/jpeg',
       fileName: p.name || ('trip_' + Date.now() + '.jpg')
