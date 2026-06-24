@@ -2631,7 +2631,23 @@ function calcDistance() {
 // ════════════════════════════════════════════════════════
 //  SUBMIT
 // ════════════════════════════════════════════════════════
-function submitStart() {
+async function submitStart() {
+  // ✅ FIX: ป้องกันบัค "รูปขาออกหาย" — ถ้ายังมีรูปที่กำลังอ่านไฟล์ (FileReader)
+  // หรือกำลังอัปโหลดอยู่ ต้องรอให้เสร็จก่อน ไม่ปล่อยให้ submit ไปอ่าน tripPhotos[]
+  // ในจังหวะที่รูปยังไม่ถูกเพิ่มเข้า array (เคสทริประยะสั้นที่กดยืนยันเร็วมาก
+  // จนรูปหายไปเงียบๆ โดยไม่มี error ใดๆ)
+  if (isTripPhotoPipelineBusy()) {
+    const startBtn = document.getElementById('startBtn');
+    if (startBtn) startBtn.disabled = true;
+    showToast('⏳ กำลังอัปโหลดรูปสภาพรถ กรุณารอสักครู่...', 'info', 4000);
+    const settled = await waitForTripPhotoPipeline(15000);
+    if (startBtn) startBtn.disabled = false;
+    if (!settled) {
+      showToast('⚠ การอัปโหลดรูปใช้เวลานานเกินไป — กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองกดยืนยันอีกครั้ง', 'error', 5000);
+      return;
+    }
+  }
+
   const carType    = document.getElementById('s_carType').value.trim();
   const driverName = document.getElementById('s_driverName').value.trim();
   const tripDate   = document.getElementById('s_tripDate').value;
@@ -2729,7 +2745,20 @@ function submitStart() {
   );
 }
 
-function submitEnd() {
+async function submitEnd() {
+  // ✅ FIX: รอ pipeline รูปสภาพรถขากลับให้เสร็จก่อน (กันรูปหายแบบเดียวกับรูปขาออก)
+  if (isReturnCarPhotoPipelineBusy()) {
+    const endBtn = document.getElementById('endBtn');
+    if (endBtn) endBtn.disabled = true;
+    showToast('⏳ กำลังอัปโหลดรูปสภาพรถขากลับ กรุณารอสักครู่...', 'info', 4000);
+    const settled = await waitForReturnCarPhotoPipeline(15000);
+    if (endBtn) endBtn.disabled = false;
+    if (!settled) {
+      showToast('⚠ การอัปโหลดรูปใช้เวลานานเกินไป — กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองกดยืนยันอีกครั้ง', 'error', 5000);
+      return;
+    }
+  }
+
   const carType   = document.getElementById('e_carType').value.trim();
   const retTime   = document.getElementById('e_returnTime').value;
   const odoEnd    = Number(document.getElementById('e_odometerEnd').value);
@@ -3679,6 +3708,32 @@ window.addEventListener('beforeunload', function(e) {
   }
 });
 
+// ✅ FIX: ป้องกันบัค "รูปขาออกหาย" — ก่อนหน้านี้ submitStart() อ่าน tripPhotos[]
+// ทันทีตอนกดปุ่ม โดยไม่รอ FileReader.readAsDataURL() (async) อ่านไฟล์เสร็จก่อน
+// ถ้าผู้ใช้กดยืนยันเร็วมาก (เช่น ทริประยะสั้น ออก-กลับใน 1 นาที) รูปที่เพิ่งเลือก
+// อาจยังไม่ถูก push เข้า tripPhotos[] เลย → หายไปเงียบๆ ไม่มี error ใดๆแจ้งผู้ใช้
+// _pendingTripPhotoReads นับจำนวนไฟล์ที่กำลังอยู่ในขั้น FileReader (ยังไม่ถูก push)
+let _pendingTripPhotoReads = 0;
+
+// ตรวจว่า pipeline รูปขาออกทั้งหมด "เสร็จสมบูรณ์" หรือยัง
+// (ไม่มีไฟล์ที่กำลังอ่าน + ไม่มีรูปที่ status เป็น 'pending'/'uploading')
+function isTripPhotoPipelineBusy() {
+  if (_pendingTripPhotoReads > 0) return true;
+  return tripPhotos.some(function(p) { return p.status === 'pending' || p.status === 'uploading'; });
+}
+
+// รอจน pipeline รูปขาออกเสร็จสมบูรณ์ (มี timeout กันค้างถ้าเน็ตหลุดจริงๆ)
+// คืนค่า true = เสร็จปกติ, false = timeout (ให้ caller ตัดสินใจว่าจะดำเนินการต่อหรือไม่)
+async function waitForTripPhotoPipeline(timeoutMs) {
+  timeoutMs = timeoutMs || 15000;
+  const start = Date.now();
+  while (isTripPhotoPipelineBusy()) {
+    if (Date.now() - start > timeoutMs) return false;
+    await new Promise(function(r) { setTimeout(r, 200); });
+  }
+  return true;
+}
+
 // ── TRIP PHOTO UPLOAD PROGRESS HELPERS ───────────────────
 let _tripUploadTotal = 0;
 let _tripUploadDone  = 0;
@@ -3768,8 +3823,10 @@ function handleTripPhotos(files) {
   }
 
   newFiles.forEach(file => {
+    _pendingTripPhotoReads++;
     const reader = new FileReader();
     reader.onload = e => {
+      _pendingTripPhotoReads--;
       const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
       tripPhotos.push(photo);
       renderTripPhotoGrid();
@@ -3777,6 +3834,10 @@ function handleTripPhotos(files) {
         tripProgressShow(file.name);
         uploadTripPhoto(photo);
       }
+    };
+    reader.onerror = () => {
+      _pendingTripPhotoReads--;
+      showToast('⚠ อ่านไฟล์รูป "' + file.name + '" ไม่สำเร็จ', 'error');
     };
     reader.readAsDataURL(file);
   });
@@ -3888,6 +3949,22 @@ let _lastEndCarPlate = '';  // ✅ FIX: ติดตามทะเบียน�
 let _returnCarUploadTotal = 0;
 let _returnCarUploadDone  = 0;
 
+// ✅ FIX: เช่นเดียวกับ tripPhotos — กันบัครูปขากลับหายถ้ากดยืนยันเร็วเกินไป
+let _pendingReturnCarPhotoReads = 0;
+function isReturnCarPhotoPipelineBusy() {
+  if (_pendingReturnCarPhotoReads > 0) return true;
+  return returnCarPhotos.some(function(p) { return p.status === 'pending' || p.status === 'uploading'; });
+}
+async function waitForReturnCarPhotoPipeline(timeoutMs) {
+  timeoutMs = timeoutMs || 15000;
+  const start = Date.now();
+  while (isReturnCarPhotoPipelineBusy()) {
+    if (Date.now() - start > timeoutMs) return false;
+    await new Promise(function(r) { setTimeout(r, 200); });
+  }
+  return true;
+}
+
 function returnCarProgressShow(fileName) {
   setUploadActive(true);
   const wrap = document.getElementById('returnCarUploadProgress');
@@ -3950,8 +4027,10 @@ function handleReturnCarPhotos(files) {
   }
 
   newFiles.forEach(file => {
+    _pendingReturnCarPhotoReads++;
     const reader = new FileReader();
     reader.onload = e => {
+      _pendingReturnCarPhotoReads--;
       const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
       returnCarPhotos.push(photo);
       renderReturnCarPhotoGrid();
@@ -3959,6 +4038,10 @@ function handleReturnCarPhotos(files) {
         returnCarProgressShow(file.name);
         uploadReturnCarPhoto(photo);
       }
+    };
+    reader.onerror = () => {
+      _pendingReturnCarPhotoReads--;
+      showToast('⚠ อ่านไฟล์รูป "' + file.name + '" ไม่สำเร็จ', 'error');
     };
     reader.readAsDataURL(file);
   });
