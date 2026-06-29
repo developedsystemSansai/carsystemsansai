@@ -5256,14 +5256,25 @@ window.expOverlayClick = function(e) {
 
 // ── Load all datasets ──────────────────────────────────
 async function expLoadAll() {
-  // ใช้ข้อมูลที่ dashboard โหลดไว้แล้วถ้ามี (allData, allMileData ฯลฯ)
-  const tasks = [
+  // โหลด check และ mile ก่อน แล้วค่อย enrich gap หลังทั้งคู่พร้อม
+  // (ถ้าโหลดพร้อมกันแล้ว enrich ทันที checkIndex อาจว่างถ้า check ยังไม่เสร็จ)
+  await Promise.allSettled([
     expLoadDataset('check'),
     expLoadDataset('mile'),
     expLoadDataset('ems'),
     expLoadDataset('repair')
-  ];
-  await Promise.allSettled(tasks);
+  ]);
+
+  // ✅ FIX: สร้าง checkIndex และ enrich ทุก mile row ทันทีหลังข้อมูลพร้อม
+  // เพื่อให้ gap fields (__gapTripNum, __gapCheckNum ฯลฯ) มีค่าก่อนที่
+  // expUpdateAnalytics / expGetFilteredRows จะเรียกใช้
+  _expCheckIndex = expBuildCheckIndex(EXP.cache.check || []);
+  (EXP.cache.mile || []).forEach(function(r) {
+    // force re-enrich (ล้าง cache เก่าก่อน เผื่อโหลดข้อมูลใหม่)
+    delete r.__gapFlag;
+    expEnrichMileRow(r);
+  });
+
   expUpdateAnalytics();
   expRefreshPreview();
 }
