@@ -366,9 +366,14 @@ function renderScheduleTabWrapper(){
     return;
   }
 
-  // สร้าง month sub-tab bar
-  const curLabel=scheduleData?`${MONTH_TH[+scheduleData.month]} ${scheduleData.year}`:'เดือนนี้';
-  const nxtLabel=scheduleNextData?`${MONTH_TH[+scheduleNextData.month]} ${scheduleNextData.year}`:'เดือนถัดไป';
+  // คำนวณ label เดือนถัดไป — ถ้าโหลดข้อมูลสำเร็จใช้ data จาก GAS
+  // ถ้าไม่สำเร็จ (sheet ยังไม่มี) ให้คำนวณจากวันปัจจุบันแทน ไม่แสดง undefined
+  const curLabel = scheduleData
+    ? `${MONTH_TH[+scheduleData.month]} ${scheduleData.year}`
+    : (()=>{ const n=new Date(); return `${MONTH_TH[n.getMonth()+1]} ${n.getFullYear()+543}`; })();
+  const nxtLabel = scheduleNextData
+    ? `${MONTH_TH[+scheduleNextData.month]} ${scheduleNextData.year}`
+    : (()=>{ const n=new Date(); let m=n.getMonth()+2,y=n.getFullYear(); if(m>12){m=1;y++;} return `${MONTH_TH[m]} ${y+543}`; })();
 
   let html=`<div class="month-tab-bar">
     <button class="month-tab-btn active" id="mstbtn-current" onclick="showSchedTab('current')">
