@@ -5948,6 +5948,23 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
 
   if (addGapSheet) {
     const gapRows = rows.filter(function(r){ return r.__isSuspect; });
+
+    // ── helper: หาค่าระยะหายสูงสุดของ row (trip gap หรือ check gap)
+    function rowMaxGap(r) {
+      return Math.max(
+        Math.abs(r.__gapTripNum  || 0),
+        Math.abs(r.__gapCheckNum || 0)
+      );
+    }
+
+    // ── 4 tier ตามระยะหาย ──────────────────────────────────────────
+    const TIERS = [
+      { label: '1–5 กม.',    min: 1,  max: 5,   color: 'FDF4DC', hdr: 'FFC300' },  // เหลืองอ่อน
+      { label: '6–10 กม.',   min: 6,  max: 10,  color: 'FDEBD0', hdr: 'E67E22' },  // ส้มอ่อน
+      { label: '11–20 กม.',  min: 11, max: 20,  color: 'FDEDEC', hdr: 'C0392B' },  // แดงอ่อน
+      { label: '20+ กม.',    min: 21, max: 9999, color: 'F4ECF7', hdr: '7D3C98' },  // ม่วงอ่อน = ร้ายแรงมาก
+    ];
+
     const gapCols = [
       { label: 'รหัสทริป',                    key: 'TripID' },
       { label: 'วันที่',                       key: 'วันที่' },
@@ -5964,61 +5981,196 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
       { label: 'หมายเหตุ',                     key: 'หมายเหตุ' },
     ];
 
-    const gapAoa = [ gapCols.map(function(c){ return c.label; }) ];
+    // ── helper: apply header style ──────────────────────────────
+    function applyHdrStyle(ws, r, c, hexColor) {
+      const ref = XLSX.utils.encode_cell({ r: r, c: c });
+      if (!ws[ref]) return;
+      ws[ref].s = {
+        font: { bold: true, color: { rgb: 'FFFFFF' } },
+        fill: { fgColor: { rgb: hexColor } },
+        alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
+      };
+    }
+    function applyRowStyle(ws, r, numCols, hexFill) {
+      for (let c = 0; c < numCols; c++) {
+        const ref = XLSX.utils.encode_cell({ r: r, c: c });
+        if (!ws[ref]) ws[ref] = { t: 's', v: '' };
+        ws[ref].s = {
+          fill: { fgColor: { rgb: hexFill } },
+          alignment: { wrapText: false }
+        };
+      }
+    }
+    function applyLabelStyle(ws, r, c, hexFill) {
+      const ref = XLSX.utils.encode_cell({ r: r, c: c });
+      if (!ws[ref]) return;
+      ws[ref].s = {
+        font: { bold: true },
+        fill: { fgColor: { rgb: hexFill } },
+        alignment: { horizontal: 'left', vertical: 'center' }
+      };
+    }
+
+    const gapAoa = [];
+    let styleMap = []; // [{row, type:'hdr'|'data'|'section'|'summary', tierIdx}]
 
     if (gapRows.length === 0) {
       gapAoa.push(['✅ ไม่พบทริปที่มีระยะหายผิดปกติในช่วงที่เลือก']);
     } else {
-      gapRows.forEach(function(r) {
-        gapAoa.push(gapCols.map(function(c) {
-          const v = r[c.key];
-          return v !== undefined && v !== null ? v : '—';
-        }));
+      // ── แถว 0: ชื่อรายงาน ──
+      gapAoa.push(['รายงานวิเคราะห์ระยะทางหาย — ระบบ SAND โรงพยาบาลสันทราย']);
+      gapAoa.push(['Export เมื่อ: ' + new Date().toLocaleString('th-TH'), '', 'ทริปน่าสงสัยทั้งหมด: ' + gapRows.length + ' ทริป']);
+      gapAoa.push([]); // spacer
+
+      let currentAoaRow = 3; // เริ่มหลัง title 3 แถว
+
+      // ── วนแต่ละ tier ──────────────────────────────────────────
+      TIERS.forEach(function(tier, ti) {
+        const tierRows = gapRows.filter(function(r) {
+          const g = rowMaxGap(r);
+          return g >= tier.min && g <= tier.max;
+        });
+
+        // section header (ชื่อ tier)
+        gapAoa.push([
+          '▌ ระยะหาย ' + tier.label + '  (' + tierRows.length + ' ทริป)',
+          '', '', '', '', '', '', '', '', '', '', '', ''
+        ]);
+        styleMap.push({ row: currentAoaRow, type: 'section', tierIdx: ti });
+        currentAoaRow++;
+
+        if (tierRows.length === 0) {
+          gapAoa.push(['    — ไม่มีทริปในช่วงนี้ —']);
+          currentAoaRow++;
+        } else {
+          // column header
+          gapAoa.push(gapCols.map(function(c){ return c.label; }));
+          styleMap.push({ row: currentAoaRow, type: 'hdr', tierIdx: ti });
+          currentAoaRow++;
+
+          // data rows — เรียงจากมากไปน้อยตามระยะหาย
+          const sorted = tierRows.slice().sort(function(a, b) {
+            return rowMaxGap(b) - rowMaxGap(a);
+          });
+          sorted.forEach(function(r) {
+            gapAoa.push(gapCols.map(function(c) {
+              const v = r[c.key];
+              return v !== undefined && v !== null ? v : '—';
+            }));
+            styleMap.push({ row: currentAoaRow, type: 'data', tierIdx: ti, suspect: r.__isSuspect });
+            currentAoaRow++;
+          });
+
+          // tier subtotal
+          const tierGapSum = tierRows.reduce(function(s,r){
+            return s + rowMaxGap(r);
+          }, 0);
+          gapAoa.push(['', '', '', 'รวม ' + tier.label, tierRows.length + ' ทริป', '', Math.round(tierGapSum) + ' กม. (สะสม)']);
+          styleMap.push({ row: currentAoaRow, type: 'subtotal', tierIdx: ti });
+          currentAoaRow++;
+        }
+
+        gapAoa.push([]); // spacer ระหว่าง tier
+        currentAoaRow++;
       });
-      // สรุปท้าย
-      gapAoa.push([]);
-      const totalGapSum = gapRows.reduce(function(s, r) {
-        return s + (Math.abs(r.__gapTripNum || 0)) + (Math.abs(r.__gapCheckNum || 0));
-      }, 0);
-      gapAoa.push(['สรุป', 'ทริปน่าสงสัย', gapRows.length + ' ทริป']);
-      gapAoa.push(['', 'ระยะหายรวม (ประมาณ)', Math.round(totalGapSum) + ' กม.']);
-      gapAoa.push(['', 'วันที่ Export', new Date().toLocaleDateString('th-TH')]);
+
+      // ── ตารางสรุปรวม ──────────────────────────────────────────
+      gapAoa.push(['สรุปรวมตามช่วงระยะหาย']);
+      styleMap.push({ row: currentAoaRow, type: 'summaryTitle' });
+      currentAoaRow++;
+
+      gapAoa.push(['ช่วงระยะหาย', 'จำนวนทริป', 'ระยะหายรวม (กม.)', 'ร้อยละของทริปน่าสงสัย']);
+      styleMap.push({ row: currentAoaRow, type: 'summaryHdr' });
+      currentAoaRow++;
+
+      let grandTotal = 0;
+      TIERS.forEach(function(tier, ti) {
+        const tierRows = gapRows.filter(function(r) {
+          const g = rowMaxGap(r);
+          return g >= tier.min && g <= tier.max;
+        });
+        const tierGapSum = Math.round(tierRows.reduce(function(s,r){ return s + rowMaxGap(r); }, 0));
+        const pct = gapRows.length > 0 ? Math.round(tierRows.length / gapRows.length * 100) : 0;
+        grandTotal += tierGapSum;
+        gapAoa.push([
+          tier.label,
+          tierRows.length,
+          tierGapSum,
+          pct + '%'
+        ]);
+        styleMap.push({ row: currentAoaRow, type: 'summaryRow', tierIdx: ti });
+        currentAoaRow++;
+      });
+
+      gapAoa.push(['รวมทั้งหมด', gapRows.length, grandTotal, '100%']);
+      styleMap.push({ row: currentAoaRow, type: 'summaryTotal' });
     }
 
+    // ── สร้าง worksheet ────────────────────────────────────────
     const wsGap = XLSX.utils.aoa_to_sheet(gapAoa);
+
+    // column widths
     wsGap['!cols'] = gapCols.map(function(c, i) {
-      return { wch: i < 4 ? 18 : (i >= 7 && i <= 9 ? 36 : 16) };
+      return { wch: i === 0 ? 14 : i < 4 ? 18 : (i >= 7 && i <= 9 ? 38 : 16) };
     });
 
-    // header row สีม่วง
-    gapCols.forEach(function(c, ci) {
-      const cellRef = XLSX.utils.encode_cell({ r: 0, c: ci });
-      if (wsGap[cellRef]) {
-        wsGap[cellRef].s = {
-          font: { bold: true, color: { rgb: 'FFFFFF' } },
-          fill: { fgColor: { rgb: '7D3C98' } },
-          alignment: { horizontal: 'center', vertical: 'center' }
-        };
+    // apply styles จาก styleMap
+    styleMap.forEach(function(s) {
+      const tier = TIERS[s.tierIdx] || TIERS[0];
+      if (s.type === 'hdr') {
+        gapCols.forEach(function(c, ci) {
+          applyHdrStyle(wsGap, s.row, ci, tier.hdr);
+        });
+      } else if (s.type === 'data') {
+        applyRowStyle(wsGap, s.row, gapCols.length, tier.color);
+      } else if (s.type === 'section') {
+        // section label — สีเข้มตาม tier
+        const ref = XLSX.utils.encode_cell({ r: s.row, c: 0 });
+        if (wsGap[ref]) {
+          wsGap[ref].s = {
+            font: { bold: true, sz: 12, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: tier.hdr } },
+            alignment: { horizontal: 'left', vertical: 'center' }
+          };
+        }
+      } else if (s.type === 'subtotal') {
+        [3,4,5,6].forEach(function(ci) {
+          const ref = XLSX.utils.encode_cell({ r: s.row, c: ci });
+          if (!wsGap[ref]) wsGap[ref] = { t:'s', v:'' };
+          wsGap[ref].s = {
+            font: { bold: true, italic: true },
+            fill: { fgColor: { rgb: 'EBF5FB' } }
+          };
+        });
+      } else if (s.type === 'summaryTitle') {
+        const ref = XLSX.utils.encode_cell({ r: s.row, c: 0 });
+        if (wsGap[ref]) {
+          wsGap[ref].s = { font: { bold: true, sz: 12 }, fill: { fgColor: { rgb: 'D5D8DC' } } };
+        }
+      } else if (s.type === 'summaryHdr') {
+        [0,1,2,3].forEach(function(ci) {
+          applyHdrStyle(wsGap, s.row, ci, '2C3E50');
+        });
+      } else if (s.type === 'summaryRow') {
+        [0,1,2,3].forEach(function(ci) {
+          const ref = XLSX.utils.encode_cell({ r: s.row, c: ci });
+          if (!wsGap[ref]) wsGap[ref] = { t:'s', v:'' };
+          wsGap[ref].s = { fill: { fgColor: { rgb: tier.color } } };
+        });
+      } else if (s.type === 'summaryTotal') {
+        [0,1,2,3].forEach(function(ci) {
+          const ref = XLSX.utils.encode_cell({ r: s.row, c: ci });
+          if (!wsGap[ref]) wsGap[ref] = { t:'s', v:'' };
+          wsGap[ref].s = {
+            font: { bold: true, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: '17202A' } }
+          };
+        });
       }
     });
 
-    // แถวข้อมูล — highlight ตามระดับความน่าสงสัย
-    gapRows.forEach(function(r, ri) {
-      const rowColor = r.__isSuspect &&
-        r.__gapTripNum  && Math.abs(r.__gapTripNum)  > 2 &&
-        r.__gapCheckNum && Math.abs(r.__gapCheckNum) > 5
-          ? 'FDECEA'   // แดงอ่อน = น่าสงสัยมาก
-          : 'FDF4DC';  // เหลืองอ่อน = น่าสงสัยปานกลาง
-      gapCols.forEach(function(c, ci) {
-        const cellRef = XLSX.utils.encode_cell({ r: ri + 1, c: ci });
-        if (wsGap[cellRef]) {
-          wsGap[cellRef].s = { fill: { fgColor: { rgb: rowColor } } };
-        }
-      });
-    });
-
     wsGap['!freeze'] = { xSplit: 0, ySplit: 1 };
-    wsGap['!view']   = [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }];
+    wsGap['!view']   = [{ state: 'normal' }];
 
     XLSX.utils.book_append_sheet(wb, wsGap, 'วิเคราะห์ระยะหาย');
   }
