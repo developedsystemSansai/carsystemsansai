@@ -5067,6 +5067,14 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="exp-stat-num red" id="expStatIssues">—</div>
           <div class="exp-stat-lbl">พบปัญหา</div>
         </div>
+        <div class="exp-stat" title="ระยะที่ออกรถ vs ถึง รพ. หายไปรวม (กม.)">
+          <div class="exp-stat-num" style="color:#9b59b6;" id="expStatMileGap">—</div>
+          <div class="exp-stat-lbl">กม. หายไป (ทริป)</div>
+        </div>
+        <div class="exp-stat" title="ทริปที่ไมล์ออกรถ ≠ ไมล์ตรวจเช็ครถล่าสุด">
+          <div class="exp-stat-num" style="color:#e67e22;" id="expStatCheckGap">—</div>
+          <div class="exp-stat-lbl">ทริปน่าสงสัย</div>
+        </div>
       </div>
 
       <!-- 1. เลือกชุดข้อมูล -->
@@ -5171,6 +5179,7 @@ document.addEventListener('DOMContentLoaded', function() {
           <label class="exp-opt-label"><input type="checkbox" id="expOptBOM" checked> UTF-8 BOM (เปิด Excel ถูก)</label>
           <label class="exp-opt-label"><input type="checkbox" id="expOptSummary"> รวมแถวสรุปท้ายไฟล์</label>
           <label class="exp-opt-label"><input type="checkbox" id="expOptIssueOnly"> เฉพาะรายการที่มีปัญหา</label>
+          <label class="exp-opt-label"><input type="checkbox" id="expOptMileGap" checked> วิเคราะห์ระยะหาย (เฉพาะ Excel · เพิ่ม sheet แยก)</label>
         </div>
       </div>
 
@@ -5286,6 +5295,135 @@ function expUpdateCount(type, n) {
   if (el) el.textContent = typeof n === 'number' ? n.toLocaleString() + ' รายการ' : n;
 }
 
+// ── Mileage Gap Analysis ────────────────────────────────
+// วิเคราะห์ 2 มิติ:
+// 1) ระยะหาย "ออกรถ→ถึง รพ." = ไมล์ปลาย - ไมล์ต้น ถ้าเป็น +มาก เกินกว่าระยะทางที่บันทึก
+//    จริงๆ ระยะทาง = ไมล์ปลาย - ไมล์ต้น ดังนั้นถ้าต่างกับ ระยะทาง(กม.) เกิน 5 กม. → น่าสงสัย
+// 2) ระยะหาย "ตรวจเช็ค→ออกรถ" = ไมล์ต้น (ออกรถ) - ไมล์ตรวจสภาพรถล่าสุดก่อนวันนั้น
+//    ถ้า > 0 แปลว่ารถวิ่งไปก่อนออกรถอย่างเป็นทางการ
+
+// สร้าง index: carPlate + date → odometer ของ CheckLog ล่าสุดก่อนวันนั้น
+function expBuildCheckIndex(checks) {
+  // { 'ทะเบียน|yyyy-MM-dd': maxOdoBefore }
+  // สำหรับแต่ละทริป จะ lookup: ไมล์ตรวจล่าสุด ก่อนหรือเท่ากับวันออกรถ
+  const byPlate = {}; // { plate: [{date, odo}] }
+  (checks || []).forEach(function(c) {
+    const plate = String(c.carType || c['ทะเบียน/รถ'] || '').trim();
+    const date  = String(c.inspDate || c['วันที่'] || '').substring(0, 10);
+    const odo   = parseFloat(String(c.odometer || c['เลขไมล์'] || 0).replace(/[^0-9.]/g,''));
+    if (!plate || !date || isNaN(odo) || odo <= 0) return;
+    if (!byPlate[plate]) byPlate[plate] = [];
+    byPlate[plate].push({ date, odo });
+  });
+  // เรียง asc
+  Object.keys(byPlate).forEach(function(p) {
+    byPlate[p].sort(function(a,b){ return a.date < b.date ? -1 : 1; });
+  });
+  return byPlate;
+}
+
+function expGetLastCheckOdoBefore(checkIndex, plate, tripDate) {
+  // คืน odometer ของการตรวจสภาพล่าสุด ที่วันที่ <= tripDate สำหรับรถทะเบียนนี้
+  const entries = checkIndex[plate] || [];
+  let lastOdo = null;
+  for (let i = 0; i < entries.length; i++) {
+    if (entries[i].date <= tripDate) lastOdo = entries[i].odo;
+    else break;
+  }
+  return lastOdo;
+}
+
+// คำนวณ gap fields สำหรับ MileLog row หนึ่ง
+function expComputeMileGap(r, checkIndex) {
+  const odoStart  = parseFloat(String(r['เลขไมล์ต้น']  || r['ไมล์เริ่มต้น'] || 0).replace(/[^0-9.]/g,''));
+  const odoEnd    = parseFloat(String(r['เลขไมล์ปลาย'] || r['ไมล์สิ้นสุด']  || 0).replace(/[^0-9.]/g,''));
+  const distRec   = parseFloat(String(r['ระยะทาง(กม.)'] || 0).replace(/[^0-9.]/g,''));
+  const plate     = String(r['ทะเบียน/รถ'] || r['carType'] || '').trim();
+  const tripDate  = String(r['วันที่'] || '').substring(0, 10);
+
+  // ── Gap 1: ออกรถ→ถึง รพ. ──
+  // ระยะจริงจากไมล์ = odoEnd - odoStart
+  // ระยะที่บันทึก = distRec
+  // ถ้าทั้งสองมีค่า ส่วนต่าง = odoEnd - odoStart - distRec (ควรใกล้ 0)
+  // แต่เราวิเคราะห์ตรงๆ: odoEnd - odoStart = ระยะจริง; distRec = ที่บันทึก
+  let gapTrip = '';
+  let gapTripNum = null;
+  if (odoStart > 0 && odoEnd > 0 && odoEnd > odoStart) {
+    const realDist = odoEnd - odoStart;
+    if (distRec > 0) {
+      gapTripNum = Math.round((realDist - distRec) * 10) / 10;
+      // ถ้า realDist ≠ distRec เกิน ±2 กม. ถือว่ามีความคลาดเคลื่อน
+      if (Math.abs(gapTripNum) > 2) {
+        gapTrip = gapTripNum > 0
+          ? `+${gapTripNum} กม. (วิ่งเกินกว่าบันทึก)`
+          : `${gapTripNum} กม. (บันทึกเกินจริง)`;
+      } else {
+        gapTrip = '—';
+      }
+    } else {
+      // ไม่มี distRec แต่มีไมล์ → คำนวณเองเลย
+      gapTripNum = 0;
+      gapTrip = `${realDist} กม. (จากไมล์มิเตอร์)`;
+    }
+  }
+
+  // ── Gap 2: ตรวจเช็ค→ออกรถ ──
+  // ไมล์ตรวจเช็ครถล่าสุดก่อนวันออกรถ ควรใกล้เคียง odoStart
+  let checkOdo = null;
+  let gapCheck = '';
+  let gapCheckNum = null;
+  if (checkIndex && plate && tripDate) {
+    checkOdo = expGetLastCheckOdoBefore(checkIndex, plate, tripDate);
+    if (checkOdo !== null && odoStart > 0) {
+      gapCheckNum = Math.round((odoStart - checkOdo) * 10) / 10;
+      if (gapCheckNum > 5) {
+        gapCheck = `+${gapCheckNum} กม. (วิ่งก่อนออกรถอย่างเป็นทางการ)`;
+      } else if (gapCheckNum < -5) {
+        gapCheck = `${gapCheckNum} กม. (ไมล์ออกรถต่ำกว่าตรวจเช็ค — ตรวจสอบ)`;
+      } else {
+        gapCheck = '—';
+      }
+    }
+  }
+
+  // ── Flag รวม ──
+  let flag = '✅ ปกติ';
+  const hasGapTrip  = gapTripNum !== null && Math.abs(gapTripNum) > 2;
+  const hasGapCheck = gapCheckNum !== null && Math.abs(gapCheckNum) > 5;
+  if (hasGapTrip && hasGapCheck) flag = '🔴 ผิดปกติทั้งคู่';
+  else if (hasGapTrip)           flag = '🟡 ระยะหาย (ออกรถ→รพ.)';
+  else if (hasGapCheck)          flag = '🟠 ระยะหาย (ก่อนออกรถ)';
+
+  return {
+    __gapTripKm    : gapTrip     || '—',
+    __checkOdoBefore: checkOdo !== null ? checkOdo : '—',
+    __gapCheckKm   : gapCheck    || '—',
+    __gapFlag      : flag,
+    __gapTripNum   : gapTripNum,
+    __gapCheckNum  : gapCheckNum,
+    __isSuspect    : hasGapTrip || hasGapCheck
+  };
+}
+
+// cache สำหรับ checkIndex (สร้างครั้งเดียวต่อ modal session)
+let _expCheckIndex = null;
+
+function expEnsureCheckIndex() {
+  if (_expCheckIndex === null) {
+    _expCheckIndex = expBuildCheckIndex(EXP.cache.check || []);
+  }
+  return _expCheckIndex;
+}
+
+// เพิ่ม gap fields เข้าไปใน row ทุกตัวของ miles (lazy, cache ใน row)
+function expEnrichMileRow(r) {
+  if (r.__gapFlag !== undefined) return r; // already computed
+  const idx = expEnsureCheckIndex();
+  const gap = expComputeMileGap(r, idx);
+  Object.assign(r, gap);
+  return r;
+}
+
 // ── Analytics Summary ──────────────────────────────────
 function expUpdateAnalytics() {
   const checks  = EXP.cache.check  || [];
@@ -5314,6 +5452,24 @@ function expUpdateAnalytics() {
            r.issueCount > 0;
   });
   document.getElementById('expStatIssues').textContent = issues.length.toLocaleString();
+
+  // ── วิเคราะห์ระยะหาย ──
+  // reset check index ทุกครั้งที่ load ใหม่ (ข้อมูล check อาจเปลี่ยน)
+  _expCheckIndex = null;
+
+  let totalGapKm  = 0;
+  let suspectTrips = 0;
+  miles.forEach(function(r) {
+    expEnrichMileRow(r);
+    if (r.__gapTripNum  && Math.abs(r.__gapTripNum)  > 2) totalGapKm  += Math.abs(r.__gapTripNum);
+    if (r.__gapCheckNum && Math.abs(r.__gapCheckNum) > 5) totalGapKm  += Math.abs(r.__gapCheckNum);
+    if (r.__isSuspect) suspectTrips++;
+  });
+
+  document.getElementById('expStatMileGap').textContent =
+    totalGapKm > 0 ? Math.round(totalGapKm).toLocaleString() + ' กม.' : '—';
+  document.getElementById('expStatCheckGap').textContent =
+    suspectTrips > 0 ? suspectTrips.toLocaleString() + ' ทริป' : '—';
 }
 
 // ── Card Selection ─────────────────────────────────────
@@ -5447,9 +5603,13 @@ function expGetColumns(type) {
       { key: 'พนักงานขับรถ',         label: 'ผู้ขับ' },
       { key: 'เวลาออก',              label: 'เวลาออก' },
       { key: 'เวลากลับ',             label: 'เวลากลับ' },
-      { key: 'เลขไมล์ต้น',          label: 'ไมล์ต้น' },
-      { key: 'เลขไมล์ปลาย',         label: 'ไมล์ปลาย' },
+      { key: 'เลขไมล์ต้น',          label: 'ไมล์ต้น (ออกรถ)' },
+      { key: 'เลขไมล์ปลาย',         label: 'ไมล์ปลาย (ถึง รพ.)' },
       { key: 'ระยะทาง(กม.)',         label: 'ระยะทาง (กม.)' },
+      { key: '__gapTripKm',           label: '⚠ ระยะหาย: ออกรถ→ถึง รพ. (กม.)', derived: true },
+      { key: '__checkOdoBefore',      label: 'ไมล์ตรวจสภาพก่อนออก (กม.)', derived: true },
+      { key: '__gapCheckKm',          label: '⚠ ระยะหาย: ตรวจเช็ค→ออกรถ (กม.)', derived: true },
+      { key: '__gapFlag',             label: 'สถานะระยะ', derived: true },
       { key: 'ปลายทาง',              label: 'ปลายทาง' },
       { key: 'fuelLiters',            label: 'น้ำมันที่เติม (ล.)' },
       { key: 'fuelPrice',             label: 'ราคาน้ำมัน (บ.)' },
@@ -5543,6 +5703,13 @@ function expCellValue(r, col) {
   }
   if (col.key === '__mileDriveLinks') {
     return expComputeMileDriveLinks(r);
+  }
+  // ── ระยะหาย (derived) — enrich row ก่อน ──
+  if (col.key === '__gapTripKm' || col.key === '__gapCheckKm' ||
+      col.key === '__checkOdoBefore' || col.key === '__gapFlag') {
+    expEnrichMileRow(r);
+    const v = r[col.key];
+    return v !== undefined && v !== null ? String(v) : '—';
   }
 
   let v = r[col.key];
@@ -5684,16 +5851,20 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
     throw new Error('ไลบรารีสร้างไฟล์ Excel โหลดไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่');
   }
 
-  // ── 1) สร้างข้อมูลแบบ Array-of-Arrays (AOA) ──
+  const wb = XLSX.utils.book_new();
+
+  // ── Sheet 1: ข้อมูลหลัก ──────────────────────────────
   const aoa = [];
   if (addHdr) {
     aoa.push(cols.map(function(c){ return c.label; }));
   }
   rows.forEach(function(r) {
+    // enrich ก่อน export ถ้าเป็น mile
+    if (EXP.selectedCard === 'mile') expEnrichMileRow(r);
     aoa.push(cols.map(function(c){ return expCellForSheet(r, c); }));
   });
 
-  const summaryStartRow = aoa.length; // เก็บตำแหน่งก่อนเริ่มส่วนสรุป (0-indexed)
+  const summaryStartRow = aoa.length;
   if (addSum) {
     aoa.push([]);
     aoa.push(['สรุป', 'จำนวนแถว', rows.length]);
@@ -5701,16 +5872,12 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
     aoa.push(['ชุดข้อมูล', expDatasetName(EXP.selectedCard), '']);
   }
 
-  // ── 2) สร้าง worksheet จาก AOA ──
   const ws = XLSX.utils.aoa_to_sheet(aoa);
-
-  // ── 3) กำหนดความกว้างคอลัมน์ให้พออ่านง่าย ──
   ws['!cols'] = cols.map(function(c) {
     const headerLen = String(c.label || '').length;
-    return { wch: Math.min(Math.max(headerLen + 4, 10), 40) };
+    return { wch: Math.min(Math.max(headerLen + 4, 10), 42) };
   });
 
-  // ── 4) จัดสไตล์ส่วนหัวตาราง (สีพื้นกรมท่า ตัวอักษรขาวตัวหนา) ──
   if (addHdr) {
     cols.forEach(function(c, ci) {
       const cellRef = XLSX.utils.encode_cell({ r: 0, c: ci });
@@ -5722,9 +5889,36 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
         };
       }
     });
+    // highlight คอลัมน์ gap (สีม่วงอ่อน)
+    const gapKeys = ['__gapTripKm', '__gapCheckKm', '__checkOdoBefore', '__gapFlag'];
+    cols.forEach(function(c, ci) {
+      if (gapKeys.indexOf(c.key) === -1) return;
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c: ci });
+      if (ws[cellRef]) {
+        ws[cellRef].s = {
+          font: { bold: true, color: { rgb: 'FFFFFF' } },
+          fill: { fgColor: { rgb: '7D3C98' } },
+          alignment: { horizontal: 'center', vertical: 'center' }
+        };
+      }
+    });
   }
 
-  // ── 5) จัดสไตล์ส่วนสรุป (พื้นเหลืองอ่อน ตัวหนา) ──
+  // highlight แถวที่ isSuspect (สีส้มอ่อน) ใน sheet ข้อมูลหลัก
+  if (addHdr && EXP.selectedCard === 'mile') {
+    const gapFlagColIdx = cols.findIndex(function(c){ return c.key === '__gapFlag'; });
+    rows.forEach(function(r, ri) {
+      if (!r.__isSuspect) return;
+      cols.forEach(function(c, ci) {
+        const cellRef = XLSX.utils.encode_cell({ r: ri + 1, c: ci });
+        if (ws[cellRef]) {
+          ws[cellRef].s = ws[cellRef].s || {};
+          ws[cellRef].s.fill = { fgColor: { rgb: 'FDECEA' } };
+        }
+      });
+    });
+  }
+
   if (addSum) {
     for (let r = summaryStartRow + 1; r < aoa.length; r++) {
       for (let c = 0; c < 3; c++) {
@@ -5739,19 +5933,97 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
     }
   }
 
-  // ── 6) ตรึงแถวหัวตาราง (freeze header row) ──
   if (addHdr) {
     ws['!freeze'] = { xSplit: 0, ySplit: 1 };
     ws['!view']   = [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }];
   }
 
-  // ── 7) สร้าง workbook แล้วใส่ worksheet ──
-  const wb = XLSX.utils.book_new();
   const sheetName = expSheetSafeName(expDatasetName(EXP.selectedCard));
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
 
-  // ── 8) เขียนไฟล์ .xlsx จริง แล้วดาวน์โหลด ──
-  // ใช้ writeFileXLSX/writeFile ของ SheetJS ซึ่งจัดการ MIME type และการดาวน์โหลดให้ถูกต้องเอง
+  // ── Sheet 2: วิเคราะห์ระยะหาย (เฉพาะ mile + checkbox เปิด) ──
+  const addGapSheet = document.getElementById('expOptMileGap') &&
+                      document.getElementById('expOptMileGap').checked &&
+                      EXP.selectedCard === 'mile';
+
+  if (addGapSheet) {
+    const gapRows = rows.filter(function(r){ return r.__isSuspect; });
+    const gapCols = [
+      { label: 'รหัสทริป',                    key: 'TripID' },
+      { label: 'วันที่',                       key: 'วันที่' },
+      { label: 'ทะเบียน/รถ',                  key: 'ทะเบียน/รถ' },
+      { label: 'ผู้ขับ',                       key: 'พนักงานขับรถ' },
+      { label: 'ไมล์ต้น (ออกรถ)',              key: 'เลขไมล์ต้น' },
+      { label: 'ไมล์ปลาย (ถึง รพ.)',           key: 'เลขไมล์ปลาย' },
+      { label: 'ระยะทางบันทึก (กม.)',          key: 'ระยะทาง(กม.)' },
+      { label: '⚠ ระยะหาย: ออกรถ→ถึง รพ.',   key: '__gapTripKm' },
+      { label: 'ไมล์ตรวจสภาพก่อนออก',         key: '__checkOdoBefore' },
+      { label: '⚠ ระยะหาย: ตรวจเช็ค→ออกรถ',  key: '__gapCheckKm' },
+      { label: 'สถานะระยะ',                    key: '__gapFlag' },
+      { label: 'ปลายทาง',                      key: 'ปลายทาง' },
+      { label: 'หมายเหตุ',                     key: 'หมายเหตุ' },
+    ];
+
+    const gapAoa = [ gapCols.map(function(c){ return c.label; }) ];
+
+    if (gapRows.length === 0) {
+      gapAoa.push(['✅ ไม่พบทริปที่มีระยะหายผิดปกติในช่วงที่เลือก']);
+    } else {
+      gapRows.forEach(function(r) {
+        gapAoa.push(gapCols.map(function(c) {
+          const v = r[c.key];
+          return v !== undefined && v !== null ? v : '—';
+        }));
+      });
+      // สรุปท้าย
+      gapAoa.push([]);
+      const totalGapSum = gapRows.reduce(function(s, r) {
+        return s + (Math.abs(r.__gapTripNum || 0)) + (Math.abs(r.__gapCheckNum || 0));
+      }, 0);
+      gapAoa.push(['สรุป', 'ทริปน่าสงสัย', gapRows.length + ' ทริป']);
+      gapAoa.push(['', 'ระยะหายรวม (ประมาณ)', Math.round(totalGapSum) + ' กม.']);
+      gapAoa.push(['', 'วันที่ Export', new Date().toLocaleDateString('th-TH')]);
+    }
+
+    const wsGap = XLSX.utils.aoa_to_sheet(gapAoa);
+    wsGap['!cols'] = gapCols.map(function(c, i) {
+      return { wch: i < 4 ? 18 : (i >= 7 && i <= 9 ? 36 : 16) };
+    });
+
+    // header row สีม่วง
+    gapCols.forEach(function(c, ci) {
+      const cellRef = XLSX.utils.encode_cell({ r: 0, c: ci });
+      if (wsGap[cellRef]) {
+        wsGap[cellRef].s = {
+          font: { bold: true, color: { rgb: 'FFFFFF' } },
+          fill: { fgColor: { rgb: '7D3C98' } },
+          alignment: { horizontal: 'center', vertical: 'center' }
+        };
+      }
+    });
+
+    // แถวข้อมูล — highlight ตามระดับความน่าสงสัย
+    gapRows.forEach(function(r, ri) {
+      const rowColor = r.__isSuspect &&
+        r.__gapTripNum  && Math.abs(r.__gapTripNum)  > 2 &&
+        r.__gapCheckNum && Math.abs(r.__gapCheckNum) > 5
+          ? 'FDECEA'   // แดงอ่อน = น่าสงสัยมาก
+          : 'FDF4DC';  // เหลืองอ่อน = น่าสงสัยปานกลาง
+      gapCols.forEach(function(c, ci) {
+        const cellRef = XLSX.utils.encode_cell({ r: ri + 1, c: ci });
+        if (wsGap[cellRef]) {
+          wsGap[cellRef].s = { fill: { fgColor: { rgb: rowColor } } };
+        }
+      });
+    });
+
+    wsGap['!freeze'] = { xSplit: 0, ySplit: 1 };
+    wsGap['!view']   = [{ state: 'frozen', ySplit: 1, topLeftCell: 'A2' }];
+
+    XLSX.utils.book_append_sheet(wb, wsGap, 'วิเคราะห์ระยะหาย');
+  }
+
+  // ── เขียนและดาวน์โหลด ──
   const filename = expFilename('xlsx');
   if (typeof XLSX.writeFileXLSX === 'function') {
     XLSX.writeFileXLSX(wb, filename);
@@ -5763,6 +6035,19 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
 // แปลงค่าเซลล์ให้เหมาะสมกับชนิดข้อมูลจริงใน Excel (ตัวเลขเป็น Number, ที่เหลือเป็น String)
 // แทนการเดาจาก regex แบบเดิมซึ่งทำให้ทะเบียนรถ/รหัสที่เป็นตัวเลขถูกตีความผิดเป็นตัวเลขบ้าง
 function expCellForSheet(r, col) {
+  // derived fields: คำนวณก่อน
+  if (col.key === 'hasIssue' || col.key === 'issueCount') {
+    return String(expComputeIssue(r)[col.key]);
+  }
+  if (col.key === '__mileDriveLinks') return expComputeMileDriveLinks(r);
+  if (['__gapTripKm','__gapCheckKm','__checkOdoBefore','__gapFlag'].indexOf(col.key) !== -1) {
+    expEnrichMileRow(r);
+    const v = r[col.key];
+    // __checkOdoBefore ให้เป็น Number ถ้าทำได้
+    if (col.key === '__checkOdoBefore' && typeof v === 'number') return v;
+    return v !== undefined && v !== null ? String(v) : '—';
+  }
+
   let v = r[col.key];
   if (v === undefined || v === null) return '';
   if (Array.isArray(v)) return v.join(', ');
