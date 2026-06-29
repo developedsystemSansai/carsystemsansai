@@ -1986,6 +1986,25 @@ async function fetchGAS(action, params) {
   return await res.json();
 }
 
+// ✅ FIX: fetchGASRaw — ใช้สำหรับ request ที่มี base64 รูปภาพ (ขนาดใหญ่)
+// เหตุผล: GAS มี hard limit ~2KB ต่อ URL parameter (e.parameter.payload)
+//   → เมื่อส่ง form-urlencoded + base64 → GAS auto-parse body ลง e.parameter
+//   → payload ถูกตัดกลางคัน → JSON.parse error หรือ base64Data ขาด → upload ล้มเหลว
+//   → บางครั้งสำเร็จ (รูปเล็ก) บางครั้งล้มเหลว (รูปใหญ่) = "อัปโหลดได้บางครั้ง"
+// วิธีแก้: ส่ง Content-Type: text/plain พร้อม raw JSON body
+//   → GAS ไม่แตะ e.parameter → ต้องอ่านจาก e.postData.contents เท่านั้น
+//   → e.postData.contents ไม่มี per-field size limit (limit เดียวคือ POST body 50MB)
+async function fetchGASRaw(payloadObj) {
+  const res = await fetch(GAS_URL, {
+    method : 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body   : JSON.stringify(payloadObj),
+    cache  : 'no-cache'
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return await res.json();
+}
+
 // ════════════════════════════════════════════════════════
 //  UI HELPERS
 // ════════════════════════════════════════════════════════
@@ -2539,9 +2558,14 @@ async function onEndCarChange() {
   // ✅ FIX: เคลียร์รูปสภาพรถขากลับ/บิลน้ำมันขากลับที่อาจค้างจากรถคันก่อนหน้า
   // ป้องกันบัค: เลือกรถ A แนบรูป แล้วเปลี่ยนไปเลือกรถ B โดยไม่ได้ลบรูปออกก่อน
   // ทำให้รูปของรถ A ติดไปกับการบันทึกของรถ B
+  // ✅ FIX v2: ตรวจทุกครั้งที่ carType เปลี่ยน ไม่ใช่แค่เมื่อ carType !== _lastEndCarPlate
+  // เพราะหลัง reload _lastEndCarPlate = '' เสมอ แต่ returnFuelPhotoUrl อาจยังค้างอยู่ใน memory
+  // (กรณีที่ reload ถูกขัดจังหวะหรือ state ไม่ได้ถูกเคลียร์ก่อน reload)
   if (carType !== _lastEndCarPlate) {
     if (returnCarPhotos.length) clearAllReturnCarPhotos();
-    if (returnFuelPhotoB64 || returnFuelPhotoFile) removeReturnFuelPhoto();
+    // ✅ FIX: เคลียร์ทุกกรณี ไม่ใช่แค่เมื่อมี B64 หรือ File
+    // เพราะ returnFuelPhotoUrl อาจค้างจากทริปก่อนแม้ไม่มี B64/File แล้ว
+    removeReturnFuelPhoto();
     _lastEndCarPlate = carType;
   }
 
@@ -2803,9 +2827,11 @@ async function submitEnd() {
     returnFuelLiters: hasReturnFuel ? (document.getElementById('e_fuelLiters').value.trim() || '') : '',
     returnFuelPrice:  hasReturnFuel ? (document.getElementById('e_fuelPrice').value.trim()  || '') : '',
     returnFuelPhotoUrl  : returnFuelPhotoUrl || '',
-    returnFuelPhotoB64  : (hasReturnFuel && returnFuelPhotoB64) ? returnFuelPhotoB64 : '',
-    returnFuelPhotoMime : (hasReturnFuel && returnFuelPhotoB64) ? (returnFuelPhotoMime || 'image/jpeg') : '',
-    returnFuelPhotoName : (hasReturnFuel && returnFuelPhotoB64) ? (returnFuelPhotoName || ('fuel_return_' + Date.now() + '.jpg')) : '',
+    // ✅ FIX: ส่ง B64 เฉพาะเมื่อ session ID ยังตรงกัน (รูปนี้เพิ่งถ่ายในรอบนี้จริง ๆ)
+    // ป้องกัน B64 ค้างจากทริปก่อนหน้าส่งไปกับทริปถัดไป
+    returnFuelPhotoB64  : (hasReturnFuel && returnFuelPhotoB64 && _returnFuelSessionId) ? returnFuelPhotoB64 : '',
+    returnFuelPhotoMime : (hasReturnFuel && returnFuelPhotoB64 && _returnFuelSessionId) ? (returnFuelPhotoMime || 'image/jpeg') : '',
+    returnFuelPhotoName : (hasReturnFuel && returnFuelPhotoB64 && _returnFuelSessionId) ? (returnFuelPhotoName || ('fuel_return_' + Date.now() + '.jpg')) : '',
     // รูปสภาพรถขากลับ — ส่ง driveUrls ที่อัปโหลดสำเร็จแล้ว
     returnCarDriveUrls  : returnCarPhotos.filter(p => p.driveUrl).map(p => p.driveUrl)
   }};
@@ -2842,35 +2868,30 @@ async function doConfirm() {
 
     // ── ส่งทั้ง startMile และ endMile พร้อม CORS เพื่ออ่าน response ──
     // GAS จะอัพโหลดรูปบิล + เขียน URL ลง Sheet และ return URL กลับมา
+    // ✅ FIX: ใช้ fetchGASRaw (Content-Type: text/plain) เพราะ payload อาจมี fuelPhotoB64
+    // ซึ่งเป็น base64 ขนาดใหญ่ → ถ้าส่งเป็น form-urlencoded จะถูก GAS ตัดกลางคัน
     let respOk = false;
     let gasJson = {};
     try {
-      const resp = await fetch(GAS_URL, {
-        method : 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body   : 'payload=' + encodeURIComponent(JSON.stringify(payloadObj))
-      });
-      if (resp.ok) {
-        gasJson = await resp.json().catch(() => ({}));
-        if (gasJson.status === 'ok') respOk = true;
-        // ✅ รับ URL รูปบิลที่ GAS อัพโหลดสำเร็จ
-        if (gasJson.fuelPhotoUrl) {
-          data.fuelPhotoUrl = gasJson.fuelPhotoUrl;
-          fuelPhotoUrl = gasJson.fuelPhotoUrl;
-          // แสดง link กดได้
-          const linkEl  = document.getElementById('fuelPhotoLink');
-          const linkBox = document.getElementById('fuelLinkBox');
-          if (linkEl)  linkEl.href = gasJson.fuelPhotoUrl;
-          if (linkBox) linkBox.classList.add('show');
-        }
-        if (gasJson.returnFuelPhotoUrl) {
-          data.returnFuelPhotoUrl = gasJson.returnFuelPhotoUrl;
-          returnFuelPhotoUrl = gasJson.returnFuelPhotoUrl;
-          const rlinkEl  = document.getElementById('returnFuelPhotoLink');
-          const rlinkBox = document.getElementById('returnFuelLinkBox');
-          if (rlinkEl)  rlinkEl.href = gasJson.returnFuelPhotoUrl;
-          if (rlinkBox) rlinkBox.classList.add('show');
-        }
+      gasJson = await fetchGASRaw(payloadObj);
+      if (gasJson.status === 'ok') respOk = true;
+      // ✅ รับ URL รูปบิลที่ GAS อัพโหลดสำเร็จ
+      if (gasJson.fuelPhotoUrl) {
+        data.fuelPhotoUrl = gasJson.fuelPhotoUrl;
+        fuelPhotoUrl = gasJson.fuelPhotoUrl;
+        // แสดง link กดได้
+        const linkEl  = document.getElementById('fuelPhotoLink');
+        const linkBox = document.getElementById('fuelLinkBox');
+        if (linkEl)  linkEl.href = gasJson.fuelPhotoUrl;
+        if (linkBox) linkBox.classList.add('show');
+      }
+      if (gasJson.returnFuelPhotoUrl) {
+        data.returnFuelPhotoUrl = gasJson.returnFuelPhotoUrl;
+        returnFuelPhotoUrl = gasJson.returnFuelPhotoUrl;
+        const rlinkEl  = document.getElementById('returnFuelPhotoLink');
+        const rlinkBox = document.getElementById('returnFuelLinkBox');
+        if (rlinkEl)  rlinkEl.href = gasJson.returnFuelPhotoUrl;
+        if (rlinkBox) rlinkBox.classList.add('show');
       }
     } catch(corsErr) {
       console.warn('doConfirm error:', corsErr.message);
@@ -2882,25 +2903,25 @@ async function doConfirm() {
     // ✅ FIX: เคลียร์ state รูปภาพทันทีหลังบันทึกสำเร็จ ไม่รอให้ reload เพียงอย่างเดียว
     // (กันกรณี reload ถูกขัดจังหวะ/ล้มเหลว แล้วผู้ใช้ทำรายการถัดไปก่อนหน้าจะ reload จริง
     // ซึ่งจะทำให้รูปของทริป/รถคันก่อนติดไปกับทริปถัดไป)
+    // ✅ FIX v2: เคลียร์เสมอสำหรับ type=end ไม่ว่า respOk จะเป็น true หรือไม่ก็ตาม
+    // เพราะถ้า network ช้า respOk=false แต่ GAS อาจบันทึกสำเร็จแล้ว
+    // → รูปไม่ควรค้างในฟอร์มเพื่อรอส่งซ้ำ (GAS ก็มี isDuplicateReturnFuelUrl guard อยู่แล้ว)
+    if (type === 'end') {
+      clearAllReturnCarPhotos();
+      removeReturnFuelPhoto(); // ✅ เคลียร์ sessionId + ทุก state พร้อมกัน
+    }
     if (respOk) {
-      if (type === 'end') {
-        clearAllReturnCarPhotos();
-        removeReturnFuelPhoto();
-      } else {
+      if (type === 'start') {
         // ✅ FIX: link รูปที่ pre-upload ไว้แล้ว → เขียนลง MileLog ด้วย tripId ที่เพิ่งได้
         if (gasJson.tripId) {
           const preUploaded = tripPhotos.filter(p => p.driveUrl && p.status === 'ok');
           for (const p of preUploaded) {
             try {
-              await fetch(GAS_URL, {
-                method : 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body   : 'payload=' + encodeURIComponent(JSON.stringify({
-                  action  : 'linkTripPhoto',
-                  tripId  : gasJson.tripId,
-                  carType : data.carType || '',
-                  driveUrl: p.driveUrl
-                }))
+              await fetchGASRaw({
+                action  : 'linkTripPhoto',
+                tripId  : gasJson.tripId,
+                carType : data.carType || '',
+                driveUrl: p.driveUrl
               });
             } catch(le) { console.warn('linkTripPhoto error:', le); }
           }
@@ -3393,6 +3414,10 @@ let returnFuelPhotoUrl  = '';
 let returnFuelPhotoB64  = '';
 let returnFuelPhotoMime = 'image/jpeg';
 let returnFuelPhotoName = '';
+// ✅ FIX: session token ผูกรูปกับการกรอกฟอร์มรอบนี้เท่านั้น
+// เมื่อเปลี่ยนรถหรือเริ่มบันทึกใหม่ ต้อง reset token ก่อน
+// ป้องกันรูปจากทริปก่อนหน้าติดมากับทริปถัดไป
+let _returnFuelSessionId = '';
 
 function toggleFuelUpload() {
   const checked = document.getElementById('s_hasFuel').checked;
@@ -3575,6 +3600,9 @@ function onReturnFuelPhotoSelected() {
     fileInput.value = '';
     return;
   }
+  // ✅ FIX: ออก session ID ใหม่ทุกครั้งที่ผู้ใช้เลือกรูป
+  // ทำให้รู้ว่ารูปนี้เป็นของฟอร์มรอบนี้จริง ๆ (ไม่ใช่ค้างจากทริปก่อน)
+  _returnFuelSessionId = Date.now() + '_' + Math.random().toString(36).slice(2);
   returnFuelPhotoFile = file;
   const reader = new FileReader();
   reader.onload = (e) => {
@@ -3634,6 +3662,10 @@ function returnFuelProgressEnd(ok, fileName) {
 
 async function uploadReturnFuelPhoto(file) {
   returnFuelPhotoUrl = '';
+  // ✅ FIX: ออก session ID ใหม่สำหรับรูปนี้ ใช้เช็คว่าผู้ใช้ยังอยู่รูปเดิมอยู่ไหม
+  const mySession = Date.now() + '_' + Math.random().toString(36).slice(2);
+  _returnFuelSessionId = mySession;
+
   returnFuelProgressStart(file.name);
   const linkBox = document.getElementById('returnFuelLinkBox');
   if (linkBox) linkBox.classList.remove('show');
@@ -3644,6 +3676,12 @@ async function uploadReturnFuelPhoto(file) {
       r.onerror = rej;
       r.readAsDataURL(file);
     });
+    // ✅ FIX: ตรวจก่อนเขียนว่า session ยังตรงกันอยู่ไหม
+    // ถ้าผู้ใช้เปลี่ยนรูป/ลบรูป/เปลี่ยนรถระหว่างโหลด → session จะไม่ตรง → ไม่เขียนทับ
+    if (_returnFuelSessionId !== mySession) {
+      console.warn('uploadReturnFuelPhoto: session expired — aborting stale write');
+      return;
+    }
     returnFuelPhotoB64  = dataUrl;
     returnFuelPhotoFile = file;
     returnFuelPhotoMime = file.type || 'image/jpeg';
@@ -3655,7 +3693,9 @@ async function uploadReturnFuelPhoto(file) {
     returnFuelProgressEnd(true, file.name);
   } catch(err) {
     console.warn('uploadReturnFuelPhoto read error:', err);
-    returnFuelPhotoB64 = '';
+    if (_returnFuelSessionId === mySession) {
+      returnFuelPhotoB64 = '';
+    }
     returnFuelProgressEnd(false, file.name);
   }
 }
@@ -3666,10 +3706,17 @@ function removeReturnFuelPhoto() {
   returnFuelPhotoB64  = '';
   returnFuelPhotoMime = 'image/jpeg';
   returnFuelPhotoName = '';
+  // ✅ FIX: เคลียร์ session token ด้วย เพื่อยืนยันว่าไม่มีรูปค้างอยู่
+  _returnFuelSessionId = '';
   const fileInput = document.getElementById('e_fuelPhoto');
   if (fileInput) fileInput.value = '';
   const preview = document.getElementById('returnFuelPhotoPreview');
-  if (preview) { preview.style.display = 'none'; document.getElementById('returnFuelPhotoImg').src = ''; }
+  if (preview) {
+    preview.style.display = 'none';
+    preview.classList.remove('show');
+    const img = document.getElementById('returnFuelPhotoImg');
+    if (img) img.src = '';
+  }
   const linkBox = document.getElementById('returnFuelLinkBox');
   if (linkBox) linkBox.classList.remove('show');
   const uploading = document.getElementById('returnFuelUploading');
@@ -3862,7 +3909,10 @@ async function uploadTripPhoto(photo) {
   try {
     const carType = photo.carType;
     const b64     = photo.data.replace(/^data:[^;]+;base64,/, '');
-    const uploadPayload = JSON.stringify({
+    // ✅ FIX: ใช้ fetchGASRaw (Content-Type: text/plain) แทน form-urlencoded
+    // → GAS อ่านจาก e.postData.contents โดยตรง → ไม่มี per-param size limit
+    // → base64 รูปใหญ่ไม่ถูกตัดอีกต่อไป
+    const result = await fetchGASRaw({
       action    : 'uploadPhotoPost',
       subFolder : 'TripPhotos',
       fileName  : 'trip_out_' + Date.now() + '_' + (photo.name || 'photo.jpg'),
@@ -3871,24 +3921,16 @@ async function uploadTripPhoto(photo) {
       carType   : carType
       // ยังไม่มี tripId ตอนนี้ — จะ linkTripPhoto อีกครั้งหลัง startMile สำเร็จ
     });
-    const resp = await fetch(GAS_URL, {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body   : 'payload=' + encodeURIComponent(uploadPayload)
-    });
-    if (resp.ok) {
-      const result = await resp.json().catch(() => ({}));
-      if (result.status === 'ok' && result.url) {
-        photo.driveUrl = result.url;
-        photo.status   = 'ok';
-        renderTripPhotoGrid();
-        renderTripDriveLinks();
-        tripProgressDone(true, photo.name);
-        showToast('✓ อัปโหลดรูปขาออกสำเร็จ', 'success', 2000);
-        return;
-      }
+    if (result.status === 'ok' && result.url) {
+      photo.driveUrl = result.url;
+      photo.status   = 'ok';
+      renderTripPhotoGrid();
+      renderTripDriveLinks();
+      tripProgressDone(true, photo.name);
+      showToast('✓ อัปโหลดรูปขาออกสำเร็จ', 'success', 2000);
+      return;
     }
-    throw new Error('upload response not ok');
+    throw new Error(result.message || 'upload response not ok');
   } catch (err) {
     console.warn('uploadTripPhoto pre-upload error:', err);
     // fallback — เก็บ base64 ส่งพร้อม startMile แทน
@@ -4066,7 +4108,8 @@ async function uploadReturnCarPhoto(photo) {
     const tripId = trip?.tripId || '';
     const today   = new Date().toISOString().slice(0, 10);
     const b64     = photo.data.replace(/^data:[^;]+;base64,/, '');
-    const uploadPayload = JSON.stringify({
+    // ✅ FIX: ใช้ fetchGASRaw (Content-Type: text/plain) → ไม่มี per-param size limit
+    const data = await fetchGASRaw({
       action    : 'uploadPhotoPost',
       subFolder : 'ReturnCarPhotos',
       fileName  : 'return_car_' + Date.now() + '_' + (photo.name || 'photo.jpg'),
@@ -4076,24 +4119,16 @@ async function uploadReturnCarPhoto(photo) {
       tripId    : tripId,
       inspDate  : today
     });
-    const resp = await fetch(GAS_URL, {
-      method : 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body   : 'payload=' + encodeURIComponent(uploadPayload)
-    });
-    if (resp.ok) {
-      const data = await resp.json();
-      if (data.status === 'ok' && data.url) {
-        photo.driveUrl = data.url;
-        photo.status   = 'ok';
-        showToast('✓ อัปโหลดรูปสภาพรถขากลับสำเร็จ', 'success');
-        renderReturnCarPhotoGrid();
-        renderReturnCarDriveLinks();
-        returnCarProgressDone(true, photo.name);
-        return;
-      }
+    if (data.status === 'ok' && data.url) {
+      photo.driveUrl = data.url;
+      photo.status   = 'ok';
+      showToast('✓ อัปโหลดรูปสภาพรถขากลับสำเร็จ', 'success');
+      renderReturnCarPhotoGrid();
+      renderReturnCarDriveLinks();
+      returnCarProgressDone(true, photo.name);
+      return;
     }
-    photo.status = 'err';
+    throw new Error(data.message || 'upload response not ok');
   } catch(e) {
     photo.status = 'err';
     console.warn('uploadReturnCarPhoto:', e);
