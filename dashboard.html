@@ -5346,45 +5346,82 @@ function expGetLastCheckOdoBefore(checkIndex, plate, tripDate) {
 
 // คำนวณ gap fields สำหรับ MileLog row หนึ่ง
 function expComputeMileGap(r, checkIndex) {
-  const odoStart  = parseFloat(String(r['เลขไมล์ต้น']  || r['ไมล์เริ่มต้น'] || 0).replace(/[^0-9.]/g,''));
-  const odoEnd    = parseFloat(String(r['เลขไมล์ปลาย'] || r['ไมล์สิ้นสุด']  || 0).replace(/[^0-9.]/g,''));
-  const distRec   = parseFloat(String(r['ระยะทาง(กม.)'] || 0).replace(/[^0-9.]/g,''));
-  const plate     = String(r['ทะเบียน/รถ'] || r['carType'] || '').trim();
-  const tripDate  = String(r['วันที่'] || '').substring(0, 10);
+  // ── อ่านค่าไมล์ — รองรับทั้ง header ชีทจริง และ alias ──
+  // getMileData() สร้าง alias: 'ไมล์เริ่มต้น' → 'เลขไมล์ต้น', 'ไมล์สิ้นสุด' → 'เลขไมล์ปลาย'
+  const rawStart = r['เลขไมล์ต้น']  || r['ไมล์เริ่มต้น'] || r['ไมล์ต้น'] || 0;
+  const rawEnd   = r['เลขไมล์ปลาย'] || r['ไมล์สิ้นสุด']  || r['ไมล์ปลาย'] || 0;
+  const rawDist  = r['ระยะทาง(กม.)'] || r['ระยะทาง'] || 0;
 
-  // ── Gap 1: ออกรถ→ถึง รพ. ──
-  // ระยะจริงจากไมล์ = odoEnd - odoStart
-  // ระยะที่บันทึก = distRec
-  // ถ้าทั้งสองมีค่า ส่วนต่าง = odoEnd - odoStart - distRec (ควรใกล้ 0)
-  // แต่เราวิเคราะห์ตรงๆ: odoEnd - odoStart = ระยะจริง; distRec = ที่บันทึก
-  let gapTrip = '';
-  let gapTripNum = null;
-  if (odoStart > 0 && odoEnd > 0 && odoEnd > odoStart) {
-    const realDist = odoEnd - odoStart;
-    if (distRec > 0) {
-      gapTripNum = Math.round((realDist - distRec) * 10) / 10;
-      // ถ้า realDist ≠ distRec เกิน ±2 กม. ถือว่ามีความคลาดเคลื่อน
-      if (Math.abs(gapTripNum) > 2) {
-        gapTrip = gapTripNum > 0
-          ? `+${gapTripNum} กม. (วิ่งเกินกว่าบันทึก)`
-          : `${gapTripNum} กม. (บันทึกเกินจริง)`;
-      } else {
-        gapTrip = '—';
-      }
-    } else {
-      // ไม่มี distRec แต่มีไมล์ → คำนวณเองเลย
-      gapTripNum = 0;
-      gapTrip = `${realDist} กม. (จากไมล์มิเตอร์)`;
+  const odoStart = parseFloat(String(rawStart).replace(/[^0-9.]/g,'')) || 0;
+  const odoEnd   = parseFloat(String(rawEnd).replace(/[^0-9.]/g,''))   || 0;
+  const distRec  = parseFloat(String(rawDist).replace(/[^0-9.]/g,''))  || 0;
+
+  // ── plate สำหรับ lookup CheckIndex ──
+  // getMileData() สร้าง alias: 'ทะเบียน/รถ' → 'carType'
+  // expBuildCheckIndex() ใช้ check.carType (camelCase) เป็น key
+  const rawPlate = r['carType'] || r['ทะเบียน/รถ'] || '';
+  // CheckIndex keyed โดย plate string ตรงๆ (carType เต็ม เช่น "กข 1234 เชียงใหม่")
+  const plate = String(rawPlate).trim();
+
+  // ── วันที่ออกรถ (yyyy-MM-dd) ──
+  const rawDate = r['วันที่'] || r['inspDate'] || '';
+  // getMileData ส่งวันที่เป็น dd/MM/yyyy (formatDisplayDate) ต้องแปลงเป็น yyyy-MM-dd
+  let tripDate = String(rawDate).substring(0, 10);
+  if (tripDate.includes('/')) {
+    // dd/MM/yyyy → yyyy-MM-dd
+    const parts = tripDate.split('/');
+    if (parts.length === 3) {
+      const y = parts[2].length === 4 ? parts[2] : (parseInt(parts[2]) > 2400 ? String(parseInt(parts[2]) - 543) : parts[2]);
+      tripDate = y + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');
     }
   }
 
-  // ── Gap 2: ตรวจเช็ค→ออกรถ ──
-  // ไมล์ตรวจเช็ครถล่าสุดก่อนวันออกรถ ควรใกล้เคียง odoStart
-  let checkOdo = null;
-  let gapCheck = '';
+  // ── Gap 1: ออกรถ → ถึง รพ. ──────────────────────────────────
+  // ระยะจริงจากไมล์มิเตอร์ = odoEnd − odoStart
+  // ระยะที่บันทึก = distRec
+  // ถ้าต่างกันเกิน ±2 กม. → ผิดปกติ
+  let gapTrip    = '—';
+  let gapTripNum = null;
+
+  if (odoStart > 0 && odoEnd > 0 && odoEnd >= odoStart) {
+    const realDist = Math.round((odoEnd - odoStart) * 10) / 10;
+    if (distRec > 0) {
+      gapTripNum = Math.round((realDist - distRec) * 10) / 10;
+      if (Math.abs(gapTripNum) > 2) {
+        gapTrip = gapTripNum > 0
+          ? `+${gapTripNum} กม. (วิ่งเกินกว่าที่บันทึก)`
+          : `${gapTripNum} กม. (บันทึกเกินกว่าจริง)`;
+      } else {
+        gapTrip = '—';
+        gapTripNum = 0;
+      }
+    } else {
+      // ไม่มี distRec แต่มีไมล์ → ใช้ค่าจากไมล์มิเตอร์
+      gapTripNum = 0;
+      gapTrip    = `${realDist} กม. (คำนวณจากไมล์มิเตอร์)`;
+    }
+  }
+
+  // ── Gap 2: ตรวจเช็ค → ออกรถ ─────────────────────────────────
+  // lookup ไมล์ตรวจสภาพล่าสุด (≤ tripDate) ของรถคันนี้
+  // ถ้า odoStart > checkOdo + 5 → รถวิ่งไปก่อนออกรถอย่างเป็นทางการ
+  let checkOdo    = null;
+  let gapCheck    = '—';
   let gapCheckNum = null;
+
   if (checkIndex && plate && tripDate) {
     checkOdo = expGetLastCheckOdoBefore(checkIndex, plate, tripDate);
+
+    // ถ้าหาไม่พบด้วย plate เต็ม ลองหาด้วย plate แบบสั้น (เฉพาะเลขทะเบียน)
+    if (checkOdo === null) {
+      const shortPlate = plate.split(' ')[0].trim();
+      // หา key ที่ขึ้นต้นด้วย shortPlate
+      const matchKey = Object.keys(checkIndex).find(function(k) {
+        return k.startsWith(shortPlate) || k.split(' ')[0] === shortPlate;
+      });
+      if (matchKey) checkOdo = expGetLastCheckOdoBefore(checkIndex, matchKey, tripDate);
+    }
+
     if (checkOdo !== null && odoStart > 0) {
       gapCheckNum = Math.round((odoStart - checkOdo) * 10) / 10;
       if (gapCheckNum > 5) {
@@ -5392,27 +5429,28 @@ function expComputeMileGap(r, checkIndex) {
       } else if (gapCheckNum < -5) {
         gapCheck = `${gapCheckNum} กม. (ไมล์ออกรถต่ำกว่าตรวจเช็ค — ตรวจสอบ)`;
       } else {
-        gapCheck = '—';
+        gapCheck    = '—';
+        gapCheckNum = 0;
       }
     }
   }
 
-  // ── Flag รวม ──
-  let flag = '✅ ปกติ';
-  const hasGapTrip  = gapTripNum !== null && Math.abs(gapTripNum) > 2;
+  // ── Flag รวม ─────────────────────────────────────────────────
+  const hasGapTrip  = gapTripNum  !== null && Math.abs(gapTripNum)  > 2;
   const hasGapCheck = gapCheckNum !== null && Math.abs(gapCheckNum) > 5;
+  let flag = '✅ ปกติ';
   if (hasGapTrip && hasGapCheck) flag = '🔴 ผิดปกติทั้งคู่';
   else if (hasGapTrip)           flag = '🟡 ระยะหาย (ออกรถ→รพ.)';
   else if (hasGapCheck)          flag = '🟠 ระยะหาย (ก่อนออกรถ)';
 
   return {
-    __gapTripKm    : gapTrip     || '—',
+    __gapTripKm     : gapTrip,
     __checkOdoBefore: checkOdo !== null ? checkOdo : '—',
-    __gapCheckKm   : gapCheck    || '—',
-    __gapFlag      : flag,
-    __gapTripNum   : gapTripNum,
-    __gapCheckNum  : gapCheckNum,
-    __isSuspect    : hasGapTrip || hasGapCheck
+    __gapCheckKm    : gapCheck,
+    __gapFlag       : flag,
+    __gapTripNum    : gapTripNum  || 0,
+    __gapCheckNum   : gapCheckNum || 0,
+    __isSuspect     : hasGapTrip || hasGapCheck
   };
 }
 
@@ -5465,15 +5503,17 @@ function expUpdateAnalytics() {
   document.getElementById('expStatIssues').textContent = issues.length.toLocaleString();
 
   // ── วิเคราะห์ระยะหาย ──
-  // reset check index ทุกครั้งที่ load ใหม่ (ข้อมูล check อาจเปลี่ยน)
-  _expCheckIndex = null;
+  // ใช้ _expCheckIndex ที่ expLoadAll สร้างไว้แล้ว ไม่ reset ใหม่
+  // (ข้อมูล check ไม่เปลี่ยนระหว่าง session เดียวกัน)
+  if (!_expCheckIndex) {
+    _expCheckIndex = expBuildCheckIndex(EXP.cache.check || []);
+  }
 
   let totalGapKm  = 0;
   let suspectTrips = 0;
   miles.forEach(function(r) {
     expEnrichMileRow(r);
-    if (r.__gapTripNum  && Math.abs(r.__gapTripNum)  > 2) totalGapKm  += Math.abs(r.__gapTripNum);
-    if (r.__gapCheckNum && Math.abs(r.__gapCheckNum) > 5) totalGapKm  += Math.abs(r.__gapCheckNum);
+    totalGapKm += Math.abs(r.__gapTripNum || 0) + Math.abs(r.__gapCheckNum || 0);
     if (r.__isSuspect) suspectTrips++;
   });
 
@@ -5517,12 +5557,22 @@ window.expSetDateRange = function(preset) {
 // ── Filter by date + options ───────────────────────────
 function expGetFilteredRows() {
   const raw  = EXP.cache[EXP.selectedCard] || [];
-  const from = document.getElementById('expDateFrom').value; // yyyy-MM-dd
+  const from = document.getElementById('expDateFrom').value;
   const to   = document.getElementById('expDateTo').value;
   const issueOnly = document.getElementById('expOptIssueOnly').checked;
 
+  // ✅ FIX: enrich gap fields สำหรับ mile dataset ก่อน filter เสมอ
+  // ป้องกันกรณีที่ expLoadAll ยังไม่ได้ enrich (เช่น data โหลดจาก cache)
+  if (EXP.selectedCard === 'mile') {
+    if (!_expCheckIndex) {
+      _expCheckIndex = expBuildCheckIndex(EXP.cache.check || []);
+    }
+    raw.forEach(function(r) {
+      if (r.__gapFlag === undefined) expEnrichMileRow(r);
+    });
+  }
+
   return raw.filter(function(r) {
-    // date filter
     if (from || to) {
       const dateVal = expExtractDate(r);
       if (dateVal) {
@@ -5531,7 +5581,6 @@ function expGetFilteredRows() {
         if (to   && d && d > to)   return false;
       }
     }
-    // issue only
     if (issueOnly) {
       const hasIssue = r.hasIssue === true || r.hasIssue === 'TRUE' ||
                        r.issueCount > 0 || r.status === 'แจ้งซ่อม' ||
@@ -5960,12 +6009,10 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
   if (addGapSheet) {
     const gapRows = rows.filter(function(r){ return r.__isSuspect; });
 
-    // ── helper: หาค่าระยะหายสูงสุดของ row (trip gap หรือ check gap)
-    function rowMaxGap(r) {
-      return Math.max(
-        Math.abs(r.__gapTripNum  || 0),
-        Math.abs(r.__gapCheckNum || 0)
-      );
+    // ── helper: คำนวณ "ระยะหายรวม" ของ row นี้ (ใช้จัดกลุ่ม tier)
+    // ใช้ผลรวมของทั้งสองมิติ: gap ออกรถ→รพ. + gap ตรวจเช็ค→ออกรถ
+    function rowTotalGap(r) {
+      return Math.abs(r.__gapTripNum || 0) + Math.abs(r.__gapCheckNum || 0);
     }
 
     // ── 4 tier ตามระยะหาย ──────────────────────────────────────────
@@ -6038,7 +6085,7 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
       // ── วนแต่ละ tier ──────────────────────────────────────────
       TIERS.forEach(function(tier, ti) {
         const tierRows = gapRows.filter(function(r) {
-          const g = rowMaxGap(r);
+          const g = rowTotalGap(r);
           return g >= tier.min && g <= tier.max;
         });
 
@@ -6074,7 +6121,7 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
 
           // tier subtotal
           const tierGapSum = tierRows.reduce(function(s,r){
-            return s + rowMaxGap(r);
+            return s + rowTotalGap(r);
           }, 0);
           gapAoa.push(['', '', '', 'รวม ' + tier.label, tierRows.length + ' ทริป', '', Math.round(tierGapSum) + ' กม. (สะสม)']);
           styleMap.push({ row: currentAoaRow, type: 'subtotal', tierIdx: ti });
@@ -6097,10 +6144,10 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
       let grandTotal = 0;
       TIERS.forEach(function(tier, ti) {
         const tierRows = gapRows.filter(function(r) {
-          const g = rowMaxGap(r);
+          const g = rowTotalGap(r);
           return g >= tier.min && g <= tier.max;
         });
-        const tierGapSum = Math.round(tierRows.reduce(function(s,r){ return s + rowMaxGap(r); }, 0));
+        const tierGapSum = Math.round(tierRows.reduce(function(s,r){ return s + rowTotalGap(r); }, 0));
         const pct = gapRows.length > 0 ? Math.round(tierRows.length / gapRows.length * 100) : 0;
         grandTotal += tierGapSum;
         gapAoa.push([
