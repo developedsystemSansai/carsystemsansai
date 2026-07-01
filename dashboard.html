@@ -6108,7 +6108,7 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
 
           // data rows — เรียงจากมากไปน้อยตามระยะหาย
           const sorted = tierRows.slice().sort(function(a, b) {
-            return rowMaxGap(b) - rowMaxGap(a);
+            return rowTotalGap(b) - rowTotalGap(a);
           });
           sorted.forEach(function(r) {
             gapAoa.push(gapCols.map(function(c) {
