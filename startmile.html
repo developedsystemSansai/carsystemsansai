@@ -3562,6 +3562,48 @@ function fuelProgressEnd(ok, fileName) {
   }
 }
 
+// ── image compression helper ────────────────────────────────
+// ย่อขนาด + บีบอัดรูปด้วย canvas ก่อนอัปโหลด (client-side)
+// รูปจากกล้องมือถือมักใหญ่ 3–10MB → หลังบีบอัดเหลือ ~150–400KB
+// ใช้ร่วมกันทุกจุดอัปโหลดรูปในหน้านี้ (บิลน้ำมัน/รูปสภาพรถ ขาออก-ขากลับ)
+function compressImageFile(file, opts) {
+  opts = opts || {};
+  const maxDim  = opts.maxDim  || 1600;
+  const quality = opts.quality || 0.72;
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
+      reject(new Error('ไม่ใช่ไฟล์รูปภาพ'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('อ่านไฟล์ไม่สำเร็จ'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => resolve({ dataUrl: reader.result, mimeType: file.type || 'image/jpeg' });
+      img.onload = () => {
+        try {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+            else { width = Math.round(width * maxDim / height); height = maxDim; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width  = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve({ dataUrl, mimeType: 'image/jpeg', width, height });
+        } catch (e) {
+          resolve({ dataUrl: reader.result, mimeType: file.type || 'image/jpeg' });
+        }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 async function uploadFuelPhoto(file) {
   // ✅ FIX: อัปโหลดขึ้น Drive ทันทีตอนเลือกรูป (เหมือน trip photo) แทนที่จะรอส่งพร้อม startMile
   // → submit เร็วขึ้นมาก เพราะ payload ตอนกดยืนยันมีแค่ URL ไม่มี base64 ก้อนใหญ่
@@ -3573,16 +3615,11 @@ async function uploadFuelPhoto(file) {
   if (linkBox) linkBox.classList.remove('show');
 
   try {
-    const dataUrl = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload  = () => res(r.result);
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    });
+    const { dataUrl, mimeType } = await compressImageFile(file, { maxDim: 1600, quality: 0.72 });
     fuelPhotoB64  = dataUrl;   // base64 เต็ม (รวม data:image/...;base64,) — เก็บไว้เป็น fallback
     fuelPhotoFile = file;
-    fuelPhotoMime = file.type || 'image/jpeg';
-    fuelPhotoName = file.name || ('fuel_' + Date.now() + '.jpg');
+    fuelPhotoMime = mimeType || 'image/jpeg';
+    fuelPhotoName = (file.name || 'fuel').replace(/\.\w+$/, '') + '.jpg';
 
     // แสดง preview local ทันที
     const preview = document.getElementById('fuelPhotoPreview');
@@ -3759,12 +3796,7 @@ async function uploadReturnFuelPhoto(file) {
   const linkBox = document.getElementById('returnFuelLinkBox');
   if (linkBox) linkBox.classList.remove('show');
   try {
-    const dataUrl = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload  = () => res(r.result);
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    });
+    const { dataUrl, mimeType } = await compressImageFile(file, { maxDim: 1600, quality: 0.72 });
     // ✅ FIX: ตรวจก่อนเขียนว่า session ยังตรงกันอยู่ไหม
     // ถ้าผู้ใช้เปลี่ยนรูป/ลบรูป/เปลี่ยนรถระหว่างโหลด → session จะไม่ตรง → ไม่เขียนทับ
     if (_returnFuelSessionId !== mySession) {
@@ -3773,8 +3805,8 @@ async function uploadReturnFuelPhoto(file) {
     }
     returnFuelPhotoB64  = dataUrl;
     returnFuelPhotoFile = file;
-    returnFuelPhotoMime = file.type || 'image/jpeg';
-    returnFuelPhotoName = file.name || ('fuel_return_' + Date.now() + '.jpg');
+    returnFuelPhotoMime = mimeType || 'image/jpeg';
+    returnFuelPhotoName = (file.name || 'fuel_return').replace(/\.\w+$/, '') + '.jpg';
     const preview = document.getElementById('returnFuelPhotoPreview');
     const img     = document.getElementById('returnFuelPhotoImg');
     if (img) img.src = dataUrl;
@@ -3996,22 +4028,22 @@ function handleTripPhotos(files) {
 
   newFiles.forEach(file => {
     _pendingTripPhotoReads++;
-    const reader = new FileReader();
-    reader.onload = e => {
-      _pendingTripPhotoReads--;
-      const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
-      tripPhotos.push(photo);
-      renderTripPhotoGrid();
-      if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
-        tripProgressShow(file.name);
-        uploadTripPhoto(photo);
-      }
-    };
-    reader.onerror = () => {
-      _pendingTripPhotoReads--;
-      showToast('⚠ อ่านไฟล์รูป "' + file.name + '" ไม่สำเร็จ', 'error');
-    };
-    reader.readAsDataURL(file);
+    compressImageFile(file, { maxDim: 1600, quality: 0.72 })
+      .then(({ dataUrl, mimeType }) => {
+        _pendingTripPhotoReads--;
+        const jpgName = (file.name || 'trip').replace(/\.\w+$/, '') + '.jpg';
+        const photo = { name: jpgName, data: dataUrl, type: mimeType || 'image/jpeg', driveUrl: '', status: 'pending' };
+        tripPhotos.push(photo);
+        renderTripPhotoGrid();
+        if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
+          tripProgressShow(jpgName);
+          uploadTripPhoto(photo);
+        }
+      })
+      .catch(() => {
+        _pendingTripPhotoReads--;
+        showToast('⚠ อ่านไฟล์รูป "' + file.name + '" ไม่สำเร็จ', 'error');
+      });
   });
   document.getElementById('s_tripPhoto').value = '';
   document.getElementById('s_tripPhotoGallery').value = '';
@@ -4195,22 +4227,22 @@ function handleReturnCarPhotos(files) {
 
   newFiles.forEach(file => {
     _pendingReturnCarPhotoReads++;
-    const reader = new FileReader();
-    reader.onload = e => {
-      _pendingReturnCarPhotoReads--;
-      const photo = { name: file.name, data: e.target.result, type: file.type, driveUrl: '', status: 'pending' };
-      returnCarPhotos.push(photo);
-      renderReturnCarPhotoGrid();
-      if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
-        returnCarProgressShow(file.name);
-        uploadReturnCarPhoto(photo);
-      }
-    };
-    reader.onerror = () => {
-      _pendingReturnCarPhotoReads--;
-      showToast('⚠ อ่านไฟล์รูป "' + file.name + '" ไม่สำเร็จ', 'error');
-    };
-    reader.readAsDataURL(file);
+    compressImageFile(file, { maxDim: 1600, quality: 0.72 })
+      .then(({ dataUrl, mimeType }) => {
+        _pendingReturnCarPhotoReads--;
+        const jpgName = (file.name || 'return_car').replace(/\.\w+$/, '') + '.jpg';
+        const photo = { name: jpgName, data: dataUrl, type: mimeType || 'image/jpeg', driveUrl: '', status: 'pending' };
+        returnCarPhotos.push(photo);
+        renderReturnCarPhotoGrid();
+        if (GAS_URL && !GAS_URL.includes('YOUR_GOOGLE')) {
+          returnCarProgressShow(jpgName);
+          uploadReturnCarPhoto(photo);
+        }
+      })
+      .catch(() => {
+        _pendingReturnCarPhotoReads--;
+        showToast('⚠ อ่านไฟล์รูป "' + file.name + '" ไม่สำเร็จ', 'error');
+      });
   });
   document.getElementById('e_returnCarPhoto').value        = '';
   document.getElementById('e_returnCarPhotoGallery').value = '';
