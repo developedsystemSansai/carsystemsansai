@@ -805,7 +805,9 @@ body {
   border: 1px solid rgba(192,57,43,.18);
 }
 .mc-day-chip.weekend { background: var(--bg); color: var(--text-mid); border-color: var(--border); }
-.bar-label { width: 130px; font-size: 12px; font-weight: 500; color: var(--text-mid); flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-label { width: 170px; font-size: 12px; font-weight: 500; color: var(--text-mid); flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-label-plate { font-size: 12px; font-weight: 700; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar-label-owner { font-size: 10.5px; font-weight: 500; color: var(--text-light); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
 .bar-track { flex: 1; height: 16px; background: var(--bg); border-radius: 4px; overflow: hidden; border: 1px solid var(--border); }
 .bar-fill { height: 100%; border-radius: 4px; background: var(--navy); transition: width 1s var(--ease); }
 .bar-value { font-size: 12px; font-weight: 700; color: var(--navy); width: 52px; text-align: right; flex-shrink: 0; font-family: 'IBM Plex Mono', monospace; }
@@ -1920,6 +1922,7 @@ async function checkPw() {
       <div class="modal-meta">
         <h2>วันที่ไม่ได้ตรวจสภาพ (จาก CheckLog)</h2>
         <p id="mc-period">—</p>
+        <p id="mc-responsible" style="margin-top:2px;"></p>
       </div>
       <button class="modal-close" onclick="closeMissingCheckModal()">✕</button>
     </div>
@@ -2017,17 +2020,17 @@ function bkkMonthStr(d) {
 
 // fallback list (ใช้เมื่อ API ยังไม่โหลดเสร็จ)
 let ALL_VEHICLES = [
-  { plate: 'นจ.4919', type: 'รถตู้ฮุนได',         sys: 'ทั่วไป' },
-  { plate: 'นง.8781', type: 'รถตู้ฮุนได',         sys: 'ทั่วไป' },
-  { plate: 'นง.86',   type: 'รถตู้',              sys: 'ทั่วไป' },
-  { plate: 'จย.1379', type: 'รถ Refer',           sys: 'EMS' },
-  { plate: 'งบ.5466', type: 'รถ Refer',           sys: 'EMS' },
-  { plate: 'ขษ.4361', type: 'รถ Refer',           sys: 'EMS' },
-  { plate: 'ขร.501',  type: 'รถ Refer',           sys: 'EMS' },
-  { plate: 'ขธ.9302', type: 'รถปิ๊กอัพ 4 ประตู', sys: 'ทั่วไป' },
-  { plate: 'ขฉ.8407', type: 'รถ Refer',           sys: 'EMS' },
-  { plate: 'ขค.9662', type: 'รถปิ๊กอัพ 4 ประตู', sys: 'ทั่วไป' },
-  { plate: 'กล.9438', type: 'รถปิ๊กอัพ 4 ประตู', sys: 'ทั่วไป' },
+  { plate: 'นจ.4919', type: 'รถตู้ฮุนได',         sys: 'ทั่วไป', responsible: '' },
+  { plate: 'นง.8781', type: 'รถตู้ฮุนได',         sys: 'ทั่วไป', responsible: 'นายภาณุพงศ์ กางสำโรง' },
+  { plate: 'นง.86',   type: 'รถตู้',              sys: 'ทั่วไป', responsible: 'นายคมสันต์ ภายไธสงค์' },
+  { plate: 'จย.1379', type: 'รถ Refer',           sys: 'EMS',    responsible: 'นายชัยพร มอญแสง' },
+  { plate: 'งบ.5466', type: 'รถ Refer',           sys: 'EMS',    responsible: 'นายนพดล คำปินคำ' },
+  { plate: 'ขษ.4361', type: 'รถ Refer',           sys: 'EMS',    responsible: 'นายกิติพงศ์ เขื่อนแก้ว' },
+  { plate: 'ขร.501',  type: 'รถ Refer',           sys: 'EMS',    responsible: 'นายเฉลิมชนม์ นันติแก้ว' },
+  { plate: 'ขธ.9302', type: 'รถปิ๊กอัพ 4 ประตู', sys: 'ทั่วไป', responsible: 'นายชัยพร ชัยศร' },
+  { plate: 'ขฉ.8407', type: 'รถ Refer',           sys: 'EMS',    responsible: 'นายกานต์นิธิ ทองอร' },
+  { plate: 'ขค.9662', type: 'รถปิ๊กอัพ 4 ประตู', sys: 'ทั่วไป', responsible: 'นายเก้า พิจิตร' },
+  { plate: 'กล.9438', type: 'รถปิ๊กอัพ 4 ประตู', sys: 'ทั่วไป', responsible: 'นายเฉิมพล เลาแก้ว' },
 ];
 
 // โหลด Vehicles จาก Google Sheets แล้วอัปเดต filter dropdown + live grid
@@ -2042,11 +2045,19 @@ async function loadVehicleMaster() {
         sys         : v['ประเภทระบบ']   || 'ทั่วไป',
         sheetStatus : String(v['สถานะ'] || '').trim(),           // สถานะจาก Vehicles sheet
         sheetDriver : String(v['ผู้ขับปัจจุบัน'] || '').trim(), // คนขับปัจจุบัน
-        sheetDest   : String(v['ปลายทาง'] || '').trim()          // ปลายทางปัจจุบัน
+        sheetDest   : String(v['ปลายทาง'] || '').trim(),         // ปลายทางปัจจุบัน
+        responsible : String(v['ผู้รับผิดชอบ'] || '').trim()    // ผู้รับผิดชอบรถคันนี้ (จากชีท Vehicles)
       }));
+      renderBarChart(window._checkFreqData || window.allData || []); // เผื่อชาร์ตขึ้นก่อน Vehicles โหลดเสร็จ → รีเฟรชชื่อผู้รับผิดชอบ
     }
   } catch (_) {}
   populateFilterCar();
+}
+
+/** getVehicleResponsible — หาชื่อผู้รับผิดชอบของทะเบียนที่ระบุ จาก ALL_VEHICLES (ชีท Vehicles) */
+function getVehicleResponsible(plate) {
+  const v = (ALL_VEHICLES || []).find(x => x.plate === plate);
+  return (v && v.responsible) ? v.responsible : '';
 }
 
 function populateFilterCar() {
@@ -2568,13 +2579,19 @@ function renderBarChart(data) {
   const sorted = Object.entries(counts).sort((a,b) => b[1]-a[1]);
   const max = sorted[0]?.[1]||1;
   if (!sorted.length) { el.innerHTML = '<div class="empty-state"><div class="em">—</div>ยังไม่มีข้อมูล</div>'; return; }
-  el.innerHTML = sorted.map(([plate,cnt]) => `
+  el.innerHTML = sorted.map(([plate,cnt]) => {
+    const responsible = getVehicleResponsible(plate);
+    return `
     <div class="bar-row clickable" title="คลิกดูวันที่ไม่ได้ตรวจสภาพ" onclick="openMissingCheckModal('${plate}')">
-      <div class="bar-label">${plate}</div>
+      <div class="bar-label">
+        <div class="bar-label-plate">${plate}</div>
+        <div class="bar-label-owner" title="${responsible || 'ไม่มีข้อมูลผู้รับผิดชอบ'}">${responsible ? '👤 ' + responsible : '—'}</div>
+      </div>
       <div class="bar-track"><div class="bar-fill" style="width:${Math.round(cnt/max*100)}%"></div></div>
       <div class="bar-value">${cnt} ครั้ง</div>
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 /**
@@ -2637,6 +2654,9 @@ function openMissingCheckModal(plate) {
   document.getElementById('mc-plate').textContent = plate || '—';
   document.getElementById('mc-period').textContent =
     `ช่วงวันที่ ${formatThaiDate(start)} — ${formatThaiDate(end)} (นับเฉพาะวันจันทร์-ศุกร์)`;
+  const responsible = getVehicleResponsible(plate);
+  document.getElementById('mc-responsible').textContent =
+    responsible ? `👤 ผู้รับผิดชอบ: ${responsible}` : '';
   document.getElementById('mc-summary').innerHTML =
     `ตรวจแล้ว <b style="color:var(--success);">${checkedOnRange}</b> วัน จากทั้งหมด <b>${allDays.length}</b> วันทำการ · ` +
     `ไม่ได้ตรวจ <b style="color:var(--danger);">${missingDays.length}</b> วัน`;
