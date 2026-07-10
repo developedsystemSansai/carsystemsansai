@@ -75,10 +75,32 @@
   .pin-badge.pinned { background: var(--success-soft); color: #0f5c2e; }
   .pin-badge.unpinned { background: var(--amber-soft); color: #7a4800; }
   .pin-badge.unpinned:hover { background: #ffe6a8; }
+  .pin-badge.editbtn { background: var(--blue-soft); color: var(--blue); }
+  .pin-badge.editbtn:hover { background: #d3e6f8; }
+  .pin-badge.delbtn { background: var(--danger-soft); color: var(--danger); }
+  .pin-badge.delbtn:hover { background: #fbd9d4; }
 
   .empty-state { padding: 30px 16px; text-align: center; color: var(--text-light); font-size: 13px; }
 
-  .freq-marker { background: rgba(29,111,181,.88); border: 2px solid #fff; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-weight: 700; box-shadow: 0 1px 6px rgba(0,0,0,.3); }
+  .freq-marker { background: rgba(29,111,181,.88); border: 2px solid #fff; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-weight: 700; box-shadow: 0 1px 6px rgba(0,0,0,.3); cursor: grab; }
+  .freq-marker.dragging { cursor: grabbing; }
+
+  .edit-toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--blue-soft); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--navy); }
+  .edit-toolbar .switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; font-weight: 600; }
+  .edit-toolbar input[type="checkbox"] { width: 30px; height: 16px; accent-color: var(--blue); cursor: pointer; }
+  .edit-hint { color: var(--text-light); font-size: 11px; }
+
+  .import-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 14px 16px; margin-bottom: 16px; }
+  .import-panel-head { font-size: 13px; font-weight: 700; color: var(--navy); display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .import-panel-body { margin-top: 10px; display: none; }
+  .import-panel-body.show { display: block; }
+  .import-panel-body p { font-size: 12px; color: var(--text-mid); margin-bottom: 8px; line-height: 1.6; }
+  .import-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .import-log { margin-top: 10px; max-height: 160px; overflow-y: auto; font-family: 'IBM Plex Mono', monospace; font-size: 11px; background: var(--bg); border-radius: var(--radius-sm); padding: 8px 10px; display: none; }
+  .import-log.show { display: block; }
+  .import-log .ok { color: var(--success); }
+  .import-log .skip { color: var(--text-light); }
+  .import-log .err { color: var(--danger); }
 </style>
 </head>
 <body>
@@ -126,6 +148,22 @@
     </div>
   </div>
 
+  <div class="import-panel">
+    <div class="import-panel-head" onclick="toggleImportPanel()">
+      <span>นำเข้าพิกัดจากไฟล์ (ลดเวลาปักหมุดเอง)</span>
+      <span id="importToggleIcon">▾</span>
+    </div>
+    <div class="import-panel-body" id="importPanelBody">
+      <p>อัปโหลดไฟล์ .json ที่มีรายการ [{"name":"ชื่อจุดหมาย","lat":...,"lng":...}, ...] ระบบจะบันทึกพิกัดให้ทุกชื่อในไฟล์อัตโนมัติ (ชื่อที่ตรงกับปลายทางที่มีอยู่แล้วจะถูกปักหมุดทันที ส่วนชื่อที่ปักหมุดไว้แล้วจะถูกอัปเดตพิกัดใหม่)</p>
+      <div class="import-row">
+        <input type="file" id="importFileInput" accept=".json" style="font-size:12px;">
+        <button class="btn btn-primary" onclick="runImport()">นำเข้าและปักหมุด</button>
+        <span id="importStatus" style="font-size:12px;color:var(--text-light);"></span>
+      </div>
+      <div class="import-log" id="importLog"></div>
+    </div>
+  </div>
+
   <div class="filter-bar">
     <div class="filter-group">
       <label>ตั้งแต่</label>
@@ -144,6 +182,13 @@
 
   <div class="layout">
     <div class="map-panel">
+      <div class="edit-toolbar">
+        <label class="switch">
+          <input type="checkbox" id="editModeToggle" onchange="toggleEditMode()">
+          โหมดแก้ไขหมุด
+        </label>
+        <span class="edit-hint" id="editHintText">เปิดโหมดนี้เพื่อลากหมุดย้ายตำแหน่ง หรือลบหมุดที่ปักผิด</span>
+      </div>
       <div class="pin-mode-bar" id="pinModeBar">
         <span id="pinModeText">คลิกบนแผนที่เพื่อปักหมุดตำแหน่งของ "…"</span>
         <button onclick="cancelPinMode()">ยกเลิก</button>
@@ -189,6 +234,7 @@ let map = null;
 let markerByName = {};
 let pinModeTarget = null;
 let pinClickHandler = null;
+let editMode = false;
 
 // ════════════════════════════════════════════════════════════
 //  MAP INIT (Leaflet + OpenStreetMap — ไม่ต้องใช้ API key)
@@ -229,11 +275,66 @@ function renderMarkers() {
     if (!pin) return;
     const ratio = d.count / maxCount;
     const size = Math.round(14 + ratio * 22); // 14–36px ตามความถี่
-    const marker = L.marker([pin.lat, pin.lng], { icon: freqIcon(size, d.count) })
-      .addTo(map)
-      .bindPopup('<b>' + escHtml(d.name) + '</b><br>จำนวนทริป: ' + d.count + '<br>ระยะทางรวม: ' + d.distanceKm.toFixed(1) + ' กม.');
+    const marker = L.marker([pin.lat, pin.lng], {
+      icon: freqIcon(size, d.count),
+      draggable: editMode
+    }).addTo(map);
+    bindMarkerPopup(marker, d);
+    if (editMode) attachDragHandlers(marker, d.name);
     markerByName[normName(d.name)] = marker;
   });
+}
+
+function bindMarkerPopup(marker, d) {
+  const safeName = escAttr(d.name);
+  const editRow = editMode
+    ? '<div style="margin-top:8px;display:flex;gap:6px;">'
+      + '<button class="pin-badge delbtn" style="padding:4px 10px;" onclick="removePin(\'' + safeName + '\')">ลบหมุดนี้</button>'
+      + '</div><div style="margin-top:6px;font-size:11px;color:#7a8ea5;">ลากหมุดบนแผนที่เพื่อย้ายตำแหน่ง</div>'
+    : '';
+  marker.bindPopup(
+    '<b>' + escHtml(d.name) + '</b><br>จำนวนทริป: ' + d.count +
+    '<br>ระยะทางรวม: ' + d.distanceKm.toFixed(1) + ' กม.' + editRow
+  );
+}
+
+function attachDragHandlers(marker, name) {
+  marker.on('dragstart', function () {
+    marker.getElement() && marker.getElement().classList.add('dragging');
+  });
+  marker.on('dragend', function (e) {
+    marker.getElement() && marker.getElement().classList.remove('dragging');
+    const pos = e.target.getLatLng();
+    savePin(name, pos.lat, pos.lng);
+  });
+}
+
+// ── EDIT MODE — เปิดให้ลากหมุดย้ายตำแหน่ง หรือลบหมุดที่ปักผิด ──
+function toggleEditMode() {
+  editMode = document.getElementById('editModeToggle').checked;
+  document.getElementById('editHintText').textContent = editMode
+    ? 'กำลังแก้ไข: ลากหมุดเพื่อย้ายตำแหน่ง หรือคลิกหมุด > "ลบหมุดนี้" เพื่อลบ'
+    : 'เปิดโหมดนี้เพื่อลากหมุดย้ายตำแหน่ง หรือลบหมุดที่ปักผิด';
+  renderMarkers();
+}
+
+async function removePin(name) {
+  if (!confirm('ยืนยันลบหมุดของ "' + name + '" ?')) return;
+  try {
+    const payload = { action: 'deleteLocationPin', name };
+    const res = await fetch(GAS_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body   : JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (!json || json.status !== 'ok') throw new Error((json && json.message) || 'ไม่ทราบสาเหตุ');
+    delete allPins[normName(name)];
+    if (map) map.closePopup();
+    applyFilters();
+  } catch (err) {
+    alert('ลบหมุดไม่สำเร็จ: ' + (err.message || err));
+  }
 }
 
 function focusDest(name) {
@@ -362,9 +463,14 @@ function renderList() {
   }
   el.innerHTML = destFreq.map((d, i) => {
     const pin = allPins[normName(d.name)];
-    const badge = pin
-      ? '<button class="pin-badge pinned" onclick="event.stopPropagation();focusDest(\'' + escAttr(d.name) + '\')">ปักแล้ว</button>'
-      : '<button class="pin-badge unpinned" onclick="event.stopPropagation();startPinMode(\'' + escAttr(d.name) + '\')">ปักหมุด</button>';
+    let badge;
+    if (pin && editMode) {
+      badge = '<button class="pin-badge delbtn" onclick="event.stopPropagation();removePin(\'' + escAttr(d.name) + '\')">ลบ</button>';
+    } else if (pin) {
+      badge = '<button class="pin-badge pinned" onclick="event.stopPropagation();focusDest(\'' + escAttr(d.name) + '\')">ปักแล้ว</button>';
+    } else {
+      badge = '<button class="pin-badge unpinned" onclick="event.stopPropagation();startPinMode(\'' + escAttr(d.name) + '\')">ปักหมุด</button>';
+    }
     return '<div class="dest-row" onclick="focusDest(\'' + escAttr(d.name) + '\')">'
       + '<div class="dest-rank">' + (i + 1) + '</div>'
       + '<div class="dest-info">'
@@ -400,6 +506,75 @@ async function savePin(name, lat, lng) {
   } catch (err) {
     alert('บันทึกหมุดไม่สำเร็จ: ' + (err.message || err));
   }
+}
+
+// ════════════════════════════════════════════════════════════
+//  IMPORT PINS FROM FILE — นำเข้ารายชื่อ+พิกัดที่รีวิวไว้ล่วงหน้า
+//  รูปแบบไฟล์: [{ "name": "...", "lat": 18.xx, "lng": 99.xx }, ...]
+// ════════════════════════════════════════════════════════════
+function toggleImportPanel() {
+  const body = document.getElementById('importPanelBody');
+  const icon = document.getElementById('importToggleIcon');
+  body.classList.toggle('show');
+  icon.textContent = body.classList.contains('show') ? '▴' : '▾';
+}
+
+async function runImport() {
+  const fileInput = document.getElementById('importFileInput');
+  const statusEl  = document.getElementById('importStatus');
+  const logEl     = document.getElementById('importLog');
+  if (!fileInput.files || !fileInput.files[0]) {
+    statusEl.textContent = 'กรุณาเลือกไฟล์ .json ก่อน';
+    return;
+  }
+
+  let items;
+  try {
+    const text = await fileInput.files[0].text();
+    items = JSON.parse(text);
+    if (!Array.isArray(items)) throw new Error('ไฟล์ต้องเป็น array');
+  } catch (err) {
+    statusEl.textContent = 'อ่านไฟล์ไม่สำเร็จ: ' + (err.message || err);
+    return;
+  }
+
+  logEl.classList.add('show');
+  logEl.innerHTML = '';
+  let okCount = 0, errCount = 0, skipCount = 0;
+
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const name = String((it && it.name) || '').trim();
+    const lat = Number(it && it.lat);
+    const lng = Number(it && it.lng);
+    statusEl.textContent = 'กำลังนำเข้า ' + (i + 1) + ' / ' + items.length + ' ...';
+
+    if (!name || isNaN(lat) || isNaN(lng)) {
+      skipCount++;
+      logEl.innerHTML += '<div class="skip">ข้าม: ข้อมูลไม่ครบ (' + escHtml(name || '?') + ')</div>';
+      continue;
+    }
+    try {
+      const payload = { action: 'saveLocationPin', name, lat, lng, pinnedBy: CURRENT_USER + ' (นำเข้าไฟล์)' };
+      const res = await fetch(GAS_URL, {
+        method : 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body   : JSON.stringify(payload)
+      });
+      const json = await res.json();
+      if (!json || json.status !== 'ok') throw new Error((json && json.message) || 'ไม่ทราบสาเหตุ');
+      allPins[normName(name)] = { name, lat, lng };
+      okCount++;
+      logEl.innerHTML += '<div class="ok">สำเร็จ: ' + escHtml(name) + '</div>';
+    } catch (err) {
+      errCount++;
+      logEl.innerHTML += '<div class="err">ผิดพลาด: ' + escHtml(name) + ' — ' + escHtml(err.message || err) + '</div>';
+    }
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  statusEl.textContent = 'เสร็จสิ้น: สำเร็จ ' + okCount + ' รายการ, ข้าม ' + skipCount + ', ผิดพลาด ' + errCount;
+  applyFilters();
 }
 
 // ════════════════════════════════════════════════════════════
