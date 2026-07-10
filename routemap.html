@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>แผนที่เส้นทางการใช้รถ — SAND</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0d2137; --navy-mid: #163251; --navy-light: #1e4a7a;
+    --blue: #1d6fb5; --blue-soft: #e8f1fb;
+    --teal: #007a6e; --teal-soft: #e0f4f1;
+    --amber: #c07a00; --amber-soft: #fdf4dc;
+    --success: #1a8a4a; --success-soft: #e4f5eb;
+    --danger: #c0392b; --danger-soft: #fdecea;
+    --bg: #eef2f7; --card: #ffffff;
+    --border: #d5dce8; --border-strong: #b8c4d4;
+    --text: #182332; --text-mid: #3d5168; --text-light: #7a8ea5;
+    --radius: 12px; --radius-sm: 8px;
+    --shadow-sm: 0 1px 6px rgba(13,33,55,.07);
+    --shadow: 0 2px 14px rgba(13,33,55,.09);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.5; }
+
+  .site-header { background: var(--navy); position: sticky; top: 0; z-index: 200; box-shadow: 0 2px 16px rgba(0,0,0,.28); }
+  .header-inner { max-width: 1280px; margin: auto; padding: 0 20px; height: 58px; display: flex; align-items: center; gap: 14px; }
+  .header-logo { width: 36px; height: 36px; background: linear-gradient(145deg, var(--blue) 0%, var(--teal) 100%); border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .header-logo svg { width: 18px; height: 18px; }
+  .header-titles { flex: 1; min-width: 0; }
+  .header-titles .main-title { font-size: 13.5px; font-weight: 700; color: #fff; }
+  .header-titles .sub-title { font-size: 11px; color: rgba(255,255,255,.45); }
+  .back-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 999px; color: rgba(255,255,255,.8); font-size: 12.5px; font-weight: 600; text-decoration: none; transition: background .18s; font-family: inherit; }
+  .back-btn:hover { background: rgba(255,255,255,.14); color: #fff; }
+
+  .main-wrap { max-width: 1280px; margin: auto; padding: 20px; }
+
+  .banner { padding: 12px 16px; border-radius: var(--radius-sm); font-size: 13px; margin-bottom: 16px; border: 1px solid; display: flex; gap: 10px; align-items: flex-start; }
+  .banner.warn { background: var(--amber-soft); border-color: rgba(192,122,0,.3); color: #7a4800; }
+  .banner b { font-weight: 700; }
+  .banner a { color: inherit; text-decoration: underline; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow-sm); }
+  .stat-label { font-size: 11.5px; color: var(--text-light); font-weight: 600; }
+  .stat-val { font-size: 24px; font-weight: 700; color: var(--navy); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+  .stat-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
+  .filter-bar input, .filter-bar select { font-family: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--card); color: var(--text); }
+  .filter-bar label { font-size: 12px; color: var(--text-mid); font-weight: 600; margin-right: 4px; }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+  .btn { font-family: inherit; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: opacity .15s; }
+  .btn:hover { opacity: .88; }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-ghost { background: var(--card); color: var(--text-mid); border: 1px solid var(--border-strong); }
+
+  .layout { display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: 16px; align-items: start; }
+  @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } }
+
+  .map-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden; }
+  #mapEl { width: 100%; height: 560px; background: linear-gradient(135deg,#dbe6f2,#eef2f7); display: flex; align-items: center; justify-content: center; color: var(--text-light); font-size: 13px; text-align: center; padding: 20px; }
+  .pin-mode-bar { display: none; padding: 10px 14px; background: var(--navy); color: #fff; font-size: 12.5px; align-items: center; justify-content: space-between; gap: 10px; }
+  .pin-mode-bar.show { display: flex; }
+  .pin-mode-bar button { font-family: inherit; font-size: 12px; padding: 5px 12px; border-radius: 999px; border: none; background: rgba(255,255,255,.15); color: #fff; cursor: pointer; }
+
+  .list-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); max-height: 620px; display: flex; flex-direction: column; }
+  .list-head { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--navy); display: flex; justify-content: space-between; align-items: center; }
+  .list-body { overflow-y: auto; flex: 1; }
+  .dest-row { padding: 11px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background .12s; }
+  .dest-row:hover { background: var(--bg); }
+  .dest-rank { width: 22px; height: 22px; border-radius: 50%; background: var(--blue-soft); color: var(--blue); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: 'IBM Plex Mono', monospace; }
+  .dest-info { flex: 1; min-width: 0; }
+  .dest-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dest-sub { font-size: 11px; color: var(--text-light); margin-top: 1px; }
+  .dest-count { font-size: 13px; font-weight: 700; color: var(--navy); font-family: 'IBM Plex Mono', monospace; flex-shrink: 0; }
+  .pin-badge { font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; flex-shrink: 0; }
+  .pin-badge.pinned { background: var(--success-soft); color: #0f5c2e; }
+  .pin-badge.unpinned { background: var(--amber-soft); color: #7a4800; cursor: pointer; }
+  .pin-badge.unpinned:hover { background: #ffe6a8; }
+
+  .empty-state { padding: 30px 16px; text-align: center; color: var(--text-light); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-13l6 3m0 0l4.553-2.276A1 1 0 0121 5.618v10.764a1 1 0 01-.553.894L15 20m0-13v13"/>
+      </svg>
+    </div>
+    <div class="header-titles">
+      <div class="main-title">แผนที่เส้นทางการใช้รถ</div>
+      <div class="sub-title">โรงพยาบาลสันทราย · วิเคราะห์ความถี่จุดหมายปลายทางด้วย GISTDA Map</div>
+    </div>
+    <a href="index.html" class="back-btn">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      หน้าหลัก
+    </a>
+  </div>
+</header>
+
+<main class="main-wrap">
+
+  <div id="apiKeyBanner" class="banner warn" style="display:none;">
+    <span>⚠️</span>
+    <div>
+      <b>ยังไม่ได้ตั้งค่า GISTDA API key</b> — หน้านี้จะแสดงได้เฉพาะ "รายการความถี่จุดหมาย" (ด้านขวา) ส่วนแผนที่จะใช้งานไม่ได้จนกว่าจะสมัคร key ฟรีที่
+      <a href="https://sphere.gistda.or.th/" target="_blank" rel="noopener">sphere.gistda.or.th</a>
+      แล้วนำมาใส่ในตัวแปร <code>GISTDA_API_KEY</code> ที่ต้นไฟล์ routemap.html
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-label">ทริปที่วิเคราะห์</div>
+      <div class="stat-val" id="statTrips">—</div>
+      <div class="stat-sub">รายการใน MileLog</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">จุดหมายทั้งหมด</div>
+      <div class="stat-val" id="statDest">—</div>
+      <div class="stat-sub">ปลายทางไม่ซ้ำ</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">ปักหมุดแล้ว</div>
+      <div class="stat-val" id="statPinned" style="color:var(--success);">—</div>
+      <div class="stat-sub">พร้อมแสดงบนแผนที่</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">รอปักหมุด</div>
+      <div class="stat-val" id="statUnpinned" style="color:var(--amber);">—</div>
+      <div class="stat-sub">ยังไม่มีพิกัด</div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label>ตั้งแต่</label>
+      <input type="date" id="fDateFrom">
+    </div>
+    <div class="filter-group">
+      <label>ถึง</label>
+      <input type="date" id="fDateTo">
+    </div>
+    <div class="filter-group" style="flex:1;min-width:180px;">
+      <input type="text" id="fSearch" placeholder="ค้นหาชื่อจุดหมาย..." style="width:100%;">
+    </div>
+    <button class="btn btn-primary" onclick="applyFilters()">กรองข้อมูล</button>
+    <button class="btn btn-ghost" onclick="resetFilters()">ล้างตัวกรอง</button>
+  </div>
+
+  <div class="layout">
+    <div class="map-panel">
+      <div class="pin-mode-bar" id="pinModeBar">
+        <span id="pinModeText">คลิกบนแผนที่เพื่อปักหมุดตำแหน่งของ "…"</span>
+        <button onclick="cancelPinMode()">ยกเลิก</button>
+      </div>
+      <div id="mapEl">กำลังเตรียมแผนที่…</div>
+    </div>
+
+    <div class="list-panel">
+      <div class="list-head">
+        <span>อันดับจุดหมายยอดนิยม</span>
+        <span id="listCount" style="font-weight:400;color:var(--text-light);"></span>
+      </div>
+      <div class="list-body" id="destList">
+        <div class="empty-state">กำลังโหลดข้อมูล...</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════════════════
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec';
+
+// ⚠️ ต้องสมัคร API key ฟรีที่ https://sphere.gistda.or.th/ ก่อนใช้งานแผนที่จริง
+// แล้วแทนที่ค่านี้ด้วย key ที่ได้รับ (โครงสร้าง URL ด้านล่างอ้างอิงจากรูปแบบมาตรฐานของ
+// บริการแผนที่ GISTDA — หากโหลดสคริปต์ไม่สำเร็จ ให้ตรวจสอบ URL ที่แท้จริงจากหน้า
+// "เริ่มต้นใช้งาน" ในบัญชี sphere ของท่านอีกครั้ง เนื่องจากอาจมีการปรับปรุงจากผู้ให้บริการ)
+const GISTDA_API_KEY = '28F1DE1DE77F4295AC37B727B7023527';
+const GISTDA_SCRIPT_URL = 'https://api.sphere.gistda.or.th/map/?key=' + GISTDA_API_KEY;
+
+// ศูนย์กลางแผนที่เริ่มต้น: โรงพยาบาลสันทราย เชียงใหม่ (201 ม.11 ถ.เชียงใหม่-พร้าว ต.หนองหาร อ.สันทราย)
+const HOSPITAL_LOCATION = { lon: 99.0435, lat: 18.8226 };
+
+const CURRENT_USER = 'ผู้ใช้งานหน้าแผนที่'; // ใช้บันทึกว่าใครเป็นคนปักหมุด (ถ้ามีระบบ login ในอนาคตค่อยเปลี่ยนตรงนี้)
+
+// ════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════
+let allTrips = [];
+let allPins  = {};      // { destinationName: {lat,lng,...} }
+let destFreq = [];      // [{name, count, distanceKm}] เรียงมากไปน้อย
+let map = null;
+let markerByName = {};
+let pinModeTarget = null;
+
+// ════════════════════════════════════════════════════════════
+//  LOAD DATA
+// ════════════════════════════════════════════════════════════
+async function loadAll() {
+  try {
+    const [mileRes, pinRes] = await Promise.all([
+      fetch(GAS_URL + '?action=getMileData', { cache: 'no-store' }).then(r => r.json()),
+      fetch(GAS_URL + '?action=getLocationPins', { cache: 'no-store' }).then(r => r.json())
+    ]);
+    allTrips = (mileRes && mileRes.data) || [];
+    allPins = {};
+    ((pinRes && pinRes.data) || []).forEach(p => { allPins[normName(p.name)] = p; });
+    applyFilters();
+  } catch (err) {
+    document.getElementById('destList').innerHTML =
+      '<div class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + (err.message || err) + '</div>';
+  }
+}
+
+function normName(s) {
+  return String(s || '').trim();
+}
+
+// ════════════════════════════════════════════════════════════
+//  AGGREGATE + FILTER
+// ════════════════════════════════════════════════════════════
+function applyFilters() {
+  const from = document.getElementById('fDateFrom').value;
+  const to   = document.getElementById('fDateTo').value;
+  const q    = document.getElementById('fSearch').value.trim().toLowerCase();
+
+  const filtered = allTrips.filter(t => {
+    const dest = normName(t['ปลายทาง']);
+    if (!dest) return false;
+    if (q && !dest.toLowerCase().includes(q)) return false;
+    const d = toYMD(t['วันที่']);
+    if (from && d && d < from) return false;
+    if (to && d && d > to) return false;
+    return true;
+  });
+
+  const map_ = {};
+  filtered.forEach(t => {
+    const dest = normName(t['ปลายทาง']);
+    if (!map_[dest]) map_[dest] = { name: dest, count: 0, distanceKm: 0 };
+    map_[dest].count++;
+    const km = Number(t['ระยะทาง(กม.)']);
+    if (!isNaN(km)) map_[dest].distanceKm += km;
+  });
+
+  destFreq = Object.values(map_).sort((a, b) => b.count - a.count);
+
+  const pinnedCount = destFreq.filter(d => allPins[normName(d.name)]).length;
+  document.getElementById('statTrips').textContent = filtered.length;
+  document.getElementById('statDest').textContent = destFreq.length;
+  document.getElementById('statPinned').textContent = pinnedCount;
+  document.getElementById('statUnpinned').textContent = destFreq.length - pinnedCount;
+  document.getElementById('listCount').textContent = destFreq.length + ' รายการ';
+
+  renderList();
+  renderMarkers();
+}
+
+function resetFilters() {
+  document.getElementById('fDateFrom').value = '';
+  document.getElementById('fDateTo').value = '';
+  document.getElementById('fSearch').value = '';
+  applyFilters();
+}
+
+function toYMD(v) {
+  const s = String(v || '').trim();
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+  return '';
+}
+
+// ════════════════════════════════════════════════════════════
+//  RENDER LIST
+// ════════════════════════════════════════════════════════════
+function renderList() {
+  const el = document.getElementById('destList');
+  if (!destFreq.length) {
+    el.innerHTML = '<div class="empty-state">ไม่พบข้อมูลตามเงื่อนไขที่กรอง</div>';
+    return;
+  }
+  el.innerHTML = destFreq.map((d, i) => {
+    const pin = allPins[normName(d.name)];
+    const badge = pin
+      ? '<span class="pin-badge pinned">ปักแล้ว</span>'
+      : '<span class="pin-badge unpinned" onclick="event.stopPropagation();startPinMode(\'' + escAttr(d.name) + '\')">ปักหมุด</span>';
+    return '<div class="dest-row" onclick="focusDest(\'' + escAttr(d.name) + '\')">'
+      + '<div class="dest-rank">' + (i + 1) + '</div>'
+      + '<div class="dest-info">'
+      +   '<div class="dest-name" title="' + escAttr(d.name) + '">' + escHtml(d.name) + '</div>'
+      +   '<div class="dest-sub">รวม ' + d.distanceKm.toFixed(1) + ' กม.</div>'
+      + '</div>'
+      + '<div class="dest-count">' + d.count + '</div>'
+      + badge
+      + '</div>';
+  }).join('');
+}
+
+function escHtml(s) { return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function escAttr(s) { return String(s).replace(/'/g, "\\'"); }
+
+// ════════════════════════════════════════════════════════════
+//  GISTDA MAP
+// ════════════════════════════════════════════════════════════
+function loadSphereScript() {
+  if (!GISTDA_API_KEY || GISTDA_API_KEY === 'YOUR_GISTDA_API_KEY') {
+    document.getElementById('apiKeyBanner').style.display = 'flex';
+    document.getElementById('mapEl').innerHTML =
+      'ยังไม่ได้ตั้งค่า GISTDA API key<br>ดูรายการความถี่จุดหมายได้ที่ตารางด้านขวา';
+    return;
+  }
+  const s = document.createElement('script');
+  s.src = GISTDA_SCRIPT_URL;
+  s.onload = initMap;
+  s.onerror = () => {
+    document.getElementById('mapEl').innerHTML =
+      'โหลดแผนที่ GISTDA ไม่สำเร็จ — ตรวจสอบ API key หรือ URL สคริปต์อีกครั้ง<br>ดูรายการความถี่จุดหมายได้ที่ตารางด้านขวา';
+  };
+  document.head.appendChild(s);
+}
+
+function initMap() {
+  if (typeof sphere === 'undefined') return;
+  document.getElementById('mapEl').innerHTML = '';
+  map = new sphere.Map({
+    placeholder: document.getElementById('mapEl'),
+    location: HOSPITAL_LOCATION,
+    zoom: 12
+  });
+  map.Layers.setBase(sphere.Layers.STREETS);
+
+  // มาร์กเกอร์โรงพยาบาล (จุดต้นทาง) เป็นจุดอ้างอิงเสมอ
+  const hospitalMarker = new sphere.Marker(HOSPITAL_LOCATION, {
+    title: 'โรงพยาบาลสันทราย (ต้นทาง)',
+    icon: { url: '', html: '<div style="width:16px;height:16px;border-radius:50%;background:#1d6fb5;border:2px solid #fff;box-shadow:0 0 0 2px #1d6fb5;"></div>' }
+  });
+  map.Overlays.add(hospitalMarker);
+
+  renderMarkers();
+}
+
+function renderMarkers() {
+  if (!map || typeof sphere === 'undefined') return;
+  Object.values(markerByName).forEach(m => map.Overlays.remove(m));
+  markerByName = {};
+
+  const maxCount = Math.max(1, ...destFreq.map(d => d.count));
+  destFreq.forEach(d => {
+    const pin = allPins[normName(d.name)];
+    if (!pin) return;
+    const ratio = d.count / maxCount;
+    const size = Math.round(14 + ratio * 22); // 14–36px ตามความถี่
+    const marker = new sphere.Marker({ lon: pin.lng, lat: pin.lat }, {
+      title: d.name + ' — ' + d.count + ' ทริป',
+      detail: '<b>' + escHtml(d.name) + '</b><br>จำนวนทริป: ' + d.count + '<br>ระยะทางรวม: ' + d.distanceKm.toFixed(1) + ' กม.',
+      icon: {
+        html: '<div style="width:' + size + 'px;height:' + size + 'px;border-radius:50%;'
+            + 'background:rgba(192,122,0,.85);border:2px solid #fff;color:#fff;'
+            + 'display:flex;align-items:center;justify-content:center;'
+            + 'font-family:IBM Plex Mono,monospace;font-weight:700;font-size:10px;'
+            + 'box-shadow:0 1px 6px rgba(0,0,0,.3);">' + d.count + '</div>'
+      }
+    });
+    map.Overlays.add(marker);
+    markerByName[normName(d.name)] = marker;
+  });
+}
+
+function focusDest(name) {
+  const pin = allPins[normName(name)];
+  if (!pin || !map) {
+    startPinMode(name);
+    return;
+  }
+  map.location = { lon: pin.lng, lat: pin.lat };
+  map.zoom = 15;
+}
+
+// ════════════════════════════════════════════════════════════
+//  PIN MODE — คลิกบนแผนที่เพื่อปักหมุดจุดหมายที่ยังไม่มีพิกัด
+// ════════════════════════════════════════════════════════════
+let pinClickHandler = null;
+
+function startPinMode(name) {
+  if (!map || typeof sphere === 'undefined') {
+    alert('ต้องตั้งค่า GISTDA API key ก่อนจึงจะปักหมุดบนแผนที่ได้');
+    return;
+  }
+  pinModeTarget = name;
+  document.getElementById('pinModeText').textContent = 'คลิกบนแผนที่เพื่อปักหมุดตำแหน่งของ "' + name + '"';
+  document.getElementById('pinModeBar').classList.add('show');
+
+  if (pinClickHandler) map.Event.unbind(sphere.EventName.Click, pinClickHandler);
+  pinClickHandler = function (location) {
+    savePin(pinModeTarget, location.lat, location.lon);
+    cancelPinMode();
+  };
+  map.Event.bind(sphere.EventName.Click, pinClickHandler);
+}
+
+function cancelPinMode() {
+  pinModeTarget = null;
+  document.getElementById('pinModeBar').classList.remove('show');
+  if (map && pinClickHandler) {
+    map.Event.unbind(sphere.EventName.Click, pinClickHandler);
+    pinClickHandler = null;
+  }
+}
+
+async function savePin(name, lat, lng) {
+  try {
+    const payload = { action: 'saveLocationPin', name, lat, lng, pinnedBy: CURRENT_USER };
+    const res = await fetch(GAS_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body   : JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (!json || json.status !== 'ok') {
+      throw new Error((json && json.message) || 'ไม่ทราบสาเหตุ');
+    }
+    allPins[normName(name)] = { name, lat, lng };
+    applyFilters();
+  } catch (err) {
+    alert('บันทึกหมุดไม่สำเร็จ: ' + (err.message || err));
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════
+loadSphereScript();
+loadAll();
+</script>
+</body>
+</html>
