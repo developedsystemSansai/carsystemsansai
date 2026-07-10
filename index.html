@@ -405,6 +405,7 @@
   .nav-card.c-amber .card-stripe { background: linear-gradient(90deg, var(--amber), #e09a1a); }
   .nav-card.c-orange .card-stripe { background: linear-gradient(90deg, var(--orange), #e87b38); }
   .nav-card.c-violet .card-stripe { background: linear-gradient(90deg, var(--violet), var(--violet-mid)); }
+  .nav-card.c-green  .card-stripe { background: linear-gradient(90deg, var(--success), #22b563); }
 
   .card-content {
     padding: 20px 20px 0;
@@ -424,6 +425,7 @@
   .nav-card.c-amber .card-icon { background: var(--amber-soft); color: var(--amber); }
   .nav-card.c-orange .card-icon { background: var(--orange-soft); color: var(--orange); }
   .nav-card.c-violet .card-icon { background: var(--violet-soft); color: var(--violet); }
+  .nav-card.c-green  .card-icon { background: var(--success-soft); color: var(--success); }
 
   .card-text { flex: 1; min-width: 0; }
   .card-step {
@@ -437,6 +439,7 @@
   .nav-card.c-amber .card-step { color: var(--amber); }
   .nav-card.c-orange .card-step { color: var(--orange); }
   .nav-card.c-violet .card-step { color: var(--violet); }
+  .nav-card.c-green  .card-step { color: var(--success); }
 
   .card-title {
     font-size: 15px; font-weight: 700;
@@ -467,6 +470,7 @@
   .tag-red   { background: var(--red-soft);   color: #8b1a1a; }
   .tag-orange { background: var(--orange-soft); color: #8a3006; }
   .tag-violet { background: var(--violet-soft); color: #4a2a9a; }
+  .tag-green { background: var(--success-soft); color: #0f5c2e; }
 
   .card-arrow {
     width: 26px; height: 26px; border-radius: 6px;
@@ -481,6 +485,7 @@
   .nav-card.c-amber:hover .card-arrow { background: var(--amber);    color: #fff; }
   .nav-card.c-orange:hover .card-arrow { background: var(--orange);  color: #fff; }
   .nav-card.c-violet:hover .card-arrow { background: var(--violet);  color: #fff; }
+  .nav-card.c-green:hover .card-arrow { background: var(--success); color: #fff; }
 
   /* ── NOTICE BANNER ── */
   .notice {
@@ -1211,6 +1216,32 @@
         <div class="card-tags">
           <span class="tag tag-navy">ผู้บริหาร</span>
           <span class="tag tag-navy">Real-time</span>
+        </div>
+        <div class="card-arrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </a>
+
+    <!-- Route Map (GISTDA) -->
+    <a class="nav-card c-green" href="routemap.html">
+      <div class="card-stripe-wrap"><div class="card-stripe"></div></div>
+      <div class="card-content">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-13l6 3m0 0l4.553-2.276A1 1 0 0121 5.618v10.764a1 1 0 01-.553.894L15 20m0-13v13"/>
+          </svg>
+        </div>
+        <div class="card-text">
+          <div class="card-step">วิเคราะห์การเดินทาง · GISTDA Map</div>
+          <div class="card-title">แผนที่เส้นทางการใช้รถ</div>
+          <div class="card-desc">ดูจุดหมายปลายทางที่รถวิ่งบ่อยที่สุดบนแผนที่จริง วิเคราะห์ความถี่และรูปแบบการเดินทางของยานพาหนะทั้งหมด</div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="card-tags">
+          <span class="tag tag-green">GISTDA</span>
+          <span class="tag tag-green">Heatmap</span>
         </div>
         <div class="card-arrow">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
