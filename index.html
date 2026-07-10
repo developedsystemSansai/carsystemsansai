@@ -1751,7 +1751,26 @@ function openSatisfaction() {
 // ─── INIT ──────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initIndex();
-  setInterval(loadStatus, 120000);
+  // ✅ REAL-TIME: smart poll — ตรวจ reloadSignal ก่อน ถ้าไม่เปลี่ยนไม่ fetch
+  let _indexLastSignal = null;
+  async function smartIndexRefresh() {
+    try {
+      const r   = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'payload=' + encodeURIComponent(JSON.stringify({ action: 'getReloadSignal' })),
+        cache: 'no-cache'
+      });
+      const sig = await r.json();
+      const sigStr = JSON.stringify(sig);
+      if (_indexLastSignal === null || sigStr !== _indexLastSignal) {
+        _indexLastSignal = sigStr;
+        await loadStatus(); // มีการเปลี่ยนแปลง → โหลดใหม่
+      }
+      // ถ้าไม่เปลี่ยน → ไม่ทำอะไร ประหยัด GAS quota
+    } catch(_) { await loadStatus(); } // fallback
+  }
+  setInterval(smartIndexRefresh, 30000); // ทุก 30 วินาที (ลดจาก 2 นาที)
 });
 </script>
 
