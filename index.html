@@ -1570,7 +1570,15 @@ function renderVehicleCards(json) {
     // ── subtext: ผู้ขับ / เวลาตรวจ / เวลาเติมน้ำมัน ──
     const chkInfo = chkKey ? checkedMap[chkKey] : null;
     let chkSub;
-    if (isFueled) {
+    if (isInUse && inUseKey) {
+      // ✅ FIX: รถที่ "กำลังใช้งาน" ต้องโชว์ "พขร. ผู้ขับปัจจุบัน" ของทริปที่ออกอยู่จริง
+      // (เดิม chkInfo ของการตรวจสภาพเช้าจะถูกอ่านก่อน ทำให้ขึ้นชื่อคนตรวจสภาพ
+      //  แทนที่จะเป็นคนขับที่นำรถออกไปในทริปปัจจุบัน — ผิดกรณีคนตรวจ ≠ คนขับทริปนี้)
+      const x = inUseMap[inUseKey];
+      const curDriver = (x && x.driver) ? x.driver : (sheetDriver || '—');
+      const outTime = x && x.startTime ? (extractTimeOnly(x.startTime) || x.startTime) : '';
+      chkSub = 'พขร. ' + curDriver + (outTime ? ' · ออก ' + outTime : '');
+    } else if (isFueled) {
       // แสดงข้อมูลการเติมน้ำมัน: เวลา + ผู้ขับ
       const fTime = fueledInfo.time || '';
       const fDrv  = fueledInfo.driverName || (chkInfo && chkInfo.driverName) || sheetDriver || '';
@@ -1578,9 +1586,6 @@ function renderVehicleCards(json) {
       chkSub = (fTime ? 'เติม ' + fTime : 'เติมน้ำมันวันนี้') + (fDrv ? ' · ' + fDrv : '') + fLit;
     } else if (chkInfo) {
       chkSub = 'ตรวจ ' + (extractTimeOnly(chkInfo.inspTime) || chkInfo.inspTime || '') + (chkInfo.driverName ? ' · ' + chkInfo.driverName : '');
-    } else if (isInUse && inUseKey) {
-      const x = inUseMap[inUseKey];
-      chkSub = 'พขร. ' + (x && x.driver ? x.driver : sheetDriver || '—');
     } else if (sheetDriver) {
       chkSub = 'พขร. ' + sheetDriver;
     } else {
