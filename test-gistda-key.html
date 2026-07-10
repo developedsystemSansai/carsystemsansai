@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>GISTDA sphere — Test Key</title>
+<style type="text/css">
+  html { height: 100%; }
+  body { margin: 0px; height: 100%; font-family: sans-serif; }
+  #map { height: calc(100% - 40px); }
+  #status { padding: 8px 12px; background: #163251; color: #fff; font-size: 13px; }
+</style>
+<script type="text/javascript" src="https://api.sphere.gistda.or.th/map/?key=28F1DE1DE77F4295AC37B727B7023527"></script>
+<script>
+  var map;
+  function init() {
+    var s = document.getElementById('status');
+    if (typeof sphere === 'undefined') {
+      s.textContent = '❌ โหลดสคริปต์ sphere ไม่สำเร็จเลย (ตัวแปร sphere ไม่ถูกสร้าง) — ปัญหาอยู่ที่การโหลดสคริปต์/เครือข่าย ไม่ใช่ key';
+      s.style.background = '#c0392b';
+      return;
+    }
+    try {
+      map = new sphere.Map({ placeholder: document.getElementById('map') });
+      var marker = new sphere.Marker({ lon: 99.0435, lat: 18.8226 });
+      map.Overlays.add(marker);
+      s.textContent = '✅ โหลดแผนที่สำเร็จ — key ใช้งานได้ปกติ (ปัญหาต้องอยู่ในไฟล์ routemap.html แทน)';
+      s.style.background = '#1a8a4a';
+    } catch (err) {
+      s.textContent = '❌ โหลด sphere ได้ แต่สร้างแผนที่ error: ' + err.message;
+      s.style.background = '#c0392b';
+    }
+  }
+</script>
+</head>
+<body onload="init();">
+  <div id="status">กำลังโหลด...</div>
+  <div id="map"></div>
+</body>
+</html>
