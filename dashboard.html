@@ -4432,9 +4432,31 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ③ โหลดสถานะรถ live (ใช้ allData ที่โหลดเสร็จแล้ว)
   await loadLiveVehicleStatus();
 
-  // ④ refresh อัตโนมัติทุก 2 นาที
+  // ④ refresh อัตโนมัติ — smart poll: ตรวจ reloadSignal ก่อน ถ้าไม่เปลี่ยนแค่ update เวลา
+  let _dashLastSignal = null;
+  async function smartDashRefresh() {
+    try {
+      const res  = await fetch(GAS_STATUS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'payload=' + encodeURIComponent(JSON.stringify({ action: 'getReloadSignal' })),
+        cache: 'no-cache'
+      });
+      const sig = await res.json();
+      const sigStr = JSON.stringify(sig);
+      if (_dashLastSignal === null || sigStr !== _dashLastSignal) {
+        _dashLastSignal = sigStr;
+        // มีการเปลี่ยนแปลง → โหลดข้อมูลใหม่
+        await loadLiveVehicleStatus();
+      } else {
+        // ไม่มีการเปลี่ยนแปลง → แค่ update เวลา ไม่ต้อง fetch GAS
+        const timeEl = document.getElementById('vehicleLiveTime');
+        if (timeEl) timeEl.textContent = 'อัปเดต ' + fmtNow24() + ' (ไม่มีการเปลี่ยนแปลง)';
+      }
+    } catch(_) { await loadLiveVehicleStatus(); } // fallback
+  }
   if (_liveRefreshTimer) clearInterval(_liveRefreshTimer);
-  _liveRefreshTimer = setInterval(loadLiveVehicleStatus, 120000);
+  _liveRefreshTimer = setInterval(smartDashRefresh, 30000); // ทุก 30 วินาที (ลดจาก 2 นาที)
 
   // ตรวจสอบ Drive authorization status
   checkDriveAuth();
