@@ -1642,6 +1642,31 @@ document.getElementById('carType').addEventListener('change', function() {
 
 // Init
 updateProgress();
+
+// ✅ REAL-TIME: poll reloadSignal ทุก 20 วินาที — ถ้า check/startMile ถูกบันทึก → auto reload หน้า
+// ทำให้ผู้ตรวจเห็นสถานะรถที่อัปเดตแล้วโดยไม่ต้อง refresh มือ
+(function initCheckReloadPoll() {
+  let _lastSig = null;
+  const poll = async () => {
+    try {
+      const res = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'payload=' + encodeURIComponent(JSON.stringify({ action: 'getReloadSignal' })),
+        cache: 'no-cache'
+      });
+      const sig = JSON.stringify(await res.json());
+      if (_lastSig === null) { _lastSig = sig; return; } // ครั้งแรก: เก็บ baseline ไม่ reload
+      if (sig !== _lastSig) {
+        _lastSig = sig;
+        // มีรถออก/กลับ → reload vehicle list ใหม่ (ไม่ reload ทั้งหน้า ไม่กระทบฟอร์มที่กรอกอยู่)
+        if (typeof loadVehiclesAndDrivers === 'function') loadVehiclesAndDrivers();
+      }
+    } catch(_) {}
+  };
+  setInterval(poll, 20000); // ทุก 20 วินาที
+  poll(); // เรียกทันทีเพื่อเก็บ baseline
+})();
 </script>
 <script>
 // ─── Fuel Alert: expose ข้อมูลน้ำมันต่ำ ≤50% ให้ index.html ดึง ─────
