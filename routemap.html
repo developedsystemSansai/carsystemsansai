@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <style>
   :root {
     --navy: #0d2137; --navy-mid: #163251; --navy-light: #1e4a7a;
@@ -85,6 +86,22 @@
   .freq-marker { background: rgba(29,111,181,.88); border: 2px solid #fff; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-weight: 700; box-shadow: 0 1px 6px rgba(0,0,0,.3); cursor: grab; }
   .freq-marker.dragging { cursor: grabbing; }
 
+  /* ── สัญลักษณ์รูปดาว: ใช้กับจุดหมายที่ "รถที่ใช้บ่อยที่สุด" (โดยรวม) ไปบ่อยที่สุด ── */
+  .freq-marker.top-car-star {
+    border-radius: 0;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    border: none;
+    box-shadow: 0 1px 8px rgba(0,0,0,.45);
+  }
+
+  /* ── วงแหวนเน้นพิเศษสำหรับ Top 3 จุดหมายยอดนิยม (ทุกโหมดสี) ── */
+  .freq-marker.top-rank-1, .freq-marker.top-rank-2, .freq-marker.top-rank-3 {
+    outline: 3px solid rgba(255,255,255,.0);
+  }
+  .freq-marker-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+  .freq-marker-ring { position: absolute; border-radius: 50%; border: 2px dashed rgba(255,255,255,.85); animation: rankPulse 2.2s ease-in-out infinite; pointer-events: none; }
+  @keyframes rankPulse { 0%,100% { opacity: .35; } 50% { opacity: .9; } }
+
   /* ── หมุดโรงพยาบาลสันทราย (ต้นทาง) — เด่นสะดุดตา ── */
   .hospital-pulse-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
   .hospital-pulse-ring { position: absolute; width: 46px; height: 46px; border-radius: 50%; background: rgba(192,57,43,.35); animation: hospPulse 1.8s ease-out infinite; }
@@ -97,6 +114,8 @@
   .color-mode-bar .seg { display: flex; background: var(--bg); border-radius: 999px; padding: 3px; gap: 2px; }
   .color-mode-bar .seg button { font-family: inherit; font-size: 12px; font-weight: 600; padding: 6px 13px; border-radius: 999px; border: none; background: transparent; color: var(--text-mid); cursor: pointer; transition: all .15s; }
   .color-mode-bar .seg button.active { background: var(--navy); color: #fff; }
+  .color-mode-bar .switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; font-weight: 600; color: var(--text-mid); white-space: nowrap; }
+  .color-mode-bar .switch input[type="checkbox"] { width: 30px; height: 16px; accent-color: var(--amber); cursor: pointer; }
 
   .legend-panel { padding: 10px 14px; background: var(--card); border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 11.5px; }
   .legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-mid); }
@@ -207,6 +226,10 @@
           <button data-mode="category" onclick="setColorMode('category')">ประเภทสถานที่</button>
           <button data-mode="car" onclick="setColorMode('car')">รถที่ใช้บ่อยที่สุด</button>
         </div>
+        <label class="switch" style="margin-left:auto;">
+          <input type="checkbox" id="heatmapToggle" onchange="toggleHeatmap()">
+          🔥 แสดง Heatmap ความหนาแน่น
+        </label>
       </div>
       <div class="edit-toolbar">
         <label class="switch">
@@ -246,8 +269,8 @@
 // ════════════════════════════════════════════════════════════
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec';
 
-// ศูนย์กลางแผนที่เริ่มต้น: โรงพยาบาลสันทราย เชียงใหม่ (201 ม.11 ถ.เชียงใหม่-พร้าว ต.หนองหาร อ.สันทราย)
-const HOSPITAL_LOCATION = { lat: 18.8226, lng: 99.0435 };
+// ศูนย์กลางแผนที่เริ่มต้น: โรงพยาบาลสันทราย เชียงใหม่ (พิกัดยืนยันแล้ว)
+const HOSPITAL_LOCATION = { lat: 18.9209926, lng: 98.9942253 };
 
 const CURRENT_USER = 'ผู้ใช้งานหน้าแผนที่'; // ใช้บันทึกว่าใครเป็นคนปักหมุด (ถ้ามีระบบ login ในอนาคตค่อยเปลี่ยนตรงนี้)
 
@@ -263,6 +286,9 @@ let pinModeTarget = null;
 let pinClickHandler = null;
 let editMode = false;
 let colorMode = 'freq'; // 'freq' | 'category' | 'car'
+let topOverallCar = null;      // ทะเบียน/รถที่ถูกใช้งานบ่อยที่สุดโดยรวม (ทุกทริปที่กรองไว้)
+let topOverallCarCount = 0;
+let heatLayer = null;          // เลเยอร์ Heatmap (Leaflet.heat)
 
 // ── หมวดหมู่สถานที่ (จับคำสำคัญในชื่อปลายทาง) + สีประจำหมวด ──
 const CATEGORY_RULES = [
@@ -331,12 +357,23 @@ function initMap() {
   renderMarkers();
 }
 
-function destIcon(size, label, color) {
+function destIcon(size, label, color, opts) {
+  opts = opts || {};
+  const starClass = opts.star ? ' top-car-star' : '';
+  const fontSize = Math.max(9, Math.round(size * 0.3));
+  const showRing = opts.rank && opts.rank <= 3;
+  const wrapSize = showRing ? size + 16 : size;
+  const ringHtml = showRing
+    ? '<div class="freq-marker-ring" style="width:' + wrapSize + 'px;height:' + wrapSize + 'px;"></div>'
+    : '';
   return L.divIcon({
     className: '',
-    html: '<div class="freq-marker" style="width:' + size + 'px;height:' + size + 'px;font-size:10px;background:' + color + ';">' + label + '</div>',
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2]
+    html: '<div class="freq-marker-wrap" style="width:' + wrapSize + 'px;height:' + wrapSize + 'px;">'
+        +   ringHtml
+        +   '<div class="freq-marker' + starClass + '" style="width:' + size + 'px;height:' + size + 'px;font-size:' + fontSize + 'px;background:' + color + ';position:relative;z-index:2;">' + label + '</div>'
+        + '</div>',
+    iconSize: [wrapSize, wrapSize],
+    iconAnchor: [wrapSize / 2, wrapSize / 2]
   });
 }
 
@@ -361,14 +398,17 @@ function renderMarkers() {
   markerByName = {};
 
   const maxCount = Math.max(1, ...destFreq.map(d => d.count));
-  destFreq.forEach(d => {
+  // destFreq เรียงจากมากไปน้อยอยู่แล้ว (ดู applyFilters) ดังนั้น index+1 = อันดับความนิยม
+  destFreq.forEach((d, i) => {
     const pin = allPins[normName(d.name)];
     if (!pin) return;
     const ratio = d.count / maxCount;
-    const size = Math.round(14 + ratio * 22); // 14–36px ตามความถี่
+    // สเกลแบบไม่เชิงเส้น (ratio^0.75) เพื่อให้สถานที่ที่ไปบ่อยดูใหญ่เด่นชัดกว่าเดิม
+    const size = Math.round(14 + Math.pow(ratio, 0.75) * 36); // 14–50px ตามความถี่
     const color = markerColorFor(d);
+    const isTopCarDest = colorMode === 'car' && topOverallCar && d.topCar === topOverallCar;
     const marker = L.marker([pin.lat, pin.lng], {
-      icon: destIcon(size, d.count, color),
+      icon: destIcon(size, isTopCarDest ? '★' : d.count, color, { star: isTopCarDest, rank: i + 1 }),
       draggable: editMode
     }).addTo(map);
     bindMarkerPopup(marker, d);
@@ -377,6 +417,7 @@ function renderMarkers() {
   });
 
   renderLegend();
+  refreshHeatmap();
 }
 
 // ── แผงคำอธิบายสี (legend) ใต้แผนที่ ตามโหมดที่เลือก ──
@@ -395,11 +436,17 @@ function renderLegend() {
       el.innerHTML = '<span style="color:var(--text-light);">ไม่มีข้อมูลรถในทริปที่กรองไว้</span>';
       return;
     }
+    let starNote = '';
+    if (topOverallCar) {
+      starNote = '<span class="legend-item">★ = จุดหมายที่รถ "' + escHtml(topOverallCar)
+        + '" (ใช้งานบ่อยที่สุดโดยรวม ' + topOverallCarCount + ' ทริป) ไปบ่อยที่สุด</span>';
+    }
     el.innerHTML = '<span class="legend-item legend-title">รถที่ไปบ่อยที่สุดต่อจุดหมาย:</span>' + plates.map(p =>
       '<span class="legend-item"><span class="legend-dot" style="background:' + carColor(p) + ';"></span>' + escHtml(p) + '</span>'
-    ).join('');
+    ).join('') + starNote;
   } else {
-    el.innerHTML = '<span class="legend-item"><span class="legend-dot" style="background:rgba(29,111,181,.88);"></span>ขนาดหมุด = ความถี่การไป (ใหญ่ = ไปบ่อย) เลขในหมุด = จำนวนทริป</span>';
+    el.innerHTML = '<span class="legend-item"><span class="legend-dot" style="background:rgba(29,111,181,.88);"></span>ขนาดหมุด = ความถี่การไป (ใหญ่ = ไปบ่อย) เลขในหมุด = จำนวนทริป</span>'
+      + '<span class="legend-item">วงแหวนประ = ติด Top 3 จุดหมายยอดนิยม</span>';
   }
 }
 
@@ -418,6 +465,9 @@ function bindMarkerPopup(marker, d) {
       + escHtml(plate) + ' — ' + count + ' ทริป</div>'
     ).join('');
     extra = '<div style="margin-top:6px;font-size:11.5px;"><b>สรุปตามรถที่ไปจุดนี้:</b>' + rows + '</div>';
+    if (topOverallCar && d.topCar === topOverallCar) {
+      extra += '<div style="margin-top:4px;font-size:11px;color:var(--amber);font-weight:700;">★ จุดหมายนี้ใช้รถที่ใช้งานบ่อยที่สุดโดยรวม</div>';
+    }
   }
   const editRow = editMode
     ? '<div style="margin-top:8px;display:flex;gap:6px;">'
@@ -439,6 +489,45 @@ function attachDragHandlers(marker, name) {
     const pos = e.target.getLatLng();
     savePin(name, pos.lat, pos.lng);
   });
+}
+
+// ════════════════════════════════════════════════════════════
+//  HEATMAP — แสดงความหนาแน่นของพื้นที่ที่ไปบ่อย (Leaflet.heat)
+// ════════════════════════════════════════════════════════════
+function buildHeatData() {
+  const maxCount = Math.max(1, ...destFreq.map(d => d.count));
+  const pts = [];
+  destFreq.forEach(d => {
+    const pin = allPins[normName(d.name)];
+    if (!pin) return;
+    // น้ำหนักตามสัดส่วนความถี่ (0–1) ให้จุดที่ไปบ่อยเรืองแสงเข้มกว่า
+    pts.push([pin.lat, pin.lng, 0.15 + (d.count / maxCount) * 0.85]);
+  });
+  return pts;
+}
+
+function refreshHeatmap() {
+  const toggle = document.getElementById('heatmapToggle');
+  if (!map || !toggle || !toggle.checked) return;
+  if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+  heatLayer = L.heatLayer(buildHeatData(), {
+    radius: 34,
+    blur: 26,
+    maxZoom: 16,
+    minOpacity: 0.3,
+    gradient: { 0.2: '#1d6fb5', 0.4: '#1a8a4a', 0.6: '#c07a00', 0.8: '#c0392b', 1.0: '#7a1f17' }
+  }).addTo(map);
+}
+
+function toggleHeatmap() {
+  const toggle = document.getElementById('heatmapToggle');
+  if (!map) return;
+  if (toggle.checked) {
+    refreshHeatmap();
+  } else if (heatLayer) {
+    map.removeLayer(heatLayer);
+    heatLayer = null;
+  }
 }
 
 // ── EDIT MODE — เปิดให้ลากหมุดย้ายตำแหน่ง หรือลบหมุดที่ปักผิด ──
@@ -547,6 +636,7 @@ function applyFilters() {
   });
 
   const map_ = {};
+  const overallCarTally = {};
   filtered.forEach(t => {
     const dest = normName(t['ปลายทาง']);
     if (!map_[dest]) map_[dest] = { name: dest, count: 0, distanceKm: 0, carBreakdown: {} };
@@ -555,6 +645,14 @@ function applyFilters() {
     if (!isNaN(km)) map_[dest].distanceKm += km;
     const car = normName(t['ทะเบียน/รถ'] || t['carType']) || 'ไม่ระบุ';
     map_[dest].carBreakdown[car] = (map_[dest].carBreakdown[car] || 0) + 1;
+    overallCarTally[car] = (overallCarTally[car] || 0) + 1;
+  });
+
+  // หา "รถที่ใช้บ่อยที่สุดโดยรวม" จากทริปทั้งหมดที่กรองไว้ (ไม่ใช่แค่ต่อจุดหมาย)
+  topOverallCar = null;
+  topOverallCarCount = 0;
+  Object.entries(overallCarTally).forEach(([car, count]) => {
+    if (count > topOverallCarCount) { topOverallCar = car; topOverallCarCount = count; }
   });
 
   destFreq = Object.values(map_).map(d => {
