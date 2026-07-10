@@ -500,7 +500,7 @@
   #vehicleStatusWrap { margin-bottom: 28px; }
   .vehicle-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
     gap: 9px;
   }
   .vehicle-mini {
@@ -559,6 +559,7 @@
   .vm-status.st-inuse {
     background: #fff3cd; color: #7a4800;
     border: 1px solid rgba(192,122,0,.30);
+    word-break: break-word; line-height: 1.35;
   }
   .vm-status.st-ready {
     background: #d1fae5; color: #065f3a;
@@ -1514,6 +1515,12 @@ function renderVehicleCards(json) {
     });
   }
 
+  // ตัดข้อความยาวเกิน เพื่อไม่ให้การ์ดสูงเบี้ยว/ข้อความล้นซ้อนกัน
+  function truncate(str, n) {
+    str = String(str || '');
+    return str.length > n ? str.slice(0, n - 1).trim() + '…' : str;
+  }
+
   function buildCard(v) {
     const plateKey = v.plate.replace(/ ชม\.?.*/, '').trim();
 
@@ -1543,7 +1550,7 @@ function renderVehicleCards(json) {
       const x = inUseMap[inUseKey];
       vmClass    = 'vm-inuse';
       statusHtml = '<span class="vm-status st-inuse"><span class="vm-status-dot inuse"></span>กำลังใช้งาน'
-                 + (x && x.destination ? ' — ' + x.destination : '') + '</span>';
+                 + (x && x.destination ? ' — ' + truncate(x.destination, 16) : '') + '</span>';
     } else if (isChecked) {
       // ✅ ตรวจสภาพแล้ว / พร้อมใช้งาน
       vmClass    = 'vm-ready';
@@ -1552,7 +1559,7 @@ function renderVehicleCards(json) {
       // ✅ fallback จาก Vehicles sheet
       vmClass    = 'vm-inuse';
       statusHtml = '<span class="vm-status st-inuse"><span class="vm-status-dot inuse"></span>กำลังใช้งาน'
-                 + (sheetDest ? ' — ' + sheetDest : '') + '</span>';
+                 + (sheetDest ? ' — ' + truncate(sheetDest, 16) : '') + '</span>';
     } else if (sheetStatus === 'พร้อมใช้งาน') {
       // ✅ fallback จาก Vehicles sheet
       vmClass    = 'vm-ready';
@@ -1575,19 +1582,19 @@ function renderVehicleCards(json) {
       // (เดิม chkInfo ของการตรวจสภาพเช้าจะถูกอ่านก่อน ทำให้ขึ้นชื่อคนตรวจสภาพ
       //  แทนที่จะเป็นคนขับที่นำรถออกไปในทริปปัจจุบัน — ผิดกรณีคนตรวจ ≠ คนขับทริปนี้)
       const x = inUseMap[inUseKey];
-      const curDriver = (x && x.driver) ? x.driver : (sheetDriver || '—');
+      const curDriver = truncate((x && x.driver) ? x.driver : (sheetDriver || '—'), 14);
       const outTime = x && x.startTime ? (extractTimeOnly(x.startTime) || x.startTime) : '';
-      chkSub = 'พขร. ' + curDriver + (outTime ? ' · ออก ' + outTime : '');
+      chkSub = 'พขร. ' + curDriver + (outTime ? ' · ' + outTime : '');
     } else if (isFueled) {
       // แสดงข้อมูลการเติมน้ำมัน: เวลา + ผู้ขับ
       const fTime = fueledInfo.time || '';
-      const fDrv  = fueledInfo.driverName || (chkInfo && chkInfo.driverName) || sheetDriver || '';
+      const fDrv  = truncate(fueledInfo.driverName || (chkInfo && chkInfo.driverName) || sheetDriver || '', 14);
       const fLit  = fueledInfo.fuelLiters ? ' · ' + fueledInfo.fuelLiters + ' ล.' : '';
       chkSub = (fTime ? 'เติม ' + fTime : 'เติมน้ำมันวันนี้') + (fDrv ? ' · ' + fDrv : '') + fLit;
     } else if (chkInfo) {
-      chkSub = 'ตรวจ ' + (extractTimeOnly(chkInfo.inspTime) || chkInfo.inspTime || '') + (chkInfo.driverName ? ' · ' + chkInfo.driverName : '');
+      chkSub = 'ตรวจ ' + (extractTimeOnly(chkInfo.inspTime) || chkInfo.inspTime || '') + (chkInfo.driverName ? ' · ' + truncate(chkInfo.driverName, 14) : '');
     } else if (sheetDriver) {
-      chkSub = 'พขร. ' + sheetDriver;
+      chkSub = 'พขร. ' + truncate(sheetDriver, 14);
     } else {
       chkSub = 'ยังไม่ได้ตรวจสภาพวันนี้';
     }
@@ -1638,7 +1645,19 @@ function renderVehicleCards(json) {
         '</div>';
     }
 
-    return '<div class="vehicle-mini ' + vmClass + '">'         + '<div class="vm-plate">' + plateKey + emsBadge + '</div>'         + '<div class="vm-type">' + v.type + '</div>'         + statusHtml         + '<div class="vm-sub">' + chkSub + '</div>'         + fuelMarkHtml         + '</div>';
+    // title = ข้อความเต็มไม่ตัด สำหรับ hover ดูรายละเอียดครบ (ปลายทาง/ชื่อ พขร.)
+    const fullDest = (isInUse && inUseKey && inUseMap[inUseKey] && inUseMap[inUseKey].destination)
+      ? inUseMap[inUseKey].destination
+      : (sheetStatus === 'กำลังใช้งาน' ? sheetDest : '');
+    const fullDriver = (isInUse && inUseKey && inUseMap[inUseKey] && inUseMap[inUseKey].driver)
+      ? inUseMap[inUseKey].driver
+      : sheetDriver;
+    const titleParts = [];
+    if (fullDest)   titleParts.push('ปลายทาง: ' + fullDest);
+    if (fullDriver) titleParts.push('พขร.: ' + fullDriver);
+    const titleAttr = titleParts.length ? ' title="' + titleParts.join(' | ').replace(/"/g,'&quot;') + '"' : '';
+
+    return '<div class="vehicle-mini ' + vmClass + '"' + titleAttr + '>'         + '<div class="vm-plate">' + plateKey + emsBadge + '</div>'         + '<div class="vm-type">' + v.type + '</div>'         + statusHtml         + '<div class="vm-sub">' + chkSub + '</div>'         + fuelMarkHtml         + '</div>';
   }
 
   // ── แบ่งกลุ่ม: ทั่วไป (van+pickup) | EMS/Refer ──────────────────
