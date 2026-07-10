@@ -1661,7 +1661,7 @@ document.addEventListener('DOMContentLoaded', () => {
 //  จะ poll แล้ว reload อัตโนมัติ เพื่อล้างข้อมูลค้าง (เลขไมล์/สถานะรถ)
 // ════════════════════════════════════════════════════════
 const RELOAD_SIGNAL_STORAGE_KEY = 'reloadSignal_mile';
-const RELOAD_SIGNAL_POLL_MS     = 30000; // ทุก 30 วินาที (เพิ่มจาก 15 เป็น 30)
+const RELOAD_SIGNAL_POLL_MS     = 20000; // ✅ REAL-TIME: ทุก 20 วินาที
 
 // ── ติดตาม "ผู้ใช้กำลังโต้ตอบกับฟอร์ม" ──────────────────────
 // ถ้า focus อยู่ใน input/select/textarea หรือเพิ่งพิมพ์ใน 60 วิที่ผ่านมา → ห้าม reload
@@ -1709,9 +1709,12 @@ function initReloadSignalPolling() {
     if (!sig) return;
     const last = localStorage.getItem(RELOAD_SIGNAL_STORAGE_KEY);
     if (last && sig !== last) {
-      console.log('[ReloadSignal] mile data changed — reloading page');
+      console.log('[ReloadSignal] mile data changed — refreshing data (no full reload)');
       localStorage.setItem(RELOAD_SIGNAL_STORAGE_KEY, sig);
-      location.reload();
+      // ✅ REAL-TIME: refresh แค่ข้อมูล ไม่ reload ทั้งหน้า (ไม่ขัดจังหวะฟอร์ม)
+      // ล้าง sessionStorage cache เพื่อให้ loadAllData ดึง initData ใหม่
+      try { sessionStorage.removeItem('startmile_initData'); } catch(_) {}
+      loadAllData();
     } else if (!last) {
       localStorage.setItem(RELOAD_SIGNAL_STORAGE_KEY, sig);
     }
@@ -1885,90 +1888,99 @@ function onEndDTChange() {
 //  โหลดข้อมูลจาก Google Sheets
 // ════════════════════════════════════════════════════════
 async function loadAllData() {
-  setBanner('loading', 'กำลังโหลดข้อมูลจาก Google Sheets...');
+  setBanner('loading', 'กำลังโหลดข้อมูล...');
   try {
-    // โหลดทุกอย่างพร้อมกัน
-    const [vRes, dRes, sumRes, mileRes] = await Promise.allSettled([
-      fetchGAS('getVehicles'),
-      fetchGAS('getDrivers'),
+    // ✅ FAST: โหลด initData (vehicles+drivers+config) จาก sessionStorage cache ก่อน
+    // ถ้า cache ยังไม่หมดอายุ (ปรับเปลี่ยนทุก 30 นาที) ใช้ cache แทนดึงจาก GAS
+    const CACHE_KEY = 'startmile_initData';
+    const CACHE_TTL = 30 * 60 * 1000; // 30 นาที
+    let initData = null;
+    try {
+      const cached = sessionStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { ts, data } = JSON.parse(cached);
+        if (Date.now() - ts < CACHE_TTL) { initData = data; }
+      }
+    } catch(_) {}
+
+    // ✅ FAST: เรียก parallel เหลือ 2 calls (ลดจาก 4)
+    //   - initData: vehicles+drivers+config (cache ได้)
+    //   - getStatusSummary+getMileData: ข้อมูลสด (ดึงทุกครั้ง)
+    const initPromise  = initData ? Promise.resolve(initData) : fetchGAS('getInitData');
+    const [initRes, sumRes, mileRes] = await Promise.allSettled([
+      initPromise,
       fetchGAS('getStatusSummary'),
       fetchGAS('getMileData')
     ]);
 
-    // ── Vehicles ──
-    if (vRes.status === 'fulfilled' && vRes.value.data && vRes.value.data.length) {
-      vehicles = vRes.value.data;
+    // ── InitData (Vehicles + Drivers + Config) ──
+    if (initRes.status === 'fulfilled') {
+      const init = initRes.value;
+      // cache ลง sessionStorage
+      if (!initData) {
+        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), data: init })); } catch(_) {}
+      }
+      if (init.vehicles && init.vehicles.length) {
+        vehicles = init.vehicles;
+      }
+      if (init.drivers && init.drivers.length) {
+        populateDriverSelect(init.drivers);
+      }
+      if (init.config && init.config.destinations && init.config.destinations.length) {
+        populateDestinations(init.config.destinations);
+      }
     }
-    // กรอกรถทันที (อาจอัปเดตจาก default)
     populateCarSelects();
-
-    // ── Drivers ──
-    if (dRes.status === 'fulfilled' && dRes.value.drivers && dRes.value.drivers.length) {
-      populateDriverSelect(dRes.value.drivers);
-    }
 
     // ── Status Summary (รถที่ตรวจแล้ว + กำลังใช้งาน) ──
     if (sumRes.status === 'fulfilled') {
       const sum = sumRes.value;
-      // รถที่ตรวจแล้ววันนี้
       todayCheckedSet.clear();
       (sum.todayChecked || []).forEach(c => {
         const plate = String(c.carType || '').split(' ')[0].trim();
         if (plate) todayCheckedSet.add(plate);
       });
-      // รถที่กำลังใช้งาน
       activeTripMap = {};
       (sum.inUse || []).forEach(trip => {
         const plate = String(trip.carType || '').split(' ')[0].trim();
         if (plate) activeTripMap[plate] = trip;
       });
-
       renderActiveTripBanner();
       renderCheckGateNotice(sum);
-      // อัปเดต select ด้วยข้อมูล check gate
       populateCarSelects();
     }
 
     // ── Mile History ──
     if (mileRes.status === 'fulfilled' && mileRes.value.data) {
       mileHistory = mileRes.value.data;
-      // สร้าง activeTripMap จาก mileHistory ด้วย (เพิ่มความแม่นยำ)
       mileHistory.forEach(r => {
         if (String(r['สถานะ'] || '') === 'กำลังใช้งาน') {
           const plate = String(r['ทะเบียน/รถ'] || '').split(' ')[0].trim();
           if (plate && !activeTripMap[plate]) {
             activeTripMap[plate] = {
-              tripId: r['TripID'],
-              carType: r['ทะเบียน/รถ'],
+              tripId    : r['TripID'],
+              carType   : r['ทะเบียน/รถ'],
               destination: r['ปลายทาง'],
-              odomStart: Number(r['เลขไมล์ต้น']) || 0,
-              driver: r['พนักงานขับรถ']
+              odomStart : Number(r['เลขไมล์ต้น']) || 0,
+              driver    : r['พนักงานขับรถ']
             };
           }
         }
       });
       renderActiveTripBanner();
-      populateCarSelects();  // อัปเดต e_carType ด้วยรถ active
+      populateCarSelects();
       renderHistory();
     }
 
-    // ── Destinations จาก Config ──
-    try {
-      const cfgRes = await fetchGAS('getConfig');
-      if (cfgRes.config && cfgRes.config.destinations && cfgRes.config.destinations.length) {
-        populateDestinations(cfgRes.config.destinations);
-      }
-    } catch(_) {}
-
     apiLoaded = true;
-    setBanner('success', `โหลดข้อมูลสำเร็จ — รถ ${vehicles.length} คัน | ประวัติ ${mileHistory.length} รายการ`);
+    setBanner('success', `โหลดสำเร็จ — รถ ${vehicles.length} คัน | ประวัติ ${mileHistory.length} รายการ`);
     setTimeout(() => hideBanner(), 3000);
-    hideFormSkeletons();  // ซ่อน skeleton เมื่อโหลดเสร็จ
+    hideFormSkeletons();
 
   } catch(err) {
-    setBanner('error', `โหลดข้อมูลไม่สำเร็จ: ${err.message} — ใช้ข้อมูล Default แทน`);
+    setBanner('error', `โหลดไม่สำเร็จ: ${err.message} — ใช้ข้อมูล Default แทน`);
     console.error('loadAllData error:', err);
-    hideFormSkeletons();  // ซ่อน skeleton แม้เกิด error เพื่อไม่บล็อก form
+    hideFormSkeletons();
   }
 }
 
@@ -3615,7 +3627,7 @@ async function uploadFuelPhoto(file) {
   if (linkBox) linkBox.classList.remove('show');
 
   try {
-    const { dataUrl, mimeType } = await compressImageFile(file, { maxDim: 1600, quality: 0.72 });
+    const { dataUrl, mimeType } = await compressImageFile(file, { maxDim: 1280, quality: 0.68 }); // ลด size เพื่อ upload เร็วขึ้น
     fuelPhotoB64  = dataUrl;   // base64 เต็ม (รวม data:image/...;base64,) — เก็บไว้เป็น fallback
     fuelPhotoFile = file;
     fuelPhotoMime = mimeType || 'image/jpeg';
@@ -3796,7 +3808,7 @@ async function uploadReturnFuelPhoto(file) {
   const linkBox = document.getElementById('returnFuelLinkBox');
   if (linkBox) linkBox.classList.remove('show');
   try {
-    const { dataUrl, mimeType } = await compressImageFile(file, { maxDim: 1600, quality: 0.72 });
+    const { dataUrl, mimeType } = await compressImageFile(file, { maxDim: 1280, quality: 0.68 }); // ลด size เพื่อ upload เร็วขึ้น
     // ✅ FIX: ตรวจก่อนเขียนว่า session ยังตรงกันอยู่ไหม
     // ถ้าผู้ใช้เปลี่ยนรูป/ลบรูป/เปลี่ยนรถระหว่างโหลด → session จะไม่ตรง → ไม่เขียนทับ
     if (_returnFuelSessionId !== mySession) {
@@ -4028,7 +4040,7 @@ function handleTripPhotos(files) {
 
   newFiles.forEach(file => {
     _pendingTripPhotoReads++;
-    compressImageFile(file, { maxDim: 1600, quality: 0.72 })
+    compressImageFile(file, { maxDim: 960, quality: 0.62 }) // ลด size สภาพรถขาออก เน็ตอ่อน
       .then(({ dataUrl, mimeType }) => {
         _pendingTripPhotoReads--;
         const jpgName = (file.name || 'trip').replace(/\.\w+$/, '') + '.jpg';
@@ -4227,7 +4239,7 @@ function handleReturnCarPhotos(files) {
 
   newFiles.forEach(file => {
     _pendingReturnCarPhotoReads++;
-    compressImageFile(file, { maxDim: 1600, quality: 0.72 })
+    compressImageFile(file, { maxDim: 960, quality: 0.62 }) // ลด size สภาพรถขากลับ เน็ตอ่อน
       .then(({ dataUrl, mimeType }) => {
         _pendingReturnCarPhotoReads--;
         const jpgName = (file.name || 'return_car').replace(/\.\w+$/, '') + '.jpg';
