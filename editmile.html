@@ -170,6 +170,26 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
 .toast .toast-icon { font-size: 15px; line-height: 1; }
 
 .loading-note { text-align: center; padding: 30px; color: var(--text-light); font-size: 13px; display: flex; align-items: center; justify-content: center; }
+
+/* ── แนบรูปย้อนหลัง ── */
+.photo-section { margin-top: 18px; padding-top: 16px; border-top: 1px dashed var(--border-strong); }
+.photo-section-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 3px; display: flex; align-items: center; gap: 6px; }
+.photo-section-sub { font-size: 11.5px; color: var(--text-light); margin-bottom: 12px; line-height: 1.5; }
+.photo-cat-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.photo-cat-tab { padding: 6px 11px; border: 1.5px solid var(--border); border-radius: 20px; background: #fff; font-family: inherit; font-size: 11.5px; font-weight: 600; color: var(--text-mid); cursor: pointer; transition: all .15s; }
+.photo-cat-tab.active { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); }
+.photo-cat-tab:hover:not(.active) { border-color: var(--border-strong); background: var(--bg); }
+.photo-add-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1.5px dashed var(--border-strong); border-radius: var(--radius-sm); background: var(--bg); font-family: inherit; font-size: 12.5px; font-weight: 600; color: var(--text-mid); cursor: pointer; transition: all .15s; margin-bottom: 10px; }
+.photo-add-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+.photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; margin-bottom: 4px; }
+.photo-thumb-sm { position: relative; width: 100%; aspect-ratio: 1; border-radius: var(--radius-sm); overflow: hidden; border: 1.5px solid var(--border); background: var(--bg); }
+.photo-thumb-sm img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; display: block; }
+.photo-thumb-sm .up-badge { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; font-size: 9.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.photo-thumb-sm .up-badge.pending    { background: rgba(255,255,255,.85); color: var(--text-light); }
+.photo-thumb-sm .up-badge.uploading  { background: var(--blue); color: #fff; animation: spin822 .7s linear infinite; }
+.photo-thumb-sm .up-badge.ok         { background: var(--success); color: #fff; }
+.photo-thumb-sm .up-badge.err        { background: var(--danger); color: #fff; }
+.photo-empty-note { font-size: 11.5px; color: var(--text-light); padding: 10px 0; }
 </style>
 </head>
 
@@ -300,6 +320,30 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
           <label>เหตุผลในการแก้ไข <span style="color:var(--danger);">*</span></label>
           <textarea id="edReason" placeholder="เช่น พขร. ลืมลงเลขไมล์ปลาย, พิมพ์เลขไมล์ผิด ฯลฯ"></textarea>
         </div>
+      </div>
+
+      <!-- ═══ แนบรูปย้อนหลัง ═══ -->
+      <div class="photo-section">
+        <div class="photo-section-title">📷 แนบรูปย้อนหลัง</div>
+        <div class="photo-section-sub">ใช้ในกรณีที่ทริปนี้ยังไม่มีรูป หรือลืมถ่ายรูปตอนออก/กลับรถ — เลือกประเภทรูปแล้วแนบเพิ่มได้เลย รูปจะถูกบันทึกทันทีโดยไม่ต้องกด "บันทึก" ด้านบน</div>
+
+        <div class="photo-cat-tabs" id="photoCatTabs">
+          <button type="button" class="photo-cat-tab active" data-cat="carOut" onclick="selectPhotoCat('carOut')">รูปสภาพรถก่อนออก</button>
+          <button type="button" class="photo-cat-tab" data-cat="carBack" onclick="selectPhotoCat('carBack')">รูปสภาพรถขากลับ</button>
+          <button type="button" class="photo-cat-tab" data-cat="fuelOut" onclick="selectPhotoCat('fuelOut')">รูปบิลน้ำมันออกรถ</button>
+          <button type="button" class="photo-cat-tab" data-cat="fuelBack" onclick="selectPhotoCat('fuelBack')">รูปบิลน้ำมันขากลับ</button>
+        </div>
+
+        <label class="photo-add-btn" for="edRetroPhotoInput">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          ถ่ายรูป / เลือกรูป
+        </label>
+        <input type="file" id="edRetroPhotoInput" accept="image/*" capture="environment" multiple style="display:none;" onchange="handleRetroPhotoSelect(this.files)">
+
+        <div class="photo-grid" id="photoGrid_carOut"></div>
+        <div class="photo-grid" id="photoGrid_carBack" style="display:none;"></div>
+        <div class="photo-grid" id="photoGrid_fuelOut" style="display:none;"></div>
+        <div class="photo-grid" id="photoGrid_fuelBack" style="display:none;"></div>
       </div>
     </div>
     <div class="modal-foot">
@@ -575,6 +619,8 @@ function openEditModal(tripId) {
     : 'คุณกำลังส่งคำขอแก้ไขในฐานะ พขร. — ข้อมูลจริงจะยังไม่เปลี่ยน จนกว่าแอดมินจะอนุมัติ';
   document.getElementById('editSubmitBtn').textContent = role === 'admin' ? 'บันทึกทันที' : 'ส่งคำขอแก้ไข';
 
+  resetPhotoSection(t);
+
   document.getElementById('editModal').classList.add('show');
 }
 
@@ -634,6 +680,172 @@ async function submitEdit() {
   } finally {
     restoreBtn(btn);
   }
+}
+
+// ════════════════════════════════════════════════════════════
+//  แนบรูปย้อนหลัง (retroactive photo attach)
+// ════════════════════════════════════════════════════════════
+const PHOTO_CAT_LABELS = {
+  carOut  : 'รูปสภาพรถก่อนออก',
+  carBack : 'รูปสภาพรถขากลับ',
+  fuelOut : 'รูปบิลน้ำมันออกรถ',
+  fuelBack: 'รูปบิลน้ำมันขากลับ'
+};
+let currentPhotoCat = 'carOut';
+// เก็บรูปของแต่ละประเภทต่อ 1 ครั้งที่เปิด modal: { carOut: [{data,driveUrl,status,existing}], ... }
+let retroPhotos = { carOut: [], carBack: [], fuelOut: [], fuelBack: [] };
+
+// แกะ URL ที่คั่นด้วย \n ออกมาเป็น array (กันกรณี field เป็น string เดี่ยว หรือ list ที่ getMileData ส่งมา)
+function extractUrlsFromField(v) {
+  if (!v) return [];
+  if (Array.isArray(v)) return v.filter(u => String(u || '').trim().startsWith('http'));
+  return String(v).split('\n').map(u => u.trim()).filter(u => u.startsWith('http'));
+}
+
+function resetPhotoSection(t) {
+  retroPhotos = {
+    carOut  : extractUrlsFromField(t['รูปสภาพรถก่อนออกList'] || t['รูปสภาพรถก่อนออก']).map(u => ({ driveUrl: u, status: 'ok', existing: true })),
+    carBack : extractUrlsFromField(t['รูปสภาพรถขากลับList']  || t['รูปสภาพรถขากลับ']).map(u => ({ driveUrl: u, status: 'ok', existing: true })),
+    fuelOut : extractUrlsFromField(t['fuelPhotoUrl'] || t['รูปบิลน้ำมันออกรถ']).map(u => ({ driveUrl: u, status: 'ok', existing: true })),
+    fuelBack: extractUrlsFromField(t['returnFuelPhotoUrl'] || t['รูปบิลน้ำมันขากลับ']).map(u => ({ driveUrl: u, status: 'ok', existing: true }))
+  };
+  selectPhotoCat('carOut');
+}
+
+function selectPhotoCat(cat) {
+  currentPhotoCat = cat;
+  document.querySelectorAll('#photoCatTabs .photo-cat-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.cat === cat);
+  });
+  ['carOut', 'carBack', 'fuelOut', 'fuelBack'].forEach(c => {
+    const g = document.getElementById('photoGrid_' + c);
+    if (g) g.style.display = (c === cat) ? 'grid' : 'none';
+  });
+  renderPhotoGrid(cat);
+}
+
+function renderPhotoGrid(cat) {
+  const grid = document.getElementById('photoGrid_' + cat);
+  if (!grid) return;
+  const list = retroPhotos[cat] || [];
+  if (!list.length) {
+    grid.innerHTML = '<div class="photo-empty-note">ยังไม่มีรูป' + escHtml(PHOTO_CAT_LABELS[cat]) + ' — กด "ถ่ายรูป / เลือกรูป" เพื่อแนบ</div>';
+    return;
+  }
+  grid.innerHTML = list.map((p, i) => {
+    const src = p.data || p.driveUrl;
+    const badgeC = p.status === 'ok' ? 'ok' : p.status === 'uploading' ? 'uploading' : p.status === 'err' ? 'err' : 'pending';
+    const badgeI = p.status === 'ok' ? '✓' : p.status === 'uploading' ? '↻' : p.status === 'err' ? '!' : '…';
+    return '<div class="photo-thumb-sm">'
+      + '<a href="' + escHtml(p.driveUrl || '#') + '" target="_blank" rel="noopener">'
+      +   '<img src="' + escHtml(src) + '" alt="' + escHtml(PHOTO_CAT_LABELS[cat]) + ' ' + (i+1) + '">'
+      + '</a>'
+      + '<span class="up-badge ' + badgeC + '">' + badgeI + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+function handleRetroPhotoSelect(files) {
+  if (!editingTrip) return;
+  const tripId = editingTrip['TripID'];
+  const cat = currentPhotoCat;
+  const newFiles = Array.from(files).filter(f => {
+    if (!f.type.startsWith('image/')) return false;
+    if (f.size > 15 * 1024 * 1024) { showToast('ไฟล์ใหญ่เกิน 15MB', 'err'); return false; }
+    return true;
+  });
+  document.getElementById('edRetroPhotoInput').value = '';
+  if (!newFiles.length) return;
+
+  newFiles.forEach(file => {
+    compressImageFile(file, { maxDim: 1280, quality: 0.7 })
+      .then(({ dataUrl, mimeType }) => {
+        const photo = { name: (file.name || 'photo').replace(/\.\w+$/, '') + '.jpg', data: dataUrl, type: mimeType || 'image/jpeg', driveUrl: '', status: 'uploading' };
+        retroPhotos[cat].push(photo);
+        renderPhotoGrid(cat);
+        uploadRetroPhoto(photo, cat, tripId);
+      })
+      .catch(() => showToast('อ่านไฟล์รูป "' + file.name + '" ไม่สำเร็จ', 'err'));
+  });
+}
+
+async function uploadRetroPhoto(photo, cat, tripId) {
+  try {
+    const b64 = photo.data.replace(/^data:[^;]+;base64,/, '');
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({
+        action    : 'attachTripPhotoRetro',
+        tripId    : tripId,
+        category  : cat,
+        fileName  : 'retro_' + cat + '_' + Date.now() + '_' + photo.name,
+        mimeType  : photo.type,
+        base64Data: b64,
+        editedBy  : currentUserName,
+        role      : role,
+        adminCode : adminCode,
+        note      : 'แนบรูปย้อนหลัง (' + PHOTO_CAT_LABELS[cat] + ') ผ่านหน้าแก้ไขข้อมูลเลขไมล์'
+      })
+    });
+    const json = await res.json();
+    if (!json || json.status !== 'ok') throw new Error((json && json.message) || 'อัปโหลดไม่สำเร็จ');
+    photo.driveUrl = json.url;
+    photo.status = 'ok';
+    renderPhotoGrid(cat);
+    showToast('✓ แนบ' + PHOTO_CAT_LABELS[cat] + 'สำเร็จ', 'ok');
+    // อัปเดตข้อมูลใน allTrips ให้ตรงกัน โดยไม่ต้องโหลดใหม่ทั้งตาราง
+    const t = allTrips.find(x => String(x['TripID']) === String(tripId));
+    if (t) {
+      const key = cat === 'carOut' ? 'รูปสภาพรถก่อนออก' : cat === 'carBack' ? 'รูปสภาพรถขากลับ' : cat === 'fuelOut' ? 'รูปบิลน้ำมันออกรถ' : 'รูปบิลน้ำมันขากลับ';
+      const existUrls = extractUrlsFromField(t[key]);
+      if (!existUrls.includes(json.url)) existUrls.push(json.url);
+      t[key] = existUrls.join('\n');
+    }
+  } catch (err) {
+    photo.status = 'err';
+    renderPhotoGrid(cat);
+    showToast('แนบรูปไม่สำเร็จ: ' + (err.message || err), 'err');
+  }
+}
+
+// อ่านไฟล์รูป + ย่อขนาด/คุณภาพ ก่อนแปลงเป็น base64 (ลดขนาดข้อมูลที่ส่งขึ้น GAS)
+function compressImageFile(file, opts) {
+  opts = opts || {};
+  const maxDim  = opts.maxDim  || 1280;
+  const quality = opts.quality || 0.7;
+  return new Promise((resolve, reject) => {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
+      reject(new Error('ไม่ใช่ไฟล์รูปภาพ'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('อ่านไฟล์ไม่สำเร็จ'));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => resolve({ dataUrl: reader.result, mimeType: file.type || 'image/jpeg' });
+      img.onload = () => {
+        try {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width >= height) { height = Math.round(height * maxDim / width); width = maxDim; }
+            else { width = Math.round(width * maxDim / height); height = maxDim; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width  = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve({ dataUrl, mimeType: 'image/jpeg', width, height });
+        } catch (e) {
+          resolve({ dataUrl: reader.result, mimeType: file.type || 'image/jpeg' });
+        }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
 }
 
 // ════════════════════════════════════════════════════════════
