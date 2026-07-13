@@ -1894,7 +1894,7 @@ async function checkPw() {
       </div>
       <div style="padding:7px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid var(--border);">
         <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber);margin-right:5px;"></span>
-        นับจากปลายทางใน MileLog ที่มีคำว่า "อู่" หรือ "ซ่อม" — ใช้ดูว่ารถคันไหนมีปัญหาเข้าซ่อมบ่อยผิดปกติ
+        นับจากช่อง "ปลายทาง" หรือ "หมายเหตุ" ใน MileLog ที่มีคำว่า "อู่" หรือ "ซ่อม" — ใช้ดูว่ารถคันไหนมีปัญหาเข้าซ่อมบ่อยผิดปกติ
       </div>
     </div>
   </div>
@@ -3224,17 +3224,27 @@ function renderGarageVisitTable() {
   source.forEach(t => {
     const ymd = normalizeInspDate(t['วันที่'] || t['Timestamp'] || '');
     if (!ymd || ymd.slice(0, 7) !== selMonth) return;
-    const dest = String(t['ปลายทาง'] || '').trim();
-    if (!dest || !/อู่|ซ่อม/.test(dest)) return;
-    const raw   = String(t['ทะเบียน/รถ'] || t['carType'] || '');
-    const plate = raw.split(' ')[0].trim();
+
+    // ปกติชื่ออู่จะอยู่ในช่อง "ปลายทาง" แต่บางทริปอาจพิมพ์ไว้ในช่อง "หมายเหตุ" แทน
+    // (เช่น ปลายทางระบุเป็นคำกว้างๆ แล้วโน้ตชื่ออู่ไว้ในหมายเหตุ) — เช็คทั้งสองช่อง
+    const cleanTxt = s => String(s || '').replace(/[\u00A0\u200B]/g, ' ').trim();
+    const dest    = cleanTxt(t['ปลายทาง']);
+    const remarks = cleanTxt(t['หมายเหตุ']);
+    const garageRe = /อู่|ซ่อม/;
+    const destMatch    = garageRe.test(dest);
+    const remarksMatch = !destMatch && garageRe.test(remarks);
+    if (!destMatch && !remarksMatch) return;
+    const matchedText = destMatch ? dest : remarks;
+
+    const raw = String(t['ทะเบียน/รถ'] || t['carType'] || t['ทะเบียนรถ'] || '').trim();
+    const plate = raw.split(/[\s—-]+/)[0].trim();
     if (!plate) return;
 
     if (!byPlate[plate]) byPlate[plate] = { count: 0, lastDate: '', lastDest: '' };
     byPlate[plate].count++;
     if (ymd >= byPlate[plate].lastDate) {
       byPlate[plate].lastDate = ymd;
-      byPlate[plate].lastDest = dest;
+      byPlate[plate].lastDest = matchedText;
     }
   });
 
