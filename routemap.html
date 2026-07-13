@@ -1320,6 +1320,12 @@ function isExcludedPlate(plateRaw) {
   return DURATION_EXCLUDE_PLATES.some(ex => p.indexOf(ex) >= 0);
 }
 
+// ทริปนำส่ง/รับผู้ป่วย (EMS) — มีปัจจัยควบคุมเวลาไม่ได้หลายด้าน (รอเคส, อาการคนไข้, จราจร ฯลฯ)
+// จึงไม่นำมาประเมิน/ตีธงว่านานผิดปกติ และไม่นำมาถ่วงค่าเฉลี่ยของจุดหมายอื่น
+function isEmsTrip(dest) {
+  return /ems/i.test(String(dest || ''));
+}
+
 function computeDurationStats(filtered) {
   const trips = [];
   let totalMin = 0, cnt = 0;
@@ -1344,10 +1350,10 @@ function computeDurationStats(filtered) {
       backRaw: t['เวลากลับ'],
       durMin : dur,
       km     : (!isNaN(km) && km > 0) ? km : null,
-      ts     : buildTripTimestamp(dYMD, t['เวลาออก'])
+      ts     : buildTripTimestamp(dYMD, t['เวลาออก']),
+      isEms  : isEmsTrip(dest)
     });
-    totalMin += dur;
-    cnt++;
+    if (!isEmsTrip(dest)) { totalMin += dur; cnt++; } // ไม่นำทริป EMS มาถ่วงค่าเฉลี่ยรวม
   });
 
   const overallAvg = cnt ? totalMin / cnt : 0;
@@ -1355,8 +1361,10 @@ function computeDurationStats(filtered) {
   // เฉลี่ยต่อ "จุดหมายเดียวกัน" — ใช้เป็นเกณฑ์เทียบความผิดปกติแทนค่าเฉลี่ยรวมทั้งหมด
   // เหตุผล: บางจุดหมายอยู่ไกล/ใช้เวลาโดยธรรมชาตินานกว่าจุดอื่นอยู่แล้ว (เช่น รพ.ต่างอำเภอ)
   // การเทียบกับค่าเฉลี่ยรวมทุกจุดหมายจึงทำให้ทริปที่ไปไกลถูกตีเป็น "ผิดปกติ" อย่างไม่เป็นธรรม
+  // ทริป EMS ไม่ถูกนำมาคำนวณฐาน เพราะเวลาคุมไม่ได้อยู่แล้ว (รอเคส/อาการคนไข้/จราจร ฯลฯ)
   const destStats = {};
   trips.forEach(tr => {
+    if (tr.isEms) return;
     if (!destStats[tr.dest]) destStats[tr.dest] = { totalMin: 0, count: 0 };
     destStats[tr.dest].totalMin += tr.durMin;
     destStats[tr.dest].count++;
@@ -1364,7 +1372,9 @@ function computeDurationStats(filtered) {
 
   // เทียบแต่ละทริปกับ "ค่าเฉลี่ยของจุดหมายเดียวกัน" — ต้องมีอย่างน้อย 2 ทริปของจุดหมายนั้น
   // จึงจะมีฐานเทียบที่มีความหมาย (จุดหมายที่มีข้อมูลแค่ทริปเดียวจะไม่ถูกตีธงว่าผิดปกติ)
+  // ทริป EMS: ยกเลิกการวิเคราะห์/ตีธงทั้งหมด (ไม่ตัดสินว่านานผิดปกติ)
   trips.forEach(tr => {
+    if (tr.isEms) { tr.flag = null; return; }
     let flag = null;
     const ds = destStats[tr.dest];
     if (ds && ds.count >= 2) {
@@ -1395,7 +1405,7 @@ function renderDurationTable() {
     ? 'ทริปที่มีข้อมูล "เวลาออก–เวลากลับ" ครบถ้วน: <b>' + totalValidTrips + '</b> ทริป (จากที่กรองไว้ · ไม่รวมทะเบียน ' + DURATION_EXCLUDE_PLATES.join(', ') + ')'
       + ' &nbsp;·&nbsp; เวลาเฉลี่ยรวมทุกจุดหมาย: <b>' + formatDurationMin(overallAvg) + '</b>'
       + ' &nbsp;·&nbsp; <span class="duration-flag warn" style="margin-right:4px;">⚠ นานกว่าเฉลี่ย</span>เกิน 1.6 เท่าของค่าเฉลี่ย "จุดหมายเดียวกัน"'
-      + ' &nbsp; <span class="duration-flag danger">⚠ นานผิดปกติ</span>เกิน 2.5 เท่าของค่าเฉลี่ย "จุดหมายเดียวกัน" (เทียบได้เฉพาะจุดหมายที่มีข้อมูล ≥2 ทริป)'
+      + ' &nbsp; <span class="duration-flag danger">⚠ นานเป็นพิเศษ</span>เกิน 2.5 เท่าของค่าเฉลี่ย "จุดหมายเดียวกัน" (เทียบได้เฉพาะจุดหมายที่มีข้อมูล ≥2 ทริป · ไม่รวมประเมินรายการ EMS)'
     : 'ยังไม่มีทริปที่มีข้อมูล "เวลาออก" และ "เวลากลับ" ครบถ้วนพอสำหรับคำนวณ (ต้องมีทั้งสองค่าในทริปเดียวกัน)';
 
   if (!trips.length) {
@@ -1413,7 +1423,7 @@ function renderDurationTable() {
 
   tbody.innerHTML = pageTrips.map((d, i) => {
     const flagHtml = d.flag === 'danger'
-      ? '<span class="duration-flag danger">⚠ นานผิดปกติ</span>'
+      ? '<span class="duration-flag danger">⚠ นานเป็นพิเศษ</span>'
       : d.flag === 'warn'
         ? '<span class="duration-flag warn">⚠ นานกว่าเฉลี่ย</span>'
         : '';
