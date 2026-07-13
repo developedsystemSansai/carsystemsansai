@@ -2009,6 +2009,21 @@ async function loadAllData() {
       }
     } catch(_) {}
 
+    // ✅ FAST: stale-while-revalidate สำหรับประวัติไมล์ — แสดงข้อมูลค้างไว้ (ถ้ามี) ทันที
+    // ระหว่างรอข้อมูลสดจาก GAS เพื่อให้หน้าดูตอบสนองเร็วขึ้น แล้วค่อยสลับเป็นข้อมูลจริงทับ
+    const HIST_CACHE_KEY = 'startmile_mileHistory';
+    const HIST_CACHE_TTL = 10 * 60 * 1000; // 10 นาที — ใช้แค่โชว์ระหว่างรอ ไม่ใช่ข้อมูลจริง
+    try {
+      const cachedHist = sessionStorage.getItem(HIST_CACHE_KEY);
+      if (cachedHist) {
+        const { ts, data } = JSON.parse(cachedHist);
+        if (Date.now() - ts < HIST_CACHE_TTL && Array.isArray(data) && data.length) {
+          mileHistory = data;
+          renderHistory();
+        }
+      }
+    } catch(_) {}
+
     // ✅ FAST: เรียก parallel เหลือ 2 calls (ลดจาก 4)
     //   - initData: vehicles+drivers+config (cache ได้)
     //   - getStatusSummary+getMileData: ข้อมูลสด (ดึงทุกครั้ง)
@@ -2016,7 +2031,7 @@ async function loadAllData() {
     const [initRes, sumRes, mileRes] = await Promise.allSettled([
       initPromise,
       fetchGAS('getStatusSummary'),
-      fetchGAS('getMileData')
+      fetchGAS('getMileData', { limit: 80 })
     ]);
 
     // ── InitData (Vehicles + Drivers + Config) ──
@@ -2059,6 +2074,7 @@ async function loadAllData() {
     // ── Mile History ──
     if (mileRes.status === 'fulfilled' && mileRes.value.data) {
       mileHistory = mileRes.value.data;
+      try { sessionStorage.setItem(HIST_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: mileHistory })); } catch(_) {}
       mileHistory.forEach(r => {
         if (String(r['สถานะ'] || '') === 'กำลังใช้งาน') {
           const plate = String(r['ทะเบียน/รถ'] || '').split(' ')[0].trim();
@@ -3133,7 +3149,7 @@ async function doConfirm() {
 // ════════════════════════════════════════════════════════
 async function loadMileHistory() {
   try {
-    const res = await fetchGAS('getMileData');
+    const res = await fetchGAS('getMileData', { limit: 80 });
     if (res.data) { mileHistory = res.data; renderHistory(); }
   } catch(_) {}
 }
