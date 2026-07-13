@@ -86,6 +86,14 @@
   .freq-marker { background: rgba(29,111,181,.88); border: 2px solid #fff; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-weight: 700; box-shadow: 0 1px 6px rgba(0,0,0,.3); cursor: grab; }
   .freq-marker.dragging { cursor: grabbing; }
 
+  /* ── ไอคอนหมวดหมู่ภายในหมุด (แทนวงกลม+ตัวเลขล้วนๆ) ── */
+  .freq-marker-icon { width: 60%; height: 60%; display: flex; align-items: center; justify-content: center; }
+  .freq-marker-icon svg { width: 100%; height: 100%; overflow: visible; }
+  .freq-marker-icon.money-glyph { font-family: 'Noto Sans Thai', sans-serif; font-weight: 700; line-height: 1; }
+
+  /* ── ป้ายจำนวนทริปมุมหมุด (แสดงคู่กับไอคอนหมวดหมู่) ── */
+  .freq-count-badge { position: absolute; right: -3px; bottom: -3px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px; background: #fff; color: var(--navy); font-family: 'IBM Plex Mono', monospace; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,.4); z-index: 3; line-height: 1; }
+
   /* ── สัญลักษณ์รูปดาว: ใช้กับจุดหมายที่ "รถที่ใช้บ่อยที่สุด" (โดยรวม) ไปบ่อยที่สุด ── */
   .freq-marker.top-car-star {
     border-radius: 0;
@@ -310,6 +318,32 @@ function categorize(name) {
   return CATEGORY_RULES[CATEGORY_RULES.length - 1];
 }
 
+// ── ไอคอนประจำหมวดหมู่ที่แสดงบนหมุด (แทนตัวเลขล้วนๆ) ──
+// คืนค่า HTML ของไอคอน (SVG แบบ stroke ขาว) หรือ null ถ้าหมวดนั้นยังใช้ตัวเลขแทน
+function categoryMarkerIcon(key) {
+  const S = 'fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"';
+  switch (key) {
+    case 'hospital': // ตราพยาบาล — เครื่องหมายกากบาท
+      return '<svg viewBox="0 0 24 24"><path fill="#fff" stroke="none" d="M9 2h6v7h7v6h-7v7h-6v-7h-7v-6h7z"/></svg>';
+    case 'gas': // ปั๊มน้ำมัน
+      return '<svg viewBox="0 0 24 24" ' + S + '><rect x="5" y="4" width="9" height="16" rx="1"/><path d="M5 10h9"/>'
+        + '<path d="M14 9l3 3v6a1.5 1.5 0 0 0 3 0v-5.2a1.5 1.5 0 0 0-.44-1.06L17 9"/><path d="M3 20h13"/></svg>';
+    case 'bank': // ธนาคาร — สัญลักษณ์รูปเงิน (บาท)
+      return null; // ใช้ตัวอักษร ฿ แทน (จัดการใน destIcon)
+    case 'gov': // สสจ./ราชการ — อาคารสำนักงาน
+      return '<svg viewBox="0 0 24 24" ' + S + '><rect x="5" y="3" width="14" height="18" rx="1"/>'
+        + '<path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/><path d="M10 21v-4h4v4"/></svg>';
+    case 'temple': // วัด
+      return '<svg viewBox="0 0 24 24" ' + S + '><path d="M12 2l9 6H3z"/><path d="M5 10v9M19 10v9M9 10v9M15 10v9"/><path d="M3 21h18"/></svg>';
+    case 'hotel': // โรงแรม
+      return '<svg viewBox="0 0 24 24" ' + S + '><path d="M3 20V6"/><path d="M3 13h14a3 3 0 0 1 3 3v4"/><path d="M7 13V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"/></svg>';
+    case 'edu': // โรงเรียน/มหาวิทยาลัย
+      return '<svg viewBox="0 0 24 24" ' + S + '><path d="M2 8l10-5 10 5-10 5-10-5z"/><path d="M6 10.5V16c0 1.5 2.5 3 6 3s6-1.5 6-3v-5.5"/><path d="M22 8v6"/></svg>';
+    default:
+      return null; // 'other' และหมวดที่ไม่รู้จัก — ใช้ตัวเลขแทน
+  }
+}
+
 // ── สีประจำรถแต่ละคัน (hash ชื่อ/ทะเบียนให้ได้สีเดิมทุกครั้ง) ──
 const CAR_PALETTE = ['#1d6fb5','#c0392b','#1a8a4a','#c07a00','#7a4fae','#d6336c','#007a6e','#8b5e34','#4a4ae0','#c8862c','#2b8fa0','#a13a6b'];
 const carColorCache = {};
@@ -362,20 +396,45 @@ function initMap() {
   renderMarkers();
 }
 
-function destIcon(size, label, color, opts) {
+function destIcon(size, count, color, categoryKey, opts) {
   opts = opts || {};
   const starClass = opts.star ? ' top-car-star' : '';
-  const fontSize = Math.max(9, Math.round(size * 0.3));
   const showRing = opts.rank && opts.rank <= 3;
   const wrapSize = showRing ? size + 16 : size;
   const ringHtml = showRing
     ? '<div class="freq-marker-ring" style="width:' + wrapSize + 'px;height:' + wrapSize + 'px;"></div>'
     : '';
+
+  // เนื้อหาตรงกลางหมุด: ดาว (รถยอดนิยม) > ไอคอนหมวดหมู่ / สัญลักษณ์เงิน > ตัวเลขจำนวนทริป (กรณีไม่มีไอคอนเฉพาะ)
+  let innerHtml;
+  if (opts.star) {
+    const fontSize = Math.max(9, Math.round(size * 0.32));
+    innerHtml = '<span style="font-size:' + fontSize + 'px;">★</span>';
+  } else if (categoryKey === 'bank') {
+    const fontSize = Math.max(9, Math.round(size * 0.46));
+    innerHtml = '<div class="freq-marker-icon money-glyph" style="font-size:' + fontSize + 'px;color:#fff;">฿</div>';
+  } else {
+    const iconSvg = categoryMarkerIcon(categoryKey);
+    if (iconSvg) {
+      innerHtml = '<div class="freq-marker-icon">' + iconSvg + '</div>';
+    } else {
+      const fontSize = Math.max(9, Math.round(size * 0.3));
+      innerHtml = '<span style="font-size:' + fontSize + 'px;">' + count + '</span>';
+    }
+  }
+
+  // ป้ายจำนวนทริปมุมหมุด — แสดงเฉพาะเมื่อกลางหมุดถูกแทนด้วยไอคอน/สัญลักษณ์ (ไม่ใช่ตัวเลขอยู่แล้ว) และหมุดใหญ่พอให้อ่านได้
+  const usedIconOrGlyph = opts.star || categoryKey === 'bank' || !!categoryMarkerIcon(categoryKey);
+  const badgeFont = Math.max(8, Math.round(size * 0.22));
+  const countBadge = (usedIconOrGlyph && size >= 18)
+    ? '<div class="freq-count-badge" style="font-size:' + badgeFont + 'px;">' + count + '</div>'
+    : '';
+
   return L.divIcon({
     className: '',
     html: '<div class="freq-marker-wrap" style="width:' + wrapSize + 'px;height:' + wrapSize + 'px;">'
         +   ringHtml
-        +   '<div class="freq-marker' + starClass + '" style="width:' + size + 'px;height:' + size + 'px;font-size:' + fontSize + 'px;background:' + color + ';position:relative;z-index:2;">' + label + '</div>'
+        +   '<div class="freq-marker' + starClass + '" style="width:' + size + 'px;height:' + size + 'px;background:' + color + ';position:relative;z-index:2;">' + innerHtml + countBadge + '</div>'
         + '</div>',
     iconSize: [wrapSize, wrapSize],
     iconAnchor: [wrapSize / 2, wrapSize / 2]
@@ -394,11 +453,11 @@ function markerColorFor(d) {
 // ระยะห่างของขนาดถูกถ่างให้กว้างขึ้น (18 → 96px) และแต่ละช่วงมีสีของตัวเอง (ใช้ตอนโหมดสี = "ความถี่การไป")
 // เพื่อให้ความแตกต่างระหว่างช่วงมองเห็นชัดทั้งจาก "ขนาด" และ "สี" พร้อมกัน ไม่ต้องไล่เทียบตัวเลข
 const SIZE_TIERS = [
-  { max: 5,        size: 18, label: '1–5 ครั้ง',    color: '#6aa9dd' },  // ฟ้าอ่อน
-  { max: 10,       size: 32, label: '6–10 ครั้ง',   color: '#1d6fb5' },  // ฟ้าเข้ม
-  { max: 20,       size: 50, label: '11–20 ครั้ง',  color: '#1a8a4a' },  // เขียว
-  { max: 100,      size: 72, label: '21–100 ครั้ง', color: '#c07a00' },  // ส้ม/อำพัน
-  { max: Infinity, size: 96, label: '100+ ครั้ง',   color: '#c0392b' }   // แดง
+  { max: 5,        size: 14, label: '1–5 ครั้ง',    color: '#6aa9dd' },  // ฟ้าอ่อน
+  { max: 10,       size: 22, label: '6–10 ครั้ง',   color: '#1d6fb5' },  // ฟ้าเข้ม
+  { max: 20,       size: 32, label: '11–20 ครั้ง',  color: '#1a8a4a' },  // เขียว
+  { max: 100,      size: 46, label: '21–100 ครั้ง', color: '#c07a00' },  // ส้ม/อำพัน
+  { max: Infinity, size: 62, label: '100+ ครั้ง',   color: '#c0392b' }   // แดง
 ];
 function sizeTierFor(count) {
   for (let i = 0; i < SIZE_TIERS.length; i++) {
@@ -431,7 +490,7 @@ function renderMarkers() {
     const color = markerColorFor(d);
     const isTopCarDest = colorMode === 'car' && topOverallCar && d.topCar === topOverallCar;
     const marker = L.marker([pin.lat, pin.lng], {
-      icon: destIcon(size, isTopCarDest ? '★' : d.count, color, { star: isTopCarDest, rank: i + 1 }),
+      icon: destIcon(size, d.count, color, d.category.key, { star: isTopCarDest, rank: i + 1 }),
       draggable: editMode
     }).addTo(map);
     bindMarkerPopup(marker, d);
