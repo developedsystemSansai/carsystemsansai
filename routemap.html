@@ -76,6 +76,27 @@
   .place-search-empty, .place-search-loading { padding: 10px 13px; font-size: 12px; color: var(--text-light); }
 
   .list-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); max-height: 620px; display: flex; flex-direction: column; }
+
+  /* ── ตารางระยะเวลาที่ใช้ต่อทริป (แยกตามจุดหมาย) — วิเคราะห์ความเหมาะสมของภารกิจ ── */
+  .duration-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); margin-top: 16px; overflow: hidden; }
+  .duration-head { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+  .duration-head .title { font-size: 13px; font-weight: 700; color: var(--navy); }
+  .duration-head .sub { font-size: 11.5px; color: var(--text-light); font-weight: 400; margin-left: 6px; }
+  .duration-summary { padding: 10px 16px; background: var(--bg); font-size: 12px; color: var(--text-mid); border-bottom: 1px solid var(--border); }
+  .duration-summary b { color: var(--navy); font-family: 'IBM Plex Mono', monospace; }
+  .duration-table-wrap { overflow-x: auto; }
+  .duration-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .duration-table th { background: var(--navy); color: rgba(255,255,255,.85); padding: 9px 12px; text-align: left; font-size: 10.5px; font-weight: 600; letter-spacing: .3px; white-space: nowrap; }
+  .duration-table th.sortable { cursor: pointer; user-select: none; }
+  .duration-table th.sortable:hover { color: #fff; }
+  .duration-table th.sortable.active { color: #ffd88a; }
+  .duration-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .duration-table tr:hover td { background: var(--blue-soft); }
+  .duration-table td.dname { white-space: normal; max-width: 260px; font-weight: 600; color: var(--text); }
+  .duration-flag { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .duration-flag.warn { background: var(--amber-soft); color: #7a4800; }
+  .duration-flag.danger { background: var(--danger-soft); color: var(--danger); }
+  .duration-empty { padding: 30px 16px; text-align: center; color: var(--text-light); font-size: 13px; white-space: normal; }
   .list-head { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--navy); display: flex; justify-content: space-between; align-items: center; }
   .list-body { overflow-y: auto; flex: 1; }
   .dest-row { padding: 11px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background .12s; }
@@ -288,6 +309,7 @@
       <label>ถึง</label>
       <input type="date" id="fDateTo">
     </div>
+    <button class="btn btn-ghost" onclick="setDateRangeToday()">📅 วันนี้</button>
     <div class="filter-group" style="flex:1;min-width:180px;">
       <input type="text" id="fSearch" placeholder="ค้นหาชื่อจุดหมาย..." style="width:100%;">
     </div>
@@ -347,6 +369,35 @@
     </div>
   </div>
 
+  <!-- ═══════════ ตารางระยะเวลาที่ใช้ต่อทริป (แยกตามจุดหมาย) ═══════════ -->
+  <div class="duration-panel" id="durationPanel">
+    <div class="duration-head">
+      <div><span class="title">⏱ ระยะเวลาที่ใช้ต่อทริป</span><span class="sub">แยกตามจุดหมาย — ใช้ตรวจสอบความเหมาะสมของภารกิจ/การเดินทางแต่ละครั้ง</span></div>
+      <span id="durationCount" style="font-size:11.5px;color:var(--text-light);"></span>
+    </div>
+    <div class="duration-summary" id="durationSummary">กำลังคำนวณ...</div>
+    <div class="duration-table-wrap">
+      <table class="duration-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>จุดหมาย</th>
+            <th class="sortable" id="thSortCount" onclick="setDurationSort('count')">จำนวนทริป</th>
+            <th class="sortable active" id="thSortAvg" onclick="setDurationSort('avg')">เวลาเฉลี่ย/ทริป</th>
+            <th>สั้นสุด</th>
+            <th>นานสุด</th>
+            <th>ระยะทางเฉลี่ย</th>
+            <th>ความเร็วเฉลี่ย</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="durationTbody">
+          <tr><td colspan="9" class="duration-empty">กำลังโหลดข้อมูล...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 </main>
 
 <script>
@@ -375,6 +426,8 @@ let colorMode = 'freq'; // 'freq' | 'category' | 'car'
 let topOverallCar = null;      // ทะเบียน/รถที่ถูกใช้งานบ่อยที่สุดโดยรวม (ทุกทริปที่กรองไว้)
 let topOverallCarCount = 0;
 let heatLayer = null;          // เลเยอร์ Heatmap (Leaflet.heat)
+let durationSortKey = 'avg';   // 'avg' | 'count' — คอลัมน์ที่ใช้เรียงตารางระยะเวลา
+let durationStatsCache = { stats: [], overallAvg: 0, totalValidTrips: 0 };
 
 // ── สถานการณ์ปัจจุบัน (รถที่กำลังเดินทาง) ──
 let liveTrips = [];                 // ผลลัพธ์ล่าสุดจาก getStatusSummary().inUse
@@ -1132,12 +1185,23 @@ function applyFilters() {
 
   renderList();
   renderMarkers();
+
+  durationStatsCache = computeDurationStats(filtered);
+  renderDurationTable();
 }
 
 function resetFilters() {
   document.getElementById('fDateFrom').value = '';
   document.getElementById('fDateTo').value = '';
   document.getElementById('fSearch').value = '';
+  applyFilters();
+}
+
+// ── ปุ่ม "วันนี้" — ตั้งช่วงวันที่เป็นวันปัจจุบันทั้งสองช่อง ลดขั้นตอนกดปฏิทินเอง ──
+function setDateRangeToday() {
+  const todayYMD = new Date().toLocaleDateString('sv-SE'); // yyyy-MM-dd ตามเวลาเครื่องผู้ใช้ (เลี่ยงปัญหา timezone ของ toISOString)
+  document.getElementById('fDateFrom').value = todayYMD;
+  document.getElementById('fDateTo').value = todayYMD;
   applyFilters();
 }
 
@@ -1183,6 +1247,133 @@ function renderList() {
 
 function escHtml(s) { return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 function escAttr(s) { return String(s).replace(/'/g, "\\'"); }
+
+// ════════════════════════════════════════════════════════════
+//  ระยะเวลาที่ใช้ต่อทริป (แยกตามจุดหมาย)
+//  — คำนวณจาก "เวลาออก" / "เวลากลับ" ใน MileLog (backend ส่งมาเป็น string ที่มี
+//    HH:mm:ss ต่อท้าย แม้บางครั้งจะติดวันที่ปลอม 30/12/1899 มาจาก time-only cell
+//    ของ Google Sheets ก็ตาม — ใช้ regex ดึงเฉพาะเวลาออกมา แล้วประกอบกับ "วันที่" จริงของทริปเอง)
+// ════════════════════════════════════════════════════════════
+function parseTimeOfDay(raw) {
+  const m = String(raw || '').match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (!m) return null;
+  const h = +m[1], mi = +m[2], s = +(m[3] || 0);
+  if (h > 23 || mi > 59 || s > 59) return null;
+  return { h, m: mi, s };
+}
+
+function tripDurationMinutes(t) {
+  const dYMD = toYMD(t['วันที่']);
+  const out  = parseTimeOfDay(t['เวลาออก']);
+  const back = parseTimeOfDay(t['เวลากลับ']);
+  if (!dYMD || !out || !back) return null;
+
+  const pad2 = n => String(n).padStart(2, '0');
+  const outDt  = new Date(dYMD + 'T' + pad2(out.h)  + ':' + pad2(out.m)  + ':' + pad2(out.s));
+  const backDt = new Date(dYMD + 'T' + pad2(back.h) + ':' + pad2(back.m) + ':' + pad2(back.s));
+  if (isNaN(outDt.getTime()) || isNaN(backDt.getTime())) return null;
+
+  let diffMin = (backDt.getTime() - outDt.getTime()) / 60000;
+  if (diffMin < 0) diffMin += 24 * 60; // เผื่อทริปข้ามเที่ยงคืน
+  if (diffMin <= 0 || diffMin > 24 * 60) return null; // ข้อมูลผิดปกติ ไม่นำมานับ
+  return diffMin;
+}
+
+function formatDurationMin(min) {
+  if (min == null || isNaN(min)) return '—';
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  if (h <= 0) return m + ' นาที';
+  return h + ' ชม. ' + m + ' นาที';
+}
+
+function computeDurationStats(filtered) {
+  const map_ = {};
+  const allDur = [];
+
+  filtered.forEach(t => {
+    const dur = tripDurationMinutes(t);
+    if (dur == null) return;
+    const dest = normName(t['ปลายทาง']);
+    if (!dest) return;
+    if (!map_[dest]) map_[dest] = { name: dest, count: 0, totalMin: 0, minMin: Infinity, maxMin: -Infinity, totalKm: 0, kmCount: 0 };
+    const s = map_[dest];
+    s.count++;
+    s.totalMin += dur;
+    if (dur < s.minMin) s.minMin = dur;
+    if (dur > s.maxMin) s.maxMin = dur;
+    const km = Number(t['ระยะทาง(กม.)']);
+    if (!isNaN(km) && km > 0) { s.totalKm += km; s.kmCount++; }
+    allDur.push(dur);
+  });
+
+  const overallAvg = allDur.length ? allDur.reduce((a, b) => a + b, 0) / allDur.length : 0;
+
+  const stats = Object.values(map_).map(s => {
+    const avgMin   = s.totalMin / s.count;
+    const avgKm    = s.kmCount ? s.totalKm / s.kmCount : null;
+    const speedKmh = (avgKm != null && avgMin > 0) ? (avgKm / (avgMin / 60)) : null;
+    // ธงเตือน: เฉพาะจุดหมายที่มีข้อมูล ≥2 ทริป (กันสัญญาณเตือนเพี้ยนจากทริปเดียว) และนานกว่าค่าเฉลี่ยรวมอย่างมีนัยสำคัญ
+    let flag = null;
+    if (s.count >= 2 && overallAvg > 0) {
+      if (avgMin > overallAvg * 2.5) flag = 'danger';
+      else if (avgMin > overallAvg * 1.6) flag = 'warn';
+    }
+    return { name: s.name, count: s.count, avgMin, minMin: s.minMin, maxMin: s.maxMin, avgKm, speedKmh, flag };
+  });
+
+  return { stats, overallAvg, totalValidTrips: allDur.length };
+}
+
+function setDurationSort(key) {
+  durationSortKey = key;
+  document.getElementById('thSortCount').classList.toggle('active', key === 'count');
+  document.getElementById('thSortAvg').classList.toggle('active', key === 'avg');
+  renderDurationTable();
+}
+
+function renderDurationTable() {
+  const tbody     = document.getElementById('durationTbody');
+  const countEl   = document.getElementById('durationCount');
+  const summaryEl = document.getElementById('durationSummary');
+  const { stats, overallAvg, totalValidTrips } = durationStatsCache;
+
+  countEl.textContent = stats.length + ' จุดหมาย';
+  summaryEl.innerHTML = totalValidTrips
+    ? 'ทริปที่มีข้อมูล "เวลาออก–เวลากลับ" ครบถ้วน: <b>' + totalValidTrips + '</b> ทริป (จากที่กรองไว้)'
+      + ' &nbsp;·&nbsp; เวลาเฉลี่ยรวมทุกจุดหมาย: <b>' + formatDurationMin(overallAvg) + '</b>'
+      + ' &nbsp;·&nbsp; <span class="duration-flag warn" style="margin-right:4px;">⚠ นานกว่าเฉลี่ย</span>เกิน 1.6 เท่า'
+      + ' &nbsp; <span class="duration-flag danger">⚠ นานผิดปกติ</span>เกิน 2.5 เท่าของค่าเฉลี่ยรวม'
+    : 'ยังไม่มีทริปที่มีข้อมูล "เวลาออก" และ "เวลากลับ" ครบถ้วนพอสำหรับคำนวณ (ต้องมีทั้งสองค่าในทริปเดียวกัน)';
+
+  if (!stats.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="duration-empty">ไม่มีทริปที่มีข้อมูลเวลาออก-กลับครบถ้วนตามเงื่อนไขที่กรองไว้</td></tr>';
+    return;
+  }
+
+  const sorted = stats.slice().sort((a, b) =>
+    durationSortKey === 'count' ? (b.count - a.count) : (b.avgMin - a.avgMin)
+  );
+
+  tbody.innerHTML = sorted.map((d, i) => {
+    const flagHtml = d.flag === 'danger'
+      ? '<span class="duration-flag danger">⚠ นานผิดปกติ</span>'
+      : d.flag === 'warn'
+        ? '<span class="duration-flag warn">⚠ นานกว่าเฉลี่ย</span>'
+        : '';
+    return '<tr>'
+      + '<td>' + (i + 1) + '</td>'
+      + '<td class="dname" title="' + escAttr(d.name) + '">' + escHtml(d.name) + '</td>'
+      + '<td>' + d.count + '</td>'
+      + '<td><b>' + formatDurationMin(d.avgMin) + '</b></td>'
+      + '<td>' + formatDurationMin(d.minMin) + '</td>'
+      + '<td>' + formatDurationMin(d.maxMin) + '</td>'
+      + '<td>' + (d.avgKm != null ? d.avgKm.toFixed(1) + ' กม.' : '—') + '</td>'
+      + '<td>' + (d.speedKmh != null ? d.speedKmh.toFixed(0) + ' กม./ชม.' : '—') + '</td>'
+      + '<td>' + flagHtml + '</td>'
+      + '</tr>';
+  }).join('');
+}
 
 // ════════════════════════════════════════════════════════════
 //  SAVE PIN (บันทึกลง Google Sheet ผ่าน GAS เดิม)
