@@ -83,6 +83,33 @@
 
   .empty-state { padding: 30px 16px; text-align: center; color: var(--text-light); font-size: 13px; }
 
+  /* ── การ์ดสถานการณ์ปัจจุบัน (รถที่กำลังเดินทาง) — แสดงทันทีเมื่อเปิดหน้า ── */
+  .live-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); margin-bottom: 18px; overflow: hidden; }
+  .live-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; background: linear-gradient(90deg, var(--navy) 0%, var(--navy-mid) 100%); }
+  .live-card-title { display: flex; align-items: center; gap: 9px; color: #fff; font-weight: 700; font-size: 13.5px; }
+  .live-dot { width: 9px; height: 9px; border-radius: 50%; background: #3ee06a; box-shadow: 0 0 0 rgba(62,224,106,.6); animation: liveDotPulse 1.6s ease-out infinite; flex-shrink: 0; }
+  @keyframes liveDotPulse { 0% { box-shadow: 0 0 0 0 rgba(62,224,106,.55); } 70% { box-shadow: 0 0 0 7px rgba(62,224,106,0); } 100% { box-shadow: 0 0 0 0 rgba(62,224,106,0); } }
+  .live-count-badge { background: rgba(255,255,255,.16); color: #fff; font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 11.5px; padding: 2px 9px; border-radius: 999px; }
+  .live-card-meta { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,.7); font-size: 11.5px; }
+  .live-refresh-btn { padding: 5px 12px; font-size: 11.5px; }
+  .live-trip-list { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 16px; }
+  .live-empty { padding: 10px 4px; color: var(--text-light); font-size: 13px; }
+  .live-trip-chip { display: flex; align-items: center; gap: 10px; padding: 9px 13px; background: var(--amber-soft); border: 1px solid #f0d9a6; border-radius: var(--radius-sm); cursor: pointer; transition: transform .12s, box-shadow .12s; min-width: 220px; }
+  .live-trip-chip:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  .live-trip-chip .chip-icon { width: 30px; height: 30px; border-radius: 50%; background: var(--amber); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .live-trip-chip .chip-icon svg { width: 16px; height: 16px; }
+  .live-trip-chip .chip-body { min-width: 0; }
+  .live-trip-chip .chip-plate { font-size: 12px; font-weight: 700; color: var(--navy); font-family: 'IBM Plex Mono', monospace; }
+  .live-trip-chip .chip-dest { font-size: 12.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+  .live-trip-chip .chip-sub { font-size: 11px; color: var(--text-light); margin-top: 1px; }
+  .live-trip-chip .chip-sub.unpinned { color: var(--danger); font-weight: 600; }
+
+  /* ── แถบควบคุมเส้นทาง (เดิมไม่มี CSS/JS ผูกไว้ — ตอนนี้ใช้คุมการแสดง/ซ่อนเส้นทางสด) ── */
+  .route-info-bar { display: none; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 14px; background: #fff4e0; border-bottom: 1px solid #f0d9a6; font-size: 12px; color: #7a4800; }
+  .route-info-bar.show { display: flex; }
+  .route-info-bar button { font-family: inherit; font-size: 11.5px; font-weight: 600; padding: 5px 12px; border-radius: 999px; border: none; background: rgba(192,122,0,.15); color: #7a4800; cursor: pointer; }
+  .route-info-bar button:hover { background: rgba(192,122,0,.25); }
+
   .freq-marker { background: rgba(29,111,181,.88); border: 2px solid #fff; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-weight: 700; box-shadow: 0 1px 6px rgba(0,0,0,.3); cursor: grab; }
   .freq-marker.dragging { cursor: grabbing; }
 
@@ -116,6 +143,19 @@
   .hospital-pulse-core { position: relative; width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(145deg,#e6423a,#a9241a); border: 3px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 2; }
   .hospital-pulse-core svg { width: 16px; height: 16px; }
   @keyframes hospPulse { 0% { transform: scale(.5); opacity: .8; } 100% { transform: scale(1.9); opacity: 0; } }
+
+  /* ── หมุดรถที่ "กำลังเดินทาง" อยู่ ณ ขณะนี้ — ลอยเหนือหมุดปลายทางเดิม ให้เห็นชัดว่ากำลังไปจุดนี้ ── */
+  .live-trip-wrap { position: relative; display: flex; flex-direction: column; align-items: center; }
+  .live-trip-ring { position: absolute; top: 0; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,138,0,.32); animation: hospPulse 1.6s ease-out infinite; }
+  .live-trip-core { position: relative; width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(145deg,#ffa733,#c07a00); border: 2.5px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 2; }
+  .live-trip-core svg { width: 14px; height: 14px; }
+  .live-trip-plate { margin-top: 3px; padding: 1px 7px; background: var(--navy); color: #fff; font-size: 9.5px; font-weight: 700; border-radius: 999px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.35); z-index: 2; }
+  .live-trip-stem { width: 2px; height: 14px; background: rgba(192,122,0,.55); z-index: 1; }
+
+  /* ── เส้นทางเดินรถ (ไล่ตามถนนจริงผ่าน OSRM/OpenStreetMap) — ลายเส้นประวิ่ง บ่งบอกทิศทางการเดินทาง ── */
+  path.live-route-line { stroke-dasharray: 9 7; animation: liveRouteDash 1s linear infinite; }
+  path.live-route-line.approx { stroke-dasharray: 3 8; }
+  @keyframes liveRouteDash { to { stroke-dashoffset: -32; } }
 
   /* ── โหมดสี: ตัวเลือกโหมดการแสดงสี ── */
   .color-mode-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 14px; background: var(--card); border-bottom: 1px solid var(--border); font-size: 12px; }
@@ -169,6 +209,23 @@
 </header>
 
 <main class="main-wrap">
+
+  <div class="live-card" id="liveCard">
+    <div class="live-card-head">
+      <div class="live-card-title">
+        <span class="live-dot" id="liveDot"></span>
+        <span>สถานการณ์ปัจจุบัน — รถที่กำลังเดินทาง</span>
+        <span class="live-count-badge" id="liveCountBadge">0</span>
+      </div>
+      <div class="live-card-meta">
+        <span id="liveUpdatedText">กำลังโหลด…</span>
+        <button class="btn btn-ghost live-refresh-btn" onclick="loadLiveStatus()">รีเฟรชตอนนี้</button>
+      </div>
+    </div>
+    <div class="live-trip-list" id="liveTripList">
+      <div class="live-empty">กำลังตรวจสอบสถานะรถ...</div>
+    </div>
+  </div>
 
   <div class="stat-row">
     <div class="stat-card">
@@ -252,7 +309,7 @@
       </div>
       <div class="route-info-bar" id="routeInfoBar">
         <span id="routeInfoText"></span>
-        <button onclick="clearRoute()">ล้างเส้นทาง</button>
+        <button onclick="toggleLiveRoutes()" id="routeInfoBtn">ซ่อนเส้นทาง</button>
       </div>
       <div id="mapEl"></div>
       <div class="legend-panel" id="legendPanel"></div>
@@ -297,6 +354,16 @@ let colorMode = 'freq'; // 'freq' | 'category' | 'car'
 let topOverallCar = null;      // ทะเบียน/รถที่ถูกใช้งานบ่อยที่สุดโดยรวม (ทุกทริปที่กรองไว้)
 let topOverallCarCount = 0;
 let heatLayer = null;          // เลเยอร์ Heatmap (Leaflet.heat)
+
+// ── สถานการณ์ปัจจุบัน (รถที่กำลังเดินทาง) ──
+let liveTrips = [];                 // ผลลัพธ์ล่าสุดจาก getStatusSummary().inUse
+let liveMarkersLayer = null;        // L.layerGroup ของหมุดรถกำลังเดินทาง
+let liveRoutesLayer = null;         // L.layerGroup ของเส้นทางที่ลากไว้
+let liveMarkerByTrip = {};          // tripId → L.marker (ใช้โฟกัส/เปิด popup จากรายการด้านบน)
+let liveRouteCache = {};            // "lat1,lng1|lat2,lng2" → { latlngs, approx }
+let liveRoutesVisible = true;
+let liveTimer = null;
+let hasAutoFocusedLive = false;     // fitBounds อัตโนมัติแค่ครั้งแรกที่เปิดหน้า ไม่ทำซ้ำทุกรอบ poll
 
 // ── หมวดหมู่สถานที่ (จับคำสำคัญในชื่อปลายทาง) + สีประจำหมวด ──
 const CATEGORY_RULES = [
@@ -392,6 +459,10 @@ function initMap() {
     zIndexOffset: 1000,
     title: 'โรงพยาบาลสันทราย (ต้นทาง)'
   }).addTo(map).bindPopup('<b>🏥 โรงพยาบาลสันทราย</b><br>จุดต้นทางของทุกทริป');
+
+  // เลเยอร์สำหรับ "สถานการณ์ปัจจุบัน" — หมุดรถกำลังเดินทาง + เส้นทาง (อยู่เหนือหมุดปลายทางปกติเสมอ)
+  liveRoutesLayer  = L.layerGroup().addTo(map);
+  liveMarkersLayer = L.layerGroup().addTo(map);
 
   renderMarkers();
 }
@@ -733,6 +804,7 @@ async function loadAll() {
     allPins = {};
     ((pinRes && pinRes.data) || []).forEach(p => { allPins[normName(p.name)] = p; });
     applyFilters();
+    renderLiveMap(); // ปักหมุดโหลดเสร็จแล้ว → วาดหมุด/เส้นทาง "กำลังเดินทาง" ทันที (เผื่อ getStatusSummary โหลดเสร็จก่อนหน้านี้)
   } catch (err) {
     document.getElementById('destList').innerHTML =
       '<div class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + (err.message || err) + '</div>';
@@ -741,6 +813,208 @@ async function loadAll() {
 
 function normName(s) {
   return String(s || '').trim();
+}
+
+// ════════════════════════════════════════════════════════════
+//  สถานการณ์ปัจจุบัน — รถที่กำลังเดินทาง (ดึงจาก getStatusSummary().inUse ทุก 25 วิ)
+// ════════════════════════════════════════════════════════════
+const LIVE_POLL_MS = 25000;
+
+async function loadLiveStatus() {
+  try {
+    const res = await fetch(GAS_URL + '?action=getStatusSummary', { cache: 'no-store' }).then(r => r.json());
+    liveTrips = (res && res.inUse) || [];
+    document.getElementById('liveUpdatedText').textContent = 'อัปเดตล่าสุด ' + nowTimeText();
+  } catch (err) {
+    document.getElementById('liveUpdatedText').textContent = 'โหลดสถานะไม่สำเร็จ — ลองใหม่อัตโนมัติ';
+  }
+  renderLiveList();
+  renderLiveMap();
+}
+
+function nowTimeText() {
+  const d = new Date();
+  return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+}
+
+// ── แปลงวันที่+เวลาออกทริป → ข้อความ "เดินทางมาแล้ว X นาที/ชม." ──
+function elapsedSinceTrip(tripDateYMD, timeRaw) {
+  const m = String(timeRaw || '').match(/(\d{1,2}):(\d{2})/);
+  if (!tripDateYMD || !m) return '';
+  const dt = new Date(tripDateYMD + 'T' + m[1].padStart(2, '0') + ':' + m[2] + ':00');
+  if (isNaN(dt.getTime())) return '';
+  const mins = Math.max(0, Math.round((Date.now() - dt.getTime()) / 60000));
+  if (mins < 1) return 'เพิ่งออกเดินทาง';
+  if (mins < 60) return 'เดินทางมาแล้ว ' + mins + ' นาที';
+  return 'เดินทางมาแล้ว ' + Math.floor(mins / 60) + ' ชม. ' + (mins % 60) + ' นาที';
+}
+
+function renderLiveList() {
+  const listEl  = document.getElementById('liveTripList');
+  const badgeEl = document.getElementById('liveCountBadge');
+  badgeEl.textContent = liveTrips.length;
+
+  if (!liveTrips.length) {
+    listEl.innerHTML = '<div class="live-empty">ไม่มีรถกำลังเดินทางในขณะนี้ — รถทุกคันอยู่ที่โรงพยาบาลหรือยังไม่ออกทริป</div>';
+    return;
+  }
+
+  listEl.innerHTML = liveTrips.map(t => {
+    const pin = allPins[normName(t.destination)];
+    const sub = pin
+      ? elapsedSinceTrip(t.tripDate, t.startTime)
+      : 'ยังไม่ได้ปักหมุดจุดหมายนี้';
+    const subClass = pin ? '' : ' unpinned';
+    return '<div class="live-trip-chip" onclick="focusLiveTrip(\'' + escAttr(String(t.tripId)) + '\')">'
+      + '<div class="chip-icon">' + CAR_ICON_SVG + '</div>'
+      + '<div class="chip-body">'
+      +   '<div class="chip-plate">' + escHtml(t.carType) + (t.driver ? ' · ' + escHtml(t.driver) : '') + '</div>'
+      +   '<div class="chip-dest" title="' + escAttr(t.destination) + '">→ ' + escHtml(t.destination || 'ไม่ระบุปลายทาง') + '</div>'
+      +   '<div class="chip-sub' + subClass + '">' + escHtml(sub) + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+const CAR_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+  + '<path d="M3 13l1.6-4.8A2 2 0 0 1 6.5 7h11a2 2 0 0 1 1.9 1.2L21 13"/>'
+  + '<rect x="2" y="13" width="20" height="5" rx="1.5"/>'
+  + '<circle cx="7" cy="18.5" r="1.4" fill="#fff" stroke="none"/>'
+  + '<circle cx="17" cy="18.5" r="1.4" fill="#fff" stroke="none"/>'
+  + '</svg>';
+
+function liveTripIcon(plateShort) {
+  const wrapW = 40, coreY = 40, labelH = 16, stemH = 14;
+  const totalH = coreY + stemH + labelH;
+  return L.divIcon({
+    className: '',
+    html: '<div class="live-trip-wrap" style="width:' + wrapW + 'px;">'
+        +   '<div class="live-trip-ring"></div>'
+        +   '<div class="live-trip-core">' + CAR_ICON_SVG + '</div>'
+        +   '<div class="live-trip-stem"></div>'
+        +   '<div class="live-trip-plate">' + escHtml(plateShort) + '</div>'
+        + '</div>',
+    iconSize: [wrapW, totalH],
+    iconAnchor: [wrapW / 2, totalH] // ปลายก้าน (ล่างสุด) ชี้ตรงตำแหน่งจุดหมายจริง หมุดลอยอยู่เหนือหมุดปลายทางเดิม
+  });
+}
+
+// ── วาดหมุด "กำลังเดินทาง" + เส้นทางบนแผนที่ ตาม liveTrips ปัจจุบัน ──
+function renderLiveMap() {
+  if (!map || !liveMarkersLayer || !liveRoutesLayer) return;
+  liveMarkersLayer.clearLayers();
+  liveRoutesLayer.clearLayers();
+  liveMarkerByTrip = {};
+
+  const pinnedTrips = liveTrips.filter(t => allPins[normName(t.destination)]);
+  updateRouteInfoBar(pinnedTrips.length);
+
+  pinnedTrips.forEach(t => {
+    const pin = allPins[normName(t.destination)];
+    const plateShort = String(t.carType || '').split(' ')[0].trim();
+
+    const marker = L.marker([pin.lat, pin.lng], {
+      icon: liveTripIcon(plateShort),
+      zIndexOffset: 900
+    }).addTo(liveMarkersLayer);
+    marker.bindPopup(
+      '<b>🚗 ' + escHtml(t.carType) + '</b>' + (t.driver ? '<br>ผู้ขับ: ' + escHtml(t.driver) : '')
+      + '<br>ปลายทาง: ' + escHtml(t.destination)
+      + '<br>ออกเมื่อ: ' + escHtml(t.startTime || '-')
+      + '<br>' + escHtml(elapsedSinceTrip(t.tripDate, t.startTime))
+    );
+    liveMarkerByTrip[String(t.tripId)] = marker;
+
+    drawLiveRoute(pin, t);
+  });
+
+  if (!hasAutoFocusedLive && pinnedTrips.length) {
+    hasAutoFocusedLive = true;
+    const bounds = L.latLngBounds([[HOSPITAL_LOCATION.lat, HOSPITAL_LOCATION.lng]]);
+    pinnedTrips.forEach(t => {
+      const pin = allPins[normName(t.destination)];
+      bounds.extend([pin.lat, pin.lng]);
+    });
+    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+  }
+}
+
+function updateRouteInfoBar(count) {
+  const bar = document.getElementById('routeInfoBar');
+  const txt = document.getElementById('routeInfoText');
+  const btn = document.getElementById('routeInfoBtn');
+  if (!count) { bar.classList.remove('show'); return; }
+  bar.classList.add('show');
+  txt.textContent = '🛣️ กำลังแสดงเส้นทางรถที่เดินทางอยู่ ' + count + ' คัน (เส้นประไล่ตามถนนจริงจาก OpenStreetMap โดยประมาณ)';
+  btn.textContent = liveRoutesVisible ? 'ซ่อนเส้นทาง' : 'แสดงเส้นทาง';
+}
+
+function toggleLiveRoutes() {
+  liveRoutesVisible = !liveRoutesVisible;
+  if (liveRoutesVisible) { liveRoutesLayer.addTo(map); } else { map.removeLayer(liveRoutesLayer); }
+  const pinnedCount = liveTrips.filter(t => allPins[normName(t.destination)]).length;
+  updateRouteInfoBar(pinnedCount);
+}
+
+// ── ดึงเส้นทางถนนจริงจาก OSRM (ใช้ข้อมูลถนน OpenStreetMap เดียวกับแผนที่ ไม่ต้องใช้ API key) ──
+// ถ้าดึงไม่สำเร็จ (เน็ตช้า/บริการไม่ว่าง) จะ fallback เป็นเส้นตรงระหว่างจุดแทน พร้อมทำเส้นประถี่ขึ้นเพื่อบอกว่าเป็นเส้นโดยประมาณ
+async function drawLiveRoute(pin, trip) {
+  const origin = [HOSPITAL_LOCATION.lat, HOSPITAL_LOCATION.lng];
+  const dest = [pin.lat, pin.lng];
+  const cacheKey = origin.join(',') + '|' + dest.join(',');
+
+  let result = liveRouteCache[cacheKey];
+  if (!result) {
+    result = await fetchOsrmRoute(origin, dest);
+    liveRouteCache[cacheKey] = result;
+  }
+
+  // guard: ถ้าทริปนี้หายไปจาก liveTrips แล้ว (จบทริป/ข้อมูลเปลี่ยนระหว่างรอ fetch) ไม่ต้องวาด
+  if (!liveTrips.some(t => t.tripId === trip.tripId)) return;
+  if (!map || !liveRoutesLayer) return;
+
+  const line = L.polyline(result.latlngs, {
+    color: '#c07a00',
+    weight: 4,
+    opacity: 0.85,
+    className: 'live-route-line' + (result.approx ? ' approx' : '')
+  });
+  line.addTo(liveRoutesLayer);
+  if (!liveRoutesVisible) map.removeLayer(liveRoutesLayer); // เผื่อผู้ใช้กด "ซ่อนเส้นทาง" ไว้ระหว่างที่ยังโหลดเส้นทางอยู่
+}
+
+async function fetchOsrmRoute(origin, dest) {
+  try {
+    const url = 'https://router.project-osrm.org/route/v1/driving/'
+      + origin[1] + ',' + origin[0] + ';' + dest[1] + ',' + dest[0]
+      + '?overview=full&geometries=geojson';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    const json = await res.json();
+    const coords = json && json.routes && json.routes[0] && json.routes[0].geometry && json.routes[0].geometry.coordinates;
+    if (coords && coords.length) {
+      return { latlngs: coords.map(c => [c[1], c[0]]), approx: false };
+    }
+  } catch (err) {
+    // เงียบไว้ — ใช้เส้นตรงแทนด้านล่าง
+  }
+  return { latlngs: [origin, dest], approx: true };
+}
+
+// ── โฟกัสแผนที่ไปยังรถที่กำลังเดินทาง เมื่อคลิกจากการ์ดสถานการณ์ปัจจุบัน ──
+function focusLiveTrip(tripId) {
+  const trip = liveTrips.find(t => String(t.tripId) === tripId);
+  if (!trip) return;
+  const pin = allPins[normName(trip.destination)];
+  if (!pin) {
+    startPinMode(trip.destination);
+    return;
+  }
+  map.setView([pin.lat, pin.lng], 15);
+  const marker = liveMarkerByTrip[tripId];
+  if (marker) marker.openPopup();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -947,6 +1221,8 @@ async function runImport() {
 // ════════════════════════════════════════════════════════════
 initMap();
 loadAll();
+loadLiveStatus();
+liveTimer = setInterval(loadLiveStatus, LIVE_POLL_MS);
 </script>
 </body>
 </html>
