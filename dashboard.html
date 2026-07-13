@@ -1872,7 +1872,7 @@ async function checkPw() {
   <div class="card" style="margin-bottom:16px;">
     <div class="card-header">
       <span class="icon">&#128295;</span>
-      <h2>รถที่มีปลายทางไปอู่ซ่อมบ่อยที่สุด (ตามเดือนที่เลือก)</h2>
+      <h2>รถที่มีปลายทางไปอู่ซ่อมบ่อยที่สุด (ข้อมูลทั้งหมด)</h2>
       <span class="badge" id="garageVisitBadge" style="background:rgba(255,255,255,0.25);">&#8212;</span>
     </div>
     <div class="card-body" style="padding:0;">
@@ -1894,7 +1894,7 @@ async function checkPw() {
       </div>
       <div style="padding:7px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid var(--border);">
         <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber);margin-right:5px;"></span>
-        นับจากช่อง "ปลายทาง" หรือ "หมายเหตุ" ใน MileLog ที่มีคำว่า "อู่" หรือ "ซ่อม" — ใช้ดูว่ารถคันไหนมีปัญหาเข้าซ่อมบ่อยผิดปกติ
+        นับจากช่อง "ปลายทาง" หรือ "หมายเหตุ" ใน MileLog ทั้งหมด (ไม่จำกัดเดือน) ที่มีคำว่า "อู่" หรือ "ซ่อม" — ใช้ดูว่ารถคันไหนมีปัญหาเข้าซ่อมบ่อยผิดปกติ
       </div>
     </div>
   </div>
@@ -3207,23 +3207,22 @@ function renderUsageFrequencyTable() {
 }
 
 // ══════════════════════════════════════════════════════════════
-//  ตารางเล็ก: รถที่มีปลายทางไปอู่ซ่อมบ่อยที่สุด (ตามเดือนที่เลือกในตารางด้านบน)
-//  — นับจาก MileLog ที่ "ปลายทาง" มีคำว่า "อู่" หรือ "ซ่อม"
+//  ตารางเล็ก: รถที่มีปลายทางไปอู่ซ่อมบ่อยที่สุด (ข้อมูลทั้งหมด ไม่จำกัดเดือน)
+//  — นับจาก MileLog ที่ "ปลายทาง" หรือ "หมายเหตุ" มีคำว่า "อู่" หรือ "ซ่อม"
+//  หมายเหตุ: ตั้งใจไม่ผูกกับตัวเลือกเดือนของตารางบน เพราะจุดประสงค์คือดูภาพรวม
+//  สะสมทั้งหมดว่ารถคันไหนมีปัญหาเข้าอู่บ่อยผิดปกติ (ถ้าผูกกับเดือนเดียว อาจพลาด
+//  ทริปที่เกิดในเดือนอื่นไป)
 // ══════════════════════════════════════════════════════════════
 function renderGarageVisitTable() {
   const tbody   = document.getElementById('garageVisitTbody');
   const badgeEl = document.getElementById('garageVisitBadge');
   if (!tbody) return;
 
-  const picker = document.getElementById('usageMonthPicker');
-  const selMonth = (picker && picker.value) ? picker.value : bkkMonthStr();
-
   const source = (_mileLogAll.length ? _mileLogAll : _mileLogToday) || [];
   const byPlate = {};
 
   source.forEach(t => {
     const ymd = normalizeInspDate(t['วันที่'] || t['Timestamp'] || '');
-    if (!ymd || ymd.slice(0, 7) !== selMonth) return;
 
     // ปกติชื่ออู่จะอยู่ในช่อง "ปลายทาง" แต่บางทริปอาจพิมพ์ไว้ในช่อง "หมายเหตุ" แทน
     // (เช่น ปลายทางระบุเป็นคำกว้างๆ แล้วโน้ตชื่ออู่ไว้ในหมายเหตุ) — เช็คทั้งสองช่อง
@@ -3253,7 +3252,7 @@ function renderGarageVisitTable() {
   if (badgeEl) badgeEl.textContent = rows.length ? `${rows.length} คัน` : '—';
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="empty-state" style="padding:24px;"><div class="em">&#128295;</div>ไม่มีรถที่ไปอู่ซ่อมในเดือนนี้</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state" style="padding:24px;"><div class="em">&#128295;</div>ไม่พบรถที่มีปลายทางไปอู่ซ่อมในข้อมูลทั้งหมด</td></tr>';
     return;
   }
 
