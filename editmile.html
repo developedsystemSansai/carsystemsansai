@@ -45,8 +45,9 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
 .header-titles { flex: 1; }
 .header-titles .main-title { font-size: 13.5px; font-weight: 700; color: #fff; }
 .header-titles .sub-title { font-size: 11px; color: rgba(255,255,255,.45); }
-.back-btn { padding: 5px 12px; border-radius: 7px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); color: rgba(255,255,255,.7); font-size: 12px; font-weight: 500; cursor: pointer; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+.back-btn { padding: 5px 12px; border-radius: 7px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); color: rgba(255,255,255,.7); font-size: 12px; font-weight: 500; cursor: pointer; text-decoration: none; display: flex; align-items: center; gap: 5px; transition: background .15s ease, color .15s ease, transform .08s ease; }
 .back-btn:hover { background: rgba(255,255,255,.14); color: #fff; }
+.back-btn:active { transform: scale(.96); }
 .session-chip { padding: 5px 12px; border-radius: 7px; background: rgba(255,255,255,.09); color: #fff; font-size: 12px; font-weight: 600; display: none; align-items: center; gap: 6px; }
 .session-chip.show { display: flex; }
 .session-chip button { background: none; border: none; color: rgba(255,255,255,.55); cursor: pointer; font-size: 11px; text-decoration: underline; font-family: inherit; }
@@ -61,14 +62,19 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
 .role-toggle { display: flex; gap: 8px; margin-bottom: 18px; }
 .role-btn { flex: 1; padding: 14px 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: #fff; font-family: inherit; font-size: 13.5px; font-weight: 700; color: var(--text-mid); cursor: pointer; transition: all .15s; }
 .role-btn.active { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); }
+.role-btn:hover:not(.active) { border-color: var(--border-strong); background: var(--bg); }
+.role-btn:active { transform: scale(.98); }
+.role-btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 .gate-field { margin-bottom: 14px; }
 .gate-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-mid); margin-bottom: 6px; }
 .gate-field select, .gate-field input { width: 100%; padding: 10px 13px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: 14px; outline: none; }
 .gate-field select:focus, .gate-field input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(29,111,181,.12); }
 .gate-error { font-size: 12px; color: var(--danger); margin-top: 8px; display: none; }
 .gate-error.show { display: block; }
-.gate-submit { width: 100%; margin-top: 6px; padding: 13px; border: none; border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--blue), #1557b0); color: #fff; font-family: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; }
-.gate-submit:hover { opacity: .94; }
+.gate-submit { width: 100%; margin-top: 6px; padding: 13px; border: none; border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--blue), #1557b0); color: #fff; font-family: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; transition: filter .15s ease, box-shadow .15s ease, transform .08s ease; }
+.gate-submit:hover { filter: brightness(1.08); box-shadow: 0 3px 12px rgba(29,111,181,.35); }
+.gate-submit:active { transform: scale(.98); filter: brightness(.97); }
+.gate-submit:disabled { opacity: .65; cursor: not-allowed; filter: none; box-shadow: none; }
 .gate-note { font-size: 11px; color: var(--text-light); margin-top: 14px; line-height: 1.6; background: var(--bg); padding: 10px 12px; border-radius: var(--radius-sm); }
 
 /* ── APP ── */
@@ -76,7 +82,9 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
 #appScreen.show { display: block; }
 
 .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; margin-bottom: 20px; }
-.card-header { padding: 15px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; }
+.card-header { padding: 15px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; transition: background .15s ease; }
+.card-header:hover { background: var(--bg); }
+.card-header:active { background: var(--blue-soft); }
 .card-header-title { font-size: 14.5px; font-weight: 700; }
 .card-header-sub { font-size: 11.5px; color: var(--text-light); font-weight: 400; margin-left: 6px; }
 .card-body { padding: 18px; }
@@ -99,21 +107,33 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
 .pending-reason { font-size: 12px; color: var(--text-mid); margin-top: 8px; font-style: italic; }
 .pending-actions { display: flex; gap: 8px; margin-top: 10px; }
 
-.btn { padding: 8px 16px; border-radius: var(--radius-sm); font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; border: none; }
+.btn { padding: 8px 16px; border-radius: var(--radius-sm); font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; border: none; transition: filter .15s ease, box-shadow .15s ease, transform .08s ease, opacity .15s ease; }
 .btn-approve { background: var(--success); color: #fff; }
 .btn-reject { background: var(--danger); color: #fff; }
 .btn-primary { background: var(--blue); color: #fff; }
 .btn-ghost { background: #fff; border: 1.5px solid var(--border-strong); color: var(--text-mid); }
-.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn:hover:not(:disabled) { filter: brightness(1.08); box-shadow: 0 3px 10px rgba(13,33,55,.16); }
+.btn-ghost:hover:not(:disabled) { filter: none; background: var(--bg); border-color: var(--text-light); }
+.btn:active:not(:disabled) { transform: scale(.96); filter: brightness(.97); box-shadow: none; }
+.btn:disabled { opacity: .6; cursor: not-allowed; }
+.btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+/* ── inline spinner (ใช้ในปุ่ม/สถานะโหลด เพื่อให้เห็นว่าระบบกำลังทำงานอยู่) ── */
+@keyframes spin822 { to { transform: rotate(360deg); } }
+.btn-spinner { display: inline-block; width: 12px; height: 12px; margin-right: 7px; vertical-align: -2px; border: 2px solid rgba(255,255,255,.45); border-top-color: #fff; border-radius: 50%; animation: spin822 .6s linear infinite; }
+.btn-ghost .btn-spinner { border-color: rgba(61,81,104,.25); border-top-color: var(--text-mid); }
+.inline-spinner { display: inline-block; width: 15px; height: 15px; margin-right: 9px; vertical-align: -3px; border: 2px solid var(--border-strong); border-top-color: var(--blue); border-radius: 50%; animation: spin822 .65s linear infinite; }
 
 .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-.filter-bar input, .filter-bar select { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: 13px; }
+.filter-bar input, .filter-bar select { padding: 9px 12px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: 13px; transition: border-color .15s ease, box-shadow .15s ease; }
+.filter-bar input:focus, .filter-bar select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(29,111,181,.12); outline: none; }
 .filter-bar input[type="text"] { flex: 1; min-width: 180px; }
 
 .table-wrap { overflow-x: auto; }
 .trip-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
 .trip-table th { background: var(--navy); color: rgba(255,255,255,.85); padding: 9px 12px; text-align: left; font-size: 10.5px; font-weight: 600; letter-spacing: .4px; white-space: nowrap; }
 .trip-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.trip-table tr { transition: background .1s ease; }
 .trip-table tr:hover td { background: var(--blue-soft); }
 .trip-table td.note-cell { white-space: normal; max-width: 220px; color: var(--text-mid); font-style: italic; }
 .trip-table td.note-cell span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
@@ -122,32 +142,37 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
 .plate-chip { background: var(--navy); color: #fff; padding: 2px 8px; border-radius: 5px; font-size: 11px; font-weight: 700; }
 
 /* ── MODAL ── */
-.modal-overlay { position: fixed; inset: 0; background: rgba(13,33,55,.55); display: none; align-items: flex-start; justify-content: center; z-index: 500; padding: 30px 16px; overflow-y: auto; }
-.modal-overlay.show { display: flex; }
-.modal-box { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-lg); max-width: 560px; width: 100%; }
+.modal-overlay { position: fixed; inset: 0; background: rgba(13,33,55,.55); display: flex; align-items: flex-start; justify-content: center; z-index: 500; padding: 30px 16px; overflow-y: auto; opacity: 0; visibility: hidden; transition: opacity .2s ease, visibility 0s linear .2s; }
+.modal-overlay.show { opacity: 1; visibility: visible; transition: opacity .2s ease; }
+.modal-box { background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-lg); max-width: 560px; width: 100%; transform: translateY(16px) scale(.98); transition: transform .22s cubic-bezier(.16,1,.3,1); }
+.modal-overlay.show .modal-box { transform: translateY(0) scale(1); }
 .modal-head { padding: 18px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
 .modal-head h3 { font-size: 15px; }
-.modal-close { background: none; border: none; font-size: 20px; color: var(--text-light); cursor: pointer; line-height: 1; }
+.modal-close { background: none; border: none; font-size: 20px; color: var(--text-light); cursor: pointer; line-height: 1; transition: color .15s ease, transform .1s ease; padding: 4px; border-radius: 6px; }
+.modal-close:hover { color: var(--text); background: var(--bg); }
+.modal-close:active { transform: scale(.9); }
 .modal-body { padding: 20px; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
 .form-group { display: flex; flex-direction: column; gap: 5px; }
 .form-group.span2 { grid-column: span 2; }
 .form-group label { font-size: 11.5px; font-weight: 600; color: var(--text-mid); }
-.form-group input, .form-group textarea { padding: 9px 11px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: 13.5px; outline: none; }
+.form-group input, .form-group textarea { padding: 9px 11px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-family: inherit; font-size: 13.5px; outline: none; transition: border-color .15s ease, box-shadow .15s ease; }
 .form-group input:focus, .form-group textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(29,111,181,.12); }
 .form-group textarea { resize: vertical; min-height: 60px; }
 .form-group input.changed { border-color: var(--warning); background: var(--amber-soft); }
 .modal-foot { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
 .role-hint { font-size: 11.5px; color: var(--text-light); padding: 10px 12px; background: var(--bg); border-radius: var(--radius-sm); margin-bottom: 14px; line-height: 1.6; }
 
-.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--navy); color: #fff; padding: 12px 20px; border-radius: var(--radius-sm); font-size: 13px; box-shadow: var(--shadow-lg); opacity: 0; pointer-events: none; transition: all .25s; z-index: 800; max-width: 90vw; }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(16px) scale(.97); background: var(--navy); color: #fff; padding: 12px 20px; border-radius: var(--radius-sm); font-size: 13px; box-shadow: var(--shadow-lg); opacity: 0; pointer-events: none; transition: opacity .22s ease, transform .22s cubic-bezier(.16,1,.3,1); z-index: 800; max-width: 90vw; display: flex; align-items: center; gap: 8px; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 .toast.err { background: var(--danger); }
 .toast.ok  { background: var(--success); }
+.toast .toast-icon { font-size: 15px; line-height: 1; }
 
-.loading-note { text-align: center; padding: 30px; color: var(--text-light); font-size: 13px; }
+.loading-note { text-align: center; padding: 30px; color: var(--text-light); font-size: 13px; display: flex; align-items: center; justify-content: center; }
 </style>
 </head>
+
 <body>
 
 <header class="site-header">
@@ -195,7 +220,7 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
       </div>
 
       <div class="gate-error" id="gateError"></div>
-      <button class="gate-submit" onclick="submitGate()">เข้าสู่ระบบ</button>
+      <button class="gate-submit" id="gateSubmitBtn" onclick="submitGate()">เข้าสู่ระบบ</button>
 
       <div class="gate-note">
         พขร. ที่เลือกชื่อเข้ามา จะ<b>ส่งคำขอแก้ไข</b>ได้เท่านั้น — ต้องรอแอดมินกดอนุมัติก่อนข้อมูลจริงจึงจะเปลี่ยน<br>
@@ -217,7 +242,7 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
         <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
       </div>
       <div class="card-body" id="pendingCardBody">
-        <div id="pendingList"><div class="loading-note">กำลังโหลด...</div></div>
+        <div id="pendingList"><div class="loading-note"><span class="inline-spinner"></span>กำลังโหลด...</div></div>
       </div>
     </div>
 
@@ -243,7 +268,7 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
               </tr>
             </thead>
             <tbody id="tripTbody">
-              <tr class="empty-row"><td colspan="10">กำลังโหลดข้อมูล...</td></tr>
+              <tr class="empty-row"><td colspan="10"><span class="inline-spinner"></span>กำลังโหลดข้อมูล...</td></tr>
             </tbody>
           </table>
         </div>
@@ -326,10 +351,27 @@ function escHtml(s) {
 
 function showToast(msg, type) {
   const t = document.getElementById('toast');
-  t.textContent = msg;
+  const icon = type === 'ok' ? '✓' : type === 'err' ? '✕' : 'ℹ';
+  t.innerHTML = '<span class="toast-icon">' + icon + '</span><span>' + escHtml(msg) + '</span>';
   t.className = 'toast show' + (type ? ' ' + type : '');
   clearTimeout(t._timer);
   t._timer = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+// ── ให้ปุ่มแสดงสถานะ "กำลังทำงาน" ชัดเจน (สปินเนอร์ + ข้อความ) กันดูเหมือนกดแล้วไม่ตอบสนอง ──
+function setBtnLoading(btn, loadingText) {
+  if (!btn) return;
+  if (btn.dataset.origHtml === undefined) btn.dataset.origHtml = btn.innerHTML;
+  btn.innerHTML = '<span class="btn-spinner"></span>' + escHtml(loadingText);
+  btn.disabled = true;
+}
+function restoreBtn(btn) {
+  if (!btn) return;
+  if (btn.dataset.origHtml !== undefined) {
+    btn.innerHTML = btn.dataset.origHtml;
+    delete btn.dataset.origHtml;
+  }
+  btn.disabled = false;
 }
 
 function toggleCard(bodyId, headerEl) {
@@ -375,6 +417,8 @@ async function submitGate() {
   } else {
     const code = document.getElementById('gateAdminCode').value.trim();
     if (!code) { errEl.textContent = 'กรุณากรอกรหัสผ่าน'; errEl.classList.add('show'); return; }
+    const gateBtn = document.getElementById('gateSubmitBtn');
+    setBtnLoading(gateBtn, 'กำลังตรวจสอบ...');
     try {
       const res = await fetch(GAS_URL, {
         method: 'POST',
@@ -389,6 +433,8 @@ async function submitGate() {
     } catch (err) {
       errEl.textContent = 'ตรวจสอบรหัสไม่สำเร็จ: ' + (err.message || err);
       errEl.classList.add('show');
+    } finally {
+      restoreBtn(gateBtn);
     }
   }
 }
@@ -547,7 +593,7 @@ async function submitEdit() {
   if (!Object.keys(fields).length) { showToast('ไม่มีข้อมูลที่เปลี่ยนแปลง', 'err'); return; }
 
   const btn = document.getElementById('editSubmitBtn');
-  btn.disabled = true;
+  setBtnLoading(btn, role === 'admin' ? 'กำลังบันทึก...' : 'กำลังส่งคำขอ...');
   try {
     const tripId = editingTrip['TripID'];
     let payload;
@@ -569,7 +615,7 @@ async function submitEdit() {
   } catch (err) {
     showToast('บันทึกไม่สำเร็จ: ' + (err.message || err), 'err');
   } finally {
-    btn.disabled = false;
+    restoreBtn(btn);
   }
 }
 
@@ -604,7 +650,7 @@ async function submitDelete() {
   if (!reason) { showToast('กรุณาระบุเหตุผลในการลบ', 'err'); return; }
 
   const btn = document.getElementById('deleteSubmitBtn');
-  btn.disabled = true;
+  setBtnLoading(btn, role === 'admin' ? 'กำลังลบ...' : 'กำลังส่งคำขอ...');
   try {
     const tripId = deletingTrip['TripID'];
     const payload = role === 'admin'
@@ -623,7 +669,7 @@ async function submitDelete() {
   } catch (err) {
     showToast('ลบไม่สำเร็จ: ' + (err.message || err), 'err');
   } finally {
-    btn.disabled = false;
+    restoreBtn(btn);
   }
 }
 
@@ -684,15 +730,16 @@ function renderPendingEdits(list) {
       + '<div class="pending-diff">' + diffRows + '</div>'
       + '<div class="pending-reason">เหตุผล: ' + escHtml(r.reason) + '</div>'
       + '<div class="pending-actions">'
-      +   '<button class="btn btn-approve" onclick="approveRequest(\'' + escHtml(r.requestId) + '\')">✓ อนุมัติ</button>'
-      +   '<button class="btn btn-reject" onclick="rejectRequest(\'' + escHtml(r.requestId) + '\')">✕ ปฏิเสธ</button>'
+      +   '<button class="btn btn-approve" onclick="approveRequest(\'' + escHtml(r.requestId) + '\', this)">✓ อนุมัติ</button>'
+      +   '<button class="btn btn-reject" onclick="rejectRequest(\'' + escHtml(r.requestId) + '\', this)">✕ ปฏิเสธ</button>'
       + '</div>'
       + '</div>';
   }).join('');
 }
 
-async function approveRequest(requestId) {
+async function approveRequest(requestId, btnEl) {
   if (!confirm('ยืนยันอนุมัติคำขอนี้? ข้อมูลจะถูกเขียนทับใน MileLog ทันที')) return;
+  setBtnLoading(btnEl, 'กำลังอนุมัติ...');
   try {
     const res = await fetch(GAS_URL, {
       method: 'POST',
@@ -706,11 +753,13 @@ async function approveRequest(requestId) {
     loadTrips();
   } catch (err) {
     showToast('อนุมัติไม่สำเร็จ: ' + (err.message || err), 'err');
+    restoreBtn(btnEl);
   }
 }
 
-async function rejectRequest(requestId) {
+async function rejectRequest(requestId, btnEl) {
   const reason = prompt('เหตุผลที่ปฏิเสธคำขอนี้ (ไม่บังคับ):') || '';
+  setBtnLoading(btnEl, 'กำลังปฏิเสธ...');
   try {
     const res = await fetch(GAS_URL, {
       method: 'POST',
@@ -723,6 +772,7 @@ async function rejectRequest(requestId) {
     loadPendingEdits();
   } catch (err) {
     showToast('ดำเนินการไม่สำเร็จ: ' + (err.message || err), 'err');
+    restoreBtn(btnEl);
   }
 }
 
