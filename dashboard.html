@@ -1828,7 +1828,79 @@ async function checkPw() {
       </div>
     </div>
 
-    <!-- ══ ตารางค่าน้ำมัน ══ -->
+    <!-- ══ ตารางวิเคราะห์ความถี่การใช้งาน & ระยะไมล์ (รายเดือน) ══ -->
+    <div class="card">
+      <div class="card-header">
+        <span class="icon">&#128202;</span>
+        <h2>ความถี่การใช้งาน &amp; ระยะไมล์ (รายเดือน)</h2>
+        <span class="badge" id="usageMonthBadge" style="background:rgba(255,255,255,0.25);">&#8212;</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div style="padding:10px 14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg);border-bottom:1px solid var(--border);">
+          <span style="font-size:0.78rem;font-weight:700;color:var(--navy);">เดือน :</span>
+          <button onclick="usageNavMonth(-1)" style="width:26px;height:26px;border-radius:6px;border:1.5px solid var(--border);background:#fff;color:var(--text-mid);font-size:0.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#8592;</button>
+          <input type="month" id="usageMonthPicker" style="padding:5px 9px;border-radius:7px;border:1.5px solid var(--border);font-family:inherit;font-size:0.78rem;color:var(--text);background:#fff;outline:none;cursor:pointer;" onchange="renderUsageFrequencyTable()">
+          <button onclick="usageNavMonth(1)" style="width:26px;height:26px;border-radius:6px;border:1.5px solid var(--border);background:#fff;color:var(--text-mid);font-size:0.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#8594;</button>
+          <button onclick="usageGoThisMonth()" style="padding:5px 11px;border-radius:7px;border:1.5px solid var(--teal);background:var(--teal-soft);color:var(--teal);font-family:inherit;font-size:0.74rem;font-weight:700;cursor:pointer;">เดือนนี้</button>
+        </div>
+        <div class="table-scroll">
+          <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+            <thead>
+              <tr style="background:var(--bg);">
+                <th style="padding:9px 12px;text-align:left;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">ทะเบียน</th>
+                <th style="padding:9px 12px;text-align:center;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">จำนวนเที่ยว</th>
+                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">ระยะทางรวม</th>
+                <th style="padding:9px 12px;text-align:right;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">เฉลี่ย/เที่ยว</th>
+                <th style="padding:9px 12px;text-align:center;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">สถานะการใช้งาน</th>
+              </tr>
+            </thead>
+            <tbody id="usageFreqTbody">
+              <tr><td colspan="5" class="loading-state"><div class="spinner-sm"></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="padding:7px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:4px;">
+          <span style="display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--blue);"></span>ข้อมูลจาก MileLog (บันทึกการออกรถ) — ใช้เปรียบเทียบความคุ้มค่า/ดูรถที่ไม่ค่อยได้ใช้งาน แต่ละเดือน เตรียมนำเสนอเทียบรายปี</span>
+          <span id="usageFreqTotal" style="font-weight:700;color:var(--blue);font-family:'IBM Plex Mono',monospace;"></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ ตารางเล็ก: รถที่มีปลายทางไปอู่ซ่อมบ่อยที่สุด ══ -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-header">
+      <span class="icon">&#128295;</span>
+      <h2>รถที่มีปลายทางไปอู่ซ่อมบ่อยที่สุด (ตามเดือนที่เลือก)</h2>
+      <span class="badge" id="garageVisitBadge" style="background:rgba(255,255,255,0.25);">&#8212;</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div class="table-scroll">
+        <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+          <thead>
+            <tr style="background:var(--bg);">
+              <th style="padding:9px 12px;text-align:center;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">อันดับ</th>
+              <th style="padding:9px 12px;text-align:left;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">ทะเบียน</th>
+              <th style="padding:9px 12px;text-align:center;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">จำนวนครั้งที่ไปอู่</th>
+              <th style="padding:9px 12px;text-align:left;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">ไปล่าสุด</th>
+              <th style="padding:9px 12px;text-align:left;font-size:0.71rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);white-space:nowrap;">ปลายทางล่าสุด</th>
+            </tr>
+          </thead>
+          <tbody id="garageVisitTbody">
+            <tr><td colspan="5" class="loading-state"><div class="spinner-sm"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:7px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid var(--border);">
+        <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--amber);margin-right:5px;"></span>
+        นับจากปลายทางใน MileLog ที่มีคำว่า "อู่" หรือ "ซ่อม" — ใช้ดูว่ารถคันไหนมีปัญหาเข้าซ่อมบ่อยผิดปกติ
+      </div>
+    </div>
+  </div>
+
+  <div style="display:none;">
+    <!-- ══ ตารางค่าน้ำมัน (เดิม) — ปิดการแสดงผลตามคำขอ แทนที่ด้วยตารางวิเคราะห์การใช้งานด้านบน ══ -->
     <div class="card">
       <div class="card-header" >
         <span class="icon">&#9981;</span>
@@ -1860,6 +1932,7 @@ async function checkPw() {
     </div>
 
   </div>
+
 
   <!-- EQUIPMENT CHANGES -->
   <div class="card" style="margin-bottom:16px;">
@@ -2830,6 +2903,12 @@ async function renderSummaryTables() {
   renderFuelCostSummary(selDate);
   // อัปเดตตาราง "สรุปการเติมน้ำมันรายคัน" จาก MileLog ด้วย
   renderFuelSummary(null);
+
+  // ตั้งค่าเริ่มต้นของตัวเลือกเดือน (ครั้งแรก) แล้ว render ตารางความถี่/ระยะไมล์รายเดือน + อู่ซ่อม
+  const monthPicker = document.getElementById('usageMonthPicker');
+  if (monthPicker && !monthPicker.value) monthPicker.value = bkkMonthStr();
+  renderUsageFrequencyTable();
+  renderGarageVisitTable();
 }
 
 // ── ตารางสรุประยะทาง ──
@@ -3012,15 +3091,194 @@ function renderFuelCostSummary(dateStr) {
   if (totalEl) totalEl.textContent = `รวม ${grandTotalPrice.toLocaleString()} บาท`;
 }
 
+// ══════════════════════════════════════════════════════════════
+//  ตารางวิเคราะห์ความถี่การใช้งาน & ระยะไมล์ (รายเดือน)
+//  — ใช้ดูความคุ้มค่าของรถแต่ละคัน / รถที่ไม่ค่อยได้ใช้งาน
+//    เตรียมเป็นข้อมูลเปรียบเทียบรายเดือน/รายปี
+// ══════════════════════════════════════════════════════════════
+
+// เกณฑ์ "ใช้งานน้อย" ต่อเดือน (จำนวนเที่ยวขั้นต่ำที่ถือว่าใช้งานตามปกติ) — ปรับได้ตามความเหมาะสม
+const USAGE_LOW_TRIPS_THRESHOLD = 5;
+
+function usageNavMonth(delta) {
+  const picker = document.getElementById('usageMonthPicker');
+  if (!picker || !picker.value) return;
+  const [y, m] = picker.value.split('-').map(Number);
+  const d = new Date(y, (m - 1) + delta, 1);
+  picker.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderUsageFrequencyTable();
+  renderGarageVisitTable();
+}
+
+function usageGoThisMonth() {
+  const picker = document.getElementById('usageMonthPicker');
+  if (!picker) return;
+  picker.value = bkkMonthStr();
+  renderUsageFrequencyTable();
+  renderGarageVisitTable();
+}
+
+function renderUsageFrequencyTable() {
+  const tbody   = document.getElementById('usageFreqTbody');
+  const badgeEl = document.getElementById('usageMonthBadge');
+  const totalEl = document.getElementById('usageFreqTotal');
+  if (!tbody) return;
+
+  const picker = document.getElementById('usageMonthPicker');
+  const selMonth = (picker && picker.value) ? picker.value : bkkMonthStr(); // 'yyyy-MM'
+
+  const source = (_mileLogAll.length ? _mileLogAll : _mileLogToday) || [];
+  const byPlate = {};
+
+  source.forEach(t => {
+    const ymd = normalizeInspDate(t['วันที่'] || t['Timestamp'] || '');
+    if (!ymd || ymd.slice(0, 7) !== selMonth) return;
+    const raw   = String(t['ทะเบียน/รถ'] || t['carType'] || '');
+    const plate = raw.split(' ')[0].trim();
+    if (!plate) return;
+
+    const km = parseFloat(t['ระยะทาง(กม.)'] || 0) || 0;
+    if (!byPlate[plate]) byPlate[plate] = {
+      trips: 0, km: 0,
+      type: ALL_VEHICLES.find(v => v.plate === plate)?.type || ''
+    };
+    byPlate[plate].trips++;
+    byPlate[plate].km += km;
+  });
+
+  // รวมรถทุกคันที่มีในระบบเข้าไปด้วย แม้ไม่มีการใช้งานเดือนนี้เลย — เพื่อให้เห็นรถที่ "ไม่ได้ใช้งาน" ชัดเจน
+  ALL_VEHICLES.forEach(v => {
+    if (!byPlate[v.plate]) byPlate[v.plate] = { trips: 0, km: 0, type: v.type || '' };
+  });
+
+  const rows = Object.entries(byPlate).sort((a, b) => b[1].km - a[1].km);
+  const grandTrips = rows.reduce((s, [, v]) => s + v.trips, 0);
+  const grandKm    = rows.reduce((s, [, v]) => s + v.km, 0);
+
+  const monthLabel = (() => {
+    try {
+      const [y, m] = selMonth.split('-').map(Number);
+      return new Date(y, m - 1, 1).toLocaleDateString('th-TH', { year: 'numeric', month: 'long' });
+    } catch (_) { return selMonth; }
+  })();
+
+  if (badgeEl) badgeEl.textContent = monthLabel;
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state" style="padding:30px;"><div class="em">&#128202;</div>ไม่มีข้อมูลการใช้งานเดือนนี้</td></tr>';
+    if (totalEl) totalEl.textContent = '';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(([plate, v]) => {
+    const avgKm = v.trips > 0 ? v.km / v.trips : 0;
+
+    let statusHtml;
+    if (v.trips === 0) {
+      statusHtml = `<span style="background:#fee2e2;color:#b91c1c;font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap;">ไม่ได้ใช้งานเลย</span>`;
+    } else if (v.trips < USAGE_LOW_TRIPS_THRESHOLD) {
+      statusHtml = `<span style="background:var(--amber-soft,#fdf4dc);color:#7a4800;font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap;">ใช้งานน้อย</span>`;
+    } else {
+      statusHtml = `<span style="background:#e4f5eb;color:#0f5c2e;font-size:0.68rem;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap;">ใช้งานปกติ</span>`;
+    }
+
+    return `<tr style="border-bottom:1px solid var(--border);transition:background .15s;"
+              onmouseover="this.style.background='var(--blue-soft)'" onmouseout="this.style.background=''">
+      <td style="padding:9px 12px;">
+        <span class="plate-badge" style="font-size:0.72rem;">${plate}</span>
+        <div style="font-size:0.66rem;color:var(--text-light);margin-top:2px;">${v.type || ''}</div>
+      </td>
+      <td style="padding:9px 12px;text-align:center;">
+        <span style="font-size:0.95rem;font-weight:700;color:var(--blue);">${v.trips}</span>
+        <span style="font-size:0.65rem;color:var(--text-light);"> เที่ยว</span>
+      </td>
+      <td style="padding:9px 12px;text-align:right;font-weight:700;color:var(--navy);font-family:'IBM Plex Mono',monospace;">${v.km.toLocaleString(undefined,{maximumFractionDigits:1})} กม.</td>
+      <td style="padding:9px 12px;text-align:right;color:var(--text-mid);font-family:'IBM Plex Mono',monospace;">${avgKm > 0 ? avgKm.toLocaleString(undefined,{maximumFractionDigits:1}) + ' กม.' : '—'}</td>
+      <td style="padding:9px 12px;text-align:center;">${statusHtml}</td>
+    </tr>`;
+  }).join('') + `<tr style="background:var(--bg);border-top:2px solid var(--border-strong);">
+    <td style="padding:9px 12px;font-weight:700;color:var(--navy);">รวม (${rows.length} คัน)</td>
+    <td style="padding:9px 12px;text-align:center;font-weight:700;color:var(--blue);font-family:'IBM Plex Mono',monospace;">${grandTrips} เที่ยว</td>
+    <td style="padding:9px 12px;text-align:right;font-weight:700;color:var(--navy);font-family:'IBM Plex Mono',monospace;">${grandKm.toLocaleString(undefined,{maximumFractionDigits:1})} กม.</td>
+    <td colspan="2"></td>
+  </tr>`;
+
+  if (totalEl) totalEl.textContent = `เฉลี่ย ${rows.length ? (grandKm / rows.length).toLocaleString(undefined,{maximumFractionDigits:1}) : 0} กม./คัน`;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ตารางเล็ก: รถที่มีปลายทางไปอู่ซ่อมบ่อยที่สุด (ตามเดือนที่เลือกในตารางด้านบน)
+//  — นับจาก MileLog ที่ "ปลายทาง" มีคำว่า "อู่" หรือ "ซ่อม"
+// ══════════════════════════════════════════════════════════════
+function renderGarageVisitTable() {
+  const tbody   = document.getElementById('garageVisitTbody');
+  const badgeEl = document.getElementById('garageVisitBadge');
+  if (!tbody) return;
+
+  const picker = document.getElementById('usageMonthPicker');
+  const selMonth = (picker && picker.value) ? picker.value : bkkMonthStr();
+
+  const source = (_mileLogAll.length ? _mileLogAll : _mileLogToday) || [];
+  const byPlate = {};
+
+  source.forEach(t => {
+    const ymd = normalizeInspDate(t['วันที่'] || t['Timestamp'] || '');
+    if (!ymd || ymd.slice(0, 7) !== selMonth) return;
+    const dest = String(t['ปลายทาง'] || '').trim();
+    if (!dest || !/อู่|ซ่อม/.test(dest)) return;
+    const raw   = String(t['ทะเบียน/รถ'] || t['carType'] || '');
+    const plate = raw.split(' ')[0].trim();
+    if (!plate) return;
+
+    if (!byPlate[plate]) byPlate[plate] = { count: 0, lastDate: '', lastDest: '' };
+    byPlate[plate].count++;
+    if (ymd >= byPlate[plate].lastDate) {
+      byPlate[plate].lastDate = ymd;
+      byPlate[plate].lastDest = dest;
+    }
+  });
+
+  const rows = Object.entries(byPlate).sort((a, b) => b[1].count - a[1].count);
+
+  if (badgeEl) badgeEl.textContent = rows.length ? `${rows.length} คัน` : '—';
+
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state" style="padding:24px;"><div class="em">&#128295;</div>ไม่มีรถที่ไปอู่ซ่อมในเดือนนี้</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(([plate, v], i) => {
+    const lastStr = v.lastDate ? v.lastDate.slice(5).replace('-', '/') : '—';
+    return `<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:9px 12px;text-align:center;">
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:99px;background:#fdf4dc;color:#7a4800;font-weight:700;font-size:0.72rem;">${i + 1}</span>
+      </td>
+      <td style="padding:9px 12px;"><span class="plate-badge" style="font-size:0.72rem;">${plate}</span></td>
+      <td style="padding:9px 12px;text-align:center;">
+        <span style="font-size:0.9rem;font-weight:700;color:#b45309;">${v.count}</span>
+        <span style="font-size:0.65rem;color:var(--text-light);"> ครั้ง</span>
+      </td>
+      <td style="padding:9px 12px;font-size:0.76rem;color:var(--text-mid);">${lastStr}</td>
+      <td style="padding:9px 12px;font-size:0.76rem;color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;" title="${v.lastDest}">${v.lastDest}</td>
+    </tr>`;
+  }).join('');
+}
+
 // init summary date picker
 (function initSummaryDatePicker() {
   document.addEventListener('DOMContentLoaded', async function() {
     const picker = document.getElementById('summaryDatePicker');
+    const monthPicker = document.getElementById('usageMonthPicker');
+    if (monthPicker) monthPicker.value = bkkMonthStr();
     if (picker) {
       picker.value = bkkDateStr();
       // โหลด MileLog ทั้งหมดแล้ว render
       await loadMileLogAll();
       renderSummaryTables();
+    } else if (monthPicker) {
+      await loadMileLogAll();
+      renderUsageFrequencyTable();
+      renderGarageVisitTable();
     }
   });
 })();
