@@ -334,6 +334,11 @@ function initMap() {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
   }).addTo(map);
 
+  // เมื่อซูมเปลี่ยน วาด heatmap ใหม่ด้วยรัศมี/ความเบลอที่เหมาะกับระดับซูมนั้น (ถ้ากำลังเปิดอยู่)
+  map.on('zoomend', function () {
+    if (heatLayer) refreshHeatmap();
+  });
+
   // มาร์กเกอร์โรงพยาบาลสันทราย (จุดต้นทาง) — ทำให้เด่นสะดุดตาด้วยวงแหวนเรืองแสง + ไอคอนตึก
   const hospIcon = L.divIcon({
     className: '',
@@ -380,17 +385,20 @@ function destIcon(size, label, color, opts) {
 function markerColorFor(d) {
   if (colorMode === 'category') return d.category.color;
   if (colorMode === 'car') return d.topCarColor;
-  return 'rgba(29,111,181,.88)';
+  // โหมด "ความถี่การไป": ใช้สีตามช่วง (tier) เดียวกับที่กำหนดขนาด เพื่อให้ต่างชั้นความถี่แยกออกจากกันชัดทั้งสีและขนาด
+  return sizeTierFor(d.count).color;
 }
 
 // ── ระดับขนาดหมุดตาม "จำนวนทริปจริง" (ไม่ใช่สัดส่วนเทียบค่าสูงสุด) ──
 // แบ่งเป็นช่วงชัดเจนแทนการไล่ระดับต่อเนื่อง เพื่อให้เห็นความต่างของความถี่ได้ทันทีโดยไม่ต้องเทียบตัวเลข
+// ระยะห่างของขนาดถูกถ่างให้กว้างขึ้น (18 → 96px) และแต่ละช่วงมีสีของตัวเอง (ใช้ตอนโหมดสี = "ความถี่การไป")
+// เพื่อให้ความแตกต่างระหว่างช่วงมองเห็นชัดทั้งจาก "ขนาด" และ "สี" พร้อมกัน ไม่ต้องไล่เทียบตัวเลข
 const SIZE_TIERS = [
-  { max: 5,        size: 20, label: '1–5 ครั้ง'   },
-  { max: 10,       size: 30, label: '6–10 ครั้ง'  },
-  { max: 20,       size: 40, label: '11–20 ครั้ง' },
-  { max: 100,      size: 54, label: '21–100 ครั้ง'},
-  { max: Infinity, size: 72, label: '100+ ครั้ง'  }
+  { max: 5,        size: 18, label: '1–5 ครั้ง',    color: '#6aa9dd' },  // ฟ้าอ่อน
+  { max: 10,       size: 32, label: '6–10 ครั้ง',   color: '#1d6fb5' },  // ฟ้าเข้ม
+  { max: 20,       size: 50, label: '11–20 ครั้ง',  color: '#1a8a4a' },  // เขียว
+  { max: 100,      size: 72, label: '21–100 ครั้ง', color: '#c07a00' },  // ส้ม/อำพัน
+  { max: Infinity, size: 96, label: '100+ ครั้ง',   color: '#c0392b' }   // แดง
 ];
 function sizeTierFor(count) {
   for (let i = 0; i < SIZE_TIERS.length; i++) {
@@ -437,13 +445,13 @@ function renderMarkers() {
 
 // ── แผงคำอธิบายขนาดหมุดตามช่วงความถี่ (แสดงทุกโหมดสี เพื่อให้อ่านขนาดหมุดออกชัดเจน) ──
 function renderSizeLegend() {
-  // ย่อสัดส่วนขนาดจริง (20–72px) ลงมาพอดีกับแถบ legend แต่ยังคงสัดส่วนสัมพัทธ์เดิมไว้ ให้เห็นความต่างชัดเจน
+  // ย่อสัดส่วนขนาดจริง (18–96px) ลงมาพอดีกับแถบ legend แต่ยังคงสัดส่วนสัมพัทธ์เดิมไว้ ให้เห็นความต่างชัดเจน
   const scale = 0.42;
   return '<span class="legend-item legend-title">ขนาดหมุด (จำนวนทริป):</span>'
     + SIZE_TIERS.map(t => {
         const d = Math.round(t.size * scale);
         return '<span class="legend-item"><span style="display:inline-flex;align-items:center;justify-content:center;'
-          + 'width:' + d + 'px;height:' + d + 'px;border-radius:50%;background:rgba(29,111,181,.88);'
+          + 'width:' + d + 'px;height:' + d + 'px;border-radius:50%;background:' + t.color + ';'
           + 'border:1.5px solid rgba(0,0,0,.15);flex-shrink:0;"></span>' + t.label + '</span>';
       }).join('');
 }
@@ -522,14 +530,38 @@ function attachDragHandlers(marker, name) {
 // ════════════════════════════════════════════════════════════
 //  HEATMAP — แสดงความหนาแน่นของพื้นที่ที่ไปบ่อย (Leaflet.heat)
 // ════════════════════════════════════════════════════════════
+// แปลงระยะทาง (เมตร) เป็นค่า offset ของ lat/lng แบบคร่าวๆ (1 องศา lat ≈ 111,320 ม.)
+function metersToLatLng(meters, atLat) {
+  const dLat = meters / 111320;
+  const dLng = meters / (111320 * Math.cos(atLat * Math.PI / 180));
+  return { dLat, dLng };
+}
+
 function buildHeatData() {
   const maxCount = Math.max(1, ...destFreq.map(d => d.count));
   const pts = [];
   destFreq.forEach(d => {
     const pin = allPins[normName(d.name)];
     if (!pin) return;
-    // น้ำหนักตามสัดส่วนความถี่ (0–1) ให้จุดที่ไปบ่อยเรืองแสงเข้มกว่า
-    pts.push([pin.lat, pin.lng, 0.15 + (d.count / maxCount) * 0.85]);
+    // ใช้ sqrt แทนสัดส่วนตรง ๆ เพื่อไม่ให้จุดที่ไปบ่อยที่สุดกลืนจุดอื่นจนแบนราบ
+    // แต่ยังคงไล่ระดับความเข้ม (น้ำหนัก) ตามความถี่จริงให้เห็นต่างชัดเจน
+    const norm = Math.sqrt(d.count / maxCount); // 0..1
+    const weight = 0.22 + norm * 0.78;
+
+    // ยิ่งไปบ่อย ยิ่งกระจายจุดย่อยรอบตำแหน่งเดิมมากขึ้น (จำลองความ "หนาแน่น" ของพื้นที่จริง
+    // แทนที่จะเป็นจุดเดียวสว่างขึ้นเฉย ๆ — ทำให้ก้อนความร้อนขยายตัวสมจริงกว่าจุดวงกลมสมบูรณ์แบบ)
+    const subPoints = 1 + Math.round(norm * 14); // 1–15 จุดย่อยต่อปลายทาง
+    for (let k = 0; k < subPoints; k++) {
+      let lat = pin.lat, lng = pin.lng;
+      if (k > 0) {
+        const jitterM = 15 + Math.random() * 130; // กระจายตัว ~15–145 เมตรรอบจุดจริง
+        const angle = Math.random() * Math.PI * 2;
+        const off = metersToLatLng(jitterM, pin.lat);
+        lat += off.dLat * Math.sin(angle);
+        lng += off.dLng * Math.cos(angle);
+      }
+      pts.push([lat, lng, weight]);
+    }
   });
   return pts;
 }
@@ -538,12 +570,19 @@ function refreshHeatmap() {
   const toggle = document.getElementById('heatmapToggle');
   if (!map || !toggle || !toggle.checked) return;
   if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+  // รัศมี/ความเบลอปรับตามระดับซูม เหมือนซอฟต์แวร์ GIS จริง — ซูมออกก้อนความร้อนจะกว้างนุ่มขึ้น
+  // ซูมเข้าจะกระชับและคมขึ้น แทนที่จะใช้ค่าคงที่ตายตัวทุกระดับซูม
+  const zoom = map.getZoom();
+  const radius = Math.max(16, Math.min(46, 10 + zoom * 2.1));
+  const blur = Math.max(14, Math.min(38, 8 + zoom * 1.9));
   heatLayer = L.heatLayer(buildHeatData(), {
-    radius: 34,
-    blur: 26,
-    maxZoom: 16,
-    minOpacity: 0.3,
-    gradient: { 0.2: '#1d6fb5', 0.4: '#1a8a4a', 0.6: '#c07a00', 0.8: '#c0392b', 1.0: '#7a1f17' }
+    radius,
+    blur,
+    max: 1.0,
+    maxZoom: 17,
+    minOpacity: 0.25,
+    // ไล่สีแบบ heatmap ความหนาแน่นทั่วไป: ฟ้า → เขียวอมฟ้า → เหลือง → ส้ม → แดงเข้ม
+    gradient: { 0.0: '#1d6fb5', 0.3: '#159e8a', 0.5: '#d9c400', 0.7: '#e0791f', 0.85: '#d13a1f', 1.0: '#7a1710' }
   }).addTo(map);
 }
 
