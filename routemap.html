@@ -378,7 +378,7 @@
   <!-- ═══════════ ตารางระยะเวลาที่ใช้ต่อทริป (รายทริป — ล่าสุดก่อน) ═══════════ -->
   <div class="duration-panel" id="durationPanel">
     <div class="duration-head">
-      <div><span class="title">⏱ ระยะเวลาที่ใช้ต่อทริป</span><span class="sub">แยกตามจุดหมาย — ใช้ตรวจสอบความเหมาะสมของภารกิจ/การเดินทางแต่ละครั้ง</span></div>
+      <div><span class="title">⏱ ระยะเวลาที่ใช้ต่อทริป</span><span class="sub">แยกตามจุดหมาย — แสดงทีละทริป (ล่าสุดก่อน) — ใช้ตรวจสอบความเหมาะสมของภารกิจ/การเดินทางแต่ละครั้ง</span></div>
       <span id="durationCount" style="font-size:11.5px;color:var(--text-light);"></span>
     </div>
     <div class="duration-summary" id="durationSummary">กำลังคำนวณ...</div>
@@ -433,8 +433,10 @@ let colorMode = 'freq'; // 'freq' | 'category' | 'car'
 let topOverallCar = null;      // ทะเบียน/รถที่ถูกใช้งานบ่อยที่สุดโดยรวม (ทุกทริปที่กรองไว้)
 let topOverallCarCount = 0;
 let heatLayer = null;          // เลเยอร์ Heatmap (Leaflet.heat)
-let durationSortKey = 'avg';   // 'avg' | 'count' — คอลัมน์ที่ใช้เรียงตารางระยะเวลา
-let durationStatsCache = { stats: [], overallAvg: 0, totalValidTrips: 0 };
+let durationPage = 1;                  // หน้าปัจจุบันของตารางระยะเวลาที่ใช้ต่อทริป
+const DURATION_PAGE_SIZE = 20;         // จำนวนแถว(ทริป)ต่อหน้า
+const DURATION_EXCLUDE_PLATES = ['8781']; // ทะเบียนที่ไม่ต้องนับในตารางนี้ (เทียบแบบ contains)
+let durationStatsCache = { trips: [], overallAvg: 0, totalValidTrips: 0 };
 
 // ── สถานการณ์ปัจจุบัน (รถที่กำลังเดินทาง) ──
 let liveTrips = [];                 // ผลลัพธ์ล่าสุดจาก getStatusSummary().inUse
@@ -1194,6 +1196,7 @@ function applyFilters() {
   renderMarkers();
 
   durationStatsCache = computeDurationStats(filtered);
+  durationPage = 1; // กรองใหม่ → กลับไปหน้าแรก (ล่าสุดก่อน) เสมอ
   renderDurationTable();
 }
 
@@ -1294,92 +1297,156 @@ function formatDurationMin(min) {
   return h + ' ชม. ' + m + ' นาที';
 }
 
+// แปลงเวลาในช่อง "เวลาออก"/"เวลากลับ" ให้เป็นข้อความเวลาแบบ HH:mm สำหรับแสดงผล
+function formatTimeOfDay(raw) {
+  const t = parseTimeOfDay(raw);
+  if (!t) return '—';
+  const pad2 = n => String(n).padStart(2, '0');
+  return pad2(t.h) + ':' + pad2(t.m);
+}
+
+// ประกอบ "วันที่ + เวลาออก" เป็น timestamp (ms) สำหรับใช้เรียงล่าสุด-ก่อน
+function buildTripTimestamp(dYMD, outRaw) {
+  const t = parseTimeOfDay(outRaw);
+  if (!dYMD || !t) return 0;
+  const pad2 = n => String(n).padStart(2, '0');
+  const dt = new Date(dYMD + 'T' + pad2(t.h) + ':' + pad2(t.m) + ':' + pad2(t.s));
+  return isNaN(dt.getTime()) ? 0 : dt.getTime();
+}
+
+// ทะเบียนที่ต้องข้าม (ไม่นับในตารางนี้) — เทียบแบบ "มีคำนี้อยู่" กันปัญหาจุด/ช่องว่างต่างรูปแบบ
+function isExcludedPlate(plateRaw) {
+  const p = String(plateRaw || '');
+  return DURATION_EXCLUDE_PLATES.some(ex => p.indexOf(ex) >= 0);
+}
+
 function computeDurationStats(filtered) {
-  const map_ = {};
-  const allDur = [];
+  const trips = [];
+  let totalMin = 0, cnt = 0;
 
   filtered.forEach(t => {
+    const plate = String(t['ทะเบียน/รถ'] || t['carType'] || '').trim();
+    if (isExcludedPlate(plate)) return; // ข้ามรถทะเบียนที่กำหนด (เช่น 8781)
+
     const dur = tripDurationMinutes(t);
     if (dur == null) return;
     const dest = normName(t['ปลายทาง']);
     if (!dest) return;
-    if (!map_[dest]) map_[dest] = { name: dest, count: 0, totalMin: 0, minMin: Infinity, maxMin: -Infinity, totalKm: 0, kmCount: 0 };
-    const s = map_[dest];
-    s.count++;
-    s.totalMin += dur;
-    if (dur < s.minMin) s.minMin = dur;
-    if (dur > s.maxMin) s.maxMin = dur;
-    const km = Number(t['ระยะทาง(กม.)']);
-    if (!isNaN(km) && km > 0) { s.totalKm += km; s.kmCount++; }
-    allDur.push(dur);
+
+    const dYMD = toYMD(t['วันที่']);
+    const km   = Number(t['ระยะทาง(กม.)']);
+
+    trips.push({
+      date : dYMD,
+      dest : dest,
+      plate: plate || 'ไม่ระบุ',
+      outRaw : t['เวลาออก'],
+      backRaw: t['เวลากลับ'],
+      durMin : dur,
+      km     : (!isNaN(km) && km > 0) ? km : null,
+      ts     : buildTripTimestamp(dYMD, t['เวลาออก'])
+    });
+    totalMin += dur;
+    cnt++;
   });
 
-  const overallAvg = allDur.length ? allDur.reduce((a, b) => a + b, 0) / allDur.length : 0;
+  const overallAvg = cnt ? totalMin / cnt : 0;
 
-  const stats = Object.values(map_).map(s => {
-    const avgMin   = s.totalMin / s.count;
-    const avgKm    = s.kmCount ? s.totalKm / s.kmCount : null;
-    const speedKmh = (avgKm != null && avgMin > 0) ? (avgKm / (avgMin / 60)) : null;
-    // ธงเตือน: เฉพาะจุดหมายที่มีข้อมูล ≥2 ทริป (กันสัญญาณเตือนเพี้ยนจากทริปเดียว) และนานกว่าค่าเฉลี่ยรวมอย่างมีนัยสำคัญ
+  // เทียบแต่ละทริปกับ "ค่าเฉลี่ยรวมของทุกทริปที่กรองไว้" (ไม่ใช่เฉลี่ยเฉพาะจุดหมายเดียวกันอีกต่อไป)
+  trips.forEach(tr => {
     let flag = null;
-    if (s.count >= 2 && overallAvg > 0) {
-      if (avgMin > overallAvg * 2.5) flag = 'danger';
-      else if (avgMin > overallAvg * 1.6) flag = 'warn';
+    if (overallAvg > 0) {
+      if (tr.durMin > overallAvg * 2.5) flag = 'danger';
+      else if (tr.durMin > overallAvg * 1.6) flag = 'warn';
     }
-    return { name: s.name, count: s.count, avgMin, minMin: s.minMin, maxMin: s.maxMin, avgKm, speedKmh, flag };
+    tr.flag = flag;
   });
 
-  return { stats, overallAvg, totalValidTrips: allDur.length };
-}
+  // ล่าสุดก่อนเสมอ (เรียงตาม timestamp วันที่+เวลาออก)
+  trips.sort((a, b) => b.ts - a.ts);
 
-function setDurationSort(key) {
-  durationSortKey = key;
-  document.getElementById('thSortCount').classList.toggle('active', key === 'count');
-  document.getElementById('thSortAvg').classList.toggle('active', key === 'avg');
-  renderDurationTable();
+  return { trips, overallAvg, totalValidTrips: cnt };
 }
 
 function renderDurationTable() {
   const tbody     = document.getElementById('durationTbody');
   const countEl   = document.getElementById('durationCount');
   const summaryEl = document.getElementById('durationSummary');
-  const { stats, overallAvg, totalValidTrips } = durationStatsCache;
+  const pagerEl   = document.getElementById('durationPager');
+  const { trips, overallAvg, totalValidTrips } = durationStatsCache;
 
-  countEl.textContent = stats.length + ' จุดหมาย';
+  countEl.textContent = trips.length + ' ทริป';
   summaryEl.innerHTML = totalValidTrips
-    ? 'ทริปที่มีข้อมูล "เวลาออก–เวลากลับ" ครบถ้วน: <b>' + totalValidTrips + '</b> ทริป (จากที่กรองไว้)'
+    ? 'ทริปที่มีข้อมูล "เวลาออก–เวลากลับ" ครบถ้วน: <b>' + totalValidTrips + '</b> ทริป (จากที่กรองไว้ · ไม่รวมทะเบียน ' + DURATION_EXCLUDE_PLATES.join(', ') + ')'
       + ' &nbsp;·&nbsp; เวลาเฉลี่ยรวมทุกจุดหมาย: <b>' + formatDurationMin(overallAvg) + '</b>'
       + ' &nbsp;·&nbsp; <span class="duration-flag warn" style="margin-right:4px;">⚠ นานกว่าเฉลี่ย</span>เกิน 1.6 เท่า'
       + ' &nbsp; <span class="duration-flag danger">⚠ นานผิดปกติ</span>เกิน 2.5 เท่าของค่าเฉลี่ยรวม'
     : 'ยังไม่มีทริปที่มีข้อมูล "เวลาออก" และ "เวลากลับ" ครบถ้วนพอสำหรับคำนวณ (ต้องมีทั้งสองค่าในทริปเดียวกัน)';
 
-  if (!stats.length) {
+  if (!trips.length) {
     tbody.innerHTML = '<tr><td colspan="9" class="duration-empty">ไม่มีทริปที่มีข้อมูลเวลาออก-กลับครบถ้วนตามเงื่อนไขที่กรองไว้</td></tr>';
+    pagerEl.innerHTML = '';
     return;
   }
 
-  const sorted = stats.slice().sort((a, b) =>
-    durationSortKey === 'count' ? (b.count - a.count) : (b.avgMin - a.avgMin)
-  );
+  const totalPages = Math.max(1, Math.ceil(trips.length / DURATION_PAGE_SIZE));
+  if (durationPage > totalPages) durationPage = totalPages;
+  if (durationPage < 1) durationPage = 1;
 
-  tbody.innerHTML = sorted.map((d, i) => {
+  const startIdx   = (durationPage - 1) * DURATION_PAGE_SIZE;
+  const pageTrips  = trips.slice(startIdx, startIdx + DURATION_PAGE_SIZE);
+
+  tbody.innerHTML = pageTrips.map((d, i) => {
     const flagHtml = d.flag === 'danger'
       ? '<span class="duration-flag danger">⚠ นานผิดปกติ</span>'
       : d.flag === 'warn'
         ? '<span class="duration-flag warn">⚠ นานกว่าเฉลี่ย</span>'
         : '';
     return '<tr>'
-      + '<td>' + (i + 1) + '</td>'
-      + '<td class="dname" title="' + escAttr(d.name) + '">' + escHtml(d.name) + '</td>'
-      + '<td>' + d.count + '</td>'
-      + '<td><b>' + formatDurationMin(d.avgMin) + '</b></td>'
-      + '<td>' + formatDurationMin(d.minMin) + '</td>'
-      + '<td>' + formatDurationMin(d.maxMin) + '</td>'
-      + '<td>' + (d.avgKm != null ? d.avgKm.toFixed(1) + ' กม.' : '—') + '</td>'
-      + '<td>' + (d.speedKmh != null ? d.speedKmh.toFixed(0) + ' กม./ชม.' : '—') + '</td>'
+      + '<td>' + (startIdx + i + 1) + '</td>'
+      + '<td>' + escHtml(d.date || '—') + '</td>'
+      + '<td class="dname" title="' + escAttr(d.dest) + '">' + escHtml(d.dest) + '</td>'
+      + '<td>' + escHtml(d.plate) + '</td>'
+      + '<td>' + formatTimeOfDay(d.outRaw) + '</td>'
+      + '<td>' + formatTimeOfDay(d.backRaw) + '</td>'
+      + '<td><b>' + formatDurationMin(d.durMin) + '</b></td>'
+      + '<td>' + (d.km != null ? d.km.toFixed(1) + ' กม.' : '—') + '</td>'
       + '<td>' + flagHtml + '</td>'
       + '</tr>';
   }).join('');
+
+  renderDurationPager(totalPages);
+}
+
+// ── ตัวแบ่งหน้าตารางระยะเวลาที่ใช้ต่อทริป (20 รายการ/หน้า) ──
+function renderDurationPager(totalPages) {
+  const pagerEl = document.getElementById('durationPager');
+  if (totalPages <= 1) { pagerEl.innerHTML = ''; return; }
+
+  const windowSize = 2;
+  let startP = Math.max(1, durationPage - windowSize);
+  let endP   = Math.min(totalPages, durationPage + windowSize);
+
+  let html = '';
+  html += '<button' + (durationPage <= 1 ? ' disabled' : '') + ' onclick="goDurationPage(1)">« แรก</button>';
+  html += '<button' + (durationPage <= 1 ? ' disabled' : '') + ' onclick="goDurationPage(' + (durationPage - 1) + ')">‹ ก่อนหน้า</button>';
+  if (startP > 1) html += '<span class="pager-info">…</span>';
+  for (let p = startP; p <= endP; p++) {
+    html += '<button class="' + (p === durationPage ? 'active' : '') + '" onclick="goDurationPage(' + p + ')">' + p + '</button>';
+  }
+  if (endP < totalPages) html += '<span class="pager-info">…</span>';
+  html += '<button' + (durationPage >= totalPages ? ' disabled' : '') + ' onclick="goDurationPage(' + (durationPage + 1) + ')">ถัดไป ›</button>';
+  html += '<button' + (durationPage >= totalPages ? ' disabled' : '') + ' onclick="goDurationPage(' + totalPages + ')">สุดท้าย »</button>';
+  html += '<span class="pager-info">หน้า ' + durationPage + ' / ' + totalPages + '</span>';
+
+  pagerEl.innerHTML = html;
+}
+
+function goDurationPage(p) {
+  durationPage = p;
+  renderDurationTable();
+  const panel = document.getElementById('durationPanel');
+  if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // ════════════════════════════════════════════════════════════
