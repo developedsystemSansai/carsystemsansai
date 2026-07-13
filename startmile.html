@@ -949,6 +949,7 @@ input.odo-mismatch {
 .anomaly-dot.severe { background: var(--danger); }
 .anomaly-dot.moderate { background: #d97706; }
 .anomaly-dot.mild { background: #ca8a04; }
+.anomaly-ref { display: block; font-size: 10.5px; color: var(--text-light); font-weight: 400; white-space: nowrap; margin-top: 1px; }
 .anomaly-gap-val { font-weight: 800; font-size: 13px; }
 .anomaly-gap-val.severe { color: var(--danger); }
 .anomaly-gap-val.moderate { color: #b45309; }
@@ -4572,8 +4573,8 @@ function renderAnomalyList(data) {
     return '<tr class="' + sev + '">'
       + '<td>' + escHtmlAnomaly(a.currDate) + '</td>'
       + '<td><b>' + escHtmlAnomaly(a.plate) + '</b></td>'
-      + '<td>' + escHtmlAnomaly(a.prevEndMile) + '</td>'
-      + '<td>' + escHtmlAnomaly(a.currStartMile) + '</td>'
+      + '<td>' + escHtmlAnomaly(a.prevEndMile) + (a.prevEndRef ? '<span class="anomaly-ref">(' + escHtmlAnomaly(a.prevEndRef) + ')</span>' : '') + '</td>'
+      + '<td>' + escHtmlAnomaly(a.currStartMile) + (a.currStartRef ? '<span class="anomaly-ref">(' + escHtmlAnomaly(a.currStartRef) + ')</span>' : '') + '</td>'
       + '<td><span class="anomaly-dot ' + sev + '"></span><span class="anomaly-gap-val ' + sev + '">' + escHtmlAnomaly(a.missingKm) + ' กม.</span></td>'
       + '</tr>';
   }).join('');
