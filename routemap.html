@@ -62,6 +62,19 @@
   .pin-mode-bar.show { display: flex; }
   .pin-mode-bar button { font-family: inherit; font-size: 12px; padding: 5px 12px; border-radius: 999px; border: none; background: rgba(255,255,255,.15); color: #fff; cursor: pointer; }
 
+  /* ── ค้นหาสถานที่จริงบนแผนที่ (Nominatim/OpenStreetMap) เพื่อปักหมุดโดยไม่ต้องเปิด Google Maps แยก ── */
+  .place-search-bar { position: relative; padding: 10px 14px; background: var(--blue-soft); border-bottom: 1px solid var(--border); }
+  .place-search-input-wrap { display: flex; gap: 8px; }
+  #placeSearchInput { flex: 1; font-family: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: #fff; color: var(--text); }
+  .place-search-results { position: absolute; left: 14px; right: 14px; top: 100%; background: #fff; border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius-sm) var(--radius-sm); box-shadow: var(--shadow); max-height: 280px; overflow-y: auto; z-index: 500; display: none; }
+  .place-search-results.show { display: block; }
+  .place-result-row { padding: 9px 13px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 12.5px; }
+  .place-result-row:last-child { border-bottom: none; }
+  .place-result-row:hover { background: var(--bg); }
+  .place-result-row .pr-name { font-weight: 700; color: var(--text); }
+  .place-result-row .pr-addr { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+  .place-search-empty, .place-search-loading { padding: 10px 13px; font-size: 12px; color: var(--text-light); }
+
   .list-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); max-height: 620px; display: flex; flex-direction: column; }
   .list-head { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--navy); display: flex; justify-content: space-between; align-items: center; }
   .list-body { overflow-y: auto; flex: 1; }
@@ -295,6 +308,14 @@
           <input type="checkbox" id="heatmapToggle" onchange="toggleHeatmap()">
           🔥 แสดง Heatmap ความหนาแน่น
         </label>
+      </div>
+      <div class="place-search-bar" id="placeSearchBar">
+        <div class="place-search-input-wrap">
+          <input type="text" id="placeSearchInput" placeholder="ค้นหาสถานที่จริงเพื่อปักหมุด เช่น ธนาคารกรุงไทย สันทราย, ปั๊ม ปตท. ..." autocomplete="off"
+                 oninput="onPlaceSearchInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();searchPlace();}">
+          <button class="btn btn-primary" onclick="searchPlace()">ค้นหา</button>
+        </div>
+        <div class="place-search-results" id="placeSearchResults"></div>
       </div>
       <div class="edit-toolbar">
         <label class="switch">
@@ -766,13 +787,14 @@ function focusDest(name) {
   if (m) m.openPopup();
 }
 
-// ── PIN MODE — คลิกบนแผนที่เพื่อปักหมุดจุดหมายที่ยังไม่มีพิกัด ──
+// ── PIN MODE — คลิกบนแผนที่ หรือค้นหาสถานที่จริงด้านบน เพื่อปักหมุดจุดหมายที่ยังไม่มีพิกัด ──
 function startPinMode(name) {
   if (!map) return;
   pinModeTarget = name;
-  document.getElementById('pinModeText').textContent = 'คลิกบนแผนที่เพื่อปักหมุดตำแหน่งของ "' + name + '"';
+  document.getElementById('pinModeText').textContent = 'ค้นหาสถานที่จริงด้านบน แล้วเลือกผลลัพธ์ หรือคลิกบนแผนที่ เพื่อปักหมุดตำแหน่งของ "' + name + '"';
   document.getElementById('pinModeBar').classList.add('show');
   map.getContainer().style.cursor = 'crosshair';
+  document.getElementById('placeSearchInput').focus();
 
   if (pinClickHandler) map.off('click', pinClickHandler);
   pinClickHandler = function (e) {
@@ -785,6 +807,8 @@ function startPinMode(name) {
 function cancelPinMode() {
   pinModeTarget = null;
   document.getElementById('pinModeBar').classList.remove('show');
+  document.getElementById('placeSearchInput').value = '';
+  document.getElementById('placeSearchResults').classList.remove('show');
   if (map) {
     map.getContainer().style.cursor = '';
     if (pinClickHandler) { map.off('click', pinClickHandler); pinClickHandler = null; }
@@ -1142,9 +1166,149 @@ async function savePin(name, lat, lng) {
     }
     allPins[normName(name)] = { name, lat, lng };
     applyFilters();
+    renderLiveMap(); // เผื่อจุดที่เพิ่งปักตรงกับปลายทางของรถที่กำลังเดินทางอยู่ตอนนี้
   } catch (err) {
     alert('บันทึกหมุดไม่สำเร็จ: ' + (err.message || err));
   }
+}
+
+// ════════════════════════════════════════════════════════════
+//  ค้นหาสถานที่จริงบนแผนที่ (Nominatim/OpenStreetMap) — ปักหมุดได้เลยโดยไม่ต้องไปหาพิกัดจาก Google Maps ก่อน
+//  ใช้บริการฟรีของ OpenStreetMap เช่นเดียวกับ OSRM ที่ใช้ลากเส้นทาง ไม่ต้องขอ API key
+// ════════════════════════════════════════════════════════════
+let placeSearchDebounce = null;
+let placeSearchAbort = null;
+let placeSearchResultsData = [];
+let placeSearchMarker = null;
+
+function onPlaceSearchInput() {
+  const q = document.getElementById('placeSearchInput').value.trim();
+  clearTimeout(placeSearchDebounce);
+  if (q.length < 3) {
+    document.getElementById('placeSearchResults').classList.remove('show');
+    return;
+  }
+  placeSearchDebounce = setTimeout(() => doPlaceSearch(q), 550); // รอพิมพ์นิ่งก่อนค่อยค้นหา (ลดจำนวนคำขอ)
+}
+
+function searchPlace() {
+  clearTimeout(placeSearchDebounce);
+  const q = document.getElementById('placeSearchInput').value.trim();
+  if (q) doPlaceSearch(q);
+}
+
+async function doPlaceSearch(q) {
+  const resultsEl = document.getElementById('placeSearchResults');
+  resultsEl.innerHTML = '<div class="place-search-loading">กำลังค้นหา "' + escHtml(q) + '"...</div>';
+  resultsEl.classList.add('show');
+
+  if (placeSearchAbort) placeSearchAbort.abort();
+  placeSearchAbort = new AbortController();
+
+  try {
+    // bias ผลลัพธ์ให้อยู่แถวเชียงใหม่/สันทราย (รอบโรงพยาบาล ~0.6 องศา) แต่ไม่ตัดผลลัพธ์นอกพื้นที่ทิ้ง (bounded=0)
+    const d = 0.6;
+    const viewbox = [
+      HOSPITAL_LOCATION.lng - d, HOSPITAL_LOCATION.lat + d,
+      HOSPITAL_LOCATION.lng + d, HOSPITAL_LOCATION.lat - d
+    ].join(',');
+    const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=7&countrycodes=th'
+      + '&addressdetails=1&accept-language=th&viewbox=' + viewbox + '&bounded=0&q=' + encodeURIComponent(q);
+    const res  = await fetch(url, { signal: placeSearchAbort.signal });
+    const list = await res.json();
+    placeSearchResultsData = Array.isArray(list) ? list : [];
+    renderPlaceResults();
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      resultsEl.innerHTML = '<div class="place-search-empty">ค้นหาไม่สำเร็จ: ' + escHtml(err.message || String(err)) + '</div>';
+    }
+  }
+}
+
+function renderPlaceResults() {
+  const resultsEl = document.getElementById('placeSearchResults');
+  if (!placeSearchResultsData.length) {
+    resultsEl.innerHTML = '<div class="place-search-empty">ไม่พบสถานที่ที่ค้นหา ลองเพิ่มชื่ออำเภอ/จังหวัด เช่น "สันทราย เชียงใหม่"</div>';
+    resultsEl.classList.add('show');
+    return;
+  }
+  resultsEl.innerHTML = placeSearchResultsData.map((r, i) => {
+    const name = (r.display_name || '').split(',')[0];
+    return '<div class="place-result-row" onclick="selectPlaceResult(' + i + ')">'
+      + '<div class="pr-name">' + escHtml(name) + '</div>'
+      + '<div class="pr-addr">' + escHtml(r.display_name || '') + '</div>'
+      + '</div>';
+  }).join('');
+  resultsEl.classList.add('show');
+}
+
+function selectPlaceResult(i) {
+  const r = placeSearchResultsData[i];
+  if (!r) return;
+  const lat = parseFloat(r.lat), lng = parseFloat(r.lon);
+  document.getElementById('placeSearchResults').classList.remove('show');
+  map.setView([lat, lng], 17);
+
+  if (pinModeTarget) {
+    // มาจากปุ่ม "ปักหมุด" ของจุดหมายที่รู้ชื่ออยู่แล้ว (จากรายการด้านขวา) → บันทึกพิกัดให้ทันที ไม่ต้องเลือกชื่อซ้ำ
+    savePin(pinModeTarget, lat, lng);
+    cancelPinMode();
+    return;
+  }
+  // ค้นหาอิสระ (ยังไม่ได้กด "ปักหมุด" จากรายการ) → ให้เลือกว่าจะปักหมุดนี้ให้จุดหมายไหนที่ยังไม่มีพิกัด
+  showPlaceAssignPopup(lat, lng, r.display_name || '');
+}
+
+function showPlaceAssignPopup(lat, lng, label) {
+  if (placeSearchMarker) map.removeLayer(placeSearchMarker);
+  const names = allUnpinnedNames();
+  const optionsHtml = names.length
+    ? names.map(n => '<option value="' + escAttr(n) + '">' + escHtml(n) + '</option>').join('')
+    : '<option value="">— ไม่มีจุดหมายที่รอปักหมุด —</option>';
+
+  const popupHtml = '<div style="min-width:230px;">'
+    + '<b>📍 ตำแหน่งที่เลือก</b><br>'
+    + '<span style="font-size:11.5px;color:var(--text-light);">' + escHtml(label) + '</span>'
+    + '<div style="margin-top:8px;">'
+    +   '<label style="font-size:11.5px;font-weight:600;color:var(--navy);">ปักหมุดนี้ให้จุดหมาย:</label><br>'
+    +   '<select id="assignDestSelect" style="width:100%;margin-top:4px;font-size:12.5px;padding:5px;border:1px solid var(--border-strong);border-radius:6px;">'
+    +     optionsHtml
+    +   '</select>'
+    + '</div>'
+    + (names.length
+        ? '<button class="pin-badge pinned" style="margin-top:8px;width:100%;padding:6px;" onclick="confirmAssignPin(' + lat + ',' + lng + ')">บันทึกหมุด</button>'
+        : '<div style="margin-top:8px;font-size:11px;color:var(--text-light);">จุดหมายทั้งหมดปักหมุดครบแล้ว — ถ้าต้องการปักตำแหน่งนี้ ให้กด "ปักหมุด" จากรายการด้านขวาก่อน แล้วค่อยค้นหาใหม่</div>')
+    + '</div>';
+
+  placeSearchMarker = L.marker([lat, lng], {
+    icon: L.divIcon({
+      className: '',
+      html: '<div style="width:22px;height:22px;border-radius:50%;background:#1d6fb5;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.45);"></div>',
+      iconSize: [22, 22], iconAnchor: [11, 11]
+    })
+  }).addTo(map).bindPopup(popupHtml).openPopup();
+}
+
+function confirmAssignPin(lat, lng) {
+  const sel  = document.getElementById('assignDestSelect');
+  const name = sel && sel.value;
+  if (!name) { alert('กรุณาเลือกจุดหมายที่จะปักหมุด'); return; }
+  savePin(name, lat, lng);
+  if (placeSearchMarker) { map.removeLayer(placeSearchMarker); placeSearchMarker = null; }
+  document.getElementById('placeSearchInput').value = '';
+}
+
+// รายชื่อปลายทาง (จากทริปทั้งหมด ไม่จำกัดตามตัวกรองวันที่ปัจจุบัน) ที่ยังไม่มีพิกัด
+function allUnpinnedNames() {
+  const seen = new Set();
+  const names = [];
+  allTrips.forEach(t => {
+    const n = normName(t['ปลายทาง']);
+    if (!n || seen.has(n)) return;
+    seen.add(n);
+    if (!allPins[n]) names.push(n);
+  });
+  return names.sort((a, b) => a.localeCompare(b, 'th'));
 }
 
 // ════════════════════════════════════════════════════════════
