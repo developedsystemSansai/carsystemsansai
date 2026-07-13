@@ -893,6 +893,66 @@ input.odo-mismatch {
 }
 .rp-item.selected .rp-check { background: #1d6fb5; border-color: #1d6fb5; color: #fff; }
 
+/* ── UTILITY ACTIONS ROW — วางใต้กล่องแจ้งเตือน "ยังมีรถที่ไม่ผ่านการตรวจสภาพ" ── */
+/* ธีมเดียวกับ .check-gate-notice (กรอบ/พื้นหลังโทนอำพัน) แต่ปุ่มแยกสีตามหน้าที่ */
+.utility-actions-row {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  background: var(--warning-soft); border: 1px solid #fde68a; border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  padding: 10px 16px 14px; margin-top: -14px; margin-bottom: 14px;
+}
+.utility-actions-row.standalone {
+  border: 1px solid #fde68a; border-radius: var(--radius-sm); margin-top: 0; padding: 12px 16px;
+}
+.editmile-fab, .anomaly-fab {
+  border: 1px solid #fcd34d; border-radius: 24px;
+  padding: 9px 16px 9px 13px; font-family: inherit; font-size: 12.5px; font-weight: 700;
+  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  transition: transform .15s, box-shadow .15s, background .15s; text-decoration: none;
+  background: #fffaf0; color: #92400e;
+}
+.editmile-fab:hover, .anomaly-fab:hover { transform: translateY(-1px); background: #fef3c7; box-shadow: 0 3px 10px rgba(180,83,9,.15); }
+
+.anomaly-fab .fab-badge {
+  background: #b45309; color: #fff; font-size: 11px; font-weight: 800;
+  min-width: 20px; height: 20px; border-radius: 50%; display: none;
+  align-items: center; justify-content: center; padding: 0 4px;
+}
+.anomaly-fab .fab-badge.show { display: flex; }
+
+.anomaly-ov {
+  position: fixed; inset: 0; background: rgba(13,33,55,.6); z-index: 9998;
+  display: none; align-items: flex-start; justify-content: center;
+  padding: 28px 14px; overflow-y: auto;
+}
+.anomaly-ov.show { display: flex; }
+.anomaly-box {
+  background: #fff; border-radius: var(--radius); box-shadow: 0 6px 32px rgba(13,33,55,.16);
+  max-width: 720px; width: 100%;
+}
+.anomaly-head {
+  padding: 18px 20px; border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+}
+.anomaly-head h3 { font-size: 15.5px; color: var(--text); }
+.anomaly-head p { font-size: 12px; color: var(--text-light); margin-top: 4px; line-height: 1.6; }
+.anomaly-close { background: none; border: none; font-size: 22px; color: var(--text-light); cursor: pointer; line-height: 1; }
+.anomaly-body { padding: 16px 20px 20px; max-height: 68vh; overflow-y: auto; }
+.anomaly-item {
+  border: 1px solid var(--border); border-left: 4px solid var(--warning);
+  border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px;
+}
+.anomaly-item.severe { border-left-color: var(--danger); background: var(--danger-soft); }
+.anomaly-item.mild   { border-left-color: var(--warning); background: var(--warning-soft); }
+.anomaly-item-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+.anomaly-plate { font-weight: 700; font-size: 13px; }
+.anomaly-gap { font-weight: 800; font-size: 14px; }
+.anomaly-gap.severe { color: var(--danger); }
+.anomaly-gap.mild   { color: var(--warning); }
+.anomaly-detail { font-size: 12px; color: var(--text-mid); margin-top: 6px; line-height: 1.7; }
+.anomaly-detail b { color: var(--text); }
+.anomaly-empty { text-align: center; padding: 40px 20px; color: var(--text-light); font-size: 13px; }
+
 </style>
 </head>
 <body>
@@ -915,6 +975,22 @@ input.odo-mismatch {
     </a>
   </div>
 </header>
+
+<!-- ANOMALY MODAL (ตัว modal ยังอยู่ระดับบนสุดของ body ตามเดิม ปุ่มเปิดย้ายไปอยู่ใต้กล่องแจ้งเตือนตรวจสภาพรถ) -->
+<div class="anomaly-ov" id="anomalyModal" onclick="if(event.target===this) closeAnomalyModal()">
+  <div class="anomaly-box">
+    <div class="anomaly-head">
+      <div>
+        <h3>⚠️ รายการไมล์ที่หายไป / ผิดปกติ</h3>
+        <p>เปรียบเทียบ "เลขไมล์กลับ" ของทริปก่อนหน้า กับ "เลขไมล์เริ่ม" ของทริปถัดไปในรถคันเดียวกัน — ถ้าตัวเลขไม่ต่อกัน แปลว่ามีระยะทางที่ไม่ได้ถูกบันทึกไว้ ช่วยกันสังเกตและลงไมล์ให้ครบทุกวันนะครับ</p>
+      </div>
+      <button class="anomaly-close" onclick="closeAnomalyModal()">×</button>
+    </div>
+    <div class="anomaly-body" id="anomalyBody">
+      <div class="anomaly-empty">กำลังโหลดข้อมูล...</div>
+    </div>
+  </div>
+</div>
 
 <div class="main-wrap">
 
@@ -949,6 +1025,14 @@ input.odo-mismatch {
     <div id="checkGateNoticeMsg">ยังมีรถที่ไม่ผ่านการตรวจสภาพประจำวันนี้ — <b>กรุณาตรวจสภาพรถก่อนออกรถ</b> ทะเบียนที่ยังไม่ตรวจ: <span id="notCheckedPlates"></span>
       <br><a href="check.html" style="color:#b45309;font-weight:700;">→ ไปหน้าตรวจสภาพรถประจำวัน</a>
     </div>
+  </div>
+
+  <!-- UTILITY ACTIONS — แก้ไข/ลบข้อมูลไมล์ + ตรวจไมล์ที่หายไป (วางใต้กล่องแจ้งเตือนด้านบน ธีมเดียวกัน) -->
+  <div class="utility-actions-row standalone" id="utilityActionsRow">
+    <button class="editmile-fab" onclick="openEditMilePage()">🛠️ แก้ไข/ลบข้อมูลไมล์</button>
+    <button class="anomaly-fab" onclick="openAnomalyModal()">
+      ⚠️ ตรวจไมล์ที่หายไป <span class="fab-badge" id="anomalyFabBadge">0</span>
+    </button>
   </div>
 
   <!-- TABS -->
@@ -1652,6 +1736,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── เริ่ม polling reload signal (รีเฟรชหน้าอัตโนมัติทุกอุปกรณ์เมื่อมีการบันทึกใหม่) ──
   initReloadSignalPolling();
+
+  // ── โหลดจำนวนไมล์ที่หายไป (badge บนปุ่มลอย) แบบเงียบๆ ไม่บล็อกหน้าหลัก ──
+  preloadAnomalyBadge();
 });
 
 // ════════════════════════════════════════════════════════
@@ -2491,12 +2578,15 @@ function renderStatusSummary() {
 function renderCheckGateNotice(sum) {
   const notChecked = sum.notCheckedToday || [];
   const notice = document.getElementById('checkGateNotice');
+  const utilityRow = document.getElementById('utilityActionsRow');
   if (notChecked.length === 0) {
     notice.classList.remove('show');
+    if (utilityRow) utilityRow.classList.add('standalone');
     return;
   }
   document.getElementById('notCheckedPlates').textContent = notChecked.slice(0, 5).join(', ') + (notChecked.length > 5 ? ' ...' : '');
   notice.classList.add('show');
+  if (utilityRow) utilityRow.classList.remove('standalone');
 }
 
 // ════════════════════════════════════════════════════════
@@ -4410,10 +4500,90 @@ document.addEventListener('keydown', ev => {
   if (ev.key === 'Escape') { lb.classList.remove('show'); document.body.style.overflow = ''; }
 });
 
+function openEditMilePage() {
+  // เปิดเป็นหน้าต่าง/แท็บเฉพาะ ไม่ต้องเพิ่มเมนูใหม่ในระบบ
+  window.open('editmile.html', '_blank', 'noopener');
+}
+
 // override viewFuelPhotoLocal to use lightbox instead
 function viewFuelPhotoLocal() {
   openLb('fuel', 0);
 }
+
+// ════════════════════════════════════════════════════════════
+//  ANOMALY CHECK — ตรวจไมล์ที่หายไป (อ่านจากชีท "รายงานไมล์ผิดปกติ")
+// ════════════════════════════════════════════════════════════
+let anomalyLoaded = false;
+
+function escHtmlAnomaly(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+async function preloadAnomalyBadge() {
+  try {
+    if (!GAS_URL || GAS_URL.includes('YOUR_GOOGLE')) return;
+    const res = await fetch(GAS_URL + '?action=getMileAnomalies', { cache: 'no-store' });
+    const json = await res.json();
+    const data = (json && json.data) || [];
+    const badge = document.getElementById('anomalyFabBadge');
+    if (data.length) { badge.textContent = data.length; badge.classList.add('show'); }
+  } catch (err) { /* เงียบไว้ ไม่ต้องรบกวนหน้าหลัก */ }
+}
+
+function openAnomalyModal() {
+  document.getElementById('anomalyModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  if (!anomalyLoaded) loadAnomalyData();
+}
+
+function closeAnomalyModal() {
+  document.getElementById('anomalyModal').classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+async function loadAnomalyData() {
+  const body = document.getElementById('anomalyBody');
+  try {
+    const res = await fetch(GAS_URL + '?action=getMileAnomalies', { cache: 'no-store' });
+    const json = await res.json();
+    const data = (json && json.data) || [];
+    anomalyLoaded = true;
+    renderAnomalyList(data);
+  } catch (err) {
+    body.innerHTML = '<div class="anomaly-empty">โหลดข้อมูลไม่สำเร็จ: ' + escHtmlAnomaly(err.message || err) + '</div>';
+  }
+}
+
+function renderAnomalyList(data) {
+  const body = document.getElementById('anomalyBody');
+  if (!data.length) {
+    body.innerHTML = '<div class="anomaly-empty">✅ ไม่พบไมล์ที่หายไป — ข้อมูลต่อเนื่องครบถ้วนทุกทริป</div>';
+    return;
+  }
+  body.innerHTML = data.map(a => {
+    const severe = Math.abs(a.missingKm) >= 50; // ต่างกันมาก (กม.) → เน้นสีแดง
+    const cls = severe ? 'severe' : 'mild';
+    const gapText = a.missingKm > 0
+      ? ('หายไป ' + a.missingKm + ' กม.')
+      : ('เลขไมล์ย้อนกลับ ' + Math.abs(a.missingKm) + ' กม. (ผิดปกติ)');
+    return '<div class="anomaly-item ' + cls + '">'
+      + '<div class="anomaly-item-top">'
+      +   '<span class="anomaly-plate">' + escHtmlAnomaly(a.plate) + '</span>'
+      +   '<span class="anomaly-gap ' + cls + '">' + escHtmlAnomaly(gapText) + '</span>'
+      + '</div>'
+      + '<div class="anomaly-detail">'
+      +   '<b>' + escHtmlAnomaly(a.prevDriver) + '</b> คืนรถวันที่ ' + escHtmlAnomaly(a.prevDate) + ' ที่เลขไมล์ <b>' + escHtmlAnomaly(a.prevEndMile) + '</b><br>'
+      +   '<b>' + escHtmlAnomaly(a.currDriver) + '</b> ออกรถวันที่ ' + escHtmlAnomaly(a.currDate) + ' ที่เลขไมล์ <b>' + escHtmlAnomaly(a.currStartMile) + '</b>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+document.addEventListener('keydown', ev => {
+  const m = document.getElementById('anomalyModal');
+  if (m.classList.contains('show') && ev.key === 'Escape') closeAnomalyModal();
+});
 </script>
 
 </body>
