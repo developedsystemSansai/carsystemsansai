@@ -861,6 +861,22 @@ function nowTimeText() {
   return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
 }
 
+// ── แปลงวันที่+เวลาออกทริป → ข้อความวันที่/เวลาอ่านง่าย (ตัด "Sat Dec 30 1899 ... GMT+xxxx" ที่มาจาก Date ของ Google Sheets ทิ้ง) ──
+function formatTripDateTime(tripDateYMD, timeRaw) {
+  const m = String(timeRaw || '').match(/(\d{1,2}):(\d{2})/);
+  const timeText = m ? m[1].padStart(2, '0') + ':' + m[2] + ' น.' : '';
+
+  let dateText = '';
+  if (tripDateYMD) {
+    const dm = String(tripDateYMD).match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (dm) dateText = dm[3] + '/' + dm[2] + '/' + dm[1];
+    else dateText = String(tripDateYMD);
+  }
+
+  if (dateText && timeText) return dateText + ' ' + timeText;
+  return dateText || timeText || '-';
+}
+
 // ── แปลงวันที่+เวลาออกทริป → ข้อความ "เดินทางมาแล้ว X นาที/ชม." ──
 function elapsedSinceTrip(tripDateYMD, timeRaw) {
   const m = String(timeRaw || '').match(/(\d{1,2}):(\d{2})/);
@@ -947,7 +963,7 @@ function renderLiveMap() {
     marker.bindPopup(
       '<b><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + col + ';margin-right:5px;"></span>🚗 ' + escHtml(t.carType) + '</b>' + (t.driver ? '<br>ผู้ขับ: ' + escHtml(t.driver) : '')
       + '<br>ปลายทาง: ' + escHtml(t.destination)
-      + '<br>ออกเมื่อ: ' + escHtml(t.startTime || '-')
+      + '<br>ออกเมื่อ: ' + escHtml(formatTripDateTime(t.tripDate, t.startTime))
       + '<br>' + escHtml(elapsedSinceTrip(t.tripDate, t.startTime))
     );
     liveMarkerByTrip[String(t.tripId)] = marker;
