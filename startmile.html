@@ -4572,7 +4572,6 @@ function renderAnomalyList(data) {
     return '<tr class="' + sev + '">'
       + '<td>' + escHtmlAnomaly(a.currDate) + '</td>'
       + '<td><b>' + escHtmlAnomaly(a.plate) + '</b></td>'
-      + '<td>' + escHtmlAnomaly(a.currDriver) + '</td>'
       + '<td>' + escHtmlAnomaly(a.prevEndMile) + '</td>'
       + '<td>' + escHtmlAnomaly(a.currStartMile) + '</td>'
       + '<td><span class="anomaly-dot ' + sev + '"></span><span class="anomaly-gap-val ' + sev + '">' + escHtmlAnomaly(a.missingKm) + ' กม.</span></td>'
@@ -4587,7 +4586,7 @@ function renderAnomalyList(data) {
     + '</div>'
     + '<div class="anomaly-table-wrap">'
     + '<table class="anomaly-table">'
-    +   '<thead><tr><th>วันที่</th><th>ทะเบียนรถ</th><th>พนักงานขับรถ</th><th>ไมล์ก่อนหน้า</th><th>ไมล์เริ่มต้น</th><th>ระยะทางที่หายไป</th></tr></thead>'
+    +   '<thead><tr><th>วันที่</th><th>ทะเบียนรถ</th><th>ไมล์ก่อนหน้า</th><th>ไมล์เริ่มต้น</th><th>ระยะทางที่หายไป</th></tr></thead>'
     +   '<tbody>' + rows + '</tbody>'
     + '</table>'
     + '</div>';
