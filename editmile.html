@@ -475,10 +475,24 @@ function resetTripFilters() {
 
 function toYMD(v) {
   if (!v) return '';
-  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0, 10);
-  const d = new Date(v);
-  if (isNaN(d.getTime())) return '';
-  return d.toISOString().slice(0, 10);
+  const s = String(v).trim();
+  // ✅ FIX: เดิมใช้ new Date(v) ตรงๆ ซึ่ง parse รูปแบบ "dd/MM/yyyy" หรือ "dd/MM/yyyy HH:mm:ss"
+  // ที่ getMileData() ส่งมาจริง (เช่น "13/07/2026 00:00:00") ไม่ได้ → คืนค่าว่างเสมอ
+  // ทำให้คอลัมน์ "วันที่" ในตารางว่างเปล่าทุกแถว
+  // รองรับ dd/MM/yyyy (มีเวลาต่อท้ายหรือไม่ก็ได้) ก่อน
+  const m1 = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m1) {
+    const d = m1[1].padStart(2, '0');
+    const mo = m1[2].padStart(2, '0');
+    const y = m1[3];
+    return y + '-' + mo + '-' + d;
+  }
+  // ISO yyyy-MM-dd อยู่แล้ว
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  // fallback: ให้ Date parse เอง (เผื่อ format อื่นที่ native Date รองรับ)
+  const d2 = new Date(s);
+  if (isNaN(d2.getTime())) return '';
+  return d2.toISOString().slice(0, 10);
 }
 
 function renderTrips() {
@@ -487,7 +501,10 @@ function renderTrips() {
   const to = document.getElementById('fTo').value;
   const tbody = document.getElementById('tripTbody');
 
-  let rows = allTrips.slice().sort((a, b) => String(b['วันที่']).localeCompare(String(a['วันที่'])));
+  // ✅ FIX: เดิมเทียบ String(t['วันที่']) ตรงๆ (รูปแบบ dd/MM/yyyy) ซึ่งเรียงลำดับผิด
+  // เพราะเทียบแบบ string ไม่ใช่แบบวันที่จริง (เช่น "31/01/2026" มาก่อน "05/02/2026" ทั้งที่ 05/02 ใหม่กว่า)
+  // ใหม่: แปลงเป็น yyyy-MM-dd ก่อนเทียบ ซึ่งเรียงแบบ string ได้ถูกต้องตรงกับลำดับวันที่จริง
+  let rows = allTrips.slice().sort((a, b) => toYMD(b['วันที่']).localeCompare(toYMD(a['วันที่'])));
   rows = rows.filter(t => {
     if (q) {
       const hay = [t['ทะเบียน/รถ'], t['พนักงานขับรถ'], t['ปลายทาง']].join(' ').toLowerCase();
