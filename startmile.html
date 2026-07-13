@@ -938,6 +938,24 @@ input.odo-mismatch {
 .anomaly-head p { font-size: 12px; color: var(--text-light); margin-top: 4px; line-height: 1.6; }
 .anomaly-close { background: none; border: none; font-size: 22px; color: var(--text-light); cursor: pointer; line-height: 1; }
 .anomaly-body { padding: 16px 20px 20px; max-height: 68vh; overflow-y: auto; }
+.anomaly-table-wrap { overflow-x: auto; }
+.anomaly-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.anomaly-table th { background: var(--navy); color: rgba(255,255,255,.85); padding: 8px 10px; text-align: left; font-size: 10.5px; font-weight: 600; letter-spacing: .3px; white-space: nowrap; }
+.anomaly-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.anomaly-table tr.severe td { background: var(--danger-soft); }
+.anomaly-table tr.moderate td { background: #fdeecb; }
+.anomaly-table tr.mild td { background: var(--warning-soft); }
+.anomaly-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.anomaly-dot.severe { background: var(--danger); }
+.anomaly-dot.moderate { background: #d97706; }
+.anomaly-dot.mild { background: #ca8a04; }
+.anomaly-gap-val { font-weight: 800; font-size: 13px; }
+.anomaly-gap-val.severe { color: var(--danger); }
+.anomaly-gap-val.moderate { color: #b45309; }
+.anomaly-gap-val.mild { color: #92650a; }
+.anomaly-legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-mid); margin-bottom: 12px; }
+.anomaly-legend span { display: flex; align-items: center; gap: 5px; }
+
 .anomaly-item {
   border: 1px solid var(--border); border-left: 4px solid var(--warning);
   border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 10px;
@@ -4561,23 +4579,38 @@ function renderAnomalyList(data) {
     body.innerHTML = '<div class="anomaly-empty">✅ ไม่พบไมล์ที่หายไป — ข้อมูลต่อเนื่องครบถ้วนทุกทริป</div>';
     return;
   }
-  body.innerHTML = data.map(a => {
-    const severe = Math.abs(a.missingKm) >= 50; // ต่างกันมาก (กม.) → เน้นสีแดง
-    const cls = severe ? 'severe' : 'mild';
-    const gapText = a.missingKm > 0
-      ? ('หายไป ' + a.missingKm + ' กม.')
-      : ('เลขไมล์ย้อนกลับ ' + Math.abs(a.missingKm) + ' กม. (ผิดปกติ)');
-    return '<div class="anomaly-item ' + cls + '">'
-      + '<div class="anomaly-item-top">'
-      +   '<span class="anomaly-plate">' + escHtmlAnomaly(a.plate) + '</span>'
-      +   '<span class="anomaly-gap ' + cls + '">' + escHtmlAnomaly(gapText) + '</span>'
-      + '</div>'
-      + '<div class="anomaly-detail">'
-      +   '<b>' + escHtmlAnomaly(a.prevDriver) + '</b> คืนรถวันที่ ' + escHtmlAnomaly(a.prevDate) + ' ที่เลขไมล์ <b>' + escHtmlAnomaly(a.prevEndMile) + '</b><br>'
-      +   '<b>' + escHtmlAnomaly(a.currDriver) + '</b> ออกรถวันที่ ' + escHtmlAnomaly(a.currDate) + ' ที่เลขไมล์ <b>' + escHtmlAnomaly(a.currStartMile) + '</b>'
-      + '</div>'
-      + '</div>';
+
+  function severityOf(km) {
+    if (km > 20) return 'severe';
+    if (km >= 6) return 'moderate';
+    return 'mild'; // 1–5 กม.
+  }
+  function dotOf(sev) { return sev === 'severe' ? '🔴' : sev === 'moderate' ? '🟠' : '🟡'; }
+
+  const rows = data.map(a => {
+    const sev = severityOf(a.missingKm);
+    return '<tr class="' + sev + '">'
+      + '<td>' + escHtmlAnomaly(a.currDate) + '</td>'
+      + '<td><b>' + escHtmlAnomaly(a.plate) + '</b></td>'
+      + '<td>' + escHtmlAnomaly(a.currDriver) + '</td>'
+      + '<td>' + escHtmlAnomaly(a.prevEndMile) + '</td>'
+      + '<td>' + escHtmlAnomaly(a.currStartMile) + '</td>'
+      + '<td><span class="anomaly-dot ' + sev + '"></span><span class="anomaly-gap-val ' + sev + '">' + escHtmlAnomaly(a.missingKm) + ' กม.</span></td>'
+      + '</tr>';
   }).join('');
+
+  body.innerHTML =
+    '<div class="anomaly-legend">'
+    + '<span>🔴 มากกว่า 20 กม.</span>'
+    + '<span>🟠 6–20 กม.</span>'
+    + '<span>🟡 1–5 กม.</span>'
+    + '</div>'
+    + '<div class="anomaly-table-wrap">'
+    + '<table class="anomaly-table">'
+    +   '<thead><tr><th>วันที่</th><th>ทะเบียนรถ</th><th>พนักงานขับรถ</th><th>ไมล์ก่อนหน้า</th><th>ไมล์เริ่มต้น</th><th>ระยะทางที่หายไป</th></tr></thead>'
+    +   '<tbody>' + rows + '</tbody>'
+    + '</table>'
+    + '</div>';
 }
 
 document.addEventListener('keydown', ev => {
