@@ -1496,7 +1496,7 @@ input.odo-mismatch {
         </div>
         <div>
           <div class="card-header-title">ประวัติการใช้รถ</div>
-          <div class="card-header-sub">บันทึกล่าสุด 50 รายการ</div>
+          <div class="card-header-sub" id="histSubtitle">บันทึกล่าสุด 50 รายการ</div>
         </div>
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
           <select id="histFilterCar" onchange="filterHistory()" style="font-size:12px;padding:6px 10px;min-width:140px;">
@@ -2024,13 +2024,16 @@ async function loadAllData() {
       }
     } catch(_) {}
 
-    // ✅ FAST: เรียก parallel เหลือ 2 calls (ลดจาก 4)
-    //   - initData: vehicles+drivers+config (cache ได้)
-    //   - getStatusSummary+getMileData: ข้อมูลสด (ดึงทุกครั้ง)
+    // ✅ FAST: เรียก parallel เหลือ 2 calls ที่ "บล็อก" การแสดงผลจริง (initData + mileData)
+    // ✅ FIX: getStatusSummary ไม่ต้องรออีกต่อไป — ยิงแยกต่างหาก (fire-and-forget) ผ่าน loadStatusSummary()
+    // เดิม getStatusSummary อยู่ใน Promise.allSettled เดียวกัน ทำให้ต้องรอ API ตัวนี้ให้เสร็จก่อน
+    // ถึงจะแสดงส่วนที่เหลือของหน้า (ฟอร์ม/ประวัติ/แบนเนอร์สำเร็จ) ได้ ทั้งที่ไม่เกี่ยวกันโดยตรง
+    // ตอนนี้ส่วนที่เหลือแสดงได้ทันทีโดยไม่ต้องรอ แล้วค่อยอัปเดตการ์ดสรุปสถานะรถทีหลังเมื่อ API นี้เสร็จ
+    loadStatusSummary();
+
     const initPromise  = initData ? Promise.resolve(initData) : fetchGAS('getInitData');
-    const [initRes, sumRes, mileRes] = await Promise.allSettled([
+    const [initRes, mileRes] = await Promise.allSettled([
       initPromise,
-      fetchGAS('getStatusSummary'),
       fetchGAS('getMileData', { limit: 80 })
     ]);
 
@@ -2052,24 +2055,6 @@ async function loadAllData() {
       }
     }
     populateCarSelects();
-
-    // ── Status Summary (รถที่ตรวจแล้ว + กำลังใช้งาน) ──
-    if (sumRes.status === 'fulfilled') {
-      const sum = sumRes.value;
-      todayCheckedSet.clear();
-      (sum.todayChecked || []).forEach(c => {
-        const plate = String(c.carType || '').split(' ')[0].trim();
-        if (plate) todayCheckedSet.add(plate);
-      });
-      activeTripMap = {};
-      (sum.inUse || []).forEach(trip => {
-        const plate = String(trip.carType || '').split(' ')[0].trim();
-        if (plate) activeTripMap[plate] = trip;
-      });
-      renderActiveTripBanner();
-      renderCheckGateNotice(sum);
-      populateCarSelects();
-    }
 
     // ── Mile History ──
     if (mileRes.status === 'fulfilled' && mileRes.value.data) {
@@ -2103,6 +2088,46 @@ async function loadAllData() {
     setBanner('error', `โหลดไม่สำเร็จ: ${err.message} — ใช้ข้อมูล Default แทน`);
     console.error('loadAllData error:', err);
     hideFormSkeletons();
+  }
+}
+
+// ✅ NEW: โหลด "สรุปสถานะรถ" (รอตรวจ/กำลังออก/พร้อมใช้งาน) แยกต่างหากจาก loadAllData()
+// เพื่อไม่ให้ API นี้ (ที่บางทีช้า) บล็อกการแสดงฟอร์ม/ประวัติ/แบนเนอร์สำเร็จของส่วนอื่นในหน้า
+// เมื่อผลลัพธ์กลับมา จะอัปเดตการ์ดสรุปสถานะ + check-gate notice ให้เองโดยไม่กระทบส่วนที่แสดงไปแล้ว
+async function loadStatusSummary() {
+  try {
+    const sum = await fetchGAS('getStatusSummary');
+    todayCheckedSet.clear();
+    (sum.todayChecked || []).forEach(c => {
+      const plate = String(c.carType || '').split(' ')[0].trim();
+      if (plate) todayCheckedSet.add(plate);
+    });
+    activeTripMap = {};
+    (sum.inUse || []).forEach(trip => {
+      const plate = String(trip.carType || '').split(' ')[0].trim();
+      if (plate) activeTripMap[plate] = trip;
+    });
+    // เติมทริปที่ mileHistory เห็นว่า "กำลังใช้งาน" แต่ getStatusSummary ยังไม่มี
+    // (เผื่อ mileHistory โหลดเสร็จก่อน sum — กันสถานะตกหล่นระหว่างสองคำขอนี้)
+    mileHistory.forEach(r => {
+      if (String(r['สถานะ'] || '') === 'กำลังใช้งาน') {
+        const plate = String(r['ทะเบียน/รถ'] || '').split(' ')[0].trim();
+        if (plate && !activeTripMap[plate]) {
+          activeTripMap[plate] = {
+            tripId    : r['TripID'],
+            carType   : r['ทะเบียน/รถ'],
+            destination: r['ปลายทาง'],
+            odomStart : Number(r['เลขไมล์ต้น']) || 0,
+            driver    : r['พนักงานขับรถ']
+          };
+        }
+      }
+    });
+    renderActiveTripBanner();
+    renderCheckGateNotice(sum);
+    populateCarSelects();
+  } catch(err) {
+    console.warn('loadStatusSummary error:', err);
   }
 }
 
@@ -3218,6 +3243,16 @@ function renderHistory() {
   const filtered = filterPlate
     ? sorted.filter(r => String(r['ทะเบียน/รถ'] || '').includes(filterPlate))
     : sorted;
+
+  // ── อัปเดตหัวข้อการ์ด: "บันทึกล่าสุด 50 รายการ · ล่าสุด dd/MM/yyyy" ──
+  // ใช้รายการแรกของ "filtered" เพราะเป็นรายการบนสุดที่ผู้ใช้เห็นจริงในตาราง (เรียงใหม่→เก่าอยู่แล้ว)
+  // หมายเหตุ: extractDate() ถูกประกาศแบบ function declaration ด้านล่าง แต่ hoist ขึ้นมาใช้ตรงนี้ได้ในสโคปเดียวกัน
+  const histSubtitleEl = document.getElementById('histSubtitle');
+  if (histSubtitleEl) {
+    histSubtitleEl.textContent = filtered.length
+      ? `บันทึกล่าสุด 50 รายการ · ล่าสุด ${extractDate(filtered[0]['วันที่'] || filtered[0]['Timestamp'] || '')}`
+      : 'บันทึกล่าสุด 50 รายการ';
+  }
 
   const tbody = document.getElementById('histBody');
   if (!filtered.length) {
