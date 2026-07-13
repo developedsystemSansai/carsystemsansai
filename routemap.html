@@ -118,7 +118,7 @@
   .live-trip-chip .chip-sub.unpinned { color: var(--danger); font-weight: 600; }
 
   /* ── แถบควบคุมเส้นทาง (เดิมไม่มี CSS/JS ผูกไว้ — ตอนนี้ใช้คุมการแสดง/ซ่อนเส้นทางสด) ── */
-  .route-info-bar { display: none; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 14px; background: #fff4e0; border-bottom: 1px solid #f0d9a6; font-size: 12px; color: #7a4800; }
+  .route-info-bar { display: none; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 14px; background: #fff4e0; border-bottom: 1px solid #f0d9a6; font-size: 12px; color: #7a4800; }
   .route-info-bar.show { display: flex; }
   .route-info-bar button { font-family: inherit; font-size: 11.5px; font-weight: 600; padding: 5px 12px; border-radius: 999px; border: none; background: rgba(192,122,0,.15); color: #7a4800; cursor: pointer; }
   .route-info-bar button:hover { background: rgba(192,122,0,.25); }
@@ -889,8 +889,9 @@ function renderLiveList() {
       ? elapsedSinceTrip(t.tripDate, t.startTime)
       : 'ยังไม่ได้ปักหมุดจุดหมายนี้';
     const subClass = pin ? '' : ' unpinned';
+    const col = carColor(t.carType);
     return '<div class="live-trip-chip" onclick="focusLiveTrip(\'' + escAttr(String(t.tripId)) + '\')">'
-      + '<div class="chip-icon">' + CAR_ICON_SVG + '</div>'
+      + '<div class="chip-icon" style="background:' + col + ';">' + CAR_ICON_SVG + '</div>'
       + '<div class="chip-body">'
       +   '<div class="chip-plate">' + escHtml(t.carType) + (t.driver ? ' · ' + escHtml(t.driver) : '') + '</div>'
       +   '<div class="chip-dest" title="' + escAttr(t.destination) + '">→ ' + escHtml(t.destination || 'ไม่ระบุปลายทาง') + '</div>'
@@ -907,16 +908,17 @@ const CAR_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-
   + '<circle cx="17" cy="18.5" r="1.4" fill="#fff" stroke="none"/>'
   + '</svg>';
 
-function liveTripIcon(plateShort) {
+function liveTripIcon(plateShort, color) {
   const wrapW = 40, coreY = 40, labelH = 16, stemH = 14;
   const totalH = coreY + stemH + labelH;
+  color = color || '#c07a00';
   return L.divIcon({
     className: '',
     html: '<div class="live-trip-wrap" style="width:' + wrapW + 'px;">'
-        +   '<div class="live-trip-ring"></div>'
-        +   '<div class="live-trip-core">' + CAR_ICON_SVG + '</div>'
-        +   '<div class="live-trip-stem"></div>'
-        +   '<div class="live-trip-plate">' + escHtml(plateShort) + '</div>'
+        +   '<div class="live-trip-ring" style="background:' + color + '52;"></div>'
+        +   '<div class="live-trip-core" style="background:linear-gradient(145deg,' + color + 'cc,' + color + ');border-color:#fff;">' + CAR_ICON_SVG + '</div>'
+        +   '<div class="live-trip-stem" style="background:' + color + '8c;"></div>'
+        +   '<div class="live-trip-plate" style="background:' + color + ';">' + escHtml(plateShort) + '</div>'
         + '</div>',
     iconSize: [wrapW, totalH],
     iconAnchor: [wrapW / 2, totalH] // ปลายก้าน (ล่างสุด) ชี้ตรงตำแหน่งจุดหมายจริง หมุดลอยอยู่เหนือหมุดปลายทางเดิม
@@ -936,20 +938,21 @@ function renderLiveMap() {
   pinnedTrips.forEach(t => {
     const pin = allPins[normName(t.destination)];
     const plateShort = String(t.carType || '').split(' ')[0].trim();
+    const col = carColor(t.carType);
 
     const marker = L.marker([pin.lat, pin.lng], {
-      icon: liveTripIcon(plateShort),
+      icon: liveTripIcon(plateShort, col),
       zIndexOffset: 900
     }).addTo(liveMarkersLayer);
     marker.bindPopup(
-      '<b>🚗 ' + escHtml(t.carType) + '</b>' + (t.driver ? '<br>ผู้ขับ: ' + escHtml(t.driver) : '')
+      '<b><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + col + ';margin-right:5px;"></span>🚗 ' + escHtml(t.carType) + '</b>' + (t.driver ? '<br>ผู้ขับ: ' + escHtml(t.driver) : '')
       + '<br>ปลายทาง: ' + escHtml(t.destination)
       + '<br>ออกเมื่อ: ' + escHtml(t.startTime || '-')
       + '<br>' + escHtml(elapsedSinceTrip(t.tripDate, t.startTime))
     );
     liveMarkerByTrip[String(t.tripId)] = marker;
 
-    drawLiveRoute(pin, t);
+    drawLiveRoute(pin, t, col);
   });
 
   if (!hasAutoFocusedLive && pinnedTrips.length) {
@@ -969,7 +972,22 @@ function updateRouteInfoBar(count) {
   const btn = document.getElementById('routeInfoBtn');
   if (!count) { bar.classList.remove('show'); return; }
   bar.classList.add('show');
-  txt.textContent = '🛣️ กำลังแสดงเส้นทางรถที่เดินทางอยู่ ' + count + ' คัน (เส้นประไล่ตามถนนจริงจาก OpenStreetMap โดยประมาณ)';
+
+  // สร้าง legend สีต่อคัน จากรถที่กำลังเดินทางอยู่ตอนนี้ (ไม่ซ้ำคัน)
+  const seen = new Set();
+  const chips = [];
+  liveTrips.forEach(t => {
+    if (!allPins[normName(t.destination)]) return;
+    const plate = String(t.carType || 'ไม่ระบุ').trim() || 'ไม่ระบุ';
+    if (seen.has(plate)) return;
+    seen.add(plate);
+    chips.push('<span style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;">'
+      + '<span style="width:8px;height:8px;border-radius:50%;background:' + carColor(plate) + ';display:inline-block;"></span>'
+      + escHtml(plate) + '</span>');
+  });
+
+  txt.innerHTML = '🛣️ กำลังแสดงเส้นทางรถที่เดินทางอยู่ ' + count + ' คัน แยกสีตามคันรถ (เส้นประไล่ตามถนนจริงจาก OpenStreetMap โดยประมาณ)'
+    + chips.join('');
   btn.textContent = liveRoutesVisible ? 'ซ่อนเส้นทาง' : 'แสดงเส้นทาง';
 }
 
@@ -982,7 +1000,7 @@ function toggleLiveRoutes() {
 
 // ── ดึงเส้นทางถนนจริงจาก OSRM (ใช้ข้อมูลถนน OpenStreetMap เดียวกับแผนที่ ไม่ต้องใช้ API key) ──
 // ถ้าดึงไม่สำเร็จ (เน็ตช้า/บริการไม่ว่าง) จะ fallback เป็นเส้นตรงระหว่างจุดแทน พร้อมทำเส้นประถี่ขึ้นเพื่อบอกว่าเป็นเส้นโดยประมาณ
-async function drawLiveRoute(pin, trip) {
+async function drawLiveRoute(pin, trip, color) {
   const origin = [HOSPITAL_LOCATION.lat, HOSPITAL_LOCATION.lng];
   const dest = [pin.lat, pin.lng];
   const cacheKey = origin.join(',') + '|' + dest.join(',');
@@ -998,11 +1016,12 @@ async function drawLiveRoute(pin, trip) {
   if (!map || !liveRoutesLayer) return;
 
   const line = L.polyline(result.latlngs, {
-    color: '#c07a00',
+    color: color || carColor(trip.carType),
     weight: 4,
     opacity: 0.85,
     className: 'live-route-line' + (result.approx ? ' approx' : '')
   });
+  line.bindTooltip(escHtml(trip.carType || 'ไม่ระบุคัน'), { sticky: true, opacity: 0.9 });
   line.addTo(liveRoutesLayer);
   if (!liveRoutesVisible) map.removeLayer(liveRoutesLayer); // เผื่อผู้ใช้กด "ซ่อนเส้นทาง" ไว้ระหว่างที่ยังโหลดเส้นทางอยู่
 }
