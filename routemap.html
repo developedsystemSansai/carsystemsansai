@@ -300,10 +300,10 @@ let heatLayer = null;          // เลเยอร์ Heatmap (Leaflet.heat)
 
 // ── หมวดหมู่สถานที่ (จับคำสำคัญในชื่อปลายทาง) + สีประจำหมวด ──
 const CATEGORY_RULES = [
+  { key: 'gas',      color: '#c07a00', label: 'ปั๊มน้ำมัน',            test: n => /ปั๊ม|ปั้ม|น้ำมัน/.test(n) },
   { key: 'hospital', color: '#c0392b', label: 'โรงพยาบาล/สถานพยาบาล', test: n => /รพ\.|รพสต|รพ\.สต|โรงพยาบาล|โรงบาล/.test(n) },
   { key: 'bank',     color: '#1a8a4a', label: 'ธนาคาร',                test: n => /ธนาคาร|ธ\.กรุงไทย|กรุงไทย|กรุ่งไทย/.test(n) },
   { key: 'gov',      color: '#1d6fb5', label: 'ราชการ/สสจ./ศาลากลาง',  test: n => /สสจ|ศาลากลาง|อบจ|เทศบาล|ที่ว่าการ|อำเภอ|สหกรณ์|กาชาด|กาชาติ/.test(n) },
-  { key: 'gas',      color: '#c07a00', label: 'ปั๊มน้ำมัน',            test: n => /ปั๊ม|ปั้ม|น้ำมัน/.test(n) },
   { key: 'temple',   color: '#7a4fae', label: 'วัด',                   test: n => /วัด/.test(n) },
   { key: 'hotel',    color: '#d6336c', label: 'โรงแรม',                test: n => /โรงแรม/.test(n) },
   { key: 'edu',      color: '#007a6e', label: 'โรงเรียน/มหาวิทยาลัย',  test: n => /โรงเรียน|ร\.ร\.|มหาวิทยาลัย|วิทยาลัย/.test(n) },
@@ -453,11 +453,11 @@ function markerColorFor(d) {
 // ระยะห่างของขนาดถูกถ่างให้กว้างขึ้น (18 → 96px) และแต่ละช่วงมีสีของตัวเอง (ใช้ตอนโหมดสี = "ความถี่การไป")
 // เพื่อให้ความแตกต่างระหว่างช่วงมองเห็นชัดทั้งจาก "ขนาด" และ "สี" พร้อมกัน ไม่ต้องไล่เทียบตัวเลข
 const SIZE_TIERS = [
-  { max: 5,        size: 14, label: '1–5 ครั้ง',    color: '#6aa9dd' },  // ฟ้าอ่อน
-  { max: 10,       size: 22, label: '6–10 ครั้ง',   color: '#1d6fb5' },  // ฟ้าเข้ม
-  { max: 20,       size: 32, label: '11–20 ครั้ง',  color: '#1a8a4a' },  // เขียว
-  { max: 100,      size: 46, label: '21–100 ครั้ง', color: '#c07a00' },  // ส้ม/อำพัน
-  { max: Infinity, size: 62, label: '100+ ครั้ง',   color: '#c0392b' }   // แดง
+  { max: 5,        size: 22, label: '1–5 ครั้ง',    color: '#6aa9dd' },  // ฟ้าอ่อน
+  { max: 10,       size: 30, label: '6–10 ครั้ง',   color: '#1d6fb5' },  // ฟ้าเข้ม
+  { max: 20,       size: 40, label: '11–20 ครั้ง',  color: '#1a8a4a' },  // เขียว
+  { max: 100,      size: 52, label: '21–100 ครั้ง', color: '#c07a00' },  // ส้ม/อำพัน
+  { max: Infinity, size: 66, label: '100+ ครั้ง',   color: '#c0392b' }   // แดง
 ];
 function sizeTierFor(count) {
   for (let i = 0; i < SIZE_TIERS.length; i++) {
