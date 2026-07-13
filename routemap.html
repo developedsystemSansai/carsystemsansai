@@ -450,6 +450,7 @@ let hasAutoFocusedLive = false;     // fitBounds อัตโนมัติแ�
 
 // ── หมวดหมู่สถานที่ (จับคำสำคัญในชื่อปลายทาง) + สีประจำหมวด ──
 const CATEGORY_RULES = [
+  { key: 'garage',   color: '#5a4632', label: 'อู่/ศูนย์ซ่อมรถ',        test: n => /อู่|ซ่อมรถ|ซ่อมบำรุง|การช่าง|เคาะพ่นสี|ยางรถยนต์|ล้างรถ|เต็นท์รถ/.test(n) },
   { key: 'gas',      color: '#c07a00', label: 'ปั๊มน้ำมัน',            test: n => /ปั๊ม|ปั้ม|น้ำมัน/.test(n) },
   { key: 'hospital', color: '#c0392b', label: 'โรงพยาบาล/สถานพยาบาล', test: n => /รพ\.|รพสต|รพ\.สต|โรงพยาบาล|โรงบาล/.test(n) },
   { key: 'bank',     color: '#1a8a4a', label: 'ธนาคาร',                test: n => /ธนาคาร|ธ\.กรุงไทย|กรุงไทย|กรุ่งไทย/.test(n) },
@@ -473,6 +474,8 @@ function categorize(name) {
 function categoryMarkerIcon(key) {
   const S = 'fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"';
   switch (key) {
+    case 'garage': // อู่/ศูนย์ซ่อมรถ — ประแจ
+      return '<svg viewBox="0 0 24 24" ' + S + '><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg>';
     case 'hospital': // ตราพยาบาล — เครื่องหมายกากบาท
       return '<svg viewBox="0 0 24 24"><path fill="#fff" stroke="none" d="M9 2h6v7h7v6h-7v7h-6v-7h-7v-6h7z"/></svg>';
     case 'gas': // ปั๊มน้ำมัน
