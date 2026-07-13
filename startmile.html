@@ -1479,7 +1479,7 @@ input.odo-mismatch {
         </div>
         <div>
           <div class="card-header-title">ประวัติการใช้รถ</div>
-          <div class="card-header-sub" id="histSubtitle">บันทึกล่าสุด 50 รายการ</div>
+          <div class="card-header-sub" id="histSubtitle">บันทึกล่าสุด 30 รายการ</div>
         </div>
         <div style="margin-left:auto;display:flex;gap:8px;align-items:center;">
           <select id="histFilterCar" onchange="filterHistory()" style="font-size:12px;padding:6px 10px;min-width:140px;">
@@ -3139,7 +3139,7 @@ function renderHistory() {
       if (diff !== 0) return diff;
       return parseTimeField(b['เวลาออก'] || b['startTime']) - parseTimeField(a['เวลาออก'] || a['startTime']);
     })
-    .slice(0, 50);
+    .slice(0, 30);
 
   // ── helper: ดึง Drive URL จาก field ที่อาจเป็น HYPERLINK formula หรือ plain URL ──
   function extractDriveUrl(val) {
@@ -3173,14 +3173,14 @@ function renderHistory() {
     ? sorted.filter(r => String(r['ทะเบียน/รถ'] || '').includes(filterPlate))
     : sorted;
 
-  // ── อัปเดตหัวข้อการ์ด: "บันทึกล่าสุด 50 รายการ · ล่าสุด dd/MM/yyyy" ──
+  // ── อัปเดตหัวข้อการ์ด: "บันทึกล่าสุด 30 รายการ · ล่าสุด dd/MM/yyyy" ──
   // ใช้รายการแรกของ "filtered" เพราะเป็นรายการบนสุดที่ผู้ใช้เห็นจริงในตาราง (เรียงใหม่→เก่าอยู่แล้ว)
   // หมายเหตุ: extractDate() ถูกประกาศแบบ function declaration ด้านล่าง แต่ hoist ขึ้นมาใช้ตรงนี้ได้ในสโคปเดียวกัน
   const histSubtitleEl = document.getElementById('histSubtitle');
   if (histSubtitleEl) {
     histSubtitleEl.textContent = filtered.length
-      ? `บันทึกล่าสุด 50 รายการ · ล่าสุด ${extractDate(filtered[0]['วันที่'] || filtered[0]['Timestamp'] || '')}`
-      : 'บันทึกล่าสุด 50 รายการ';
+      ? `บันทึกล่าสุด 30 รายการ · ล่าสุด ${extractDate(filtered[0]['วันที่'] || filtered[0]['Timestamp'] || '')}`
+      : 'บันทึกล่าสุด 30 รายการ';
   }
 
   const tbody = document.getElementById('histBody');
