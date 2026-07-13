@@ -383,6 +383,22 @@ function markerColorFor(d) {
   return 'rgba(29,111,181,.88)';
 }
 
+// ── ระดับขนาดหมุดตาม "จำนวนทริปจริง" (ไม่ใช่สัดส่วนเทียบค่าสูงสุด) ──
+// แบ่งเป็นช่วงชัดเจนแทนการไล่ระดับต่อเนื่อง เพื่อให้เห็นความต่างของความถี่ได้ทันทีโดยไม่ต้องเทียบตัวเลข
+const SIZE_TIERS = [
+  { max: 5,        size: 20, label: '1–5 ครั้ง'   },
+  { max: 10,       size: 30, label: '6–10 ครั้ง'  },
+  { max: 20,       size: 40, label: '11–20 ครั้ง' },
+  { max: 100,      size: 54, label: '21–100 ครั้ง'},
+  { max: Infinity, size: 72, label: '100+ ครั้ง'  }
+];
+function sizeTierFor(count) {
+  for (let i = 0; i < SIZE_TIERS.length; i++) {
+    if (count <= SIZE_TIERS[i].max) return SIZE_TIERS[i];
+  }
+  return SIZE_TIERS[SIZE_TIERS.length - 1];
+}
+
 // ── สลับโหมดสีบนแผนที่ ──
 function setColorMode(mode) {
   colorMode = mode;
@@ -397,14 +413,13 @@ function renderMarkers() {
   Object.values(markerByName).forEach(m => map.removeLayer(m));
   markerByName = {};
 
-  const maxCount = Math.max(1, ...destFreq.map(d => d.count));
   // destFreq เรียงจากมากไปน้อยอยู่แล้ว (ดู applyFilters) ดังนั้น index+1 = อันดับความนิยม
   destFreq.forEach((d, i) => {
     const pin = allPins[normName(d.name)];
     if (!pin) return;
-    const ratio = d.count / maxCount;
-    // สเกลแบบไม่เชิงเส้น (ratio^0.75) เพื่อให้สถานที่ที่ไปบ่อยดูใหญ่เด่นชัดกว่าเดิม
-    const size = Math.round(14 + Math.pow(ratio, 0.75) * 36); // 14–50px ตามความถี่
+    // ✅ ขนาดหมุดอิงตามช่วงจำนวนทริปจริง (ดู SIZE_TIERS) แทนสัดส่วนต่อเนื่อง
+    // เพื่อให้ความแตกต่างระหว่างช่วงความถี่ (เช่น 1–5 กับ 100+) มองเห็นชัดในทันที
+    const size = sizeTierFor(d.count).size;
     const color = markerColorFor(d);
     const isTopCarDest = colorMode === 'car' && topOverallCar && d.topCar === topOverallCar;
     const marker = L.marker([pin.lat, pin.lng], {
@@ -420,6 +435,19 @@ function renderMarkers() {
   refreshHeatmap();
 }
 
+// ── แผงคำอธิบายขนาดหมุดตามช่วงความถี่ (แสดงทุกโหมดสี เพื่อให้อ่านขนาดหมุดออกชัดเจน) ──
+function renderSizeLegend() {
+  // ย่อสัดส่วนขนาดจริง (20–72px) ลงมาพอดีกับแถบ legend แต่ยังคงสัดส่วนสัมพัทธ์เดิมไว้ ให้เห็นความต่างชัดเจน
+  const scale = 0.42;
+  return '<span class="legend-item legend-title">ขนาดหมุด (จำนวนทริป):</span>'
+    + SIZE_TIERS.map(t => {
+        const d = Math.round(t.size * scale);
+        return '<span class="legend-item"><span style="display:inline-flex;align-items:center;justify-content:center;'
+          + 'width:' + d + 'px;height:' + d + 'px;border-radius:50%;background:rgba(29,111,181,.88);'
+          + 'border:1.5px solid rgba(0,0,0,.15);flex-shrink:0;"></span>' + t.label + '</span>';
+      }).join('');
+}
+
 // ── แผงคำอธิบายสี (legend) ใต้แผนที่ ตามโหมดที่เลือก ──
 function renderLegend() {
   const el = document.getElementById('legendPanel');
@@ -427,13 +455,13 @@ function renderLegend() {
   if (colorMode === 'category') {
     el.innerHTML = '<span class="legend-item legend-title">หมวดหมู่:</span>' + CATEGORY_RULES.map(r =>
       '<span class="legend-item"><span class="legend-dot" style="background:' + r.color + ';"></span>' + r.label + '</span>'
-    ).join('');
+    ).join('') + renderSizeLegend();
   } else if (colorMode === 'car') {
     const carsUsed = {};
     destFreq.forEach(d => { if (d.topCar) carsUsed[d.topCar] = true; });
     const plates = Object.keys(carsUsed).sort();
     if (!plates.length) {
-      el.innerHTML = '<span style="color:var(--text-light);">ไม่มีข้อมูลรถในทริปที่กรองไว้</span>';
+      el.innerHTML = '<span style="color:var(--text-light);">ไม่มีข้อมูลรถในทริปที่กรองไว้</span>' + renderSizeLegend();
       return;
     }
     let starNote = '';
@@ -443,10 +471,10 @@ function renderLegend() {
     }
     el.innerHTML = '<span class="legend-item legend-title">รถที่ไปบ่อยที่สุดต่อจุดหมาย:</span>' + plates.map(p =>
       '<span class="legend-item"><span class="legend-dot" style="background:' + carColor(p) + ';"></span>' + escHtml(p) + '</span>'
-    ).join('') + starNote;
+    ).join('') + starNote + renderSizeLegend();
   } else {
-    el.innerHTML = '<span class="legend-item"><span class="legend-dot" style="background:rgba(29,111,181,.88);"></span>ขนาดหมุด = ความถี่การไป (ใหญ่ = ไปบ่อย) เลขในหมุด = จำนวนทริป</span>'
-      + '<span class="legend-item">วงแหวนประ = ติด Top 3 จุดหมายยอดนิยม</span>';
+    el.innerHTML = '<span class="legend-item"><span class="legend-dot" style="background:rgba(29,111,181,.88);"></span>เลขในหมุด = จำนวนทริป</span>'
+      + '<span class="legend-item">วงแหวนประ = ติด Top 3 จุดหมายยอดนิยม</span>' + renderSizeLegend();
   }
 }
 
