@@ -904,6 +904,15 @@ function normName(s) {
   return String(s || '').trim();
 }
 
+// แยกชื่อปลายทางที่บันทึกรวมหลายจุดไว้ในทริปเดียว (เช่น "สสจ.เชียงใหม่, ศาลากลาง, กาชาด, สหกรณ์, เทศบาลแม่โจ้")
+// ให้เป็นรายชื่อแยกทีละจุด สำหรับใช้นับความถี่/ปักหมุดแต่ละจุดแยกกัน แทนที่จะนับรวมเป็นก้อนเดียว
+function splitDestNames(raw) {
+  return String(raw || '')
+    .split(',')
+    .map(s => normName(s))
+    .filter(Boolean);
+}
+
 // ════════════════════════════════════════════════════════════
 //  สถานการณ์ปัจจุบัน — รถที่กำลังเดินทาง (ดึงจาก getStatusSummary().inUse ทุก 25 วิ)
 // ════════════════════════════════════════════════════════════
@@ -1162,13 +1171,16 @@ function applyFilters() {
   const map_ = {};
   const overallCarTally = {};
   filtered.forEach(t => {
-    const dest = normName(t['ปลายทาง']);
-    if (!map_[dest]) map_[dest] = { name: dest, count: 0, distanceKm: 0, carBreakdown: {} };
-    map_[dest].count++;
+    const destNames = splitDestNames(t['ปลายทาง']);
+    if (!destNames.length) return;
     const km = Number(t['ระยะทาง(กม.)']);
-    if (!isNaN(km)) map_[dest].distanceKm += km;
     const car = normName(t['ทะเบียน/รถ'] || t['carType']) || 'ไม่ระบุ';
-    map_[dest].carBreakdown[car] = (map_[dest].carBreakdown[car] || 0) + 1;
+    destNames.forEach(dest => {
+      if (!map_[dest]) map_[dest] = { name: dest, count: 0, distanceKm: 0, carBreakdown: {} };
+      map_[dest].count++;
+      if (!isNaN(km)) map_[dest].distanceKm += km;
+      map_[dest].carBreakdown[car] = (map_[dest].carBreakdown[car] || 0) + 1;
+    });
     overallCarTally[car] = (overallCarTally[car] || 0) + 1;
   });
 
@@ -1631,10 +1643,11 @@ function allUnpinnedNames() {
   const seen = new Set();
   const names = [];
   allTrips.forEach(t => {
-    const n = normName(t['ปลายทาง']);
-    if (!n || seen.has(n)) return;
-    seen.add(n);
-    if (!allPins[n]) names.push(n);
+    splitDestNames(t['ปลายทาง']).forEach(n => {
+      if (!n || seen.has(n)) return;
+      seen.add(n);
+      if (!allPins[n]) names.push(n);
+    });
   });
   return names.sort((a, b) => a.localeCompare(b, 'th'));
 }
