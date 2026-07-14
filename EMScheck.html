@@ -111,6 +111,53 @@ input, select, textarea {
 }
 input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(220,38,38,.1); }
 
+/* ── QUICK ACTIONS BAR ── */
+.quick-actions {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.qa-btn {
+  padding: 9px 14px; border-radius: 10px; border: 1.5px solid var(--border);
+  background: #fff; font-family: inherit; font-size: 12.5px; font-weight: 600;
+  color: var(--text-mid); cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: all .15s; box-shadow: var(--shadow);
+}
+.qa-btn:hover { transform: translateY(-1px); }
+.qa-btn.pass  { color: #065f46; border-color: #6ee7b7; background: var(--success-soft); }
+.qa-btn.clear { color: var(--danger); border-color: #fca5a5; background: var(--danger-soft); }
+.qa-btn.toggle-active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.qa-timer { margin-left: auto; font-size: 11.5px; color: var(--text-light); display: flex; align-items: center; gap: 5px; font-family: 'IBM Plex Mono', monospace; }
+
+/* ── CARRY-FORWARD / DRAFT BANNER ── */
+.info-banner {
+  display: none; background: var(--blue-soft); border: 1.5px solid #93c5fd;
+  border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 14px;
+  align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.info-banner.show { display: flex; }
+.info-banner.draft { background: var(--amber-soft); border-color: #fde68a; }
+.info-banner-icon { font-size: 20px; flex-shrink: 0; }
+.info-banner-text { flex: 1; min-width: 200px; font-size: 12.5px; color: var(--text); line-height: 1.5; }
+.info-banner-text b { display: block; font-size: 13px; margin-bottom: 1px; }
+.info-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.ib-btn {
+  padding: 7px 14px; border-radius: 8px; border: none; font-family: inherit;
+  font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.ib-btn.apply { background: var(--blue); color: #fff; }
+.ib-btn.dismiss { background: rgba(0,0,0,.06); color: var(--text-mid); }
+
+/* ── CARRIED-OVER TAG ── */
+.carried-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9.5px; font-weight: 700; color: #7c3aed; background: #ede9fe;
+  padding: 1px 7px; border-radius: 8px; margin-left: 6px; vertical-align: middle;
+}
+.item-row.carried-over { background: #fbfaff; }
+
+/* ── HIDE-PASSED MODE ── */
+#categoriesWrap.hide-passed .item-row.ok { display: none; }
+#categoriesWrap.hide-passed .cat-body:has(.item-row:not(.ok)) { display: block; }
+
 /* ── PROGRESS BAR ── */
 .progress-wrap {
   background: var(--card); border: 1px solid var(--border);
@@ -156,6 +203,13 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
 }
 .cat-badge.all-ok { background: rgba(0,200,83,.3); }
 .cat-badge.has-issue { background: rgba(244,67,54,.3); }
+.cat-quick-btn {
+  font-size: 10.5px; font-weight: 700; padding: 4px 9px; border-radius: 7px;
+  background: rgba(255,255,255,.14); color: rgba(255,255,255,.9);
+  border: 1px solid rgba(255,255,255,.25); cursor: pointer; white-space: nowrap;
+  transition: background .15s;
+}
+.cat-quick-btn:hover { background: rgba(255,255,255,.28); }
 .cat-chevron { transition: transform .25s; }
 .cat-header[data-open="true"] .cat-chevron { transform: rotate(180deg); }
 .cat-body {
@@ -206,10 +260,10 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
   display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;
 }
 .status-pill {
-  padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+  padding: 7px 12px; min-height: 32px; border-radius: 20px; font-size: 11.5px; font-weight: 700;
   border: 1.5px solid transparent; cursor: pointer; transition: all .15s;
   background: var(--bg); color: var(--text-mid); border-color: var(--border);
-  white-space: nowrap;
+  white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;
 }
 .status-pill:hover { opacity: .8; }
 .status-pill.selected-พร้อม    { background: var(--success-soft); color: #065f46; border-color: #6ee7b7; }
@@ -327,6 +381,67 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
 }
 .cam-file-input { display: none; }
 
+/* ── MISSING ITEMS PANEL ── */
+.missing-panel {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 16px 20px; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 16px; cursor: pointer;
+  transition: all .15s;
+}
+.missing-panel:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
+.missing-panel.has-missing { border-color: #c4b5fd; background: linear-gradient(135deg,#faf9ff 0%,#ffffff 60%); }
+.missing-panel-icon {
+  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+  background: #ede9fe; color: #6d28d9; font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+}
+.missing-panel.has-missing .missing-panel-icon { background: #6d28d9; color: #fff; }
+.missing-panel-info { flex: 1; }
+.missing-panel-count { font-size: 24px; font-weight: 700; color: var(--text); line-height: 1.1; }
+.missing-panel.has-missing .missing-panel-count { color: #6d28d9; }
+.missing-panel-label { font-size: 12.5px; color: var(--text-mid); margin-top: 2px; }
+.missing-panel-cta {
+  font-size: 12px; font-weight: 700; color: #6d28d9; background: #ede9fe;
+  padding: 8px 14px; border-radius: 8px; flex-shrink: 0; white-space: nowrap;
+}
+.missing-panel.has-missing .missing-panel-cta { background: #6d28d9; color: #fff; }
+
+/* ── MISSING ITEMS MODAL ── */
+.mi-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.6);
+  z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.mi-overlay.show { display: flex; }
+.mi-box {
+  background: #fff; border-radius: 16px; overflow: hidden;
+  max-width: 560px; width: 100%; max-height: 82vh; display: flex; flex-direction: column;
+}
+.mi-header {
+  padding: 16px 20px; background: linear-gradient(135deg,#6d28d9,#4c1d95);
+  color: #fff; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.mi-title { font-size: 15px; font-weight: 700; }
+.mi-sub { font-size: 11.5px; color: rgba(255,255,255,.75); margin-top: 2px; }
+.mi-close { background: rgba(255,255,255,.15); border: none; color: #fff; font-size: 18px; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; flex-shrink: 0; }
+.mi-body { padding: 8px 0; overflow-y: auto; flex: 1; }
+.mi-empty { padding: 40px 20px; text-align: center; color: var(--text-light); font-size: 13px; }
+.mi-cat-label {
+  padding: 10px 20px 6px; font-size: 11px; font-weight: 700; color: var(--text-light);
+  text-transform: uppercase; letter-spacing: .4px;
+}
+.mi-item {
+  padding: 10px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.mi-item:last-child { border-bottom: none; }
+.mi-item-dot { width: 8px; height: 8px; border-radius: 50%; background: #6d28d9; margin-top: 6px; flex-shrink: 0; }
+.mi-item-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.mi-item-detail { font-size: 11.5px; color: var(--text-light); margin-top: 1px; }
+.mi-item-note { font-size: 11.5px; color: #6d28d9; margin-top: 3px; background: #f5f3ff; padding: 3px 8px; border-radius: 6px; display: inline-block; }
+.mi-footer { padding: 12px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.mi-footer-btn { width: 100%; padding: 10px; border-radius: 9px; border: none; background: var(--bg); color: var(--text-mid); font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+
 /* ── TOAST ── */
 .toast {
   position: fixed; bottom: 24px; left: 50%;
@@ -344,7 +459,12 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
 @media (max-width: 640px) {
   .main-wrap { padding: 14px 10px 48px; }
   .item-controls { min-width: 140px; }
-  .status-pills .status-pill { font-size: 10px; padding: 3px 7px; }
+  .status-pills .status-pill { font-size: 10.5px; padding: 6px 9px; min-height: 30px; }
+  .quick-actions { flex-direction: column; align-items: stretch; }
+  .qa-timer { margin-left: 0; justify-content: center; }
+  .info-banner { flex-direction: column; align-items: stretch; }
+  .info-banner-actions { justify-content: stretch; }
+  .ib-btn { flex: 1; }
   .form-grid.three { grid-template-columns: 1fr 1fr; }
   .form-group.span3 { grid-column: span 2; }
   .summary-bar { padding: 14px 16px; gap: 12px; }
@@ -393,7 +513,7 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
       <div class="form-grid three">
         <div class="form-group">
           <label>รถ EMS <span class="req">*</span></label>
-          <select id="carId" required>
+          <select id="carId" required onchange="onCarChange()">
             <option value="">— กำลังโหลดรายการรถ... —</option>
           </select>
         </div>
@@ -425,6 +545,32 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- แจ้งเตือนข้อมูลเดิม / draft ค้าง -->
+  <div class="info-banner" id="carryBanner">
+    <div class="info-banner-icon">🔄</div>
+    <div class="info-banner-text" id="carryBannerText"></div>
+    <div class="info-banner-actions">
+      <button class="ib-btn dismiss" onclick="dismissCarryBanner()">เริ่มตรวจใหม่</button>
+      <button class="ib-btn apply" onclick="applyCarryForward()">ใช้ข้อมูลเดิม</button>
+    </div>
+  </div>
+  <div class="info-banner draft" id="draftBanner">
+    <div class="info-banner-icon">📝</div>
+    <div class="info-banner-text" id="draftBannerText"></div>
+    <div class="info-banner-actions">
+      <button class="ib-btn dismiss" onclick="dismissDraftBanner()">ไม่เอา ลบทิ้ง</button>
+      <button class="ib-btn apply" onclick="resumeDraft()">ทำต่อจากเดิม</button>
+    </div>
+  </div>
+
+  <!-- QUICK ACTIONS -->
+  <div class="quick-actions">
+    <button class="qa-btn pass" onclick="quickPassRemaining()">✅ ผ่านรายการที่เหลือทั้งหมด</button>
+    <button class="qa-btn" id="hidePassedBtn" onclick="toggleHidePassed()">👁 ซ่อนรายการที่ผ่านแล้ว</button>
+    <button class="qa-btn clear" onclick="clearAllStatuses()">↺ ล้างสถานะทั้งหมด</button>
+    <div class="qa-timer">⏱ <span id="sessionTimer">00:00</span></div>
   </div>
 
   <!-- PROGRESS -->
@@ -472,6 +618,16 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
     <div class="pass-badge" id="passBadge">รอตรวจ</div>
   </div>
 
+  <!-- MISSING ITEMS PANEL -->
+  <div class="missing-panel" id="missingPanel" onclick="showMissingItemsModal()">
+    <div class="missing-panel-icon">⊘</div>
+    <div class="missing-panel-info">
+      <div class="missing-panel-count" id="missingCount">0</div>
+      <div class="missing-panel-label">รายการที่ขาด (ต้องเติม)</div>
+    </div>
+    <div class="missing-panel-cta">ดูรายการ →</div>
+  </div>
+
   <!-- หมายเหตุรวม + ส่ง -->
   <div class="card">
     <div class="card-body">
@@ -487,6 +643,23 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
   </div>
 
 </main>
+
+<!-- MISSING ITEMS MODAL -->
+<div class="mi-overlay" id="miOverlay">
+  <div class="mi-box">
+    <div class="mi-header">
+      <div>
+        <div class="mi-title">⊘ รายการที่ขาด (ต้องเติม)</div>
+        <div class="mi-sub" id="miSub">0 รายการ</div>
+      </div>
+      <button class="mi-close" onclick="closeMissingItemsModal()">✕</button>
+    </div>
+    <div class="mi-body" id="miBody"></div>
+    <div class="mi-footer">
+      <button class="mi-footer-btn" onclick="closeMissingItemsModal()">ปิดหน้าต่าง</button>
+    </div>
+  </div>
+</div>
 
 <!-- CAMERA MODAL -->
 <div class="cam-overlay" id="camOverlay">
@@ -670,6 +843,7 @@ function buildCategories() {
         <span class="cat-icon">${cat.icon}</span>
         <span class="cat-title">${cat.name}</span>
         <span class="cat-badge" id="catBadge_${cat.id}">0/${cat.items.length}</span>
+        <button class="cat-quick-btn" onclick="event.stopPropagation(); quickPassCategory('${cat.id}')">✅ ผ่านที่เหลือ</button>
         <svg class="cat-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="6 9 12 15 18 9"/>
         </svg>
@@ -681,7 +855,7 @@ function buildCategories() {
         <div class="item-main">
           <div class="item-num">${ii + 1}</div>
           <div class="item-info">
-            <div class="item-name">${item.name}</div>
+            <div class="item-name">${item.name}<span class="carried-tag" id="carriedTag_${item.id}" style="display:none;">🔄 ครั้งก่อน</span></div>
             <div class="item-detail">${item.detail}</div>
             ${item.hasExpiry ? `<div class="item-expiry">
               📅 วันหมดอายุ:
@@ -691,12 +865,12 @@ function buildCategories() {
         </div>
         <div class="item-controls">
           <div class="status-pills" id="pills_${item.id}">
-            ${['พร้อม','ไม่พร้อม','ชำรุด','หมดอายุ','ขาด'].map(s =>
-              `<button class="status-pill" onclick="setStatus('${item.id}', '${s}', this)">${s}</button>`
+            ${[['พร้อม','✓'],['ไม่พร้อม','✕'],['ชำรุด','⚠'],['หมดอายุ','⏰'],['ขาด','⊘']].map(([s,ic]) =>
+              `<button class="status-pill" data-status="${s}" onclick="setStatus('${item.id}', '${s}', this)">${ic} ${s}</button>`
             ).join('')}
           </div>
           <textarea class="item-note" id="note_${item.id}" rows="1"
-            placeholder="หมายเหตุ..." oninput="itemNotes['${item.id}']=this.value"></textarea>
+            placeholder="หมายเหตุ..." oninput="itemNotes['${item.id}']=this.value; saveDraft();"></textarea>
           <button class="photo-btn" id="photoBtn_${item.id}" onclick="openCamera('${item.id}', '${item.name}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
@@ -726,10 +900,11 @@ function toggleCat(header) {
 // ─────────────────────────────────────────────
 //  STATUS LOGIC
 // ─────────────────────────────────────────────
-function setStatus(itemId, status, btn) {
+function setStatus(itemId, status, btn, opts) {
+  const silent = opts && opts.silent;
   const pills = document.getElementById('pills_' + itemId);
   pills.querySelectorAll('.status-pill').forEach(p => {
-    p.className = 'status-pill' + (p.textContent.trim() === status ? ' selected-' + status : '');
+    p.className = 'status-pill' + (p.dataset.status === status ? ' selected-' + status : '');
   });
   itemStatus[itemId] = status;
 
@@ -739,12 +914,21 @@ function setStatus(itemId, status, btn) {
   else if (status === 'หมดอายุ') row.classList.add('warn');
   else if (status) row.classList.add('issue');
 
+  // ผู้ใช้กดยืนยันเอง (ไม่ใช่การนำสถานะเก่ามาใส่อัตโนมัติ) → เอา tag "ครั้งก่อน" ออก เพราะตรวจซ้ำแล้วจริง
+  if (!silent) {
+    row.classList.remove('carried-over');
+    const tag = document.getElementById('carriedTag_' + itemId);
+    if (tag) tag.style.display = 'none';
+    saveDraft();
+  }
+
   updateProgress();
   updateCategoryBadge(itemId);
 }
 
 function onExpiryChange(itemId, val) {
   itemExpiry[itemId] = val;
+  saveDraft();
   if (!val) return;
   const exp  = new Date(val);
   const now  = new Date();
@@ -787,6 +971,11 @@ function updateProgress() {
   document.getElementById('sumFail').textContent  = fail;
   document.getElementById('sumExp').textContent   = exp;
 
+  const missing = all.filter(id => itemStatus[id] === 'ขาด').length;
+  const missingPanel = document.getElementById('missingPanel');
+  document.getElementById('missingCount').textContent = missing;
+  missingPanel.classList.toggle('has-missing', missing > 0);
+
   if (done > 0) {
     const rate = Math.round((ok / done) * 100);
     document.getElementById('sumRate').textContent = rate + '%';
@@ -813,6 +1002,244 @@ function updateCategoryBadge(itemId) {
   badge.textContent = `${done}/${ids.length}`;
   badge.className   = 'cat-badge ' + (fail > 0 ? 'has-issue' : done === ids.length ? 'all-ok' : '');
 }
+
+// ─────────────────────────────────────────────
+//  MISSING ITEMS MODAL — รายการ "ขาด" ที่ต้องเติม
+// ─────────────────────────────────────────────
+function showMissingItemsModal() {
+  const body = document.getElementById('miBody');
+  const missingByCategory = EMS_CATEGORIES.map(cat => ({
+    cat,
+    items: cat.items.filter(i => itemStatus[i.id] === 'ขาด')
+  })).filter(g => g.items.length > 0);
+
+  const total = missingByCategory.reduce((s, g) => s + g.items.length, 0);
+  document.getElementById('miSub').textContent = `${total} รายการ`;
+
+  if (!total) {
+    body.innerHTML = `<div class="mi-empty">✅ ไม่มีรายการที่ขาด — อุปกรณ์ครบถ้วน</div>`;
+  } else {
+    body.innerHTML = missingByCategory.map(g => `
+      <div class="mi-cat-label">${g.cat.icon} ${g.cat.name}</div>
+      ${g.items.map(i => `
+        <div class="mi-item">
+          <div class="mi-item-dot"></div>
+          <div>
+            <div class="mi-item-name">${i.name}</div>
+            <div class="mi-item-detail">${i.detail}</div>
+            ${itemNotes[i.id] ? `<div class="mi-item-note">📝 ${itemNotes[i.id]}</div>` : ''}
+          </div>
+        </div>
+      `).join('')}
+    `).join('');
+  }
+  document.getElementById('miOverlay').classList.add('show');
+}
+
+function closeMissingItemsModal() {
+  document.getElementById('miOverlay').classList.remove('show');
+}
+
+// ─────────────────────────────────────────────
+//  QUICK ACTIONS — เร่งความเร็วในการตรวจ
+// ─────────────────────────────────────────────
+function quickPassRemaining() {
+  const all = EMS_CATEGORIES.flatMap(c => c.items.map(i => i.id));
+  const targets = all.filter(id => !itemStatus[id]);
+  if (!targets.length) { showToast('ตรวจครบทุกรายการแล้ว'); return; }
+  if (!confirm(`ทำเครื่องหมาย "พร้อม" ให้รายการที่ยังไม่ได้ตรวจทั้งหมด ${targets.length} รายการ?\n(รายการที่ตรวจ/ระบุปัญหาไว้แล้วจะไม่ถูกแตะต้อง)`)) return;
+  targets.forEach(id => setStatus(id, 'พร้อม', null));
+  showToast(`✅ ผ่านรายการที่เหลือ ${targets.length} รายการแล้ว`, 'success');
+}
+
+function quickPassCategory(catId) {
+  const cat = EMS_CATEGORIES.find(c => c.id === catId);
+  if (!cat) return;
+  const targets = cat.items.map(i => i.id).filter(id => !itemStatus[id]);
+  if (!targets.length) { showToast('หมวดนี้ตรวจครบแล้ว'); return; }
+  targets.forEach(id => setStatus(id, 'พร้อม', null));
+  showToast(`✅ ผ่าน "${cat.name}" ที่เหลือ ${targets.length} รายการแล้ว`, 'success');
+}
+
+function clearAllStatuses() {
+  const all = EMS_CATEGORIES.flatMap(c => c.items.map(i => i.id));
+  const doneCount = all.filter(id => itemStatus[id]).length;
+  if (!doneCount) { showToast('ยังไม่มีรายการที่ตรวจ'); return; }
+  if (!confirm(`ล้างสถานะที่ตรวจไปแล้วทั้งหมด ${doneCount} รายการ? (ข้อมูลรถ/ผู้ตรวจจะยังอยู่)`)) return;
+  Object.keys(itemStatus).forEach(k => delete itemStatus[k]);
+  Object.keys(itemNotes).forEach(k => delete itemNotes[k]);
+  Object.keys(itemExpiry).forEach(k => delete itemExpiry[k]);
+  buildCategories();
+  clearDraft();
+  showToast('ล้างสถานะทั้งหมดแล้ว');
+}
+
+let hidePassed = false;
+function toggleHidePassed() {
+  hidePassed = !hidePassed;
+  document.getElementById('categoriesWrap').classList.toggle('hide-passed', hidePassed);
+  document.getElementById('hidePassedBtn').classList.toggle('toggle-active', hidePassed);
+  document.getElementById('hidePassedBtn').textContent = hidePassed ? '👁 แสดงทั้งหมด' : '👁 ซ่อนรายการที่ผ่านแล้ว';
+}
+
+// ─────────────────────────────────────────────
+//  DRAFT AUTOSAVE — กันข้อมูลหายถ้าเบราว์เซอร์ปิด/หลุดกลางคัน
+//  (เก็บเฉพาะสถานะ/หมายเหตุ/วันหมดอายุ — ไม่เก็บรูปเพราะข้อมูลใหญ่เกินไป)
+// ─────────────────────────────────────────────
+const DRAFT_KEY = 'emscheck_drafts_v1';
+
+function getAllDrafts() {
+  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}'); } catch (_) { return {}; }
+}
+function saveDraft() {
+  const carId = document.getElementById('carId')?.value;
+  if (!carId) return;
+  try {
+    const drafts = getAllDrafts();
+    drafts[carId] = {
+      date: document.getElementById('checkDate').value,
+      checkerName: document.getElementById('checkerName').value,
+      itemStatus: { ...itemStatus },
+      itemNotes : { ...itemNotes },
+      itemExpiry: { ...itemExpiry },
+      savedAt: Date.now()
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+  } catch (_) {}
+}
+function clearDraft(carId) {
+  carId = carId || document.getElementById('carId')?.value;
+  if (!carId) return;
+  try {
+    const drafts = getAllDrafts();
+    delete drafts[carId];
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+  } catch (_) {}
+}
+
+// ─────────────────────────────────────────────
+//  ผลตรวจครั้งก่อน + Draft ค้าง — เมื่อเลือกรถ
+// ─────────────────────────────────────────────
+let pendingPreviousCheck = null;
+let pendingDraft         = null;
+
+function hideBanners() {
+  document.getElementById('carryBanner').classList.remove('show');
+  document.getElementById('draftBanner').classList.remove('show');
+  pendingPreviousCheck = null;
+  pendingDraft = null;
+}
+
+async function onCarChange() {
+  hideBanners();
+  const carId = document.getElementById('carId').value;
+  if (!carId) return;
+
+  // 1) เช็ค draft ที่กรอกค้างไว้วันนี้ของรถคันนี้ก่อน (ยังไม่ได้ส่ง)
+  const drafts = getAllDrafts();
+  const draft  = drafts[carId];
+  const today  = new Date().toISOString().slice(0, 10);
+  if (draft && draft.date === today && Object.keys(draft.itemStatus || {}).length > 0) {
+    pendingDraft = draft;
+    const checkedCount = Object.keys(draft.itemStatus).length;
+    document.getElementById('draftBannerText').innerHTML =
+      `<b>พบข้อมูลที่กรอกค้างไว้วันนี้ (ยังไม่ได้ส่ง)</b>ตรวจไปแล้ว ${checkedCount} รายการ โดย ${draft.checkerName || '-'} — ทำต่อจากเดิมได้เลย`;
+    document.getElementById('draftBanner').classList.add('show');
+    return; // ให้เลือกจัดการ draft ก่อน ค่อยเสนอ carry-forward รอบถัดไปถ้ายังไม่มีสถานะ
+  }
+
+  // 2) ไม่มี draft ค้าง → ดึงผลตรวจล่าสุดของรถคันนี้มาเสนอ "คงสถานะจากครั้งก่อน"
+  try {
+    const res  = await fetch(GAS_URL + '?action=getEMSData');
+    const json = await res.json();
+    const rows = (json.data || []).filter(r => r['รถ EMS'] === carId);
+    if (!rows.length) return;
+    let latestTs = rows[0]['Timestamp'];
+    rows.forEach(r => { if (String(r['Timestamp']) > String(latestTs)) latestTs = r['Timestamp']; });
+    const latestRows = rows.filter(r => r['Timestamp'] === latestTs);
+    if (!latestRows.length) return;
+    pendingPreviousCheck = latestRows;
+    const checkDate = latestRows[0]['วันที่'] || '';
+    const checker   = latestRows[0]['ผู้ตรวจ'] || '';
+    document.getElementById('carryBannerText').innerHTML =
+      `<b>พบการตรวจครั้งก่อนของรถคันนี้</b>วันที่ ${checkDate} โดย ${checker} — นำสถานะเดิมมาเติมให้ แล้วตรวจซ้ำเฉพาะจุดที่เปลี่ยนไปได้เลย`;
+    document.getElementById('carryBanner').classList.add('show');
+  } catch (_) { /* ดึงไม่ได้ก็ไม่ต้องรบกวนผู้ใช้ ตรวจใหม่ตามปกติ */ }
+}
+
+function dismissCarryBanner() {
+  document.getElementById('carryBanner').classList.remove('show');
+  pendingPreviousCheck = null;
+}
+function dismissDraftBanner() {
+  clearDraft();
+  document.getElementById('draftBanner').classList.remove('show');
+  pendingDraft = null;
+}
+
+function applyCarryForward() {
+  if (!pendingPreviousCheck) return;
+  let n = 0;
+  pendingPreviousCheck.forEach(r => {
+    const id = r['รหัสอุปกรณ์'];
+    if (!id || !document.getElementById('itemRow_' + id)) return;
+    const status = r['สถานะ'];
+    if (status && status !== 'ไม่ได้ตรวจ') {
+      setStatus(id, status, null, { silent: true });
+      document.getElementById('itemRow_' + id).classList.add('carried-over');
+      const tag = document.getElementById('carriedTag_' + id);
+      if (tag) tag.style.display = 'inline-flex';
+      n++;
+    }
+    if (r['วันหมดอายุ']) {
+      itemExpiry[id] = r['วันหมดอายุ'];
+      const expInput = document.getElementById('exp_' + id);
+      if (expInput) expInput.value = r['วันหมดอายุ'];
+    }
+    if (r['หมายเหตุ']) {
+      itemNotes[id] = r['หมายเหตุ'];
+      const noteInput = document.getElementById('note_' + id);
+      if (noteInput) noteInput.value = r['หมายเหตุ'];
+    }
+  });
+  document.getElementById('carryBanner').classList.remove('show');
+  showToast(`📋 นำสถานะจากครั้งก่อนมาให้แล้ว ${n} รายการ — กรุณาตรวจสอบซ้ำและปรับปรุงตามจริง`, 'success');
+  pendingPreviousCheck = null;
+  saveDraft();
+}
+
+function resumeDraft() {
+  if (!pendingDraft) return;
+  Object.assign(itemStatus, pendingDraft.itemStatus || {});
+  Object.assign(itemNotes,  pendingDraft.itemNotes  || {});
+  Object.assign(itemExpiry, pendingDraft.itemExpiry || {});
+  Object.keys(itemStatus).forEach(id => {
+    if (document.getElementById('itemRow_' + id)) setStatus(id, itemStatus[id], null, { silent: true });
+  });
+  Object.keys(itemExpiry).forEach(id => {
+    const el = document.getElementById('exp_' + id);
+    if (el) el.value = itemExpiry[id];
+  });
+  Object.keys(itemNotes).forEach(id => {
+    const el = document.getElementById('note_' + id);
+    if (el) el.value = itemNotes[id];
+  });
+  document.getElementById('draftBanner').classList.remove('show');
+  showToast('ทำต่อจากข้อมูลที่กรอกค้างไว้แล้ว', 'success');
+  pendingDraft = null;
+}
+
+// ─────────────────────────────────────────────
+//  SESSION TIMER — เวลาที่ใช้ตรวจ (เพื่อการติดตามมาตรฐานเวลา)
+// ─────────────────────────────────────────────
+let sessionStart = Date.now();
+setInterval(() => {
+  const sec = Math.floor((Date.now() - sessionStart) / 1000);
+  const m = String(Math.floor(sec / 60)).padStart(2,'0');
+  const s = String(sec % 60).padStart(2,'0');
+  const el = document.getElementById('sessionTimer');
+  if (el) el.textContent = `${m}:${s}`;
+}, 1000);
 
 // ─────────────────────────────────────────────
 //  CAMERA
@@ -929,6 +1356,13 @@ async function submitEMS() {
     }))
   );
 
+  // สรุปสถานะหมวดออกซิเจนแยกไว้ต่างหาก — เตรียมไว้สำหรับให้หน้า Index ดึงไปแสดงในอนาคต
+  // (ยังไม่เชื่อมกับ index.html ตอนนี้ — รอทำหน้า Index ให้เสร็จก่อน)
+  const oxygenItems  = items.filter(i => i.category === 'หมวดที่ 2 — ระบบออกซิเจน');
+  const oxygenFail   = oxygenItems.filter(i => i.status && i.status !== 'พร้อม' && i.status !== 'ไม่ได้ตรวจ');
+  const oxygenStatus = oxygenItems.every(i => !i.status || i.status === 'ไม่ได้ตรวจ') ? 'ไม่ได้ตรวจ'
+                      : oxygenFail.length ? 'มีปัญหา' : 'พร้อม';
+
   const payload = {
     action      : 'saveEMS',
     carId,
@@ -938,8 +1372,11 @@ async function submitEMS() {
     checkTime,
     checkShift  : document.getElementById('checkShift').value,
     remarks     : document.getElementById('overallRemarks').value.trim(),
-    items
+    items,
+    oxygenSummary: { status: oxygenStatus, issueCount: oxygenFail.length, checkedAt: checkDate + ' ' + checkTime }
   };
+
+  try { localStorage.setItem('ems_last_checker', checkerName); localStorage.setItem('ems_last_role', payload.checkerRole || ''); } catch (_) {}
 
   try {
     // ส่งข้อมูลหลักก่อน
@@ -968,6 +1405,8 @@ async function submitEMS() {
 
     await new Promise(r => setTimeout(r, 800));
 
+    clearDraft(carId); // ส่งสำเร็จแล้ว ไม่ต้องเก็บ draft ไว้อีก
+
     const failCount = items.filter(i => i.status !== 'พร้อม' && i.status !== 'ไม่ได้ตรวจ').length;
     showToast(
       failCount > 0
@@ -987,13 +1426,20 @@ async function submitEMS() {
 }
 
 function resetForm() {
+  const carId = document.getElementById('carId').value;
+  clearDraft(carId);
+  hideBanners();
   Object.keys(itemStatus).forEach(k => delete itemStatus[k]);
   Object.keys(itemNotes).forEach(k => delete itemNotes[k]);
   Object.keys(itemExpiry).forEach(k => delete itemExpiry[k]);
   Object.keys(itemPhotos).forEach(k => delete itemPhotos[k]);
   document.getElementById('carId').value = '';
-  document.getElementById('checkerName').value = '';
   document.getElementById('overallRemarks').value = '';
+  hidePassed = false;
+  document.getElementById('categoriesWrap').classList.remove('hide-passed');
+  const hpBtn = document.getElementById('hidePassedBtn');
+  if (hpBtn) { hpBtn.classList.remove('toggle-active'); hpBtn.textContent = '👁 ซ่อนรายการที่ผ่านแล้ว'; }
+  sessionStart = Date.now();
   buildCategories();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1092,6 +1538,13 @@ function populateEMSCheckerSelect(drivers) {
     opt.value = opt.textContent = name;
     sel.appendChild(opt);
   });
+  // จำผู้ตรวจสอบคนล่าสุดไว้ให้ ไม่ต้องเลือกซ้ำทุกครั้ง (เปลี่ยนได้ตามจริงเสมอ)
+  try {
+    const lastChecker = localStorage.getItem('ems_last_checker');
+    const lastRole     = localStorage.getItem('ems_last_role');
+    if (lastChecker && [...sel.options].some(o => o.value === lastChecker)) sel.value = lastChecker;
+    if (lastRole) document.getElementById('checkerRole').value = lastRole;
+  } catch (_) {}
 }
 </script>
 
