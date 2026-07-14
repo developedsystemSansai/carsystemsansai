@@ -520,7 +520,9 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
         </div>
         <div class="form-group">
           <label>ผู้ตรวจสอบ <span class="req">*</span></label>
-          <input type="text" id="checkerName" required placeholder="ชื่อ-สกุล ผู้ตรวจสอบ">
+          <select id="checkerName" required>
+            <option value="">— เลือกผู้ตรวจสอบ —</option>
+          </select>
         </div>
         <div class="form-group">
           <label>ตำแหน่ง</label>
@@ -1491,6 +1493,13 @@ const EMS_DEFAULT_VEHICLES = [
   { ทะเบียน:'ขฉ.8407 ชม.', ประเภท:'รถ Refer' },
 ];
 
+// TODO: รายชื่อผู้ตรวจสอบจริง (พยาบาล/เจ้าพนักงานเวชกิจฉุกเฉิน) ยังไม่มีข้อมูล — ใส่รายชื่อทดสอบไว้ก่อน
+const EMS_TEST_CHECKERS = [
+  'ทดสอบ ระบบหนึ่ง',
+  'ทดสอบ ระบบสอง',
+  'ทดสอบ ระบบสาม',
+];
+
 async function loadEMSMasterData() {
   try {
     const vRes = await fetch(GAS_URL + '?action=getVehicles');
@@ -1506,7 +1515,7 @@ async function loadEMSMasterData() {
   } catch (_) {
     populateEMSCarSelect(EMS_DEFAULT_VEHICLES);
   }
-  initEMSChecker(); // ผู้ตรวจสอบเป็นช่องกรอกอิสระ (พยาบาล/เจ้าพนักงานเวชกิจฉุกเฉิน) ไม่ผูกกับรายชื่อคนขับ
+  initEMSChecker(); // ผู้ตรวจสอบเป็น dropdown — ยังไม่มีรายชื่อจริง ใส่รายชื่อทดสอบไปก่อน
 }
 
 function populateEMSCarSelect(vehicles) {
@@ -1523,12 +1532,19 @@ function populateEMSCarSelect(vehicles) {
 }
 
 function initEMSChecker() {
-  // ผู้ตรวจสอบคือพยาบาล/เจ้าพนักงานเวชกิจฉุกเฉิน ไม่ใช่คนขับรถ จึงให้กรอกเองแทนการเลือกจากรายชื่อคนขับ
-  // จำผู้ตรวจสอบคนล่าสุดไว้ให้ ไม่ต้องกรอกซ้ำทุกครั้ง (แก้ไขได้ตามจริงเสมอ)
+  // ผู้ตรวจสอบคือพยาบาล/เจ้าพนักงานเวชกิจฉุกเฉิน — ยังไม่มีรายชื่อจริงในระบบ ใส่รายชื่อทดสอบไปก่อน
+  const sel = document.getElementById('checkerName');
+  sel.innerHTML = '<option value="">— เลือกผู้ตรวจสอบ —</option>';
+  EMS_TEST_CHECKERS.forEach(name => {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  // จำผู้ตรวจสอบคนล่าสุดไว้ให้ ไม่ต้องเลือกซ้ำทุกครั้ง (เปลี่ยนได้ตามจริงเสมอ)
   try {
     const lastChecker = localStorage.getItem('ems_last_checker');
     const lastRole     = localStorage.getItem('ems_last_role');
-    if (lastChecker) document.getElementById('checkerName').value = lastChecker;
+    if (lastChecker && [...sel.options].some(o => o.value === lastChecker)) sel.value = lastChecker;
     if (lastRole) document.getElementById('checkerRole').value = lastRole;
   } catch (_) {}
 }
