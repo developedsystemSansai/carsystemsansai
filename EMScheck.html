@@ -69,6 +69,23 @@ body {
 }
 .back-btn:hover { background: rgba(255,255,255,.22); }
 
+/* ── ปุ่มแถบยาวเข้าแดชบอร์ด — สีทึบชัดเจน ไม่มีเรืองแสง/แอนิเมชัน ── */
+.dashboard-bar-btn {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--navy);
+  color: #fff; text-decoration: none;
+  border-radius: var(--radius);
+  padding: 15px 20px;
+  margin-bottom: 16px;
+  border: 1px solid var(--navy-mid);
+}
+.dashboard-bar-btn:hover { background: var(--navy-mid); }
+.dashboard-bar-btn .dbb-icon { font-size: 24px; flex-shrink: 0; }
+.dashboard-bar-btn .dbb-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dashboard-bar-btn .dbb-title { font-weight: 700; font-size: 14.5px; }
+.dashboard-bar-btn .dbb-sub { font-size: 11.5px; color: rgba(255,255,255,.6); line-height: 1.4; }
+.dashboard-bar-btn .dbb-arrow { flex-shrink: 0; opacity: .8; }
+
 /* ── MAIN ── */
 .main-wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
 
@@ -497,6 +514,18 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
 
 <main class="main-wrap">
 
+  <!-- แดชบอร์ด EMS Check -->
+  <a href="emsDashboard.html" class="dashboard-bar-btn">
+    <span class="dbb-icon">📊</span>
+    <span class="dbb-text">
+      <span class="dbb-title">แดชบอร์ด EMS Check</span>
+      <span class="dbb-sub">ดูสรุปผลตรวจ อัตราความพร้อมรายคัน รายการใกล้หมดอายุ และรายงานสำหรับหัวหน้าพยาบาลฉุกเฉิน</span>
+    </span>
+    <span class="dbb-arrow">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </span>
+  </a>
+
   <!-- ข้อมูลการตรวจ -->
   <div class="card">
     <div class="card-header">
@@ -520,9 +549,7 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
         </div>
         <div class="form-group">
           <label>ผู้ตรวจสอบ <span class="req">*</span></label>
-          <select id="checkerName" required>
-            <option value="">— เลือกผู้ตรวจสอบ —</option>
-          </select>
+          <input type="text" id="checkerName" required placeholder="ชื่อ-สกุล ผู้ตรวจสอบ">
         </div>
         <div class="form-group">
           <label>ตำแหน่ง</label>
@@ -1493,13 +1520,6 @@ const EMS_DEFAULT_VEHICLES = [
   { ทะเบียน:'ขฉ.8407 ชม.', ประเภท:'รถ Refer' },
 ];
 
-// TODO: รายชื่อผู้ตรวจสอบจริง (พยาบาล/เจ้าพนักงานเวชกิจฉุกเฉิน) ยังไม่มีข้อมูล — ใส่รายชื่อทดสอบไว้ก่อน
-const EMS_TEST_CHECKERS = [
-  'ทดสอบ ระบบหนึ่ง',
-  'ทดสอบ ระบบสอง',
-  'ทดสอบ ระบบสาม',
-];
-
 async function loadEMSMasterData() {
   try {
     const vRes = await fetch(GAS_URL + '?action=getVehicles');
@@ -1515,7 +1535,7 @@ async function loadEMSMasterData() {
   } catch (_) {
     populateEMSCarSelect(EMS_DEFAULT_VEHICLES);
   }
-  initEMSChecker(); // ผู้ตรวจสอบเป็น dropdown — ยังไม่มีรายชื่อจริง ใส่รายชื่อทดสอบไปก่อน
+  initEMSChecker(); // ผู้ตรวจสอบเป็นช่องกรอกอิสระ (พยาบาล/เจ้าพนักงานเวชกิจฉุกเฉิน) ไม่ผูกกับรายชื่อคนขับ
 }
 
 function populateEMSCarSelect(vehicles) {
@@ -1532,19 +1552,12 @@ function populateEMSCarSelect(vehicles) {
 }
 
 function initEMSChecker() {
-  // ผู้ตรวจสอบคือพยาบาล/เจ้าพนักงานเวชกิจฉุกเฉิน — ยังไม่มีรายชื่อจริงในระบบ ใส่รายชื่อทดสอบไปก่อน
-  const sel = document.getElementById('checkerName');
-  sel.innerHTML = '<option value="">— เลือกผู้ตรวจสอบ —</option>';
-  EMS_TEST_CHECKERS.forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = opt.textContent = name;
-    sel.appendChild(opt);
-  });
-  // จำผู้ตรวจสอบคนล่าสุดไว้ให้ ไม่ต้องเลือกซ้ำทุกครั้ง (เปลี่ยนได้ตามจริงเสมอ)
+  // ผู้ตรวจสอบคือพยาบาล/เจ้าพนักงานเวชกิจฉุกเฉิน ไม่ใช่คนขับรถ จึงให้กรอกเองแทนการเลือกจากรายชื่อคนขับ
+  // จำผู้ตรวจสอบคนล่าสุดไว้ให้ ไม่ต้องกรอกซ้ำทุกครั้ง (แก้ไขได้ตามจริงเสมอ)
   try {
     const lastChecker = localStorage.getItem('ems_last_checker');
     const lastRole     = localStorage.getItem('ems_last_role');
-    if (lastChecker && [...sel.options].some(o => o.value === lastChecker)) sel.value = lastChecker;
+    if (lastChecker) document.getElementById('checkerName').value = lastChecker;
     if (lastRole) document.getElementById('checkerRole').value = lastRole;
   } catch (_) {}
 }
