@@ -78,7 +78,11 @@
   .place-result-row .pr-addr { font-size: 11px; color: var(--text-light); margin-top: 2px; }
   .place-search-empty, .place-search-loading { padding: 10px 13px; font-size: 12px; color: var(--text-light); }
 
-  .list-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); max-height: 620px; display: flex; flex-direction: column; }
+  .list-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); max-height: 420px; display: flex; flex-direction: column; }
+  .side-col { display: flex; flex-direction: column; gap: 16px; }
+  .mission-panel { max-height: 230px; }
+  .mission-panel .dest-rank { background: var(--amber-soft); color: var(--amber); }
+  .mission-panel .dest-row { cursor: default; }
 
   /* ── ตารางระยะเวลาที่ใช้ต่อทริป (แยกตามจุดหมาย) — วิเคราะห์ความเหมาะสมของภารกิจ ── */
   .duration-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); margin-top: 16px; overflow: hidden; }
@@ -96,9 +100,6 @@
   .duration-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   .duration-table tr:hover td { background: var(--blue-soft); }
   .duration-table td.dname { white-space: normal; max-width: 260px; font-weight: 600; color: var(--text); }
-  .mission-table { table-layout: fixed; }
-  .mission-table td, .mission-table th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .mission-table td.mission-name { font-weight: 600; color: var(--text); }
   .duration-flag { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
   .duration-flag.warn { background: var(--amber-soft); color: #7a4800; }
   .duration-flag.danger { background: var(--danger-soft); color: var(--danger); }
@@ -377,29 +378,28 @@
       <div class="legend-panel" id="legendPanel"></div>
     </div>
 
-    <div class="list-panel">
-      <div class="list-head">
-        <span>อันดับจุดหมายยอดนิยม</span>
-        <span id="listCount" style="font-weight:400;color:var(--text-light);"></span>
+    <div class="side-col">
+      <div class="list-panel">
+        <div class="list-head">
+          <span>อันดับจุดหมายยอดนิยม</span>
+          <span id="listCount" style="font-weight:400;color:var(--text-light);"></span>
+        </div>
+        <div class="list-body" id="destList">
+          <div class="empty-state">กำลังโหลดข้อมูล...</div>
+        </div>
       </div>
-      <div class="list-body" id="destList">
-        <div class="empty-state">กำลังโหลดข้อมูล...</div>
-      </div>
-    </div>
-  </div>
 
-  <!-- ═══════════ ภารกิจนอกเหนือปลายทาง — รายการที่ไม่มีปลายทางชัดเจน (เดินทางซับซ้อนหลายจุด/หลายปัจจัย) ═══════════ -->
-  <div class="duration-panel" id="missionPanel">
-    <div class="duration-head">
-      <div><span class="title">🧭 ภารกิจนอกเหนือปลายทาง</span><span class="sub">รายการที่ไม่ได้ระบุปลายทางเป็นสถานที่ชัดเจน เพราะต้องไปปฏิบัติภารกิจที่มีการเดินทางซับซ้อนหลายจุด/หลายปัจจัย — จึงแยกนับเป็นประเภทภารกิจแทนการนับเป็นจุดหมายบนแผนที่</span></div>
-      <span id="missionCount" style="font-size:11.5px;color:var(--text-light);"></span>
+      <!-- ภารกิจนอกเหนือปลายทาง — รายการที่ไม่มีปลายทางชัดเจน (เดินทางซับซ้อนหลายจุด/หลายปัจจัย) -->
+      <div class="list-panel mission-panel" id="missionPanel">
+        <div class="list-head">
+          <span>🧭 ภารกิจนอกเหนือปลายทาง</span>
+          <span id="missionCount" style="font-weight:400;color:var(--text-light);"></span>
+        </div>
+        <div class="list-body" id="missionBody">
+          <div class="empty-state">กำลังโหลดข้อมูล...</div>
+        </div>
+      </div>
     </div>
-    <table class="duration-table mission-table">
-      <thead>
-        <tr><th style="width:8%;">#</th><th style="width:52%;">ภารกิจ</th><th style="width:20%;">จำนวนครั้ง</th><th style="width:20%;">สัดส่วน</th></tr>
-      </thead>
-      <tbody id="missionBody"></tbody>
-    </table>
   </div>
 
   <!-- ═══════════ ตารางระยะเวลาที่ใช้ต่อทริป (รายทริป — ล่าสุดก่อน) ═══════════ -->
@@ -976,13 +976,14 @@ const MISSION_TYPES = [
   { label: 'EMS',                test: n => /ems/i.test(n) },
   { label: 'ในพื้นที่สันทราย',     test: n => /ในพื้นที่สันทราย/.test(n) },
   { label: 'ส่ง จนท.',           test: n => /ส่ง\s*จนท\.?/.test(n) },
-  { label: 'จ่ายเช็ค',           test: n => /จ่ายเช็ค/.test(n) },
+  { label: 'จ่ายเช็ค',           test: n => /จ่ายเช็?ค/.test(n) }, // ครอบคลุมทั้ง "จ่ายเช็ค" และ "จ่ายเชค" (ไม่มีไม้ไต่คู้) เช่น "จ่ายเชค ส่วนราชการ"
   { label: 'ส่งเช็ค',            test: n => /ส่งเช็ค/.test(n) },
   { label: 'รับอาจารย์',          test: n => /รับอาจารย์/.test(n) },
   { label: 'นำผ้าไปส่งร้านเย็บ',   test: n => /ร้านเย็บ/.test(n) },
   { label: 'เปลี่ยนออกซิเจน',      test: n => /เปลี่ยนออกซิเจน/.test(n) },
   { label: 'ออกหน่วย',           test: n => /ออกหน่วย/.test(n) },
-  { label: 'อื่นๆ',              test: n => /^อื่นๆ$/.test(n.trim()) },
+  { label: 'ออกเหตุ',            test: n => /ออกเหตุ/.test(n) }, // เช่น "ออกเหตุหน้าเซเว่นป่าบง"
+  { label: 'อื่นๆ',              test: n => /^อื่นๆ(\s*\(.*\))?$/.test(n.trim()) }, // รวม "อื่นๆ (ระบุในหมายเหตุ)" ด้วย แต่แสดงป้ายกำกับแค่ "อื่นๆ" เฉยๆ
 ];
 
 // คืน label ของประเภทภารกิจถ้าปลายทางดิบ (ทั้งข้อความ ก่อนตัดจุลภาค/สแลช) เข้าเงื่อนไขข้อใดข้อหนึ่ง มิเช่นนั้นคืน null
@@ -1497,20 +1498,22 @@ function escAttr(s) { return String(s).replace(/'/g, "\\'"); }
 function renderMissionTable(totalTrips) {
   const body = document.getElementById('missionBody');
   document.getElementById('missionCount').textContent = missionFreq.length
-    ? missionFreq.reduce((sum, m) => sum + m.count, 0) + ' ครั้ง จาก ' + missionFreq.length + ' ประเภท'
+    ? missionFreq.reduce((sum, m) => sum + m.count, 0) + ' ครั้ง'
     : '';
   if (!missionFreq.length) {
-    body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:16px;white-space:normal;">ไม่พบภารกิจประเภทนี้ในช่วงที่กรอง</td></tr>';
+    body.innerHTML = '<div class="empty-state">ไม่พบภารกิจประเภทนี้ในช่วงที่กรอง</div>';
     return;
   }
   body.innerHTML = missionFreq.map((m, i) => {
     const pct = totalTrips ? (m.count / totalTrips * 100).toFixed(1) : '0.0';
-    return '<tr>'
-      + '<td>' + (i + 1) + '</td>'
-      + '<td class="mission-name" title="' + escAttr(m.label) + '">' + escHtml(m.label) + '</td>'
-      + '<td>' + m.count + '</td>'
-      + '<td>' + pct + '%</td>'
-      + '</tr>';
+    return '<div class="dest-row">'
+      + '<div class="dest-rank">' + (i + 1) + '</div>'
+      + '<div class="dest-info">'
+      +   '<div class="dest-name" title="' + escAttr(m.label) + '">' + escHtml(m.label) + '</div>'
+      +   '<div class="dest-sub">' + pct + '% ของทริปทั้งหมด</div>'
+      + '</div>'
+      + '<div class="dest-count">' + m.count + '</div>'
+      + '</div>';
   }).join('');
 }
 
