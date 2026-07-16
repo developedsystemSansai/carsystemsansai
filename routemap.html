@@ -47,6 +47,9 @@
   .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
   .filter-bar input { font-family: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--card); color: var(--text); }
   .filter-bar label { font-size: 12px; color: var(--text-mid); font-weight: 600; margin-right: 4px; }
+  .filter-bar select { font-family: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--card); color: var(--text); }
+  .sequence-info { margin: -10px 0 16px; padding: 10px 14px; background: #eef4fb; border: 1px solid #cfe0f2; border-radius: var(--radius-sm); font-size: 12.5px; color: var(--navy); }
+  .seq-marker { display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-family:'IBM Plex Mono',monospace;border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,.4);border:2px solid #fff; }
   .filter-group { display: flex; align-items: center; gap: 6px; }
   .btn { font-family: inherit; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: opacity .15s; }
   .btn:hover { opacity: .88; }
@@ -319,9 +322,16 @@
     <div class="filter-group" style="flex:1;min-width:180px;">
       <input type="text" id="fSearch" placeholder="ค้นหาชื่อจุดหมาย..." style="width:100%;">
     </div>
+    <div class="filter-group">
+      <label>🚗 ลำดับเส้นทางของรถ</label>
+      <select id="fCar" onchange="applyFilters()">
+        <option value="">— ไม่แสดง —</option>
+      </select>
+    </div>
     <button class="btn btn-primary" onclick="applyFilters()">กรองข้อมูล</button>
     <button class="btn btn-ghost" onclick="resetFilters()">ล้างตัวกรอง</button>
   </div>
+  <div class="sequence-info" id="sequenceInfo" style="display:none;"></div>
 
   <div class="layout">
     <div class="map-panel">
@@ -433,6 +443,7 @@ let colorMode = 'freq'; // 'freq' | 'category' | 'car'
 let topOverallCar = null;      // ทะเบียน/รถที่ถูกใช้งานบ่อยที่สุดโดยรวม (ทุกทริปที่กรองไว้)
 let topOverallCarCount = 0;
 let heatLayer = null;          // เลเยอร์ Heatmap (Leaflet.heat)
+let sequenceLayer = null;      // เลเยอร์เส้นทาง+หมุดลำดับการเดินทางของรถคันที่เลือก
 let durationPage = 1;                  // หน้าปัจจุบันของตารางระยะเวลาที่ใช้ต่อทริป
 const DURATION_PAGE_SIZE = 20;         // จำนวนแถว(ทริป)ต่อหน้า
 const DURATION_EXCLUDE_PLATES = ['8781']; // ทะเบียนที่ไม่ต้องนับในตารางนี้ (เทียบแบบ contains)
@@ -508,6 +519,21 @@ function carColor(plate) {
     carColorCache[key] = CAR_PALETTE[hash % CAR_PALETTE.length];
   }
   return carColorCache[key];
+}
+
+// เติมรายชื่อรถทั้งหมด (จากทริปที่มีอยู่) ลงใน dropdown "ลำดับเส้นทางของรถ"
+function populateCarFilterSelect() {
+  const sel = document.getElementById('fCar');
+  const prev = sel.value;
+  const cars = new Set();
+  allTrips.forEach(t => {
+    const car = normName(t['ทะเบียน/รถ'] || t['carType']);
+    if (car) cars.add(car);
+  });
+  const sorted = [...cars].sort((a, b) => a.localeCompare(b, 'th'));
+  sel.innerHTML = '<option value="">— ไม่แสดง —</option>'
+    + sorted.map(c => '<option value="' + escAttr(c) + '">' + escHtml(c) + '</option>').join('');
+  if (sorted.includes(prev)) sel.value = prev;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -892,6 +918,7 @@ async function loadAll() {
     allTrips = (mileRes && mileRes.data) || [];
     allPins = {};
     ((pinRes && pinRes.data) || []).forEach(p => { allPins[normName(p.name)] = p; });
+    populateCarFilterSelect();
     applyFilters();
     renderLiveMap(); // ปักหมุดโหลดเสร็จแล้ว → วาดหมุด/เส้นทาง "กำลังเดินทาง" ทันที (เผื่อ getStatusSummary โหลดเสร็จก่อนหน้านี้)
   } catch (err) {
@@ -904,13 +931,27 @@ function normName(s) {
   return String(s || '').trim();
 }
 
-// แยกชื่อปลายทางที่บันทึกรวมหลายจุดไว้ในทริปเดียว (เช่น "สสจ.เชียงใหม่, ศาลากลาง, กาชาด, สหกรณ์, เทศบาลแม่โจ้")
-// ให้เป็นรายชื่อแยกทีละจุด สำหรับใช้นับความถี่/ปักหมุดแต่ละจุดแยกกัน แทนที่จะนับรวมเป็นก้อนเดียว
+// แยกชื่อปลายทางที่บันทึกรวมหลายจุดไว้ในทริปเดียว (เช่น "สสจ.เชียงใหม่, ศาลากลาง, กาชาด, สหกรณ์, เทศบาลแม่โจ้"
+// หรือ "รพ.ประสาทเชียงใหม่ / อบจ.ชม") ให้เป็นรายชื่อแยกทีละจุด — ตัดด้วยทั้งจุลภาค (,) และเครื่องหมาย (/)
+// แล้ว group ชื่อที่หมายถึงสถานที่เดียวกันแต่เขียนคนละแบบให้เป็นชื่อเดียวกัน (ดู canonicalDestName)
 function splitDestNames(raw) {
   return String(raw || '')
-    .split(',')
-    .map(s => normName(s))
+    .split(/[,/]/)
+    .map(s => canonicalDestName(normName(s)))
     .filter(Boolean);
+}
+
+// รวมชื่อสถานที่ที่สะกด/เขียนย่อต่างกันแต่หมายถึงที่เดียวกัน ให้กลายเป็นชื่อมาตรฐานเดียว ก่อนนับความถี่/ปักหมุด
+// เช่น "โรงพยาบาลประสาทเชียงใหม่" กับ "รพ.ประสาทเชียงใหม่" → "รพ.ประสาทเชียงใหม่"
+//      "อบจ.ชม", "อบจ.ชม.", "อบจ." → "อบจ." (ตัดคำขยายจังหวัดที่ซ้ำซ้อนออก เหลือคำย่อหลัก)
+function canonicalDestName(name) {
+  let s = normName(name);
+  if (!s) return s;
+  // "โรงพยาบาลXXX" → "รพ.XXX"
+  s = s.replace(/^โรงพยาบาล\s*/, 'รพ.');
+  // อบจ. / อบจ.ชม / อบจ.ชม. (และแบบไม่มีจุด) → อบจ.
+  if (/^อบจ\.?\s*(ชม\.?)?$/.test(s)) s = 'อบจ.';
+  return s;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1136,6 +1177,111 @@ async function fetchOsrmRoute(origin, dest) {
   return { latlngs: [origin, dest], approx: true };
 }
 
+// ════════════════════════════════════════════════════════════
+//  ลำดับเส้นทางของรถคันที่เลือก (เรียงตามทริปจริง วันนี้/ช่วงที่กรองไว้)
+//  โยงเส้น รพ. → จุดที่ 1 → จุดที่ 2 → ... ตามลำดับเวลาออกจริง พร้อมเลขกำกับ
+// ════════════════════════════════════════════════════════════
+let seqRouteToken = 0; // กันปัญหาผลลัพธ์เก่าที่โหลดช้ามาทับผลลัพธ์ใหม่ เวลาผู้ใช้กดเปลี่ยนตัวกรองรัวๆ
+
+async function renderSequenceRoute() {
+  const myToken = ++seqRouteToken;
+  const infoBar = document.getElementById('sequenceInfo');
+
+  if (sequenceLayer) { map.removeLayer(sequenceLayer); sequenceLayer = null; }
+
+  const car = document.getElementById('fCar').value;
+  if (!car) { infoBar.style.display = 'none'; return; }
+
+  const from = document.getElementById('fDateFrom').value;
+  const to   = document.getElementById('fDateTo').value;
+
+  // รวมทริปของรถคันนี้ในช่วงวันที่กรองไว้ เรียงจากเวลาออกก่อน-หลัง (ตามลำดับการเดินทางจริง)
+  const carTrips = allTrips
+    .filter(t => normName(t['ทะเบียน/รถ'] || t['carType']) === car)
+    .filter(t => {
+      const d = toYMD(t['วันที่']);
+      if (from && d && d < from) return false;
+      if (to && d && d > to) return false;
+      return true;
+    })
+    .map(t => ({ trip: t, ts: buildTripTimestamp(toYMD(t['วันที่']), t['เวลาออก']) }))
+    .sort((a, b) => a.ts - b.ts);
+
+  // แตกปลายทางแบบหลายจุด/ทริป ให้เป็นจุดแวะทีละจุดตามลำดับ แล้วจับคู่กับพิกัดที่ปักหมุดไว้แล้วเท่านั้น
+  const stops = [];
+  let skipped = 0;
+  carTrips.forEach(({ trip }) => {
+    splitDestNames(trip['ปลายทาง']).forEach(name => {
+      const pin = allPins[normName(name)];
+      if (pin) {
+        stops.push({ name, lat: pin.lat, lng: pin.lng, out: trip['เวลาออก'], back: trip['เวลากลับ'] });
+      } else {
+        skipped++;
+      }
+    });
+  });
+
+  if (!stops.length) {
+    infoBar.style.display = 'block';
+    infoBar.innerHTML = '🚗 <b>' + escHtml(car) + '</b> — ไม่มีจุดหมายที่ปักหมุดไว้แล้วในช่วงวันที่เลือก'
+      + (skipped ? ' (ข้าม ' + skipped + ' จุดที่ยังไม่ได้ปักหมุด — ปักหมุดให้ก่อนถึงจะแสดงเส้นทางได้)' : '');
+    return;
+  }
+
+  infoBar.style.display = 'block';
+  infoBar.innerHTML = '🚗 กำลังโหลดเส้นทาง <b>' + escHtml(car) + '</b> — ' + stops.length + ' จุดแวะ...';
+
+  const color = carColor(car);
+  const points = [[HOSPITAL_LOCATION.lat, HOSPITAL_LOCATION.lng], ...stops.map(s => [s.lat, s.lng])];
+
+  // จำกัดจำนวนเส้นทางที่ดึงจาก OSRM (บริการสาธารณะฟรี ไม่ควรยิงรัวเกินไป) — ถ้าจุดแวะเยอะมาก
+  // (เช่น ไม่ได้กรองวันที่ไว้เลย) จะวาดเป็นเส้นตรงแทนเส้นตามถนนจริง เพื่อความเร็ว/มารยาทต่อบริการฟรี
+  const TOO_MANY_LEGS = 30;
+  const legCount = points.length - 1;
+  let legs;
+  if (legCount > TOO_MANY_LEGS) {
+    legs = points.slice(0, -1).map((p, i) => ({ latlngs: [p, points[i + 1]], approx: true }));
+  } else {
+    legs = await Promise.all(
+      points.slice(0, -1).map((p, i) => fetchOsrmRoute(p, points[i + 1]))
+    );
+  }
+
+  if (myToken !== seqRouteToken || !map) return; // ตัวกรองถูกเปลี่ยนไปแล้วระหว่างรอโหลด ไม่ต้องวาดผลลัพธ์เก่า
+
+  sequenceLayer = L.layerGroup().addTo(map);
+
+  legs.forEach(leg => {
+    L.polyline(leg.latlngs, {
+      color, weight: 4, opacity: 0.8, dashArray: '1,8', lineCap: 'round',
+      className: leg.approx ? 'approx' : ''
+    }).addTo(sequenceLayer);
+  });
+
+  stops.forEach((s, i) => {
+    const icon = L.divIcon({
+      className: '',
+      html: '<div class="seq-marker" style="width:26px;height:26px;font-size:12.5px;background:' + color + ';">' + (i + 1) + '</div>',
+      iconSize: [26, 26],
+      iconAnchor: [13, 13]
+    });
+    L.marker([s.lat, s.lng], { icon, zIndexOffset: 900 })
+      .bindPopup(
+        '<b>ลำดับที่ ' + (i + 1) + ': ' + escHtml(s.name) + '</b>'
+        + '<br>เวลาออก: ' + escHtml(formatTimeOfDay(s.out))
+        + ' — เวลากลับ: ' + escHtml(formatTimeOfDay(s.back))
+      )
+      .addTo(sequenceLayer);
+  });
+
+  infoBar.innerHTML = '🚗 <b>' + escHtml(car) + '</b> — เส้นทางตามลำดับ ' + stops.length + ' จุดแวะ'
+    + (from || to ? ' (' + (from || '…') + ' ถึง ' + (to || '…') + ')' : ' (ทุกวันที่มีข้อมูล)')
+    + (skipped ? ' · ข้าม ' + skipped + ' จุดที่ยังไม่ได้ปักหมุด' : '')
+    + (legCount > TOO_MANY_LEGS ? ' · จุดแวะเยอะมาก แสดงเป็นเส้นตรงแทนเส้นตามถนนจริงเพื่อความเร็ว (แนะนำกรองวันที่ให้แคบลง)' : '');
+
+  map.fitBounds(L.latLngBounds(points), { padding: [40, 40] });
+}
+
 // ── โฟกัสแผนที่ไปยังรถที่กำลังเดินทาง เมื่อคลิกจากการ์ดสถานการณ์ปัจจุบัน ──
 function focusLiveTrip(tripId) {
   const trip = liveTrips.find(t => String(t.tripId) === tripId);
@@ -1213,12 +1359,15 @@ function applyFilters() {
   durationStatsCache = computeDurationStats(filtered);
   durationPage = 1; // กรองใหม่ → กลับไปหน้าแรก (ล่าสุดก่อน) เสมอ
   renderDurationTable();
+
+  renderSequenceRoute();
 }
 
 function resetFilters() {
   document.getElementById('fDateFrom').value = '';
   document.getElementById('fDateTo').value = '';
   document.getElementById('fSearch').value = '';
+  document.getElementById('fCar').value = '';
   applyFilters();
 }
 
