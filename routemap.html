@@ -80,7 +80,8 @@
 
   .list-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); max-height: 420px; display: flex; flex-direction: column; }
   .side-col { display: flex; flex-direction: column; gap: 16px; }
-  .mission-panel { max-height: 230px; }
+  .mission-panel { max-height: 230px; height: auto; }
+  .mission-panel .list-body { flex: 0 1 auto; }
   .mission-panel .dest-rank { background: var(--amber-soft); color: var(--amber); }
   .mission-panel .dest-row { cursor: default; }
 
@@ -1004,6 +1005,8 @@ function canonicalDestName(name) {
   if (!s) return s;
   // "โรงพยาบาลXXX" → "รพ.XXX"
   s = s.replace(/^โรงพยาบาล\s*/, 'รพ.');
+  // "องค์การบริหารส่วนจังหวัดเชียงใหม่ (อบจ.)" (ชื่อเต็ม) → อบจ. (รวมเป็นหมุดเดียวกับชื่อย่อ)
+  if (/^องค์การบริหารส่วนจังหวัด/.test(s)) s = 'อบจ.';
   // อบจ. / อบจ.ชม / อบจ.ชม. (และแบบไม่มีจุด) → อบจ.
   if (/^อบจ\.?\s*(ชม\.?)?$/.test(s)) s = 'อบจ.';
   // "รับเลือดกาชาด" / "รับ เลือด กาชาด" / "รับเลือก กาชาด" (พิมพ์ผิด เลือด→เลือก) → กาชาด
