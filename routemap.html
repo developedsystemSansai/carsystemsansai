@@ -96,6 +96,9 @@
   .duration-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   .duration-table tr:hover td { background: var(--blue-soft); }
   .duration-table td.dname { white-space: normal; max-width: 260px; font-weight: 600; color: var(--text); }
+  .mission-table { table-layout: fixed; }
+  .mission-table td, .mission-table th { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mission-table td.mission-name { font-weight: 600; color: var(--text); }
   .duration-flag { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
   .duration-flag.warn { background: var(--amber-soft); color: #7a4800; }
   .duration-flag.danger { background: var(--danger-soft); color: var(--danger); }
@@ -385,6 +388,20 @@
     </div>
   </div>
 
+  <!-- ═══════════ ภารกิจนอกเหนือปลายทาง — รายการที่ไม่มีปลายทางชัดเจน (เดินทางซับซ้อนหลายจุด/หลายปัจจัย) ═══════════ -->
+  <div class="duration-panel" id="missionPanel">
+    <div class="duration-head">
+      <div><span class="title">🧭 ภารกิจนอกเหนือปลายทาง</span><span class="sub">รายการที่ไม่ได้ระบุปลายทางเป็นสถานที่ชัดเจน เพราะต้องไปปฏิบัติภารกิจที่มีการเดินทางซับซ้อนหลายจุด/หลายปัจจัย — จึงแยกนับเป็นประเภทภารกิจแทนการนับเป็นจุดหมายบนแผนที่</span></div>
+      <span id="missionCount" style="font-size:11.5px;color:var(--text-light);"></span>
+    </div>
+    <table class="duration-table mission-table">
+      <thead>
+        <tr><th style="width:8%;">#</th><th style="width:52%;">ภารกิจ</th><th style="width:20%;">จำนวนครั้ง</th><th style="width:20%;">สัดส่วน</th></tr>
+      </thead>
+      <tbody id="missionBody"></tbody>
+    </table>
+  </div>
+
   <!-- ═══════════ ตารางระยะเวลาที่ใช้ต่อทริป (รายทริป — ล่าสุดก่อน) ═══════════ -->
   <div class="duration-panel" id="durationPanel">
     <div class="duration-head">
@@ -434,6 +451,7 @@ const CURRENT_USER = 'ผู้ใช้งานหน้าแผนที่'
 let allTrips = [];
 let allPins  = {};      // { destinationName: {lat,lng,...} }
 let destFreq = [];      // [{name, count, distanceKm, category, carBreakdown, topCar, topCarColor}]
+let missionFreq = [];   // [{label, count}] — ภารกิจนอกเหนือปลายทาง (ไม่ใช่ชื่อสถานที่)
 let map = null;
 let markerByName = {};
 let pinModeTarget = null;
@@ -945,6 +963,36 @@ function splitDestNames(raw) {
 // รวมชื่อสถานที่ที่สะกด/เขียนย่อต่างกันแต่หมายถึงที่เดียวกัน ให้กลายเป็นชื่อมาตรฐานเดียว ก่อนนับความถี่/ปักหมุด
 // เช่น "โรงพยาบาลประสาทเชียงใหม่" กับ "รพ.ประสาทเชียงใหม่" → "รพ.ประสาทเชียงใหม่"
 //      "อบจ.ชม", "อบจ.ชม.", "อบจ." → "อบจ." (ตัดคำขยายจังหวัดที่ซ้ำซ้อนออก เหลือคำย่อหลัก)
+
+// ════════════════════════════════════════════════════════════
+//  ภารกิจนอกเหนือปลายทาง — บางทริปไม่มีปลายทางเป็น "สถานที่" ชัดเจน เพราะเป็นภารกิจที่ต้อง
+//  เดินทางซับซ้อนหลายจุด/หลายปัจจัย (เช่น ออกไปรับส่งหลายที่ต่อเนื่องกัน) ผู้บันทึกจึงเขียนเป็น
+//  "ประเภทภารกิจ" แทนชื่อสถานที่ — คัดกรองด้วย keyword แล้วนับแยกเป็นตารางต่างหาก ไม่ปนกับจุดหมายบนแผนที่
+// ════════════════════════════════════════════════════════════
+const MISSION_TYPES = [
+  { label: 'ชันสูตร',            test: n => /ชันสูตร/.test(n) },
+  { label: 'เยี่ยมบ้าน',          test: n => /เยี่ยมบ้าน/.test(n) },
+  { label: 'ส่งแลป / ส่งแล็บ',    test: n => /ส่งแล[ปบ็]/.test(n) || /ส่ง\s*lab/i.test(n) },
+  { label: 'EMS',                test: n => /ems/i.test(n) },
+  { label: 'ในพื้นที่สันทราย',     test: n => /ในพื้นที่สันทราย/.test(n) },
+  { label: 'ส่ง จนท.',           test: n => /ส่ง\s*จนท\.?/.test(n) },
+  { label: 'จ่ายเช็ค',           test: n => /จ่ายเช็ค/.test(n) },
+  { label: 'ส่งเช็ค',            test: n => /ส่งเช็ค/.test(n) },
+  { label: 'รับอาจารย์',          test: n => /รับอาจารย์/.test(n) },
+  { label: 'นำผ้าไปส่งร้านเย็บ',   test: n => /ร้านเย็บ/.test(n) },
+  { label: 'เปลี่ยนออกซิเจน',      test: n => /เปลี่ยนออกซิเจน/.test(n) },
+  { label: 'ออกหน่วย',           test: n => /ออกหน่วย/.test(n) },
+  { label: 'อื่นๆ',              test: n => /^อื่นๆ$/.test(n.trim()) },
+];
+
+// คืน label ของประเภทภารกิจถ้าปลายทางดิบ (ทั้งข้อความ ก่อนตัดจุลภาค/สแลช) เข้าเงื่อนไขข้อใดข้อหนึ่ง มิเช่นนั้นคืน null
+// (ใช้ข้อความดิบทั้งก้อน ไม่ใช้ splitDestNames เพราะภารกิจพวกนี้ไม่ใช่ชื่อสถานที่ที่ควรถูกแยกทีละจุด)
+function classifyMission(raw) {
+  const n = normName(raw);
+  if (!n) return null;
+  for (const m of MISSION_TYPES) if (m.test(n)) return m.label;
+  return null;
+}
 // วงเล็บท้ายชื่อบางแบบเป็นแค่คำอธิบายเส้นทาง ไม่ใช่ส่วนหนึ่งของชื่อสถานที่ — ตัดออกได้เพื่อให้นับรวมกับชื่อเปล่าๆ ได้
 // ส่วนวงเล็บที่สื่อความหมายของสถานที่จริง เช่น (สวนดอก) (มช.) (อบจ.) ต้องคงไว้ เพราะเป็นส่วนหนึ่งของชื่อ
 const ROUTE_DESC_ANNOTATIONS = ['เส้นทางในเมือง'];
@@ -956,6 +1004,8 @@ function canonicalDestName(name) {
   s = s.replace(/^โรงพยาบาล\s*/, 'รพ.');
   // อบจ. / อบจ.ชม / อบจ.ชม. (และแบบไม่มีจุด) → อบจ.
   if (/^อบจ\.?\s*(ชม\.?)?$/.test(s)) s = 'อบจ.';
+  // "รับเลือดกาชาด" / "รับ เลือด กาชาด" / "รับเลือก กาชาด" (พิมพ์ผิด เลือด→เลือก) → กาชาด
+  if (/^รับ\s*เลือ[ดก]\s*กาชาด$/.test(s)) s = 'กาชาด';
   // ตัดเฉพาะวงเล็บที่เป็นคำอธิบายเส้นทาง (ไม่ใช่ชื่อสถานที่) ท้ายข้อความ เช่น "สหกรณ์ (เส้นทางในเมือง)" → "สหกรณ์"
   s = s.replace(/\s*\(([^)]*)\)\s*$/, (m, inner) => ROUTE_DESC_ANNOTATIONS.includes(inner.trim()) ? '' : m).trim();
   return s;
@@ -1323,8 +1373,18 @@ function applyFilters() {
 
   const map_ = {};
   const overallCarTally = {};
+  const missionTally = {};
   filtered.forEach(t => {
-    const destNames = splitDestNames(t['ปลายทาง']);
+    const rawDest = t['ปลายทาง'];
+    const missionLabel = classifyMission(rawDest);
+    if (missionLabel) {
+      // ภารกิจที่ไม่มีปลายทางชัดเจน — นับแยกไว้ในตาราง "ภารกิจนอกเหนือปลายทาง" ไม่ปนกับจุดหมายบนแผนที่
+      missionTally[missionLabel] = (missionTally[missionLabel] || 0) + 1;
+      const car = normName(t['ทะเบียน/รถ'] || t['carType']) || 'ไม่ระบุ';
+      overallCarTally[car] = (overallCarTally[car] || 0) + 1;
+      return;
+    }
+    const destNames = splitDestNames(rawDest);
     if (!destNames.length) return;
     const km = Number(t['ระยะทาง(กม.)']);
     const car = normName(t['ทะเบียน/รถ'] || t['carType']) || 'ไม่ระบุ';
@@ -1336,6 +1396,9 @@ function applyFilters() {
     });
     overallCarTally[car] = (overallCarTally[car] || 0) + 1;
   });
+  missionFreq = Object.entries(missionTally)
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count);
 
   // หา "รถที่ใช้บ่อยที่สุดโดยรวม" จากทริปทั้งหมดที่กรองไว้ (ไม่ใช่แค่ต่อจุดหมาย)
   topOverallCar = null;
@@ -1362,6 +1425,7 @@ function applyFilters() {
 
   renderList();
   renderMarkers();
+  renderMissionTable(filtered.length);
 
   durationStatsCache = computeDurationStats(filtered);
   durationPage = 1; // กรองใหม่ → กลับไปหน้าแรก (ล่าสุดก่อน) เสมอ
@@ -1428,6 +1492,27 @@ function renderList() {
 
 function escHtml(s) { return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
 function escAttr(s) { return String(s).replace(/'/g, "\\'"); }
+
+// ตาราง "ภารกิจนอกเหนือปลายทาง" — แสดงรายการที่ไม่มีปลายทางเป็นสถานที่ชัดเจน (ดู classifyMission/MISSION_TYPES ด้านบน)
+function renderMissionTable(totalTrips) {
+  const body = document.getElementById('missionBody');
+  document.getElementById('missionCount').textContent = missionFreq.length
+    ? missionFreq.reduce((sum, m) => sum + m.count, 0) + ' ครั้ง จาก ' + missionFreq.length + ' ประเภท'
+    : '';
+  if (!missionFreq.length) {
+    body.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-light);padding:16px;white-space:normal;">ไม่พบภารกิจประเภทนี้ในช่วงที่กรอง</td></tr>';
+    return;
+  }
+  body.innerHTML = missionFreq.map((m, i) => {
+    const pct = totalTrips ? (m.count / totalTrips * 100).toFixed(1) : '0.0';
+    return '<tr>'
+      + '<td>' + (i + 1) + '</td>'
+      + '<td class="mission-name" title="' + escAttr(m.label) + '">' + escHtml(m.label) + '</td>'
+      + '<td>' + m.count + '</td>'
+      + '<td>' + pct + '%</td>'
+      + '</tr>';
+  }).join('');
+}
 
 // ════════════════════════════════════════════════════════════
 //  ระยะเวลาที่ใช้ต่อทริป (แยกตามจุดหมาย)
