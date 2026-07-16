@@ -81,9 +81,9 @@
   .list-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); max-height: 420px; display: flex; flex-direction: column; }
   .side-col { display: flex; flex-direction: column; gap: 16px; }
   .mission-panel { max-height: 230px; height: auto; }
-  .mission-panel .list-body { flex: 0 1 auto; }
+  .mission-panel .list-body { flex: 0 1 auto; padding-bottom: 6px; }
   .mission-panel .dest-rank { background: var(--amber-soft); color: var(--amber); }
-  .mission-panel .dest-row { cursor: default; }
+  .mission-panel .dest-row { cursor: default; padding-top: 16px; padding-bottom: 16px; }
 
   /* ── ตารางระยะเวลาที่ใช้ต่อทริป (แยกตามจุดหมาย) — วิเคราะห์ความเหมาะสมของภารกิจ ── */
   .duration-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); margin-top: 16px; overflow: hidden; }
@@ -1011,8 +1011,10 @@ function canonicalDestName(name) {
   if (/^อบจ\.?\s*(ชม\.?)?$/.test(s)) s = 'อบจ.';
   // "รับเลือดกาชาด" / "รับ เลือด กาชาด" / "รับเลือก กาชาด" (พิมพ์ผิด เลือด→เลือก) → กาชาด
   if (/^รับ\s*เลือ[ดก]\s*กาชาด$/.test(s)) s = 'กาชาด';
-  // "สสจ." / "สสจ.เชียงใหม่" (และแบบไม่มีจุด) → สสจ.เชียงใหม่ (รวมเป็นหมุดเดียว ใช้ชื่อเต็มที่ระบุจังหวัดชัดเจน)
-  if (/^สสจ\.?\s*(เชียงใหม่)?$/.test(s)) s = 'สสจ.เชียงใหม่';
+  // "ศาลากลาง" / "ส่งแฟ้มศาลากลาง" / "ศาลากลางจังหวัดเชียงใหม่" → ศาลากลาง (รวมเป็นหมุดเดียว)
+  if (/^(ส่งแฟ้ม\s*)?ศาลากลาง(จังหวัดเชียงใหม่)?$/.test(s)) s = 'ศาลากลาง';
+  // "สสจ." / "สสจ.เชียงใหม่" / "ส่งแฟ้ม สสจ." / "ส่งแฟ้มสสจ.เชียงใหม่" (และแบบไม่มีจุด) → สสจ.เชียงใหม่ (รวมเป็นหมุดเดียว ใช้ชื่อเต็มที่ระบุจังหวัดชัดเจน)
+  if (/^(ส่งแฟ้ม\s*)?สสจ\.?\s*(เชียงใหม่)?$/.test(s)) s = 'สสจ.เชียงใหม่';
   // ตัดเฉพาะวงเล็บที่เป็นคำอธิบายเส้นทาง (ไม่ใช่ชื่อสถานที่) ท้ายข้อความ เช่น "สหกรณ์ (เส้นทางในเมือง)" → "สหกรณ์"
   s = s.replace(/\s*\(([^)]*)\)\s*$/, (m, inner) => ROUTE_DESC_ANNOTATIONS.includes(inner.trim()) ? '' : m).trim();
   return s;
