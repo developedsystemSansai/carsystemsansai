@@ -1008,6 +1008,8 @@ function canonicalDestName(name) {
   if (/^อบจ\.?\s*(ชม\.?)?$/.test(s)) s = 'อบจ.';
   // "รับเลือดกาชาด" / "รับ เลือด กาชาด" / "รับเลือก กาชาด" (พิมพ์ผิด เลือด→เลือก) → กาชาด
   if (/^รับ\s*เลือ[ดก]\s*กาชาด$/.test(s)) s = 'กาชาด';
+  // "สสจ." / "สสจ.เชียงใหม่" (และแบบไม่มีจุด) → สสจ.เชียงใหม่ (รวมเป็นหมุดเดียว ใช้ชื่อเต็มที่ระบุจังหวัดชัดเจน)
+  if (/^สสจ\.?\s*(เชียงใหม่)?$/.test(s)) s = 'สสจ.เชียงใหม่';
   // ตัดเฉพาะวงเล็บที่เป็นคำอธิบายเส้นทาง (ไม่ใช่ชื่อสถานที่) ท้ายข้อความ เช่น "สหกรณ์ (เส้นทางในเมือง)" → "สหกรณ์"
   s = s.replace(/\s*\(([^)]*)\)\s*$/, (m, inner) => ROUTE_DESC_ANNOTATIONS.includes(inner.trim()) ? '' : m).trim();
   return s;
@@ -1496,22 +1498,25 @@ function escHtml(s) { return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':
 function escAttr(s) { return String(s).replace(/'/g, "\\'"); }
 
 // ตาราง "ภารกิจนอกเหนือปลายทาง" — แสดงรายการที่ไม่มีปลายทางเป็นสถานที่ชัดเจน (ดู classifyMission/MISSION_TYPES ด้านบน)
+// หมายเหตุ: % ของแต่ละแถวคำนวณเทียบกับ "ผลรวมจำนวนภารกิจทั้งหมด" (ตัวเลขที่แสดงในหัวตาราง เช่น 96 ครั้ง)
+// ไม่ใช่เทียบกับจำนวนทริปทั้งหมด — เพื่อให้สัดส่วน % ของทุกแถวรวมกันได้เต็ม 100% พอดี
 function renderMissionTable(totalTrips) {
   const body = document.getElementById('missionBody');
+  const totalMissions = missionFreq.reduce((sum, m) => sum + m.count, 0);
   document.getElementById('missionCount').textContent = missionFreq.length
-    ? missionFreq.reduce((sum, m) => sum + m.count, 0) + ' ครั้ง'
+    ? totalMissions + ' ครั้ง'
     : '';
   if (!missionFreq.length) {
     body.innerHTML = '<div class="empty-state">ไม่พบภารกิจประเภทนี้ในช่วงที่กรอง</div>';
     return;
   }
   body.innerHTML = missionFreq.map((m, i) => {
-    const pct = totalTrips ? (m.count / totalTrips * 100).toFixed(1) : '0.0';
+    const pct = totalMissions ? (m.count / totalMissions * 100).toFixed(1) : '0.0';
     return '<div class="dest-row">'
       + '<div class="dest-rank">' + (i + 1) + '</div>'
       + '<div class="dest-info">'
       +   '<div class="dest-name" title="' + escAttr(m.label) + '">' + escHtml(m.label) + '</div>'
-      +   '<div class="dest-sub">' + pct + '% ของทริปทั้งหมด</div>'
+      +   '<div class="dest-sub">' + pct + '% ของภารกิจนอกเหนือปลายทาง</div>'
       + '</div>'
       + '<div class="dest-count">' + m.count + '</div>'
       + '</div>';
