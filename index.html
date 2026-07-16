@@ -1538,6 +1538,15 @@ function renderVehicleCards(json) {
     window._fuelAlertMap[plate] = { carType: f.carType, fuelPct: 100, refueled: true };
   });
 
+  // ── สร้าง oxygenAlertMap: plate → สถานะ O₂ (เฉพาะรถ EMS/Refer ที่ผิดปกติ หรือ ไม่ตรวจ) ──
+  // มาจาก getStatusSummary() → oxygenAlerts (ดู code.gs ข้อ 8.5)
+  window._oxygenAlertMap = {};
+  (json.oxygenAlerts||[]).forEach(function(o) {
+    const plate = String(o.carType || '').split(' ')[0].trim();
+    if (!plate) return;
+    window._oxygenAlertMap[plate] = o;
+  });
+
   // helper: หา key ใน map ที่ plate ตรงกัน (fuzzy match)
   function findInMap(map, plateKey) {
     return Object.keys(map).find(k => {
@@ -1676,6 +1685,40 @@ function renderVehicleCards(json) {
         '</div>';
     }
 
+    // ── O₂ tank mark: เฉพาะรถ EMS/Refer ที่ตรวจสภาพแล้วพบ "ผิดปกติ" หรือ "ไม่ตรวจ" ──
+    //    ผิดปกติ → แสดงเตือนสีส้ม/แดง "ต้องเปลี่ยน" จนกว่า Startmile จะไปที่ "เปลี่ยนออกซิเจน" แล้วกลับมา (เขียว "เปลี่ยนแล้ว")
+    //    ไม่ตรวจ → แสดงป้ายเทาเฉยๆ ไม่ต้องรอการเปลี่ยน
+    let oxygenMarkHtml = '';
+    const oxygenAlert = (window._oxygenAlertMap || {})[plateKey];
+    if (v.sys === 'EMS' && oxygenAlert) {
+      if (oxygenAlert.changed) {
+        oxygenMarkHtml =
+          '<div class="vm-fuel-row">' +
+            '<span style="font-size:9.5px;color:var(--text-light);">🅾️</span>' +
+            '<span style="font-size:10px;font-weight:700;color:#065f3a;">O₂</span>' +
+            '<span style="font-size:9px;font-weight:800;background:#dcfce7;color:#15803d;' +
+            'border:1px solid #86efac;border-radius:4px;padding:1px 5px;margin-left:4px;">✓ เปลี่ยนแล้ว</span>' +
+          '</div>';
+      } else if (oxygenAlert.o2Status === 'ไม่ตรวจ') {
+        oxygenMarkHtml =
+          '<div class="vm-fuel-row">' +
+            '<span style="font-size:9.5px;color:var(--text-light);">🅾️</span>' +
+            '<span style="font-size:10px;font-weight:700;color:var(--text-light);">O₂</span>' +
+            '<span style="font-size:9px;font-weight:800;background:#e5e7eb;color:#4b5563;' +
+            'border:1px solid #cbd5e1;border-radius:4px;padding:1px 5px;margin-left:4px;">— ไม่ตรวจ</span>' +
+          '</div>';
+      } else {
+        // ผิดปกติ ยังไม่ได้เปลี่ยน
+        oxygenMarkHtml =
+          '<div class="vm-fuel-row">' +
+            '<span style="font-size:9.5px;color:var(--text-light);">🅾️</span>' +
+            '<span style="font-size:10px;font-weight:700;color:#b91c1c;">O₂ ต่ำ</span>' +
+            '<span style="font-size:9px;font-weight:800;background:#fee2e2;color:#b91c1c;' +
+            'border:1px solid #fca5a5;border-radius:4px;padding:1px 5px;margin-left:4px;">⚠ ต้องเปลี่ยน</span>' +
+          '</div>';
+      }
+    }
+
     // title = ข้อความเต็มไม่ตัด สำหรับ hover ดูรายละเอียดครบ (ปลายทาง/ชื่อ พขร.)
     const fullDest = (isInUse && inUseKey && inUseMap[inUseKey] && inUseMap[inUseKey].destination)
       ? inUseMap[inUseKey].destination
@@ -1688,7 +1731,7 @@ function renderVehicleCards(json) {
     if (fullDriver) titleParts.push('พขร.: ' + fullDriver);
     const titleAttr = titleParts.length ? ' title="' + titleParts.join(' | ').replace(/"/g,'&quot;') + '"' : '';
 
-    return '<div class="vehicle-mini ' + vmClass + '"' + titleAttr + '>'         + '<div class="vm-plate">' + plateKey + emsBadge + '</div>'         + '<div class="vm-type">' + v.type + '</div>'         + statusHtml         + '<div class="vm-sub">' + chkSub + '</div>'         + fuelMarkHtml         + '</div>';
+    return '<div class="vehicle-mini ' + vmClass + '"' + titleAttr + '>'         + '<div class="vm-plate">' + plateKey + emsBadge + '</div>'         + '<div class="vm-type">' + v.type + '</div>'         + statusHtml         + '<div class="vm-sub">' + chkSub + '</div>'         + fuelMarkHtml         + oxygenMarkHtml         + '</div>';
   }
 
   // ── แบ่งกลุ่ม: ทั่วไป (van+pickup) | EMS/Refer ──────────────────
