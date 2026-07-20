@@ -558,6 +558,7 @@ textarea { resize: vertical; min-height: 80px; }
 .chip-blue    { background: var(--blue-soft);   color: var(--blue); }
 .chip-teal    { background: var(--teal-soft);   color: var(--teal); }
 </style>
+<script src="secure-fetch.js"></script>
 </head>
 <body>
 
@@ -932,7 +933,7 @@ textarea { resize: vertical; min-height: 80px; }
 // ============================================================
 // CONFIG
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec'; // ✅ Proxy — API_KEY ซ่อนใน ScriptProperties
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec'; // ✅ เรียก code.gs ตรง — ไม่ใช้ proxy แล้ว
 // const API_KEY — removed: key is now hidden inside GAS Proxy ScriptProperties
 
 const DEFAULT_VEHICLES = [
