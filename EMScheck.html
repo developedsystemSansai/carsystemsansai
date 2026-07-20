@@ -490,6 +490,7 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
   .item-name { font-size: 15px; line-height: 1.35; }
 }
 </style>
+<script src="secure-fetch.js"></script>
 </head>
 <body>
 
@@ -716,7 +717,7 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
 
 <script>
 // ─────────────────────────────────────────────
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec'; // ✅ Proxy — API_KEY ซ่อนใน ScriptProperties
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec'; // ✅ เรียก code.gs ตรง — ไม่ใช้ proxy แล้ว
 // const API_KEY — removed: key is now hidden inside GAS Proxy ScriptProperties
 
 // ─────────────────────────────────────────────
