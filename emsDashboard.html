@@ -146,6 +146,7 @@
     table.data-table { font-size: 11.5px; }
   }
 </style>
+<script src="secure-fetch.js"></script>
 </head>
 <body>
 
@@ -349,7 +350,7 @@ if (checkEmsSession()) {
 // ════════════════════════════════════════════════════════════
 //  CONFIG
 // ════════════════════════════════════════════════════════════
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec';
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec'; // ✅ เรียก code.gs ตรง — ไม่ใช้ proxy แล้ว
 
 // รายชื่อหมวด+ไอคอน 12 หมวด (อ้างอิงจาก EMScheck.html) — ใช้แสดงผลให้อ่านง่ายเท่านั้น ไม่ผูกกับ logic การตรวจ
 const CATEGORY_ICONS = {
