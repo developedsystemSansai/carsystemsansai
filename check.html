@@ -617,6 +617,7 @@ textarea { resize: vertical; min-height: 80px; }
   background: var(--text-light); color: #fff; border-color: transparent;
 }
 </style>
+<script src="secure-fetch.js"></script>
 </head>
 <body>
 <!-- HEADER -->
@@ -915,7 +916,7 @@ textarea { resize: vertical; min-height: 80px; }
 // ============================================================
 // CONFIG — แก้ไข URL ตรงนี้หลัง deploy Google Apps Script
 // ============================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxtlZrDRogQiHUQiA_LsM7iFJ2Han6pYFbVXFsNucogZ785eqYqQT5YTTghiy6yac71/exec'; // Proxy
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec'; // ✅ เรียก code.gs ตรง — ไม่ใช้ proxy แล้ว
 // API_KEY removed — hidden in Proxy
 
 // ============================================================
