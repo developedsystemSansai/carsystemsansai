@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ตรวจสอบอุปกรณ์ EMS — โรงพยาบาลสันทราย</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:         #0d2137;
+  --navy-mid:     #163251;
+  --blue:         #1d6fb5;
+  --blue-soft:  #e8f1fd;
+  --teal:         #007a6e;
+  --teal-soft:  #e0f5f3;
+  --amber:      #f59e0b;
+  --amber-soft: #fef3c7;
+  --red:        #dc2626;
+  --red-soft:   #fee2e2;
+  --bg:           #eef2f7;
+  --card:       #ffffff;
+  --border:       #d5dce8;
+  --text:         #182332;
+  --text-mid:   #4a5568;
+  --text-light: #8898aa;
+  --success:    #00c853;
+  --success-soft:#e8faf0;
+  --warning:    #ffab00;
+  --warning-soft:#fff8e1;
+  --danger:     #f44336;
+  --danger-soft:#ffeaea;
+  --radius:     16px;
+  --radius-sm:  10px;
+  --shadow:     0 2px 16px rgba(10,37,64,.08);
+  --shadow-lg:  0 8px 40px rgba(10,37,64,.14);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Sans Thai', sans-serif;
+  background: var(--bg); color: var(--text); min-height: 100vh;
+}
+
+/* ── HEADER ── */
+.site-header {
+  background: linear-gradient(135deg, #7c1010 0%, #991b1b 50%, #b91c1c 100%);
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 20px rgba(0,0,0,.3);
+}
+.header-inner {
+  max-width: 860px; margin: auto; padding: 0 20px;
+  height: 60px; display: flex; align-items: center; gap: 12px;
+}
+.header-logo {
+  width: 38px; height: 38px;
+  background: rgba(255,255,255,.15); border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,.2);
+}
+.header-logo svg { width: 22px; height: 22px; }
+.header-titles { flex: 1; }
+.header-titles .main-title { font-size: 14px; font-weight: 700; color: #fff; }
+.header-titles .sub-title  { font-size: 11px; color: rgba(255,255,255,.6); }
+.back-btn {
+  padding: 6px 14px; border-radius: 8px;
+  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
+  color: rgba(255,255,255,.9); font-size: 12px; font-weight: 500;
+  cursor: pointer; text-decoration: none;
+  display: flex; align-items: center; gap: 5px; transition: background .2s;
+}
+.back-btn:hover { background: rgba(255,255,255,.22); }
+
+/* ── ปุ่มแถบยาวเข้าแดชบอร์ด — สีทึบชัดเจน ไม่มีเรืองแสง/แอนิเมชัน ── */
+.dashboard-bar-btn {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--navy);
+  color: #fff; text-decoration: none;
+  border-radius: var(--radius);
+  padding: 15px 20px;
+  margin-bottom: 16px;
+  border: 1px solid var(--navy-mid);
+}
+.dashboard-bar-btn:hover { background: var(--navy-mid); }
+.dashboard-bar-btn .dbb-icon { font-size: 24px; flex-shrink: 0; }
+.dashboard-bar-btn .dbb-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.dashboard-bar-btn .dbb-title { font-weight: 700; font-size: 14.5px; }
+.dashboard-bar-btn .dbb-sub { font-size: 11.5px; color: rgba(255,255,255,.6); line-height: 1.4; }
+.dashboard-bar-btn .dbb-arrow { flex-shrink: 0; opacity: .8; }
+
+/* ── MAIN ── */
+.main-wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+
+/* ── CARD ── */
+.card {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  overflow: hidden; margin-bottom: 16px;
+}
+.card-header {
+  padding: 15px 20px 13px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.card-header-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.card-header-icon.red   { background: var(--red-soft); color: var(--red); }
+.card-header-icon.blue  { background: var(--blue-soft); color: var(--blue); }
+.card-header-icon.teal  { background: var(--teal-soft); color: var(--teal); }
+.card-header-icon.amber { background: var(--amber-soft); color: #b45309; }
+.card-header-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.card-header-sub   { font-size: 11px; color: var(--text-light); }
+.card-body { padding: 18px 20px; }
+
+/* ── FORM ── */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 16px; }
+.form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-group.span2 { grid-column: span 2; }
+.form-group.span3 { grid-column: span 3; }
+label { font-size: 11px; font-weight: 600; color: var(--text-mid); letter-spacing: .3px; }
+label .req { color: var(--danger); }
+input, select, textarea {
+  padding: 9px 12px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); font-family: inherit; font-size: 13px;
+  color: var(--text); background: #fff; outline: none; width: 100%;
+  transition: border-color .2s;
+}
+input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(220,38,38,.1); }
+
+/* ── QUICK ACTIONS BAR ── */
+.quick-actions {
+  display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;
+}
+.qa-btn {
+  padding: 9px 14px; border-radius: 10px; border: 1.5px solid var(--border);
+  background: #fff; font-family: inherit; font-size: 12.5px; font-weight: 600;
+  color: var(--text-mid); cursor: pointer; display: flex; align-items: center; gap: 6px;
+  transition: all .15s; box-shadow: var(--shadow);
+}
+.qa-btn:hover { transform: translateY(-1px); }
+.qa-btn.pass  { color: #065f46; border-color: #6ee7b7; background: var(--success-soft); }
+.qa-btn.clear { color: var(--danger); border-color: #fca5a5; background: var(--danger-soft); }
+.qa-btn.toggle-active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.qa-timer { margin-left: auto; font-size: 11.5px; color: var(--text-light); display: flex; align-items: center; gap: 5px; font-family: 'IBM Plex Mono', monospace; }
+
+/* ── CARRY-FORWARD / DRAFT BANNER ── */
+.info-banner {
+  display: none; background: var(--blue-soft); border: 1.5px solid #93c5fd;
+  border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 14px;
+  align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.info-banner.show { display: flex; }
+.info-banner.draft { background: var(--amber-soft); border-color: #fde68a; }
+.info-banner-icon { font-size: 20px; flex-shrink: 0; }
+.info-banner-text { flex: 1; min-width: 200px; font-size: 12.5px; color: var(--text); line-height: 1.5; }
+.info-banner-text b { display: block; font-size: 13px; margin-bottom: 1px; }
+.info-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.ib-btn {
+  padding: 7px 14px; border-radius: 8px; border: none; font-family: inherit;
+  font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;
+}
+.ib-btn.apply { background: var(--blue); color: #fff; }
+.ib-btn.dismiss { background: rgba(0,0,0,.06); color: var(--text-mid); }
+
+/* ── CARRIED-OVER TAG ── */
+.carried-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9.5px; font-weight: 700; color: #7c3aed; background: #ede9fe;
+  padding: 1px 7px; border-radius: 8px; margin-left: 6px; vertical-align: middle;
+}
+.item-row.carried-over { background: #fbfaff; }
+
+/* ── HIDE-PASSED MODE ── */
+#categoriesWrap.hide-passed .item-row.ok { display: none; }
+#categoriesWrap.hide-passed .cat-body:has(.item-row:not(.ok)) { display: block; }
+
+/* ── PROGRESS BAR ── */
+.progress-wrap {
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 18px 22px;
+  margin-bottom: 16px; box-shadow: var(--shadow);
+  position: sticky; top: 60px; z-index: 90;
+}
+.progress-row {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 10px;
+}
+.progress-title { font-size: 13px; font-weight: 700; color: var(--text); flex: 1; }
+.progress-count { font-size: 12px; color: var(--text-mid); }
+.progress-bar-track {
+  height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, #dc2626, #f59e0b, #00c853);
+  transition: width .4s ease;
+}
+.progress-stats {
+  display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px;
+}
+.p-stat {
+  display: flex; align-items: center; gap: 6px; font-size: 12px;
+}
+.p-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+/* ── CATEGORY BLOCK ── */
+.cat-block { margin-bottom: 14px; }
+.cat-header {
+  background: var(--navy); color: #fff;
+  padding: 10px 16px; border-radius: 10px 10px 0 0;
+  display: flex; align-items: center; gap: 8px;
+  cursor: pointer; user-select: none;
+}
+.cat-header.open { border-radius: 10px; margin-bottom: 8px; }
+.cat-icon { font-size: 18px; }
+.cat-title { font-size: 13px; font-weight: 700; flex: 1; }
+.cat-badge {
+  font-size: 11px; background: rgba(255,255,255,.15); padding: 2px 8px;
+  border-radius: 10px; font-weight: 600;
+}
+.cat-badge.all-ok { background: rgba(0,200,83,.3); }
+.cat-badge.has-issue { background: rgba(244,67,54,.3); }
+.cat-quick-btn {
+  font-size: 10.5px; font-weight: 700; padding: 4px 9px; border-radius: 7px;
+  background: rgba(255,255,255,.14); color: rgba(255,255,255,.9);
+  border: 1px solid rgba(255,255,255,.25); cursor: pointer; white-space: nowrap;
+  transition: background .15s;
+}
+.cat-quick-btn:hover { background: rgba(255,255,255,.28); }
+.cat-chevron { transition: transform .25s; }
+.cat-header[data-open="true"] .cat-chevron { transform: rotate(180deg); }
+.cat-body {
+  border: 1px solid var(--border); border-top: none;
+  border-radius: 0 0 10px 10px;
+  overflow: hidden;
+}
+.cat-body.collapsed { display: none; }
+
+/* ── ITEM ROW ── */
+.item-row {
+  display: flex; align-items: flex-start; gap: 0;
+  border-bottom: 1px solid var(--border);
+  transition: background .15s;
+}
+.item-row:last-child { border-bottom: none; }
+.item-row:hover { background: #fafbfc; }
+.item-main {
+  flex: 1; padding: 12px 14px;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.item-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--bg); color: var(--text-light);
+  font-size: 10px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-top: 1px;
+}
+.item-info { flex: 1; }
+.item-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.3; }
+.item-detail { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+.item-expiry {
+  font-size: 11px; margin-top: 4px;
+  display: flex; align-items: center; gap: 4px;
+}
+.item-expiry input[type="date"] {
+  padding: 3px 7px; font-size: 11px; border-radius: 5px;
+  border: 1px solid var(--border); width: auto;
+}
+.item-controls {
+  padding: 10px 12px;
+  display: flex; flex-direction: column; gap: 6px; align-items: flex-end;
+  flex-shrink: 0; min-width: 180px;
+}
+
+/* ── STATUS PILLS ── */
+.status-pills {
+  display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end;
+}
+.status-pill {
+  padding: 7px 12px; min-height: 32px; border-radius: 20px; font-size: 11.5px; font-weight: 700;
+  border: 1.5px solid transparent; cursor: pointer; transition: all .15s;
+  background: var(--bg); color: var(--text-mid); border-color: var(--border);
+  white-space: nowrap; display: inline-flex; align-items: center; gap: 3px;
+}
+.status-pill:hover { opacity: .8; }
+.status-pill.selected-พร้อม    { background: var(--success-soft); color: #065f46; border-color: #6ee7b7; }
+.status-pill.selected-ไม่พร้อม { background: var(--danger-soft);  color: var(--danger); border-color: #fca5a5; }
+.status-pill.selected-ชำรุด    { background: var(--warning-soft); color: #b45309; border-color: #fde68a; }
+.status-pill.selected-หมดอายุ  { background: #fce7f3; color: #be185d; border-color: #f9a8d4; }
+.status-pill.selected-ขาด      { background: #ede9fe; color: #6d28d9; border-color: #c4b5fd; }
+
+/* photo btn */
+.photo-btn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 4px 9px; border-radius: 7px;
+  background: var(--bg); color: var(--text-mid);
+  border: 1px solid var(--border);
+  font-size: 11px; font-weight: 600; cursor: pointer;
+  transition: all .15s;
+}
+.photo-btn:hover { background: var(--blue-soft); color: var(--blue); border-color: #93c5fd; }
+.photo-btn.has-photo { background: var(--blue-soft); color: var(--blue); border-color: #93c5fd; }
+.photo-btn svg { width: 12px; height: 12px; }
+.photo-count { font-size: 10px; }
+
+/* note input */
+.item-note {
+  width: 100%; padding: 5px 8px; border-radius: 6px;
+  border: 1px solid var(--border); font-size: 11px;
+  font-family: inherit; resize: none; background: var(--bg);
+  transition: border-color .15s;
+}
+.item-note:focus { outline: none; border-color: var(--blue); }
+
+/* item status indicator bar */
+.item-row.ok     { border-left: 3px solid var(--success); }
+.item-row.issue  { border-left: 3px solid var(--danger); }
+.item-row.warn   { border-left: 3px solid var(--warning); }
+
+/* ── SUMMARY PANEL ── */
+.summary-bar {
+  background: var(--navy);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  color: #fff; margin-bottom: 16px;
+  display: flex; gap: 20px; flex-wrap: wrap; align-items: center;
+}
+.sum-item { text-align: center; flex: 1; min-width: 80px; }
+.sum-val  { font-size: 28px; font-weight: 700; line-height: 1; }
+.sum-lbl  { font-size: 11px; color: rgba(255,255,255,.6); margin-top: 4px; }
+.sum-val.green  { color: #6ee7b7; }
+.sum-val.red    { color: #fca5a5; }
+.sum-val.yellow { color: #fde68a; }
+.sum-divider { width: 1px; height: 40px; background: rgba(255,255,255,.15); flex-shrink: 0; }
+.pass-badge {
+  flex: 0 0 auto; padding: 8px 18px; border-radius: 10px;
+  font-size: 18px; font-weight: 700;
+}
+.pass-badge.pass { background: #065f46; color: #6ee7b7; }
+.pass-badge.fail { background: #7f1d1d; color: #fca5a5; }
+
+/* ── SUBMIT ── */
+.submit-btn {
+  width: 100%; padding: 14px 20px;
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: #fff; border: none; border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 15px; font-weight: 700;
+  cursor: pointer; box-shadow: 0 4px 16px rgba(220,38,38,.35);
+  transition: transform .15s, box-shadow .15s, opacity .2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.submit-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(220,38,38,.45); }
+.submit-btn:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+.spinner {
+  width: 18px; height: 18px; border: 2px solid rgba(255,255,255,.4);
+  border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite;
+  display: none;
+}
+.submit-btn.loading .spinner { display: block; }
+.submit-btn.loading .btn-text { display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── CAMERA MODAL ── */
+.cam-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.85);
+  z-index: 3000; display: none; flex-direction: column; align-items: center;
+  justify-content: center; padding: 20px;
+}
+.cam-overlay.show { display: flex; }
+.cam-box { background: #111; border-radius: 14px; overflow: hidden; max-width: 480px; width: 100%; }
+.cam-header {
+  padding: 12px 16px; background: #1a1a1a;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.cam-title { color: #fff; font-size: 13px; font-weight: 600; }
+.cam-close { background: none; border: none; color: rgba(255,255,255,.6); font-size: 20px; cursor: pointer; }
+.cam-video { width: 100%; max-height: 360px; object-fit: cover; display: block; }
+.cam-canvas { display: none; }
+.cam-actions {
+  padding: 14px 16px;
+  display: flex; gap: 8px;
+}
+.cam-btn {
+  flex: 1; padding: 10px; border-radius: 9px; border: none;
+  font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.cam-btn.capture { background: #dc2626; color: #fff; }
+.cam-btn.upload  { background: #374151; color: #e5e7eb; }
+.cam-btn.done    { background: #065f46; color: #6ee7b7; }
+.cam-preview { padding: 0 16px 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+.cam-thumb-wrap { position: relative; }
+.cam-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 7px; border: 2px solid #374151; }
+.cam-del-btn {
+  position: absolute; top: -6px; right: -6px;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #dc2626; color: #fff; border: none;
+  font-size: 11px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.cam-file-input { display: none; }
+
+/* ── MISSING ITEMS PANEL ── */
+.missing-panel {
+  background: var(--card); border: 1.5px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 16px 20px; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 16px; cursor: pointer;
+  transition: all .15s;
+}
+.missing-panel:hover { box-shadow: var(--shadow-lg); transform: translateY(-1px); }
+.missing-panel.has-missing { border-color: #c4b5fd; background: linear-gradient(135deg,#faf9ff 0%,#ffffff 60%); }
+.missing-panel-icon {
+  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
+  background: #ede9fe; color: #6d28d9; font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+}
+.missing-panel.has-missing .missing-panel-icon { background: #6d28d9; color: #fff; }
+.missing-panel-info { flex: 1; }
+.missing-panel-count { font-size: 24px; font-weight: 700; color: var(--text); line-height: 1.1; }
+.missing-panel.has-missing .missing-panel-count { color: #6d28d9; }
+.missing-panel-label { font-size: 12.5px; color: var(--text-mid); margin-top: 2px; }
+.missing-panel-cta {
+  font-size: 12px; font-weight: 700; color: #6d28d9; background: #ede9fe;
+  padding: 8px 14px; border-radius: 8px; flex-shrink: 0; white-space: nowrap;
+}
+.missing-panel.has-missing .missing-panel-cta { background: #6d28d9; color: #fff; }
+
+/* ── MISSING ITEMS MODAL ── */
+.mi-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.6);
+  z-index: 3000; display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.mi-overlay.show { display: flex; }
+.mi-box {
+  background: #fff; border-radius: 16px; overflow: hidden;
+  max-width: 560px; width: 100%; max-height: 82vh; display: flex; flex-direction: column;
+}
+.mi-header {
+  padding: 16px 20px; background: linear-gradient(135deg,#6d28d9,#4c1d95);
+  color: #fff; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+}
+.mi-title { font-size: 15px; font-weight: 700; }
+.mi-sub { font-size: 11.5px; color: rgba(255,255,255,.75); margin-top: 2px; }
+.mi-close { background: rgba(255,255,255,.15); border: none; color: #fff; font-size: 18px; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; flex-shrink: 0; }
+.mi-body { padding: 8px 0; overflow-y: auto; flex: 1; }
+.mi-empty { padding: 40px 20px; text-align: center; color: var(--text-light); font-size: 13px; }
+.mi-cat-label {
+  padding: 10px 20px 6px; font-size: 11px; font-weight: 700; color: var(--text-light);
+  text-transform: uppercase; letter-spacing: .4px;
+}
+.mi-item {
+  padding: 10px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.mi-item:last-child { border-bottom: none; }
+.mi-item-dot { width: 8px; height: 8px; border-radius: 50%; background: #6d28d9; margin-top: 6px; flex-shrink: 0; }
+.mi-item-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.mi-item-detail { font-size: 11.5px; color: var(--text-light); margin-top: 1px; }
+.mi-item-note { font-size: 11.5px; color: #6d28d9; margin-top: 3px; background: #f5f3ff; padding: 3px 8px; border-radius: 6px; display: inline-block; }
+.mi-footer { padding: 12px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.mi-footer-btn { width: 100%; padding: 10px; border-radius: 9px; border: none; background: var(--bg); color: var(--text-mid); font-family: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; }
+
+/* ── TOAST ── */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: var(--navy); color: #fff; padding: 13px 22px;
+  border-radius: 10px; font-size: 14px; font-weight: 500;
+  box-shadow: var(--shadow-lg); z-index: 9999; opacity: 0;
+  transition: transform .3s, opacity .3s; max-width: 92vw; text-align: center;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+.toast.success { background: #065f46; }
+.toast.error   { background: #991b1b; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 640px) {
+  .main-wrap { padding: 14px 10px 48px; }
+  .item-controls { min-width: 140px; }
+  .status-pills .status-pill { font-size: 10.5px; padding: 6px 9px; min-height: 30px; }
+  .quick-actions { flex-direction: column; align-items: stretch; }
+  .qa-timer { margin-left: 0; justify-content: center; }
+  .info-banner { flex-direction: column; align-items: stretch; }
+  .info-banner-actions { justify-content: stretch; }
+  .ib-btn { flex: 1; }
+  .form-grid.three { grid-template-columns: 1fr 1fr; }
+  .form-group.span3 { grid-column: span 2; }
+  .summary-bar { padding: 14px 16px; gap: 12px; }
+  .sum-divider { display: none; }
+  .progress-wrap { top: 60px; }
+  .item-name { font-size: 15px; line-height: 1.35; }
+}
+</style>
+<script src="secure-fetch.js"></script>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4M12 16h.01"/>
+      </svg>
+    </div>
+    <div class="header-titles">
+      <div class="main-title">ตรวจสอบอุปกรณ์รถ EMS</div>
+      <div class="sub-title">โรงพยาบาลสันทราย · มาตรฐานกระทรวงสาธารณสุข 54 รายการ 12 หมวด</div>
+    </div>
+    <a href="index.html" class="back-btn">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      หน้าหลัก
+    </a>
+  </div>
+</header>
+
+<main class="main-wrap">
+
+  <!-- แดชบอร์ด EMS Check -->
+  <a href="emsDashboard.html" class="dashboard-bar-btn">
+    <span class="dbb-icon">📊</span>
+    <span class="dbb-text">
+      <span class="dbb-title">แดชบอร์ด EMS Check</span>
+      <span class="dbb-sub">ดูสรุปผลตรวจ อัตราความพร้อมรายคัน รายการใกล้หมดอายุ และรายงานสำหรับหัวหน้าพยาบาลฉุกเฉิน</span>
+    </span>
+    <span class="dbb-arrow">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </span>
+  </a>
+
+  <!-- ข้อมูลการตรวจ -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-header-icon red">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <div>
+        <div class="card-header-title">ข้อมูลการตรวจสอบ</div>
+        <div class="card-header-sub">กรอกก่อนเริ่มตรวจ</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="form-grid three">
+        <div class="form-group">
+          <label>รถ EMS <span class="req">*</span></label>
+          <select id="carId" required onchange="onCarChange()">
+            <option value="">— กำลังโหลดรายการรถ... —</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ผู้ตรวจสอบ <span class="req">*</span></label>
+          <input type="text" id="checkerName" required placeholder="ชื่อ-สกุล ผู้ตรวจสอบ">
+        </div>
+        <div class="form-group">
+          <label>ตำแหน่ง</label>
+          <select id="checkerRole">
+            <option value="">— เลือกตำแหน่ง —</option>
+            <option value="พยาบาลวิชาชีพ">พยาบาลวิชาชีพ</option>
+            <option value="เจ้าพนักงานเวชกิจฉุกเฉิน">เจ้าพนักงานเวชกิจฉุกเฉิน</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>วันที่ตรวจ <span class="req">*</span></label>
+          <input type="date" id="checkDate" required>
+        </div>
+        <div class="form-group">
+          <label>เวลา <span class="req">*</span></label>
+          <input type="time" id="checkTime" required>
+        </div>
+        <div class="form-group">
+          <label>กะเวร</label>
+          <select id="checkShift">
+            <option>เช้า (07:00-15:00)</option>
+            <option>บ่าย (15:00-23:00)</option>
+            <option>ดึก (23:00-07:00)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- แจ้งเตือนข้อมูลเดิม / draft ค้าง -->
+  <div class="info-banner" id="carryBanner">
+    <div class="info-banner-icon">🔄</div>
+    <div class="info-banner-text" id="carryBannerText"></div>
+    <div class="info-banner-actions">
+      <button class="ib-btn dismiss" onclick="dismissCarryBanner()">เริ่มตรวจใหม่</button>
+      <button class="ib-btn apply" onclick="applyCarryForward()">ใช้ข้อมูลเดิม</button>
+    </div>
+  </div>
+  <div class="info-banner draft" id="draftBanner">
+    <div class="info-banner-icon">📝</div>
+    <div class="info-banner-text" id="draftBannerText"></div>
+    <div class="info-banner-actions">
+      <button class="ib-btn dismiss" onclick="dismissDraftBanner()">ไม่เอา ลบทิ้ง</button>
+      <button class="ib-btn apply" onclick="resumeDraft()">ทำต่อจากเดิม</button>
+    </div>
+  </div>
+
+  <!-- QUICK ACTIONS -->
+  <div class="quick-actions">
+    <button class="qa-btn pass" onclick="quickPassRemaining()">✅ ผ่านรายการที่เหลือทั้งหมด</button>
+    <button class="qa-btn" id="hidePassedBtn" onclick="toggleHidePassed()">👁 ซ่อนรายการที่ผ่านแล้ว</button>
+    <button class="qa-btn clear" onclick="clearAllStatuses()">↺ ล้างสถานะทั้งหมด</button>
+    <div class="qa-timer">⏱ <span id="sessionTimer">00:00</span></div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap">
+    <div class="progress-row">
+      <div class="progress-title">ความคืบหน้าการตรวจ</div>
+      <div class="progress-count"><span id="progressChecked">0</span> / <span id="progressTotal">54</span> รายการ</div>
+    </div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="progress-stats">
+      <div class="p-stat"><div class="p-dot" style="background:#00c853"></div><span id="statOk">0</span> พร้อม</div>
+      <div class="p-stat"><div class="p-dot" style="background:#f44336"></div><span id="statFail">0</span> ไม่พร้อม/ขาด/ชำรุด</div>
+      <div class="p-stat"><div class="p-dot" style="background:#f59e0b"></div><span id="statExp">0</span> หมดอายุ</div>
+      <div class="p-stat"><div class="p-dot" style="background:#dde3eb"></div><span id="statSkip">0</span> ยังไม่ตรวจ</div>
+    </div>
+  </div>
+
+  <!-- EQUIPMENT CATEGORIES -->
+  <div id="categoriesWrap"></div>
+
+  <!-- SUMMARY -->
+  <div class="summary-bar" id="summaryBar">
+    <div class="sum-item">
+      <div class="sum-val green" id="sumPass">0</div>
+      <div class="sum-lbl">พร้อม</div>
+    </div>
+    <div class="sum-divider"></div>
+    <div class="sum-item">
+      <div class="sum-val red" id="sumFail">0</div>
+      <div class="sum-lbl">ไม่พร้อม/ขาด/ชำรุด</div>
+    </div>
+    <div class="sum-divider"></div>
+    <div class="sum-item">
+      <div class="sum-val yellow" id="sumExp">0</div>
+      <div class="sum-lbl">หมดอายุ</div>
+    </div>
+    <div class="sum-divider"></div>
+    <div class="sum-item">
+      <div class="sum-val" id="sumRate" style="color:#e5e7eb">—</div>
+      <div class="sum-lbl">อัตราผ่าน</div>
+    </div>
+    <div class="sum-divider"></div>
+    <div class="pass-badge" id="passBadge">รอตรวจ</div>
+  </div>
+
+  <!-- MISSING ITEMS PANEL -->
+  <div class="missing-panel" id="missingPanel" onclick="showMissingItemsModal()">
+    <div class="missing-panel-icon">⊘</div>
+    <div class="missing-panel-info">
+      <div class="missing-panel-count" id="missingCount">0</div>
+      <div class="missing-panel-label">รายการที่ขาด (ต้องเติม)</div>
+    </div>
+    <div class="missing-panel-cta">ดูรายการ →</div>
+  </div>
+
+  <!-- หมายเหตุรวม + ส่ง -->
+  <div class="card">
+    <div class="card-body">
+      <div class="form-group" style="margin-bottom:16px;">
+        <label>หมายเหตุ / สรุปปัญหาสำคัญ</label>
+        <textarea id="overallRemarks" rows="3" placeholder="ระบุปัญหาที่ต้องแก้ไขเร่งด่วน หรือหมายเหตุเพิ่มเติม..."></textarea>
+      </div>
+      <button class="submit-btn" id="submitBtn" onclick="submitEMS()">
+        <div class="spinner"></div>
+        <span class="btn-text">ส่งผลการตรวจสอบ — แจ้งเตือนอัตโนมัติ</span>
+      </button>
+    </div>
+  </div>
+
+</main>
+
+<!-- MISSING ITEMS MODAL -->
+<div class="mi-overlay" id="miOverlay">
+  <div class="mi-box">
+    <div class="mi-header">
+      <div>
+        <div class="mi-title">⊘ รายการที่ขาด (ต้องเติม)</div>
+        <div class="mi-sub" id="miSub">0 รายการ</div>
+      </div>
+      <button class="mi-close" onclick="closeMissingItemsModal()">✕</button>
+    </div>
+    <div class="mi-body" id="miBody"></div>
+    <div class="mi-footer">
+      <button class="mi-footer-btn" onclick="closeMissingItemsModal()">ปิดหน้าต่าง</button>
+    </div>
+  </div>
+</div>
+
+<!-- CAMERA MODAL -->
+<div class="cam-overlay" id="camOverlay">
+  <div class="cam-box">
+    <div class="cam-header">
+      <span class="cam-title" id="camTitle">ถ่ายรูปอุปกรณ์</span>
+      <button class="cam-close" onclick="closeCamera()">✕</button>
+    </div>
+    <video id="camVideo" class="cam-video" autoplay playsinline></video>
+    <canvas id="camCanvas" class="cam-canvas"></canvas>
+    <div class="cam-preview" id="camPreview"></div>
+    <div class="cam-actions">
+      <button class="cam-btn capture" onclick="capturePhoto()"> ถ่ายรูป</button>
+      <button class="cam-btn upload" onclick="document.getElementById('camFileInput').click()">📁 เลือกไฟล์</button>
+      <button class="cam-btn done" onclick="closeCamera()">เสร็จ</button>
+    </div>
+    <input type="file" id="camFileInput" class="cam-file-input" multiple accept="image/*" onchange="handleFileUpload(event)">
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec'; // ✅ เรียก code.gs ตรง — ไม่ใช้ proxy แล้ว
+// const API_KEY — removed: key is now hidden inside GAS Proxy ScriptProperties
+
+// ─────────────────────────────────────────────
+//  EMS EQUIPMENT DATA — 54 รายการ 12 หมวด
+//  (ตามมาตรฐาน สธ. สำหรับรถ ALS/BLS)
+// ─────────────────────────────────────────────
+const EMS_CATEGORIES = [
+  {
+    id: 'airway', icon: '🫁', name: 'หมวดที่ 1 — อุปกรณ์ทางเดินหายใจ',
+    items: [
+      { id:'a1', name:'กระเป๋า BVM (Bag-Valve Mask)', detail:'ผู้ใหญ่ และ เด็ก — ตรวจสอบลิ้นและวาล์ว', hasExpiry: false },
+      { id:'a2', name:'Oropharyngeal Airway (OPA)', detail:'Size 0, 1, 2, 3, 4, 5 ครบ', hasExpiry: false },
+      { id:'a3', name:'Nasopharyngeal Airway (NPA)', detail:'Size ต่างๆ พร้อมสารหล่อลื่น', hasExpiry: false },
+      { id:'a4', name:'ท่อช่วยหายใจ (ET Tube)', detail:'Size 6.0, 7.0, 7.5, 8.0 (Cuffed)', hasExpiry: false },
+      { id:'a5', name:'Laryngoscope + Blade', detail:'Handle + Blade size 3,4 (มีแสง)', hasExpiry: false },
+      { id:'a6', name:'Suction Unit แบบพกพา', detail:'ตรวจแบตเตอรี่ / มอเตอร์ทำงาน', hasExpiry: false },
+      { id:'a7', name:'Suction Catheter', detail:'Size 10F, 12F, 14F', hasExpiry: false },
+      { id:'a8', name:'LMA / Supraglottic Airway', detail:'Size 3, 4, 5 (กรณีรถ ALS)', hasExpiry: false },
+    ]
+  },
+  {
+    id: 'oxygen', icon: '🟦', name: 'หมวดที่ 2 — ระบบออกซิเจน',
+    items: [
+      { id:'o1', name:'ถังออกซิเจนหลัก', detail:'ตรวจแรงดัน ≥ 1,200 PSI', hasExpiry: false },
+      { id:'o2', name:'ถังออกซิเจนสำรอง (D-cylinder)', detail:'พร้อมใช้งาน แรงดัน ≥ 500 PSI', hasExpiry: false },
+      { id:'o3', name:'Flow Meter + Regulator', detail:'ตรวจการทำงาน 0-15 L/min', hasExpiry: false },
+      { id:'o4', name:'หน้ากาก O₂ แบบ Non-Rebreather', detail:'ผู้ใหญ่ + เด็ก', hasExpiry: false },
+      { id:'o5', name:'หน้ากาก Venturi Mask', detail:'พร้อม Connector ความเข้มข้นต่างๆ', hasExpiry: false },
+      { id:'o6', name:'Nasal Cannula', detail:'ผู้ใหญ่ + เด็ก จำนวน ≥ 2 ชิ้น', hasExpiry: false },
+    ]
+  },
+  {
+    id: 'cardiac', icon: '❤️', name: 'หมวดที่ 3 — อุปกรณ์ระบบหัวใจ',
+    items: [
+      { id:'c1', name:'Defibrillator / AED', detail:'ตรวจ Self-test ผ่าน แบตเต็ม', hasExpiry: false },
+      { id:'c2', name:'Monitor — ECG, SpO₂, NIBP', detail:'ตรวจ Leads, Probe, Cuff ครบ', hasExpiry: false },
+      { id:'c3', name:'Electrode Pads สำรอง', detail:'สำหรับ Defibrillator/AED', hasExpiry: true },
+      { id:'c4', name:'CPR Board (กระดาน CPR)', detail:'แข็งแรง ไม่แตกหัก', hasExpiry: false },
+      { id:'c5', name:'Mechanical CPR Device (ถ้ามี)', detail:'Lucas / AutoPulse — ตรวจแบตเตอรี่', hasExpiry: false },
+    ]
+  },
+  {
+    id: 'iv', icon: '💉', name: 'หมวดที่ 4 — อุปกรณ์ให้สารน้ำทางหลอดเลือด',
+    items: [
+      { id:'iv1', name:'IV Catheter', detail:'G18, G20, G22 อย่างละ ≥ 5 ชิ้น', hasExpiry: true },
+      { id:'iv2', name:'สารน้ำ NSS 0.9% 1,000 mL', detail:'≥ 4 ถุง', hasExpiry: true },
+      { id:'iv3', name:'สารน้ำ NSS 0.9% 500 mL', detail:'≥ 2 ถุง', hasExpiry: true },
+      { id:'iv4', name:'IV Set (Microdrip + Macrodrip)', detail:'≥ 4 ชุด', hasExpiry: true },
+      { id:'iv5', name:'Extension Set + 3-way Stopcock', detail:'≥ 3 ชุด', hasExpiry: true },
+      { id:'iv6', name:'Tourniquet + Alcohol Swab + Tape', detail:'ครบชุด ≥ 5', hasExpiry: false },
+    ]
+  },
+  {
+    id: 'wound', icon: '🩹', name: 'หมวดที่ 5 — อุปกรณ์ดูแลบาดแผล',
+    items: [
+      { id:'w1', name:'Sterile Gauze ขนาดต่างๆ', detail:'4×4", 2×2" ≥ 10 ชิ้น', hasExpiry: false },
+      { id:'w2', name:'Bandage (Roller Gauze)', detail:'3", 4", 6" ≥ 5 ม้วน', hasExpiry: false },
+      { id:'w3', name:'Triangular Bandage', detail:'≥ 4 ผืน', hasExpiry: false },
+      { id:'w4', name:'Elastic Bandage', detail:'≥ 4 ม้วน', hasExpiry: false },
+      { id:'w5', name:'Occlusive Dressing', detail:'สำหรับ Chest wound ≥ 2', hasExpiry: true },
+      { id:'w6', name:'Hemorrhage Control (Tourniquet CAT/SOFT-T)', detail:'≥ 2 อัน', hasExpiry: false },
+    ]
+  },
+  {
+    id: 'drugs', icon: '', name: 'หมวดที่ 6 — ยาสำคัญ (ตรวจวันหมดอายุ)',
+    items: [
+      { id:'d1', name:'Adrenaline (Epinephrine) 1 mg/mL', detail:'≥ 5 Ampules — สำคัญมาก', hasExpiry: true },
+      { id:'d2', name:'Atropine 0.6 mg/mL', detail:'≥ 5 Ampules', hasExpiry: true },
+      { id:'d3', name:'Lidocaine 2%', detail:'≥ 3 Ampules', hasExpiry: true },
+      { id:'d4', name:'Dextrose 50% (D50W)', detail:'≥ 4 Ampules', hasExpiry: true },
+      { id:'d5', name:'Diazepam (Valium) IV', detail:'≥ 3 Ampules', hasExpiry: true },
+      { id:'d6', name:'Morphine Sulfate', detail:'≥ 2 Ampules (ยาควบคุม)', hasExpiry: true },
+      { id:'d7', name:'Nitroglycerin (NTG) spray/tablet', detail:'≥ 1 ขวด', hasExpiry: true },
+      { id:'d8', name:'Salbutamol MDI (Ventolin)', detail:'≥ 2 กระป๋อง', hasExpiry: true },
+    ]
+  },
+  {
+    id: 'immob', icon: '🦴', name: 'หมวดที่ 7 — อุปกรณ์พยุงดาม',
+    items: [
+      { id:'im1', name:'Cervical Collar (Philadelphia Collar)', detail:'S, M, L ครบ', hasExpiry: false },
+      { id:'im2', name:'Long Spine Board + Straps', detail:'ตรวจความแข็งแรง สายรัดครบ', hasExpiry: false },
+      { id:'im3', name:'Scoop Stretcher', detail:'ขันน็อตครบ ล็อกแน่น', hasExpiry: false },
+      { id:'im4', name:'Head Block / Head Immobilizer', detail:'ใช้คู่กับ Spine Board', hasExpiry: false },
+      { id:'im5', name:'Traction Splint (ขาหักต้นขา)', detail:'กรณีรถ ALS', hasExpiry: false },
+      { id:'im6', name:'Splint สำหรับแขน-ขา', detail:'≥ 4 ชิ้น ขนาดต่างๆ', hasExpiry: false },
+    ]
+  },
+  {
+    id: 'delivery', icon: '👶', name: 'หมวดที่ 8 — ชุดคลอดฉุกเฉิน',
+    items: [
+      { id:'del1', name:'OB Kit (Emergency Delivery Set)', detail:'ครบชุด Sterile — ตรวจวันหมดอายุ', hasExpiry: true },
+      { id:'del2', name:'Baby Bulb Syringe', detail:'≥ 2 ชิ้น', hasExpiry: false },
+      { id:'del3', name:'Thermal Blanket สำหรับทารก', detail:'≥ 2 ผืน', hasExpiry: false },
+    ]
+  },
+  {
+    id: 'burn', icon: '🔥', name: 'หมวดที่ 9 — อุปกรณ์รักษาแผลไหม้',
+    items: [
+      { id:'b1', name:'Burn Sheet (ผ้าสำหรับแผลไหม้)', detail:'≥ 2 ชิ้น', hasExpiry: false },
+      { id:'b2', name:'Water-based Burn Gel', detail:'≥ 1 ขวด/ถุง', hasExpiry: true },
+    ]
+  },
+  {
+    id: 'glucose', icon: '🩸', name: 'หมวดที่ 10 — อุปกรณ์ตรวจวัด',
+    items: [
+      { id:'g1', name:'Glucometer พร้อม Test Strip', detail:'ตรวจสอบ Strip วันหมดอายุ', hasExpiry: true },
+      { id:'g2', name:'Pulse Oximeter', detail:'ตรวจค่าและแบตเตอรี่', hasExpiry: false },
+      { id:'g3', name:'Blood Pressure Cuff (NIBP Manual)', detail:'ครบ ผู้ใหญ่ + เด็ก', hasExpiry: false },
+      { id:'g4', name:'Thermometer', detail:'ตรวจสอบการทำงาน', hasExpiry: false },
+    ]
+  },
+  {
+    id: 'ppe', icon: '🥼', name: 'หมวดที่ 11 — อุปกรณ์ป้องกันส่วนบุคคล (PPE)',
+    items: [
+      { id:'p1', name:'ถุงมือ Nitrile (ไม่มีแป้ง)', detail:'≥ 20 คู่ ขนาด S, M, L', hasExpiry: false },
+      { id:'p2', name:'หน้ากาก N95', detail:'≥ 5 ชิ้น', hasExpiry: false },
+      { id:'p3', name:'Face Shield / Goggle', detail:'≥ 2 ชิ้น', hasExpiry: false },
+      { id:'p4', name:'ชุด Gown / Coverall', detail:'≥ 2 ชุด (กรณีโรคติดต่อ)', hasExpiry: false },
+      { id:'p5', name:'Boot Cover / Shoe Cover', detail:'≥ 5 คู่', hasExpiry: false },
+    ]
+  },
+  {
+    id: 'docs', icon: '📄', name: 'หมวดที่ 12 — เอกสาร/ทะเบียน/อุปกรณ์รถ',
+    items: [
+      { id:'doc1', name:'แบบฟอร์ม PCR (Pre-hospital Care Report)', detail:'≥ 10 ชุด', hasExpiry: false },
+      { id:'doc2', name:'ทะเบียนรถ + ใบอนุญาตขับขี่ พขร.', detail:'ยังไม่หมดอายุ', hasExpiry: true },
+      { id:'doc3', name:'แผนที่ / GPS รถ EMS', detail:'ใช้งานได้ปกติ', hasExpiry: false },
+      { id:'doc4', name:'วิทยุสื่อสาร + แบตเตอรี่สำรอง', detail:'ทดสอบสัญญาณได้', hasExpiry: false },
+      { id:'doc5', name:'ไฟฉายฉุกเฉิน', detail:'แบตเตอรี่เต็ม', hasExpiry: false },
+      { id:'doc6', name:'ผ้าห่ม Thermal Blanket', detail:'≥ 2 ผืน', hasExpiry: false },
+      { id:'doc7', name:'ถังดับเพลิง', detail:'ตรวจแรงดัน ≥ 10 bar — ไม่เกินวันหมดอายุ', hasExpiry: true },
+    ]
+  }
+];
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+const itemStatus  = {};   // id → 'พร้อม' | 'ไม่พร้อม' | 'ชำรุด' | 'หมดอายุ' | 'ขาด' | ''
+const itemNotes   = {};   // id → note string
+const itemExpiry  = {};   // id → expiry date string
+const itemPhotos  = {};   // id → [{ name, data, type }]
+let   camItemId   = null;
+let   camStream   = null;
+
+// ─────────────────────────────────────────────
+//  BUILD UI
+// ─────────────────────────────────────────────
+function buildCategories() {
+  const wrap = document.getElementById('categoriesWrap');
+  let html = '';
+
+  EMS_CATEGORIES.forEach((cat, ci) => {
+    html += `<div class="cat-block">
+      <div class="cat-header" data-open="${ci < 3}" onclick="toggleCat(this)" id="catHead_${cat.id}">
+        <span class="cat-icon">${cat.icon}</span>
+        <span class="cat-title">${cat.name}</span>
+        <span class="cat-badge" id="catBadge_${cat.id}">0/${cat.items.length}</span>
+        <button class="cat-quick-btn" onclick="event.stopPropagation(); quickPassCategory('${cat.id}')">✅ ผ่านที่เหลือ</button>
+        <svg class="cat-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </div>
+      <div class="cat-body${ci >= 3 ? ' collapsed' : ''}" id="catBody_${cat.id}">`;
+
+    cat.items.forEach((item, ii) => {
+      html += `<div class="item-row" id="itemRow_${item.id}">
+        <div class="item-main">
+          <div class="item-num">${ii + 1}</div>
+          <div class="item-info">
+            <div class="item-name">${item.name}<span class="carried-tag" id="carriedTag_${item.id}" style="display:none;">🔄 ครั้งก่อน</span></div>
+            <div class="item-detail">${item.detail}</div>
+            ${item.hasExpiry ? `<div class="item-expiry">
+              📅 วันหมดอายุ:
+              <input type="date" id="exp_${item.id}" onchange="onExpiryChange('${item.id}', this.value)">
+            </div>` : ''}
+          </div>
+        </div>
+        <div class="item-controls">
+          <div class="status-pills" id="pills_${item.id}">
+            ${[['พร้อม','✓'],['ไม่พร้อม','✕'],['ชำรุด','⚠'],['หมดอายุ','⏰'],['ขาด','⊘']].map(([s,ic]) =>
+              `<button class="status-pill" data-status="${s}" onclick="setStatus('${item.id}', '${s}', this)">${ic} ${s}</button>`
+            ).join('')}
+          </div>
+          <textarea class="item-note" id="note_${item.id}" rows="1"
+            placeholder="หมายเหตุ..." oninput="itemNotes['${item.id}']=this.value; saveDraft();"></textarea>
+          <button class="photo-btn" id="photoBtn_${item.id}" onclick="openCamera('${item.id}', '${item.name}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span class="photo-count" id="photoCnt_${item.id}">รูป</span>
+          </button>
+        </div>
+      </div>`;
+    });
+
+    html += `</div></div>`;
+  });
+
+  wrap.innerHTML = html;
+  updateProgress();
+}
+
+function toggleCat(header) {
+  const id   = header.id.replace('catHead_', '');
+  const body = document.getElementById('catBody_' + id);
+  const isOpen = !body.classList.contains('collapsed');
+  body.classList.toggle('collapsed', isOpen);
+  header.setAttribute('data-open', !isOpen);
+}
+
+// ─────────────────────────────────────────────
+//  STATUS LOGIC
+// ─────────────────────────────────────────────
+function setStatus(itemId, status, btn, opts) {
+  const silent = opts && opts.silent;
+  const pills = document.getElementById('pills_' + itemId);
+  pills.querySelectorAll('.status-pill').forEach(p => {
+    p.className = 'status-pill' + (p.dataset.status === status ? ' selected-' + status : '');
+  });
+  itemStatus[itemId] = status;
+
+  const row = document.getElementById('itemRow_' + itemId);
+  row.classList.remove('ok','issue','warn');
+  if (status === 'พร้อม') row.classList.add('ok');
+  else if (status === 'หมดอายุ') row.classList.add('warn');
+  else if (status) row.classList.add('issue');
+
+  // ผู้ใช้กดยืนยันเอง (ไม่ใช่การนำสถานะเก่ามาใส่อัตโนมัติ) → เอา tag "ครั้งก่อน" ออก เพราะตรวจซ้ำแล้วจริง
+  if (!silent) {
+    row.classList.remove('carried-over');
+    const tag = document.getElementById('carriedTag_' + itemId);
+    if (tag) tag.style.display = 'none';
+    saveDraft();
+  }
+
+  updateProgress();
+  updateCategoryBadge(itemId);
+}
+
+function onExpiryChange(itemId, val) {
+  itemExpiry[itemId] = val;
+  saveDraft();
+  if (!val) return;
+  const exp  = new Date(val);
+  const now  = new Date();
+  const days = Math.ceil((exp - now) / 86400000);
+  if (days < 0)  setStatus(itemId, 'หมดอายุ', null);
+  else if (days <= 30 && !itemStatus[itemId]) {
+    showToast(`⏰ ${getItemById(itemId)?.name || ''} — หมดอายุใน ${days} วัน`, 'error');
+  }
+}
+
+function getItemById(id) {
+  for (const cat of EMS_CATEGORIES) {
+    const item = cat.items.find(i => i.id === id);
+    if (item) return item;
+  }
+  return null;
+}
+
+// ─────────────────────────────────────────────
+//  PROGRESS
+// ─────────────────────────────────────────────
+function updateProgress() {
+  const all   = EMS_CATEGORIES.flatMap(c => c.items.map(i => i.id));
+  const total = all.length;
+  const ok    = all.filter(id => itemStatus[id] === 'พร้อม').length;
+  const fail  = all.filter(id => ['ไม่พร้อม','ชำรุด','ขาด'].includes(itemStatus[id])).length;
+  const exp   = all.filter(id => itemStatus[id] === 'หมดอายุ').length;
+  const done  = all.filter(id => itemStatus[id]).length;
+  const skip  = total - done;
+  const pct   = Math.round((done / total) * 100);
+
+  document.getElementById('progressChecked').textContent = done;
+  document.getElementById('progressTotal').textContent   = total;
+  document.getElementById('progressFill').style.width    = pct + '%';
+  document.getElementById('statOk').textContent   = ok;
+  document.getElementById('statFail').textContent = fail + exp;
+  document.getElementById('statExp').textContent  = exp;
+  document.getElementById('statSkip').textContent = skip;
+  document.getElementById('sumPass').textContent  = ok;
+  document.getElementById('sumFail').textContent  = fail;
+  document.getElementById('sumExp').textContent   = exp;
+
+  const missing = all.filter(id => itemStatus[id] === 'ขาด').length;
+  const missingPanel = document.getElementById('missingPanel');
+  document.getElementById('missingCount').textContent = missing;
+  missingPanel.classList.toggle('has-missing', missing > 0);
+
+  if (done > 0) {
+    const rate = Math.round((ok / done) * 100);
+    document.getElementById('sumRate').textContent = rate + '%';
+    const badge = document.getElementById('passBadge');
+    if (done === total) {
+      badge.textContent  = (fail + exp) === 0 ? 'ผ่าน' : 'ไม่ผ่าน';
+      badge.className    = 'pass-badge ' + ((fail + exp) === 0 ? 'pass' : 'fail');
+    } else {
+      badge.textContent = `ตรวจแล้ว ${pct}%`;
+      badge.className   = 'pass-badge';
+      badge.style.background = '#1a2332';
+      badge.style.color = '#e5e7eb';
+    }
+  }
+}
+
+function updateCategoryBadge(itemId) {
+  const cat = EMS_CATEGORIES.find(c => c.items.some(i => i.id === itemId));
+  if (!cat) return;
+  const ids  = cat.items.map(i => i.id);
+  const done = ids.filter(id => itemStatus[id]).length;
+  const fail = ids.filter(id => itemStatus[id] && itemStatus[id] !== 'พร้อม').length;
+  const badge = document.getElementById('catBadge_' + cat.id);
+  badge.textContent = `${done}/${ids.length}`;
+  badge.className   = 'cat-badge ' + (fail > 0 ? 'has-issue' : done === ids.length ? 'all-ok' : '');
+}
+
+// ─────────────────────────────────────────────
+//  MISSING ITEMS MODAL — รายการ "ขาด" ที่ต้องเติม
+// ─────────────────────────────────────────────
+function showMissingItemsModal() {
+  const body = document.getElementById('miBody');
+  const missingByCategory = EMS_CATEGORIES.map(cat => ({
+    cat,
+    items: cat.items.filter(i => itemStatus[i.id] === 'ขาด')
+  })).filter(g => g.items.length > 0);
+
+  const total = missingByCategory.reduce((s, g) => s + g.items.length, 0);
+  document.getElementById('miSub').textContent = `${total} รายการ`;
+
+  if (!total) {
+    body.innerHTML = `<div class="mi-empty">✅ ไม่มีรายการที่ขาด — อุปกรณ์ครบถ้วน</div>`;
+  } else {
+    body.innerHTML = missingByCategory.map(g => `
+      <div class="mi-cat-label">${g.cat.icon} ${g.cat.name}</div>
+      ${g.items.map(i => `
+        <div class="mi-item">
+          <div class="mi-item-dot"></div>
+          <div>
+            <div class="mi-item-name">${i.name}</div>
+            <div class="mi-item-detail">${i.detail}</div>
+            ${itemNotes[i.id] ? `<div class="mi-item-note">📝 ${itemNotes[i.id]}</div>` : ''}
+          </div>
+        </div>
+      `).join('')}
+    `).join('');
+  }
+  document.getElementById('miOverlay').classList.add('show');
+}
+
+function closeMissingItemsModal() {
+  document.getElementById('miOverlay').classList.remove('show');
+}
+
+// ─────────────────────────────────────────────
+//  QUICK ACTIONS — เร่งความเร็วในการตรวจ
+// ─────────────────────────────────────────────
+function quickPassRemaining() {
+  const all = EMS_CATEGORIES.flatMap(c => c.items.map(i => i.id));
+  const targets = all.filter(id => !itemStatus[id]);
+  if (!targets.length) { showToast('ตรวจครบทุกรายการแล้ว'); return; }
+  if (!confirm(`ทำเครื่องหมาย "พร้อม" ให้รายการที่ยังไม่ได้ตรวจทั้งหมด ${targets.length} รายการ?\n(รายการที่ตรวจ/ระบุปัญหาไว้แล้วจะไม่ถูกแตะต้อง)`)) return;
+  targets.forEach(id => setStatus(id, 'พร้อม', null));
+  showToast(`✅ ผ่านรายการที่เหลือ ${targets.length} รายการแล้ว`, 'success');
+}
+
+function quickPassCategory(catId) {
+  const cat = EMS_CATEGORIES.find(c => c.id === catId);
+  if (!cat) return;
+  const targets = cat.items.map(i => i.id).filter(id => !itemStatus[id]);
+  if (!targets.length) { showToast('หมวดนี้ตรวจครบแล้ว'); return; }
+  targets.forEach(id => setStatus(id, 'พร้อม', null));
+  showToast(`✅ ผ่าน "${cat.name}" ที่เหลือ ${targets.length} รายการแล้ว`, 'success');
+}
+
+function clearAllStatuses() {
+  const all = EMS_CATEGORIES.flatMap(c => c.items.map(i => i.id));
+  const doneCount = all.filter(id => itemStatus[id]).length;
+  if (!doneCount) { showToast('ยังไม่มีรายการที่ตรวจ'); return; }
+  if (!confirm(`ล้างสถานะที่ตรวจไปแล้วทั้งหมด ${doneCount} รายการ? (ข้อมูลรถ/ผู้ตรวจจะยังอยู่)`)) return;
+  Object.keys(itemStatus).forEach(k => delete itemStatus[k]);
+  Object.keys(itemNotes).forEach(k => delete itemNotes[k]);
+  Object.keys(itemExpiry).forEach(k => delete itemExpiry[k]);
+  buildCategories();
+  clearDraft();
+  showToast('ล้างสถานะทั้งหมดแล้ว');
+}
+
+let hidePassed = false;
+function toggleHidePassed() {
+  hidePassed = !hidePassed;
+  document.getElementById('categoriesWrap').classList.toggle('hide-passed', hidePassed);
+  document.getElementById('hidePassedBtn').classList.toggle('toggle-active', hidePassed);
+  document.getElementById('hidePassedBtn').textContent = hidePassed ? '👁 แสดงทั้งหมด' : '👁 ซ่อนรายการที่ผ่านแล้ว';
+}
+
+// ─────────────────────────────────────────────
+//  DRAFT AUTOSAVE — กันข้อมูลหายถ้าเบราว์เซอร์ปิด/หลุดกลางคัน
+//  (เก็บเฉพาะสถานะ/หมายเหตุ/วันหมดอายุ — ไม่เก็บรูปเพราะข้อมูลใหญ่เกินไป)
+// ─────────────────────────────────────────────
+const DRAFT_KEY = 'emscheck_drafts_v1';
+
+function getAllDrafts() {
+  try { return JSON.parse(localStorage.getItem(DRAFT_KEY) || '{}'); } catch (_) { return {}; }
+}
+function saveDraft() {
+  const carId = document.getElementById('carId')?.value;
+  if (!carId) return;
+  try {
+    const drafts = getAllDrafts();
+    drafts[carId] = {
+      date: document.getElementById('checkDate').value,
+      checkerName: document.getElementById('checkerName').value,
+      itemStatus: { ...itemStatus },
+      itemNotes : { ...itemNotes },
+      itemExpiry: { ...itemExpiry },
+      savedAt: Date.now()
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+  } catch (_) {}
+}
+function clearDraft(carId) {
+  carId = carId || document.getElementById('carId')?.value;
+  if (!carId) return;
+  try {
+    const drafts = getAllDrafts();
+    delete drafts[carId];
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts));
+  } catch (_) {}
+}
+
+// ─────────────────────────────────────────────
+//  ผลตรวจครั้งก่อน + Draft ค้าง — เมื่อเลือกรถ
+// ─────────────────────────────────────────────
+let pendingPreviousCheck = null;
+let pendingDraft         = null;
+
+function hideBanners() {
+  document.getElementById('carryBanner').classList.remove('show');
+  document.getElementById('draftBanner').classList.remove('show');
+  pendingPreviousCheck = null;
+  pendingDraft = null;
+}
+
+async function onCarChange() {
+  hideBanners();
+  const carId = document.getElementById('carId').value;
+  if (!carId) return;
+
+  // 1) เช็ค draft ที่กรอกค้างไว้วันนี้ของรถคันนี้ก่อน (ยังไม่ได้ส่ง)
+  const drafts = getAllDrafts();
+  const draft  = drafts[carId];
+  const today  = new Date().toISOString().slice(0, 10);
+  if (draft && draft.date === today && Object.keys(draft.itemStatus || {}).length > 0) {
+    pendingDraft = draft;
+    const checkedCount = Object.keys(draft.itemStatus).length;
+    document.getElementById('draftBannerText').innerHTML =
+      `<b>พบข้อมูลที่กรอกค้างไว้วันนี้ (ยังไม่ได้ส่ง)</b>ตรวจไปแล้ว ${checkedCount} รายการ โดย ${draft.checkerName || '-'} — ทำต่อจากเดิมได้เลย`;
+    document.getElementById('draftBanner').classList.add('show');
+    return; // ให้เลือกจัดการ draft ก่อน ค่อยเสนอ carry-forward รอบถัดไปถ้ายังไม่มีสถานะ
+  }
+
+  // 2) ไม่มี draft ค้าง → ดึงผลตรวจล่าสุดของรถคันนี้มาเสนอ "คงสถานะจากครั้งก่อน"
+  try {
+    const res  = await fetch(GAS_URL + '?action=getEMSData');
+    const json = await res.json();
+    const rows = (json.data || []).filter(r => r['รถ EMS'] === carId);
+    if (!rows.length) return;
+    let latestTs = rows[0]['Timestamp'];
+    rows.forEach(r => { if (String(r['Timestamp']) > String(latestTs)) latestTs = r['Timestamp']; });
+    const latestRows = rows.filter(r => r['Timestamp'] === latestTs);
+    if (!latestRows.length) return;
+    pendingPreviousCheck = latestRows;
+    const checkDate = latestRows[0]['วันที่'] || '';
+    const checker   = latestRows[0]['ผู้ตรวจ'] || '';
+    document.getElementById('carryBannerText').innerHTML =
+      `<b>พบการตรวจครั้งก่อนของรถคันนี้</b>วันที่ ${checkDate} โดย ${checker} — นำสถานะเดิมมาเติมให้ แล้วตรวจซ้ำเฉพาะจุดที่เปลี่ยนไปได้เลย`;
+    document.getElementById('carryBanner').classList.add('show');
+  } catch (_) { /* ดึงไม่ได้ก็ไม่ต้องรบกวนผู้ใช้ ตรวจใหม่ตามปกติ */ }
+}
+
+function dismissCarryBanner() {
+  document.getElementById('carryBanner').classList.remove('show');
+  pendingPreviousCheck = null;
+}
+function dismissDraftBanner() {
+  clearDraft();
+  document.getElementById('draftBanner').classList.remove('show');
+  pendingDraft = null;
+}
+
+function applyCarryForward() {
+  if (!pendingPreviousCheck) return;
+  let n = 0;
+  pendingPreviousCheck.forEach(r => {
+    const id = r['รหัสอุปกรณ์'];
+    if (!id || !document.getElementById('itemRow_' + id)) return;
+    const status = r['สถานะ'];
+    if (status && status !== 'ไม่ได้ตรวจ') {
+      setStatus(id, status, null, { silent: true });
+      document.getElementById('itemRow_' + id).classList.add('carried-over');
+      const tag = document.getElementById('carriedTag_' + id);
+      if (tag) tag.style.display = 'inline-flex';
+      n++;
+    }
+    if (r['วันหมดอายุ']) {
+      itemExpiry[id] = r['วันหมดอายุ'];
+      const expInput = document.getElementById('exp_' + id);
+      if (expInput) expInput.value = r['วันหมดอายุ'];
+    }
+    if (r['หมายเหตุ']) {
+      itemNotes[id] = r['หมายเหตุ'];
+      const noteInput = document.getElementById('note_' + id);
+      if (noteInput) noteInput.value = r['หมายเหตุ'];
+    }
+  });
+  document.getElementById('carryBanner').classList.remove('show');
+  showToast(`📋 นำสถานะจากครั้งก่อนมาให้แล้ว ${n} รายการ — กรุณาตรวจสอบซ้ำและปรับปรุงตามจริง`, 'success');
+  pendingPreviousCheck = null;
+  saveDraft();
+}
+
+function resumeDraft() {
+  if (!pendingDraft) return;
+  Object.assign(itemStatus, pendingDraft.itemStatus || {});
+  Object.assign(itemNotes,  pendingDraft.itemNotes  || {});
+  Object.assign(itemExpiry, pendingDraft.itemExpiry || {});
+  Object.keys(itemStatus).forEach(id => {
+    if (document.getElementById('itemRow_' + id)) setStatus(id, itemStatus[id], null, { silent: true });
+  });
+  Object.keys(itemExpiry).forEach(id => {
+    const el = document.getElementById('exp_' + id);
+    if (el) el.value = itemExpiry[id];
+  });
+  Object.keys(itemNotes).forEach(id => {
+    const el = document.getElementById('note_' + id);
+    if (el) el.value = itemNotes[id];
+  });
+  document.getElementById('draftBanner').classList.remove('show');
+  showToast('ทำต่อจากข้อมูลที่กรอกค้างไว้แล้ว', 'success');
+  pendingDraft = null;
+}
+
+// ─────────────────────────────────────────────
+//  SESSION TIMER — เวลาที่ใช้ตรวจ (เพื่อการติดตามมาตรฐานเวลา)
+// ─────────────────────────────────────────────
+let sessionStart = Date.now();
+setInterval(() => {
+  const sec = Math.floor((Date.now() - sessionStart) / 1000);
+  const m = String(Math.floor(sec / 60)).padStart(2,'0');
+  const s = String(sec % 60).padStart(2,'0');
+  const el = document.getElementById('sessionTimer');
+  if (el) el.textContent = `${m}:${s}`;
+}, 1000);
+
+// ─────────────────────────────────────────────
+//  CAMERA
+// ─────────────────────────────────────────────
+async function openCamera(itemId, itemName) {
+  camItemId = itemId;
+  document.getElementById('camTitle').textContent = '' + itemName;
+  document.getElementById('camOverlay').classList.add('show');
+
+  // แสดงรูปที่มีอยู่แล้ว
+  renderCamPreview();
+
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    document.getElementById('camVideo').srcObject = camStream;
+  } catch (_) {
+    document.getElementById('camVideo').style.display = 'none';
+    showToast('ไม่สามารถเปิดกล้องได้ — ใช้ปุ่มเลือกไฟล์แทน');
+  }
+}
+
+function closeCamera() {
+  document.getElementById('camOverlay').classList.remove('show');
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  document.getElementById('camVideo').style.display = 'block';
+  updatePhotoBtn(camItemId);
+  camItemId = null;
+}
+
+function capturePhoto() {
+  const video  = document.getElementById('camVideo');
+  const canvas = document.getElementById('camCanvas');
+  canvas.width  = video.videoWidth  || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const dataURL = canvas.toDataURL('image/jpeg', 0.85);
+
+  if (!itemPhotos[camItemId]) itemPhotos[camItemId] = [];
+  itemPhotos[camItemId].push({ name: `photo_${Date.now()}.jpg`, data: dataURL, type: 'image/jpeg' });
+  renderCamPreview();
+  showToast('บันทึกรูปภาพแล้ว');
+}
+
+function handleFileUpload(e) {
+  const files = Array.from(e.target.files);
+  if (!itemPhotos[camItemId]) itemPhotos[camItemId] = [];
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      itemPhotos[camItemId].push({ name: file.name, data: ev.target.result, type: file.type });
+      renderCamPreview();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+}
+
+function renderCamPreview() {
+  const prev   = document.getElementById('camPreview');
+  const photos = itemPhotos[camItemId] || [];
+  prev.innerHTML = photos.map((p, idx) =>
+    `<div class="cam-thumb-wrap">
+      <img src="${p.data}" class="cam-thumb">
+      <button class="cam-del-btn" onclick="removePhoto(${idx})">✕</button>
+    </div>`
+  ).join('');
+}
+
+function removePhoto(idx) {
+  if (itemPhotos[camItemId]) { itemPhotos[camItemId].splice(idx, 1); renderCamPreview(); }
+}
+
+function updatePhotoBtn(itemId) {
+  if (!itemId) return;
+  const cnt  = (itemPhotos[itemId] || []).length;
+  const btn  = document.getElementById('photoBtn_' + itemId);
+  const cntEl= document.getElementById('photoCnt_' + itemId);
+  if (!btn) return;
+  if (cnt > 0) { btn.classList.add('has-photo'); cntEl.textContent = cnt + ' รูป'; }
+  else { btn.classList.remove('has-photo'); cntEl.textContent = 'รูป'; }
+}
+
+// ─────────────────────────────────────────────
+//  SUBMIT
+// ─────────────────────────────────────────────
+async function submitEMS() {
+  const carId       = document.getElementById('carId').value;
+  const checkerName = document.getElementById('checkerName').value.trim();
+  const checkDate   = document.getElementById('checkDate').value;
+  const checkTime   = document.getElementById('checkTime').value;
+
+  if (!carId || !checkerName || !checkDate || !checkTime) {
+    showToast('กรุณากรอกข้อมูลการตรวจ (รถ / ผู้ตรวจ / วันที่/เวลา) ให้ครบ', 'error');
+    return;
+  }
+
+  const all = EMS_CATEGORIES.flatMap(c => c.items.map(i => i.id));
+  const unchecked = all.filter(id => !itemStatus[id]);
+  if (unchecked.length > 0) {
+    if (!confirm(`มีรายการที่ยังไม่ได้ตรวจ ${unchecked.length} รายการ — ยืนยันส่งข้อมูลหรือไม่?`)) return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const items = EMS_CATEGORIES.flatMap(cat =>
+    cat.items.map(item => ({
+      id      : item.id,
+      name    : item.name,
+      category: cat.name,
+      status  : itemStatus[item.id] || 'ไม่ได้ตรวจ',
+      expDate : itemExpiry[item.id]  || '',
+      note    : itemNotes[item.id]   || ''
+    }))
+  );
+
+  // สรุปสถานะหมวดออกซิเจนแยกไว้ต่างหาก — เตรียมไว้สำหรับให้หน้า Index ดึงไปแสดงในอนาคต
+  // (ยังไม่เชื่อมกับ index.html ตอนนี้ — รอทำหน้า Index ให้เสร็จก่อน)
+  const oxygenItems  = items.filter(i => i.category === 'หมวดที่ 2 — ระบบออกซิเจน');
+  const oxygenFail   = oxygenItems.filter(i => i.status && i.status !== 'พร้อม' && i.status !== 'ไม่ได้ตรวจ');
+  const oxygenStatus = oxygenItems.every(i => !i.status || i.status === 'ไม่ได้ตรวจ') ? 'ไม่ได้ตรวจ'
+                      : oxygenFail.length ? 'มีปัญหา' : 'พร้อม';
+
+  const payload = {
+    action      : 'saveEMS',
+    carId,
+    checkerName,
+    checkerRole : document.getElementById('checkerRole').value.trim(),
+    checkDate,
+    checkTime,
+    checkShift  : document.getElementById('checkShift').value,
+    remarks     : document.getElementById('overallRemarks').value.trim(),
+    items,
+    oxygenSummary: { status: oxygenStatus, issueCount: oxygenFail.length, checkedAt: checkDate + ' ' + checkTime }
+  };
+
+  try { localStorage.setItem('ems_last_checker', checkerName); localStorage.setItem('ems_last_role', payload.checkerRole || ''); } catch (_) {}
+
+  try {
+    // ส่งข้อมูลหลักก่อน
+    const payloadNoPhotos = { ...payload };
+    await fetch(GAS_URL, {
+      method : 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body   : 'payload=' + encodeURIComponent(JSON.stringify(payloadNoPhotos))
+    });
+
+    // ส่งรูป (fire-and-forget)
+    const allPhotos = EMS_CATEGORIES.flatMap(cat =>
+      cat.items.filter(i => (itemPhotos[i.id]||[]).length > 0)
+        .map(i => ({ itemId: i.id, itemName: i.name, photos: itemPhotos[i.id] }))
+    );
+    if (allPhotos.length > 0) {
+      fetch(GAS_URL, {
+        method: 'POST', mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'payload=' + encodeURIComponent(JSON.stringify({
+          action: 'uploadPhotos', carType: carId, inspDate: checkDate,
+          driverName: checkerName, photos: allPhotos.flatMap(x => x.photos)
+        }))
+      }).catch(() => {});
+    }
+
+    await new Promise(r => setTimeout(r, 800));
+
+    clearDraft(carId); // ส่งสำเร็จแล้ว ไม่ต้องเก็บ draft ไว้อีก
+
+    const failCount = items.filter(i => i.status !== 'พร้อม' && i.status !== 'ไม่ได้ตรวจ').length;
+    showToast(
+      failCount > 0
+        ? `ส่งสำเร็จ — มีรายการที่ต้องดำเนินการ ${failCount} รายการ (แจ้งเตือนแล้ว)`
+        : `ส่งสำเร็จ — รถ EMS ผ่านการตรวจสอบ`,
+      'success'
+    );
+
+    // Reset
+    setTimeout(() => { if (confirm('ล้างข้อมูลเพื่อเริ่มตรวจรถคันถัดไป?')) resetForm(); }, 2000);
+
+  } catch (err) {
+    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+  } finally {
+    btn.classList.remove('loading'); btn.disabled = false;
+  }
+}
+
+function resetForm() {
+  const carId = document.getElementById('carId').value;
+  clearDraft(carId);
+  hideBanners();
+  Object.keys(itemStatus).forEach(k => delete itemStatus[k]);
+  Object.keys(itemNotes).forEach(k => delete itemNotes[k]);
+  Object.keys(itemExpiry).forEach(k => delete itemExpiry[k]);
+  Object.keys(itemPhotos).forEach(k => delete itemPhotos[k]);
+  document.getElementById('carId').value = '';
+  document.getElementById('overallRemarks').value = '';
+  hidePassed = false;
+  document.getElementById('categoriesWrap').classList.remove('hide-passed');
+  const hpBtn = document.getElementById('hidePassedBtn');
+  if (hpBtn) { hpBtn.classList.remove('toggle-active'); hpBtn.textContent = '👁 ซ่อนรายการที่ผ่านแล้ว'; }
+  sessionStart = Date.now();
+  buildCategories();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ─────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  document.getElementById('checkDate').value = now.toISOString().slice(0,10);
+  document.getElementById('checkTime').value = now.toTimeString().slice(0,5);
+
+  const hr = now.getHours();
+  const shiftEl = document.getElementById('checkShift');
+  if (hr >= 7  && hr < 15) shiftEl.selectedIndex = 0;
+  else if (hr >= 15 && hr < 23) shiftEl.selectedIndex = 1;
+  else shiftEl.selectedIndex = 2;
+
+  buildCategories();
+  document.getElementById('progressTotal').textContent =
+    EMS_CATEGORIES.reduce((s, c) => s + c.items.length, 0);
+
+  loadEMSMasterData(); // โหลดรถ EMS + ผู้ตรวจจาก Google Sheets
+});
+
+// ─────────────────────────────────────────────
+//  LOAD MASTER DATA FROM GOOGLE SHEETS
+// ─────────────────────────────────────────────
+const EMS_DEFAULT_VEHICLES = [
+  { ทะเบียน:'จย.1379 ชม.', ประเภท:'รถ Refer' },
+  { ทะเบียน:'งบ.5466 ชม.', ประเภท:'รถ Refer' },
+  { ทะเบียน:'ขษ.4361 ชม.', ประเภท:'รถ Refer' },
+  { ทะเบียน:'ขร.501 ชม.',  ประเภท:'รถ Refer' },
+  { ทะเบียน:'ขฉ.8407 ชม.', ประเภท:'รถ Refer' },
+];
+
+async function loadEMSMasterData() {
+  try {
+    const vRes = await fetch(GAS_URL + '?action=getVehicles');
+    const vJson = await vRes.json();
+    // กรองเฉพาะรถ EMS (ประเภทระบบ = 'EMS' หรือ ประเภท contains 'Refer')
+    const allVehicles = (vJson.data && vJson.data.length) ? vJson.data : EMS_DEFAULT_VEHICLES;
+    const emsVehicles = allVehicles.filter(v =>
+      (v['ประเภทระบบ'] === 'EMS') ||
+      (String(v['ประเภท'] || '').includes('Refer')) ||
+      (String(v['ประเภท'] || '').includes('EMS'))
+    );
+    populateEMSCarSelect(emsVehicles.length ? emsVehicles : EMS_DEFAULT_VEHICLES);
+  } catch (_) {
+    populateEMSCarSelect(EMS_DEFAULT_VEHICLES);
+  }
+  initEMSChecker(); // ผู้ตรวจสอบเป็นช่องกรอกอิสระ (พยาบาล/เจ้าพนักงานเวชกิจฉุกเฉิน) ไม่ผูกกับรายชื่อคนขับ
+}
+
+function populateEMSCarSelect(vehicles) {
+  const sel = document.getElementById('carId');
+  sel.innerHTML = '<option value="">— เลือกรถ EMS —</option>';
+  vehicles.forEach(v => {
+    const plate = v['ทะเบียน'] || '';
+    const type  = v['ประเภท']  || '';
+    const opt   = document.createElement('option');
+    opt.value   = plate + ' ' + type;
+    opt.textContent = `${plate} — ${type}`;
+    sel.appendChild(opt);
+  });
+}
+
+function initEMSChecker() {
+  // ผู้ตรวจสอบคือพยาบาล/เจ้าพนักงานเวชกิจฉุกเฉิน ไม่ใช่คนขับรถ จึงให้กรอกเองแทนการเลือกจากรายชื่อคนขับ
+  // จำผู้ตรวจสอบคนล่าสุดไว้ให้ ไม่ต้องกรอกซ้ำทุกครั้ง (แก้ไขได้ตามจริงเสมอ)
+  try {
+    const lastChecker = localStorage.getItem('ems_last_checker');
+    const lastRole     = localStorage.getItem('ems_last_role');
+    if (lastChecker) document.getElementById('checkerName').value = lastChecker;
+    if (lastRole) document.getElementById('checkerRole').value = lastRole;
+  } catch (_) {}
+}
+</script>
+
+</body>
+</html>

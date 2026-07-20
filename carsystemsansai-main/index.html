@@ -1,0 +1,2019 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAND — Sansai Administration Network Drive</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy:         #0d2137;
+    --navy-mid:     #163251;
+    --navy-light:   #1e4a7a;
+    --blue:         #1d6fb5;
+    --blue-soft:    #e8f1fb;
+    --teal:         #007a6e;
+    --teal-soft:    #e0f4f1;
+    --amber:        #c07a00;
+    --amber-soft:   #fdf4dc;
+    --orange:       #d4580a;
+    --orange-soft:  #fdf0e6;
+    --red:          #c0392b;
+    --red-soft:     #fdecea;
+    --bg:           #eef2f7;
+    --bg2:          #e4eaf3;
+    --card:         #ffffff;
+    --border:       #d5dce8;
+    --border-strong:#b8c4d4;
+    --text:         #182332;
+    --text-mid:     #3d5168;
+    --text-light:   #7a8ea5;
+    --success:      #1a8a4a;
+    --success-soft: #e4f5eb;
+    --warning:      #c07a00;
+    --warning-soft: #fdf4dc;
+    --danger:       #c0392b;
+    --danger-soft:  #fdecea;
+    --violet:       #6d3fc0;
+    --violet-soft:  #f0ecfb;
+    --violet-mid:   #8255d4;
+    --radius:       12px;
+    --radius-sm:    8px;
+    --shadow-sm:    0 1px 6px rgba(13,33,55,.07);
+    --shadow:       0 2px 14px rgba(13,33,55,.09);
+    --shadow-lg:    0 6px 32px rgba(13,33,55,.13);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans Thai', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  /* ── HEADER ── */
+  .site-header {
+    background: var(--navy);
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    box-shadow: 0 2px 16px rgba(0,0,0,.28);
+  }
+  .header-inner {
+    max-width: 1140px;
+    margin: auto;
+    padding: 0 24px;
+    height: 58px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .header-logo {
+    width: 36px; height: 36px;
+    background: linear-gradient(145deg, var(--blue) 0%, var(--teal) 100%);
+    border-radius: 9px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 10px rgba(29,111,181,.4);
+  }
+  .header-logo svg { width: 20px; height: 20px; }
+  .header-titles { flex: 1; min-width: 0; }
+  .header-titles .main-title {
+    font-size: 13.5px; font-weight: 700; color: #fff;
+    letter-spacing: .2px; line-height: 1.2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .header-titles .sub-title {
+    font-size: 11px; color: rgba(255,255,255,.45); font-weight: 400;
+  }
+  .header-right { display: flex; align-items: center; gap: 8px; }
+  .header-chip {
+    background: rgba(255,255,255,.08);
+    border: 1px solid rgba(255,255,255,.14);
+    color: rgba(255,255,255,.6);
+    font-size: 10.5px; font-weight: 600;
+    padding: 3px 9px; border-radius: 20px;
+    letter-spacing: .5px;
+    white-space: nowrap;
+  }
+
+  /* FAQ button in header */
+  .faq-btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 12px; border-radius: 7px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.14);
+    color: rgba(255,255,255,.7);
+    font-size: 11.5px; font-weight: 500;
+    cursor: pointer; white-space: nowrap;
+    transition: background .18s, color .18s;
+    font-family: inherit;
+    text-decoration: none;
+  }
+  .faq-btn:hover {
+    background: rgba(255,255,255,.14);
+    color: #fff;
+  }
+  .faq-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+  .sat-btn {
+    color: rgba(180,160,255,.85);
+    border-color: rgba(130,85,212,.3);
+    background: rgba(109,63,192,.12);
+  }
+  .sat-btn:hover {
+    background: rgba(109,63,192,.22);
+    color: #c9b8f5;
+  }
+
+  /* ── MANUAL BUTTON ── */
+  .manual-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 13px; border-radius: 7px;
+    background: linear-gradient(135deg, rgba(0,122,110,.55) 0%, rgba(29,111,181,.45) 100%);
+    border: 1px solid rgba(0,200,180,.45);
+    color: #fff;
+    font-size: 12px; font-weight: 700;
+    cursor: pointer; white-space: nowrap;
+    transition: all .2s;
+    font-family: inherit;
+    text-decoration: none;
+    box-shadow: 0 0 0 0 rgba(0,200,180,.5);
+    animation: manual-pulse 2.8s ease-in-out infinite;
+    position: relative;
+  }
+  .manual-btn::before {
+    content: '';
+    position: absolute; inset: -2px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #00c8b4, #1d6fb5);
+    opacity: 0;
+    z-index: -1;
+    transition: opacity .2s;
+  }
+  .manual-btn:hover {
+    background: linear-gradient(135deg, rgba(0,170,155,.8) 0%, rgba(29,111,181,.75) 100%);
+    border-color: rgba(0,220,200,.7);
+    box-shadow: 0 0 16px rgba(0,200,180,.4);
+    color: #fff;
+    animation: none;
+    transform: translateY(-1px);
+  }
+  .manual-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+  .manual-btn .manual-badge {
+    background: rgba(255,255,255,.25);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 9.5px;
+    font-weight: 800;
+    letter-spacing: .5px;
+  }
+  @keyframes manual-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(0,200,180,.5); }
+    50%       { box-shadow: 0 0 0 5px rgba(0,200,180,.0); }
+  }
+
+  /* ── PAGE BAND (sub-header) ── */
+  .page-band {
+    background: linear-gradient(150deg, #0d2847 0%, #123362 45%, #0f4a6e 100%);
+    padding: 52px 24px 60px;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+  }
+  /* Ambient glow layers */
+  .page-band::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 900px 400px at 10% 80%, rgba(14,165,233,.13) 0%, transparent 65%),
+      radial-gradient(ellipse 600px 300px at 80% 10%, rgba(99,102,241,.10) 0%, transparent 65%),
+      radial-gradient(ellipse 400px 200px at 55% 100%, rgba(45,212,191,.07) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  /* Diagonal grid lines */
+  .page-band::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,.018) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.018) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+  }
+  .band-inner {
+    position: relative; z-index: 1;
+    max-width: 1140px; margin: auto;
+    display: flex; align-items: center; gap: 28px;
+  }
+  .band-icon {
+    width: 76px; height: 76px;
+    background: linear-gradient(135deg, rgba(14,165,233,.25) 0%, rgba(99,102,241,.18) 100%);
+    border: 1px solid rgba(255,255,255,.18);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 0 0 1px rgba(14,165,233,.15), inset 0 1px 0 rgba(255,255,255,.12);
+  }
+  .band-icon svg { width: 38px; height: 38px; }
+  .band-text { flex: 1; }
+  .band-eyebrow {
+    font-size: 11px; font-weight: 600; letter-spacing: 2.5px;
+    color: rgba(14,165,233,.85);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .band-text h1 {
+    font-family: 'Noto Serif Thai', serif;
+    font-size: clamp(22px, 4vw, 34px);
+    font-weight: 700; color: #fff;
+    line-height: 1.2; letter-spacing: .35em;
+    margin-bottom: 4px;
+  }
+  .band-subtitle {
+    font-size: clamp(14px, 2vw, 17px);
+    color: rgba(255,255,255,.65);
+    font-weight: 400; letter-spacing: .1px;
+    margin-bottom: 12px;
+  }
+  .band-text p {
+    font-size: 13.5px; color: rgba(255,255,255,.42);
+    line-height: 1.7; max-width: 560px;
+  }
+  .band-meta {
+    display: flex; flex-wrap: wrap; gap: 7px;
+    margin-top: 18px;
+  }
+  .band-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(255,255,255,.07);
+    border: 1px solid rgba(255,255,255,.13);
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 11.5px; color: rgba(255,255,255,.6);
+    font-weight: 500; letter-spacing: .2px;
+    backdrop-filter: blur(4px);
+  }
+  .band-pill.pill-active {
+    background: rgba(34,197,94,.12);
+    border-color: rgba(34,197,94,.3);
+    color: rgba(134,239,172,.9);
+  }
+  .pulse-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 8px rgba(34,197,94,.9);
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:.4; transform:scale(1.6); }
+  }
+  /* Right accent block */
+  .band-stat-block {
+    display: flex; flex-direction: column; align-items: flex-end;
+    gap: 6px; flex-shrink: 0;
+  }
+  .band-stat-num {
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 700; color: #fff; line-height: 1;
+    letter-spacing: -1px;
+  }
+  .band-stat-label {
+    font-size: 11px; color: rgba(255,255,255,.4);
+    letter-spacing: 1.5px; text-transform: uppercase;
+  }
+  .band-divider {
+    width: 1px; height: 70px;
+    background: linear-gradient(to bottom, transparent, rgba(255,255,255,.15), transparent);
+    flex-shrink: 0;
+  }
+
+  /* ── MAIN ── */
+  .main-wrap {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 32px 24px 64px;
+  }
+
+  /* ── STATUS BAR ── */
+  .status-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    box-shadow: var(--shadow-sm);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .stat-card .stat-label {
+    font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-light);
+  }
+  .stat-card .stat-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 26px; font-weight: 500;
+    color: var(--text); line-height: 1;
+  }
+  .stat-card .stat-sub {
+    font-size: 11px; color: var(--text-light);
+    display: flex; align-items: center; gap: 5px;
+  }
+  .stat-dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+  .stat-dot.green  { background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,.5); }
+  .stat-dot.yellow { background: #f59e0b; box-shadow: 0 0 5px rgba(245,158,11,.5); }
+  .stat-dot.red    { background: #ef4444; box-shadow: 0 0 5px rgba(239,68,68,.5); }
+  .stat-dot.blue   { background: var(--blue); }
+
+  /* ── SECTION HEADER ── */
+  .section-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 14px; margin-top: 28px;
+  }
+  .section-head:first-child { margin-top: 0; }
+  .section-head .sh-label {
+    font-size: 10.5px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1.4px;
+    color: var(--text-light);
+    white-space: nowrap;
+  }
+  .section-head .sh-line {
+    flex: 1; height: 1px; background: var(--border);
+  }
+  .section-head .sh-en {
+    font-size: 10.5px; color: var(--border-strong);
+    font-weight: 500; white-space: nowrap;
+  }
+
+  /* ── CARD GRID ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin-bottom: 8px;
+    align-items: stretch;
+  }
+
+  /* ── NAV CARD ── */
+  .nav-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0;
+    text-decoration: none;
+    color: inherit;
+    display: flex; flex-direction: column;
+    box-shadow: var(--shadow-sm);
+    position: relative;
+    overflow: visible;        /* ← แก้ overflow ไม่ตัดเนื้อหา */
+    min-height: 0;            /* ← ให้ grid stretch ได้ถูกต้อง */
+    transition: transform .18s cubic-bezier(.4,0,.2,1),
+                box-shadow .18s, border-color .18s;
+    cursor: pointer;
+  }
+  /* ซ่อน stripe overflow แยก */
+  .card-stripe-wrap {
+    border-radius: var(--radius) var(--radius) 0 0;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .nav-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--border-strong);
+  }
+  .nav-card:active { transform: translateY(0); }
+
+  /* Top accent stripe */
+  .card-stripe {
+    height: 3px; width: 100%;
+  }
+  .nav-card.c-teal  .card-stripe { background: linear-gradient(90deg, var(--teal), #26b5a8); }
+  .nav-card.c-blue  .card-stripe { background: linear-gradient(90deg, var(--blue), #4d9fd6); }
+  .nav-card.c-navy  .card-stripe { background: linear-gradient(90deg, var(--navy-mid), var(--navy-light)); }
+  .nav-card.c-amber .card-stripe { background: linear-gradient(90deg, var(--amber), #e09a1a); }
+  .nav-card.c-orange .card-stripe { background: linear-gradient(90deg, var(--orange), #e87b38); }
+  .nav-card.c-violet .card-stripe { background: linear-gradient(90deg, var(--violet), var(--violet-mid)); }
+  .nav-card.c-green  .card-stripe { background: linear-gradient(90deg, var(--success), #22b563); }
+
+  .card-content {
+    padding: 20px 20px 0;
+    display: flex; align-items: flex-start; gap: 14px;
+    flex: 1;
+  }
+  .card-icon {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .card-icon svg { width: 20px; height: 20px; }
+  .nav-card.c-teal  .card-icon { background: var(--teal-soft);  color: var(--teal); }
+  .nav-card.c-blue  .card-icon { background: var(--blue-soft);  color: var(--blue); }
+  .nav-card.c-navy  .card-icon { background: #e6ecf5;           color: var(--navy-mid); }
+  .nav-card.c-amber .card-icon { background: var(--amber-soft); color: var(--amber); }
+  .nav-card.c-orange .card-icon { background: var(--orange-soft); color: var(--orange); }
+  .nav-card.c-violet .card-icon { background: var(--violet-soft); color: var(--violet); }
+  .nav-card.c-green  .card-icon { background: var(--success-soft); color: var(--success); }
+
+  .card-text { flex: 1; min-width: 0; }
+  .card-step {
+    font-size: 10px; font-weight: 700; letter-spacing: .8px;
+    text-transform: uppercase; margin-bottom: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .nav-card.c-teal  .card-step { color: var(--teal); }
+  .nav-card.c-blue  .card-step { color: var(--blue); }
+  .nav-card.c-navy  .card-step { color: var(--navy-mid); }
+  .nav-card.c-amber .card-step { color: var(--amber); }
+  .nav-card.c-orange .card-step { color: var(--orange); }
+  .nav-card.c-violet .card-step { color: var(--violet); }
+  .nav-card.c-green  .card-step { color: var(--success); }
+
+  .card-title {
+    font-size: 15px; font-weight: 700;
+    color: var(--text); margin-bottom: 5px; line-height: 1.35;
+  }
+  .card-desc {
+    font-size: 12px; color: var(--text-mid); line-height: 1.65;
+  }
+
+  .card-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px 14px;
+    border-top: 1px solid var(--border);
+    margin-top: 14px;
+    flex-shrink: 0;
+  }
+  .card-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+  .tag {
+    font-size: 10px; font-weight: 700; letter-spacing: .5px;
+    padding: 2px 7px; border-radius: 4px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .tag-teal  { background: var(--teal-soft);  color: #005f56; }
+  .tag-blue  { background: var(--blue-soft);  color: #134d8a; }
+  .tag-navy  { background: #e6ecf5;           color: #1a3a5e; }
+  .tag-amber { background: var(--amber-soft); color: #7a4f00; }
+  .tag-red   { background: var(--red-soft);   color: #8b1a1a; }
+  .tag-orange { background: var(--orange-soft); color: #8a3006; }
+  .tag-violet { background: var(--violet-soft); color: #4a2a9a; }
+  .tag-green { background: var(--success-soft); color: #0f5c2e; }
+
+  .card-arrow {
+    width: 26px; height: 26px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--bg); color: var(--text-light);
+    transition: background .18s, color .18s;
+    flex-shrink: 0;
+  }
+  .nav-card.c-teal:hover  .card-arrow { background: var(--teal);     color: #fff; }
+  .nav-card.c-blue:hover  .card-arrow { background: var(--blue);     color: #fff; }
+  .nav-card.c-navy:hover  .card-arrow { background: var(--navy-mid); color: #fff; }
+  .nav-card.c-amber:hover .card-arrow { background: var(--amber);    color: #fff; }
+  .nav-card.c-orange:hover .card-arrow { background: var(--orange);  color: #fff; }
+  .nav-card.c-violet:hover .card-arrow { background: var(--violet);  color: #fff; }
+  .nav-card.c-green:hover .card-arrow { background: var(--success); color: #fff; }
+
+  /* ── NOTICE BANNER ── */
+  .notice {
+    background: var(--amber-soft);
+    border: 1px solid #e8c97a;
+    border-left: 3px solid var(--amber);
+    border-radius: var(--radius-sm);
+    padding: 13px 16px;
+    font-size: 13px; color: #5a3e00;
+    display: flex; gap: 10px; align-items: flex-start;
+    margin-bottom: 28px;
+    line-height: 1.65;
+  }
+  .notice svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 2px; color: var(--amber); }
+
+  /* ── VEHICLE MINI CARDS ── */
+  #vehicleStatusWrap { margin-bottom: 28px; }
+  .vehicle-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+    gap: 9px;
+  }
+  .vehicle-mini {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 11px 12px 10px;
+    transition: box-shadow .15s, transform .15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .vehicle-mini::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 3px;
+    opacity: 0;
+  }
+  .vehicle-mini:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+
+  /* ── Status variants — high contrast ── */
+  .vehicle-mini.vm-inuse {
+    border-left-color: var(--amber);
+    background: linear-gradient(135deg, #fffdf5 0%, #fff8e1 100%);
+  }
+  .vehicle-mini.vm-ready {
+    border-left-color: var(--success);
+    background: linear-gradient(135deg, #f6fef9 0%, #e9f9ee 100%);
+  }
+  .vehicle-mini.vm-wait {
+    border-left-color: var(--border-strong);
+    background: var(--card);
+  }
+  /* ── ⛽ เติมน้ำมันแล้ว (กลับมาจากปั๊มแล้ว) ── */
+  .vehicle-mini.vm-fueled {
+    border-left-color: #16a34a;
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  }
+
+  .vehicle-mini .vm-plate {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12.5px; font-weight: 700;
+    color: var(--navy); margin-bottom: 2px;
+    letter-spacing: .04em;
+  }
+  .vehicle-mini .vm-type {
+    font-size: 10px; color: var(--text-light); margin-bottom: 8px;
+  }
+  /* status chip replaces plain text */
+  .vehicle-mini .vm-status {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 700;
+    padding: 3px 8px; border-radius: 4px;
+    letter-spacing: .2px;
+  }
+  .vm-status.st-inuse {
+    background: #fff3cd; color: #7a4800;
+    border: 1px solid rgba(192,122,0,.30);
+    word-break: break-word; line-height: 1.35;
+  }
+  .vm-status.st-ready {
+    background: #d1fae5; color: #065f3a;
+    border: 1px solid rgba(26,138,74,.30);
+  }
+  .vm-status.st-wait {
+    background: var(--bg2); color: var(--text-mid);
+    border: 1px solid var(--border);
+  }
+  /* ⛽ เติมน้ำมันแล้ว */
+  .vm-status.st-fueled {
+    background: #dcfce7; color: #14532d;
+    border: 1px solid rgba(22,163,74,.28);
+  }
+  .vm-status-dot.fueled { background: #16a34a; }
+  .vm-status-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .vm-status-dot.inuse { background: var(--amber); animation: vm-pulse 1.8s ease-in-out infinite; }
+  .vm-status-dot.ready { background: var(--success); }
+  .vm-status-dot.wait  { background: var(--border-strong); }
+  @keyframes vm-pulse {
+    0%,100% { opacity:1; } 50% { opacity:.25; }
+  }
+  .vehicle-mini .vm-sub {
+    font-size: 10px; color: var(--text-light); margin-top: 4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ems-badge {
+    font-size: 9px; font-weight: 700;
+    background: var(--red-soft); color: var(--red);
+    border-radius: 3px; padding: 1px 5px;
+    margin-left: 5px; vertical-align: middle;
+    letter-spacing: .3px; border: 1px solid rgba(192,57,43,.18);
+  }
+
+  /* ── WORKFLOW ── */
+  .workflow-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 24px;
+    box-shadow: var(--shadow-sm);
+  }
+  .wf-step {
+    display: flex; gap: 14px; align-items: flex-start;
+    position: relative;
+  }
+  .wf-step + .wf-step { margin-top: 0; }
+  .wf-timeline {
+    display: flex; flex-direction: column; align-items: center;
+    flex-shrink: 0; width: 34px;
+  }
+  .wf-num {
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .wf-num.t { background: var(--teal-soft); color: var(--teal); }
+  .wf-num.b { background: var(--blue-soft); color: var(--blue); }
+  .wf-num.g { background: var(--success-soft); color: var(--success); }
+  .wf-num.n { background: #e6ecf5; color: var(--navy-mid); }
+  .wf-line {
+    width: 1.5px; flex: 1; background: var(--border); min-height: 28px;
+    margin: 4px 0;
+  }
+  .wf-body { padding-top: 6px; padding-bottom: 22px; flex: 1; }
+  .wf-step:last-child .wf-body { padding-bottom: 0; }
+  .wf-body h4 { font-size: 13.5px; font-weight: 700; margin-bottom: 4px; color: var(--text); }
+  .wf-body p  { font-size: 12.5px; color: var(--text-mid); line-height: 1.7; }
+  .inline-badge {
+    display: inline-block;
+    font-size: 11px; font-weight: 600;
+    padding: 1px 7px; border-radius: 4px; margin: 0 2px;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    background: var(--navy);
+    border-top: 1px solid rgba(255,255,255,.06);
+    color: rgba(255,255,255,.3);
+    text-align: center;
+    padding: 18px 24px;
+    font-size: 11.5px;
+    line-height: 1.8;
+  }
+  footer strong { color: rgba(255,255,255,.55); }
+
+  /* ── FAQ MODAL ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,.5); z-index: 999;
+    align-items: center; justify-content: center;
+    padding: 20px;
+    backdrop-filter: blur(3px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: var(--card);
+    border-radius: 16px;
+    width: 100%; max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,.3);
+    display: flex; flex-direction: column;
+  }
+  .modal-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; background: var(--card); z-index: 1;
+    border-radius: 16px 16px 0 0;
+  }
+  .modal-header h2 {
+    font-size: 16px; font-weight: 700; color: var(--text);
+  }
+  .modal-header p {
+    font-size: 12px; color: var(--text-light); margin-top: 2px;
+  }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--bg);
+    color: var(--text-mid); font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; flex-shrink: 0;
+    transition: background .15s;
+  }
+  .modal-close:hover { background: var(--bg2); }
+  .modal-body { padding: 20px 24px; }
+
+  .faq-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-bottom: 10px;
+    overflow: hidden;
+  }
+  .faq-q {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 13px 16px; cursor: pointer;
+    font-size: 13.5px; font-weight: 600; color: var(--text);
+    background: var(--card);
+    transition: background .15s;
+    gap: 10px;
+    user-select: none;
+  }
+  .faq-q:hover { background: var(--bg); }
+  .faq-q .faq-icon { flex-shrink: 0; font-size: 14px; color: var(--text-light); transition: transform .2s; }
+  .faq-item.open .faq-icon { transform: rotate(180deg); }
+  .faq-a {
+    display: none;
+    padding: 0 16px 14px;
+    font-size: 13px; color: var(--text-mid); line-height: 1.75;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    padding-top: 12px;
+  }
+  .faq-item.open .faq-a { display: block; }
+
+  /* Feedback form */
+  .feedback-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .feedback-section h3 {
+    font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 4px;
+  }
+  .feedback-section p {
+    font-size: 12px; color: var(--text-light); margin-bottom: 12px;
+  }
+  .fb-type-row {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px;
+  }
+  .fb-type-btn {
+    padding: 5px 12px; border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--card); color: var(--text-mid);
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .fb-type-btn.sel {
+    border-color: var(--blue); background: var(--blue-soft); color: var(--blue);
+    font-weight: 700;
+  }
+  .fb-textarea {
+    width: 100%; padding: 10px 13px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: 'Noto Sans Thai', sans-serif;
+    font-size: 13px; color: var(--text);
+    resize: vertical; min-height: 90px;
+    outline: none; background: #fff;
+    transition: border-color .2s;
+    line-height: 1.65;
+  }
+  .fb-textarea:focus { border-color: var(--blue); }
+  .fb-submit {
+    margin-top: 10px; width: 100%;
+    padding: 11px;
+    background: var(--navy-mid); color: #fff;
+    border: none; border-radius: var(--radius-sm);
+    font-family: inherit; font-size: 13.5px; font-weight: 700;
+    cursor: pointer; transition: background .18s;
+    letter-spacing: .3px;
+  }
+  .fb-submit:hover { background: var(--navy); }
+  .fb-submit:disabled { background: var(--border-strong); cursor: not-allowed; }
+  .fb-result {
+    margin-top: 10px; padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px; font-weight: 500;
+    display: none;
+  }
+  .fb-result.ok  { background: var(--success-soft); color: #0a4d26; }
+  .fb-result.err { background: var(--danger-soft);  color: #7a1010; }
+
+  /* ── RESPONSIVE ── */
+  /* 3-card grid สำหรับ section เฉพาะทาง */
+  .card-grid-specialized {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  @media (max-width: 900px) {
+    .card-grid-specialized { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .card-grid-specialized { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 900px) {
+    /* tablet: ลด font เล็กน้อย */
+    .card-desc { font-size: 11.5px; }
+    .card-title { font-size: 14px; }
+  }
+  @media (max-width: 768px) {
+    .status-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    /* tablet แคบ: ยัง 2 col แต่ลด padding */
+    .card-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .card-content { padding: 16px 16px 0; gap: 12px; }
+    .card-footer  { padding: 10px 16px 12px; }
+    .header-chip { display: none; }
+    .band-icon { display: none; }
+  }
+  @media (max-width: 560px) {
+    /* มือถือ: 1 col เต็มหน้า */
+    .card-grid { grid-template-columns: 1fr; gap: 10px; }
+    .page-band { padding: 32px 16px 40px; }
+    .band-stat-block { display: none; }
+    .band-divider { display: none; }
+    .main-wrap { padding: 20px 14px 48px; }
+    .header-inner { padding: 0 16px; }
+    .status-row { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat-card  { padding: 12px 14px; }
+    .stat-card .stat-val { font-size: 22px; }
+    .workflow-card { padding: 16px; }
+    .vehicle-grid { grid-template-columns: repeat(2, 1fr); }
+    .faq-btn span { display: none; }
+    .sat-btn span { display: none; }
+    .manual-btn span { display: none; }
+    .manual-btn .manual-badge { display: none; }
+  }
+
+/* ── Fuel Alert Banner ─────────────────────────────────────── */
+/* ── Fuel mark on vehicle-mini cards ── */
+.vm-fuel-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9.5px; font-weight: 800;
+  padding: 2px 6px; border-radius: 4px;
+  margin-left: 5px; vertical-align: middle;
+  letter-spacing: .2px; flex-shrink: 0;
+}
+.vm-fuel-badge.low {
+  background: #fff3cd; color: #b45309;
+  border: 1px solid rgba(180,83,9,.25);
+  animation: fuel-blink 2s ease-in-out infinite;
+}
+.vm-fuel-badge.refueled {
+  background: #d1fae5; color: #065f3a;
+  border: 1px solid rgba(6,95,58,.22);
+}
+@keyframes fuel-blink {
+  0%,100% { opacity: 1; } 50% { opacity: .5; }
+}
+.vm-fuel-row {
+  display: flex; align-items: center; gap: 4px;
+  margin-top: 5px; flex-wrap: wrap;
+}
+.vm-fuel-bar-wrap {
+  flex: 1; height: 4px; background: #e2e8f0;
+  border-radius: 99px; overflow: hidden; min-width: 40px;
+}
+.vm-fuel-bar {
+  height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, #fca5a5, #ef4444);
+}
+.vm-fuel-bar.refueled {
+  background: linear-gradient(90deg, #86efac, #22c55e);
+}
+
+
+</style>
+<script src="secure-fetch.js"></script>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="site-header">
+  <div class="header-inner">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12,3 21,18 3,18" stroke="#fff" stroke-width="1.6" fill="none"/>
+        <circle cx="12" cy="3" r="2" fill="#fff" stroke="none"/>
+        <circle cx="21" cy="18" r="2" fill="#fff" stroke="none"/>
+        <circle cx="3" cy="18" r="2" fill="#fff" stroke="none"/>
+        <circle cx="12" cy="13" r="1.4" fill="#fff" fill-opacity="0.55" stroke="none"/>
+        <line x1="12" y1="3" x2="12" y2="13" stroke="#fff" stroke-width="0.8" stroke-opacity="0.4"/>
+        <line x1="21" y1="18" x2="12" y2="13" stroke="#fff" stroke-width="0.8" stroke-opacity="0.4"/>
+        <line x1="3" y1="18" x2="12" y2="13" stroke="#fff" stroke-width="0.8" stroke-opacity="0.4"/>
+      </svg>
+    </div>
+    <div class="header-titles">
+      <div class="main-title">SAND — Sansai Administration Network Drive</div>
+      <div class="sub-title">ระบบบริหารจัดการยานพาหนะ · โรงพยาบาลสันทราย</div>
+    </div>
+    <div class="header-right">
+      <span class="header-chip">v1.0 · 2568</span>
+      <a class="manual-btn"
+         href="https://drive.google.com/file/d/1tnA4nwOJ8Xb5Plz_Vsy2isKXA65uiFbO/view?usp=sharing"
+         target="_blank" rel="noopener" title="เปิดคู่มือการใช้งานระบบ (PDF)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+          <polyline points="10 9 9 9 8 9"/>
+        </svg>
+        <span>คู่มือการใช้งาน</span>
+        <span class="manual-badge">PDF</span>
+      </a>
+      <a class="faq-btn sat-btn" href="#" onclick="openSatisfaction(); return false;" title="ประเมินความพึงพอใจการใช้รถ">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+        </svg>
+        <span>ประเมินความพึงพอใจ</span>
+      </a>
+      <button class="faq-btn" onclick="openFAQ()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        <span>ช่วยเหลือ / แจ้งปัญหา</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ── PAGE BAND ── -->
+<section class="page-band">
+  <div class="band-inner">
+    <div class="band-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.85)" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12,3 21,18 3,18" stroke="rgba(255,255,255,.85)" stroke-width="1.6" fill="none"/>
+        <circle cx="12" cy="3" r="2" fill="rgba(255,255,255,.85)" stroke="none"/>
+        <circle cx="21" cy="18" r="2" fill="rgba(255,255,255,.85)" stroke="none"/>
+        <circle cx="3" cy="18" r="2" fill="rgba(255,255,255,.85)" stroke="none"/>
+        <circle cx="12" cy="13" r="1.4" fill="rgba(255,255,255,.45)" stroke="none"/>
+        <line x1="12" y1="3" x2="12" y2="13" stroke="rgba(255,255,255,.4)" stroke-width="0.8"/>
+        <line x1="21" y1="18" x2="12" y2="13" stroke="rgba(255,255,255,.4)" stroke-width="0.8"/>
+        <line x1="3" y1="18" x2="12" y2="13" stroke="rgba(255,255,255,.4)" stroke-width="0.8"/>
+      </svg>
+    </div>
+    <div class="band-text">
+      <h1>SAND</h1>
+      <div class="band-subtitle">Sansai Administration Network Drive · โรงพยาบาลสันทราย</div>
+      <p>ระบบติดตาม ตรวจสอบ และบันทึกการใช้ยานพาหนะครบวงจร เพื่อความโปร่งใส ปลอดภัย และมีประสิทธิภาพ</p>
+      <div class="band-meta">
+        <span class="band-pill pill-active"><span class="pulse-dot"></span>ระบบออนไลน์</span>
+        <span class="band-pill" id="statusUpdateTime">กำลังโหลดข้อมูล...</span>
+        <span class="band-pill">รองรับมือถือ</span>
+      </div>
+    </div>
+    <div class="band-divider"></div>
+    <div class="band-stat-block">
+      <div class="band-stat-num" id="bandVehicleCount">—</div>
+      <div class="band-stat-label">ยานพาหนะ</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── MAIN ── -->
+<main class="main-wrap">
+
+  <!-- Status Row -->
+  <div class="status-row" id="statusRow">
+    <div class="stat-card">
+      <div class="stat-label">สถานะระบบ</div>
+      <div class="stat-val" style="font-size:15px;padding-top:4px;display:flex;align-items:center;gap:7px;">
+        <span class="stat-dot green"></span>
+        <span style="font-family:'Noto Sans Thai',sans-serif;font-weight:700;color:#1a8a4a;font-size:14px;">ออนไลน์</span>
+      </div>
+      <div class="stat-sub">ระบบทำงานปกติ</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">รอตรวจสภาพ</div>
+      <div class="stat-val" id="sv-notchecked">—</div>
+      <div class="stat-sub"><span class="stat-dot yellow" id="dot-nc"></span>คัน · วันนี้</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">พร้อมใช้งาน</div>
+      <div class="stat-val" id="sv-ready">—</div>
+      <div class="stat-sub"><span class="stat-dot green"></span>คัน · ตรวจแล้ว</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">กำลังใช้งาน</div>
+      <div class="stat-val" id="sv-inuse">—</div>
+      <div class="stat-sub"><span class="stat-dot red"></span>คัน · ออกปฏิบัติงาน</div>
+    </div>
+  </div>
+
+  <!-- Vehicle status section: loading bar + grouped cards -->
+  <div id="vehicleStatusWrap" style="display:none;">
+    <div class="section-head">
+      <span class="sh-label">สถานะรถแต่ละคัน</span>
+      <span class="sh-line"></span>
+      <span class="sh-en">Live Vehicle Status</span>
+    </div>
+
+    <!-- Loading progress bar (visible while fetching) -->
+    <div id="vehicleLoadingBar" style="display:none;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:11px;font-weight:600;color:var(--text-mid);">กำลังโหลดสถานะ...</span>
+        <span id="vehicleLoadPct" style="font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--blue);font-weight:700;">0%</span>
+      </div>
+      <div style="height:5px;background:var(--border);border-radius:99px;overflow:hidden;">
+        <div id="vehicleLoadFill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--blue),var(--teal));border-radius:99px;transition:width .3s ease;"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text-light);margin-top:5px;" id="vehicleLoadSub">เชื่อมต่อระบบ...</div>
+    </div>
+
+    <!-- Group: ทั่วไป -->
+    <div style="margin-bottom:6px;">
+      <div style="font-size:10.5px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        รถทั่วไป (รถตู้ + รถปิ๊กอัพ)
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+      <div class="vehicle-grid" id="vehicleCardsGeneral"></div>
+    </div>
+
+    <!-- Group: EMS / Refer -->
+    <div style="margin-top:16px;">
+      <div style="font-size:10.5px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        🚑 รถ Refer / EMS
+        <div style="flex:1;height:1px;background:rgba(192,57,43,.25);"></div>
+      </div>
+      <div class="vehicle-grid" id="vehicleCardsEMS"></div>
+    </div>
+  </div>
+
+  <!-- Notice -->
+  <div class="notice" style="margin-top:24px;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+    </svg>
+    <span><strong>ขั้นตอนการใช้งานประจำวัน:</strong> พนักงานขับรถ (พขร.) ต้องบันทึก<strong>การตรวจสภาพรถ</strong>ก่อนออกปฏิบัติงานทุกวัน จากนั้นจึงสามารถบันทึก<strong>การใช้รถ (เลขไมล์)</strong>ได้</span>
+  </div>
+
+  <!-- Section: ประจำวัน -->
+  <div class="section-head">
+    <span class="sh-label">ระบบประจำวัน</span>
+    <span class="sh-line"></span>
+    <span class="sh-en">Daily Operations</span>
+  </div>
+
+  <div class="card-grid">
+
+    <!-- Check -->
+    <a class="nav-card c-teal" href="check.html">
+      <div class="card-stripe-wrap"><div class="card-stripe"></div></div>
+      <div class="card-content">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+          </svg>
+        </div>
+        <div class="card-text">
+          <div class="card-step">ขั้นตอนที่ 1 · ก่อนออกรถ</div>
+          <div class="card-title">ตรวจสภาพรถประจำวัน</div>
+          <div class="card-desc">พขร. บันทึกการตรวจสภาพรถก่อนออกปฏิบัติงาน พร้อมแนบรูปภาพหลักฐาน เก็บข้อมูลใน Google Drive</div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="card-tags">
+          <span class="tag tag-teal">ประจำวัน</span>
+          <span class="tag tag-teal">พขร.</span>
+        </div>
+        <div class="card-arrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </a>
+
+    <!-- Start Mile -->
+    <a class="nav-card c-blue" href="startmile.html">
+      <div class="card-stripe-wrap"><div class="card-stripe"></div></div>
+      <div class="card-content">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="card-text">
+          <div class="card-step">ขั้นตอนที่ 2 · บันทึกการเดินทาง</div>
+          <div class="card-title">บันทึกเลขไมล์ / การใช้รถ</div>
+          <div class="card-desc">บันทึกเลขไมล์ก่อนออกและหลังกลับ ระบุปลายทาง วิเคราะห์ความสอดคล้องน้ำมัน ป้องกันการทุจริต</div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="card-tags">
+          <span class="tag tag-blue">เลขไมล์</span>
+          <span class="tag tag-blue">น้ำมัน</span>
+        </div>
+        <div class="card-arrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </a>
+
+    <!-- ตารางเวร (Worktable) -->
+    <a class="nav-card c-violet" href="worktable.html" target="_blank" rel="noopener noreferrer">
+      <div class="card-stripe-wrap"><div class="card-stripe"></div></div>
+      <div class="card-content">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+            <line x1="16" y1="2" x2="16" y2="6"/>
+            <line x1="8" y1="2" x2="8" y2="6"/>
+            <line x1="3" y1="10" x2="21" y2="10"/>
+            <line x1="8" y1="14" x2="8.01" y2="14"/>
+            <line x1="12" y1="14" x2="12.01" y2="14"/>
+            <line x1="16" y1="14" x2="16.01" y2="14"/>
+            <line x1="8" y1="18" x2="8.01" y2="18"/>
+            <line x1="12" y1="18" x2="12.01" y2="18"/>
+          </svg>
+        </div>
+        <div class="card-text">
+          <div class="card-step">ประสานงาน · แจ้งเวร</div>
+          <div class="card-title">ตารางเวรยานพาหนะ</div>
+          <div class="card-desc">ดูตารางเวรประจำเดือน เบอร์ติดต่อพนักงานขับรถ เวรวันนี้ — แชร์ให้ทุกวอร์ดใช้งานได้เลย</div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="card-tags">
+          <span class="tag tag-violet">ตารางเวร</span>
+          <span class="tag tag-violet">แชร์ได้</span>
+        </div>
+        <div class="card-arrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </a>
+
+  </div>
+
+  <!-- Section: เฉพาะทาง -->
+  <div class="section-head">
+    <span class="sh-label">ระบบเฉพาะทาง</span>
+    <span class="sh-line"></span>
+    <span class="sh-en">Specialized Systems</span>
+  </div>
+
+  <div class="card-grid card-grid-specialized">
+
+    <!-- Fixed Car / แจ้งซ่อม -->
+    <a class="nav-card c-orange" href="fixedcar.html">
+      <div class="card-stripe-wrap"><div class="card-stripe"></div></div>
+      <div class="card-content">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
+          </svg>
+        </div>
+        <div class="card-text">
+          <div class="card-step">งานซ่อมบำรุง · แจ้งปัญหา</div>
+          <div class="card-title">แจ้งซ่อมยานพาหนะ</div>
+          <div class="card-desc">บันทึกใบแจ้งซ่อม ระบุอาการ รายการซ่อม ส่งศูนย์รถ / อู่ซ่อม ติดตามสถานะ และตรวจรับงานซ่อม</div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="card-tags">
+          <span class="tag tag-orange">แจ้งซ่อม</span>
+          <span class="tag tag-orange">ติดตามสถานะ</span>
+        </div>
+        <div class="card-arrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </a>
+
+    <!-- EMS Check -->
+    <a class="nav-card c-amber" href="EMScheck.html">
+      <div class="card-stripe-wrap"><div class="card-stripe"></div></div>
+      <div class="card-content">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            <path d="M12 8v4M12 16h.01"/>
+          </svg>
+        </div>
+        <div class="card-text">
+          <div class="card-step">รถฉุกเฉิน EMS · มาตรฐาน สธ.</div>
+          <div class="card-title">ตรวจสภาพรถ EMS</div>
+          <div class="card-desc">ตรวจสอบอุปกรณ์ 50+ รายการ แบ่ง 12 หมวดหมู่ตามมาตรฐาน ถ่ายรูปหลักฐาน แจ้งเตือน LINE/Email อัตโนมัติ</div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="card-tags">
+          <span class="tag tag-red">EMS</span>
+          <span class="tag tag-amber">50+ รายการ</span>
+        </div>
+        <div class="card-arrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </a>
+
+    <!-- Dashboard -->
+    <a class="nav-card c-navy" href="dashboard.html">
+      <div class="card-stripe-wrap"><div class="card-stripe"></div></div>
+      <div class="card-content">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1"/>
+            <rect x="14" y="3" width="7" height="7" rx="1"/>
+            <rect x="3" y="14" width="7" height="7" rx="1"/>
+            <rect x="14" y="14" width="7" height="7" rx="1"/>
+          </svg>
+        </div>
+        <div class="card-text">
+          <div class="card-step">เฉพาะผู้มีสิทธิ์ · ต้องใช้รหัสผ่าน</div>
+          <div class="card-title">แผงควบคุมภาพรวม</div>
+          <div class="card-desc">ดูสถานะรถทุกคัน วิเคราะห์ความผิดปกติ ตรวจสอบการใช้น้ำมัน แสดงผลแบบ Real-time ทุกระบบ</div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="card-tags">
+          <span class="tag tag-navy">ผู้บริหาร</span>
+          <span class="tag tag-navy">Real-time</span>
+        </div>
+        <div class="card-arrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </a>
+
+    <!-- Route Map (GISTDA) -->
+    <a class="nav-card c-green" href="routemap.html">
+      <div class="card-stripe-wrap"><div class="card-stripe"></div></div>
+      <div class="card-content">
+        <div class="card-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-13l6 3m0 0l4.553-2.276A1 1 0 0121 5.618v10.764a1 1 0 01-.553.894L15 20m0-13v13"/>
+          </svg>
+        </div>
+        <div class="card-text">
+          <div class="card-step">วิเคราะห์การเดินทาง · GISTDA Map</div>
+          <div class="card-title">แผนที่เส้นทางการใช้รถ</div>
+          <div class="card-desc">ดูจุดหมายปลายทางที่รถวิ่งบ่อยที่สุดบนแผนที่จริง วิเคราะห์ความถี่และรูปแบบการเดินทางของยานพาหนะทั้งหมด</div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="card-tags">
+          <span class="tag tag-green">GISTDA</span>
+          <span class="tag tag-green">Heatmap</span>
+        </div>
+        <div class="card-arrow">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+      </div>
+    </a>
+
+
+  </div>
+
+  <!-- Workflow -->
+  <div class="section-head">
+    <span class="sh-label">ขั้นตอนการทำงาน</span>
+    <span class="sh-line"></span>
+    <span class="sh-en">Workflow</span>
+  </div>
+
+  <div class="workflow-card">
+    <div class="wf-step">
+      <div class="wf-timeline">
+        <div class="wf-num t">1</div>
+        <div class="wf-line"></div>
+      </div>
+      <div class="wf-body">
+        <h4>ตรวจสภาพรถทุกเช้าก่อนออกรถ</h4>
+        <p>พขร. บันทึกผ่านหน้า <strong>ตรวจสภาพรถ</strong> พร้อมถ่ายรูปแนบหลักฐาน — ข้อมูลนี้จะกลายเป็นฐานเลขไมล์ต้นวันสำหรับการบันทึกการใช้รถ</p>
+      </div>
+    </div>
+    <div class="wf-step">
+      <div class="wf-timeline">
+        <div class="wf-num b">2</div>
+        <div class="wf-line"></div>
+      </div>
+      <div class="wf-body">
+        <h4>บันทึกก่อนออกปฏิบัติงาน</h4>
+        <p>บันทึกเลขไมล์เริ่มต้น ระบุสถานที่ปลายทาง → สถานะรถเปลี่ยนเป็น <span class="inline-badge" style="background:var(--warning-soft);color:#7a4f00;">กำลังใช้งาน</span></p>
+      </div>
+    </div>
+    <div class="wf-step">
+      <div class="wf-timeline">
+        <div class="wf-num g">3</div>
+        <div class="wf-line"></div>
+      </div>
+      <div class="wf-body">
+        <h4>บันทึกเมื่อกลับถึงโรงพยาบาล</h4>
+        <p>บันทึกเลขไมล์ปลายทาง → ระบบคำนวณระยะทาง วิเคราะห์ความสอดคล้องการเติมน้ำมัน → สถานะเปลี่ยนเป็น <span class="inline-badge" style="background:var(--success-soft);color:#0a4d26;">พร้อมใช้งาน</span></p>
+      </div>
+    </div>
+    <div class="wf-step">
+      <div class="wf-timeline">
+        <div class="wf-num n">4</div>
+      </div>
+      <div class="wf-body">
+        <h4>ผู้บริหารตรวจสอบแผงควบคุม</h4>
+        <p>ดูภาพรวมสถานะรถ ตรวจสอบความผิดปกติ วิเคราะห์การใช้น้ำมัน พร้อมรายงาน Real-time ผ่านหน้า <strong>Dashboard</strong> (ต้องใช้รหัสผ่าน)</p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <strong>SAND · Sansai Administration Network Drive โรงพยาบาลสันทราย</strong><br>
+  Frontend: GitHub Pages &nbsp;·&nbsp; Backend: Google Apps Script &nbsp;·&nbsp; Database: Google Sheets
+</footer>
+
+<!-- ── FAQ MODAL ── -->
+<div class="modal-overlay" id="faqModal" onclick="closeFAQOutside(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div>
+        <h2>ช่วยเหลือ &amp; คำถามที่พบบ่อย</h2>
+        <p>FAQ &amp; ช่องทางแจ้งปัญหาการใช้งาน</p>
+      </div>
+      <button class="modal-close" onclick="closeFAQ()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- FAQ Items -->
+      <div class="faq-item" onclick="toggleFAQ(this)">
+        <div class="faq-q">ต้องทำอะไรก่อนบันทึกเลขไมล์? <span class="faq-icon">&#x25BE;</span></div>
+        <div class="faq-a">ต้องตรวจสภาพรถและบันทึกผ่านหน้า <strong>ตรวจสภาพรถประจำวัน</strong> ก่อนทุกครั้ง ระบบจะตรวจสอบว่ามีการตรวจสภาพในวันนั้นแล้วหรือยัง หากยังไม่มีจะไม่สามารถบันทึกการใช้รถได้</div>
+      </div>
+
+      <div class="faq-item" onclick="toggleFAQ(this)">
+        <div class="faq-q">กรอกเลขไมล์ผิดทำอย่างไร? <span class="faq-icon">&#x25BE;</span></div>
+        <div class="faq-a">กรณีกรอกผิด ให้แจ้งผู้ดูแลระบบหรือหัวหน้างานยานพาหนะเพื่อแก้ไขข้อมูลในระบบ โดยตรง ห้ามกรอกซ้ำหรือกรอกข้อมูลปลอมเพื่อแก้ไขยอด เนื่องจากระบบตรวจจับความผิดปกติอัตโนมัติ</div>
+      </div>
+
+      <div class="faq-item" onclick="toggleFAQ(this)">
+        <div class="faq-q">รูปภาพแนบไม่ได้ ทำอย่างไร? <span class="faq-icon">&#x25BE;</span></div>
+        <div class="faq-a">ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต และลองถ่ายรูปใหม่ในที่ที่มีแสงสว่างเพียงพอ หากยังไม่สำเร็จ ให้บันทึกแบบฟอร์มก่อนแล้วนำรูปไปส่งให้ผู้ดูแลระบบภายหลัง อย่าข้ามขั้นตอนการตรวจสภาพ</div>
+      </div>
+
+      <div class="faq-item" onclick="toggleFAQ(this)">
+        <div class="faq-q">รถ EMS ต้องใช้แบบฟอร์มใด? <span class="faq-icon">&#x25BE;</span></div>
+        <div class="faq-a">รถ EMS และรถ Refer ต้องใช้แบบฟอร์ม <strong>ตรวจสภาพรถ EMS</strong> แยกต่างหาก ซึ่งมีรายการตรวจสอบ 50+ รายการตามมาตรฐานกระทรวงสาธารณสุข ไม่สามารถใช้แบบฟอร์มทั่วไปแทนได้</div>
+      </div>
+
+      <div class="faq-item" onclick="toggleFAQ(this)">
+        <div class="faq-q">ข้อมูลในระบบอัปเดตบ่อยแค่ไหน? <span class="faq-icon">&#x25BE;</span></div>
+        <div class="faq-a">หน้าหลักอัปเดตสถานะรถอัตโนมัติทุก 2 นาที หรือกดรีเฟรชหน้าเพื่อดูข้อมูลล่าสุดทันที Dashboard สำหรับผู้บริหารแสดงผลแบบ Real-time</div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="feedback-section">
+        <h3>แจ้งปัญหา / ข้อเสนอแนะ</h3>
+        <p>ทีมพัฒนาระบบยินดีรับฟังเพื่อปรับปรุงการใช้งาน</p>
+        <div class="fb-type-row">
+          <button class="fb-type-btn" onclick="selFbType(this,'แจ้งข้อผิดพลาด')">แจ้งข้อผิดพลาด</button>
+          <button class="fb-type-btn" onclick="selFbType(this,'ข้อเสนอแนะ')">ข้อเสนอแนะ</button>
+          <button class="fb-type-btn" onclick="selFbType(this,'สอบถามการใช้งาน')">สอบถามการใช้งาน</button>
+          <button class="fb-type-btn" onclick="selFbType(this,'อื่น ๆ')">อื่น ๆ</button>
+        </div>
+        <textarea class="fb-textarea" id="fbText" placeholder="ระบุรายละเอียด เช่น ขั้นตอนที่มีปัญหา หรือข้อเสนอแนะการปรับปรุงระบบ..."></textarea>
+        <button class="fb-submit" id="fbSubmit" onclick="submitFeedback()">ส่งข้อมูล</button>
+        <div class="fb-result" id="fbResult"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── CONFIG ────────────────────────────────────────────────────────────────
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec'; // ✅ เรียก code.gs ตรง — ไม่ใช้ proxy แล้ว
+// API_KEY removed
+
+// ── ทะเบียนรถ + หมวดหมู่ที่ถูกต้อง ──────────────────────────────
+// sys:'ทั่วไป' = รถตู้/ปิ๊กอัพ  | sys:'EMS' = รถ Refer (แสดงแยกกลุ่มด้านล่าง)
+// isEms:true = แสดง badge EMS (เฉพาะรถที่มีระบบ EMS จริง)
+let ALL_VEHICLES = [
+  // ── รถตู้ ──
+  { plate:'นง.86 ชม.',   type:'รถตู้',              sys:'ทั่วไป', category:'van',    isEms:false },
+  { plate:'นง.8781 ชม.', type:'รถตู้ฮุนได',         sys:'ทั่วไป', category:'van',    isEms:false },
+  // ── รถปิ๊กอัพ 4 ประตู ──
+  { plate:'ขธ.9302 ชม.', type:'รถปิ๊กอัพ 4 ประตู', sys:'ทั่วไป', category:'pickup', isEms:false },
+  { plate:'ขค.9662 ชม.', type:'รถปิ๊กอัพ 4 ประตู', sys:'ทั่วไป', category:'pickup', isEms:false },
+  { plate:'กล.9438 ชม.', type:'รถปิ๊กอัพ 4 ประตู', sys:'ทั่วไป', category:'pickup', isEms:false },
+  // ── รถ Refer / EMS ──
+  { plate:'จย.1379 ชม.', type:'รถ Refer',           sys:'EMS',    category:'refer',  isEms:true  },
+  { plate:'งบ.5466 ชม.', type:'รถ Refer',           sys:'EMS',    category:'refer',  isEms:true  },
+  { plate:'ขษ.4361 ชม.', type:'รถ Refer',           sys:'EMS',    category:'refer',  isEms:true  },
+  { plate:'ขร.501 ชม.',  type:'รถ Refer',           sys:'EMS',    category:'refer',  isEms:false },
+  { plate:'ขฉ.8407 ชม.', type:'รถ Refer',           sys:'EMS',    category:'refer',  isEms:false },
+];
+
+/** extractTimeOnly — ดึงเฉพาะ HH:MM จาก string ที่อาจมี 1899 หรือเป็น Date.toString() */
+function extractTimeOnly(val) {
+  if (!val) return '';
+  const s = String(val).trim();
+  if (!s || s === '—') return '';
+  // HH:MM หรือ HH:MM:SS ล้วนๆ
+  if (/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) return s.slice(0, 5);
+  // ดึง HH:MM จาก string ใดๆ (รวม "30/12/1899 08:14:00", "Sat Dec 30 1899 08:14:00 GMT...")
+  const m = s.match(/\b(\d{1,2}:\d{2})(?::\d{2})?/);
+  return m ? m[1] : s;
+}
+
+function fmtNow() {
+  const d=new Date(), p=n=>String(n).padStart(2,'0');
+  return `อัปเดต ${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+async function initIndex() {
+  // สร้าง lookup จาก hardcoded list ไว้ก่อน เพื่อ fallback sys ที่ถูกต้อง
+  const HARDCODED_SYS = {};
+  ALL_VEHICLES.forEach(v => {
+    const key = v.plate.replace(/ ชม\.?.*/, '').trim();
+    HARDCODED_SYS[key] = v.sys;
+  });
+
+  // หมายเหตุ: ไม่ override ALL_VEHICLES จาก getVehicles เพราะ
+  // renderVehicleCards() จะ merge sheetMeta จาก getStatusSummary แทน
+  // เพื่อรักษา category/isEms ที่ hardcoded ไว้ถูกต้องแล้ว
+  loadStatus();
+}
+
+async function loadStatus() {
+  // Show loading bar
+  const lb   = document.getElementById('vehicleLoadingBar');
+  const fill = document.getElementById('vehicleLoadFill');
+  const pct  = document.getElementById('vehicleLoadPct');
+  const sub  = document.getElementById('vehicleLoadSub');
+  const wrap = document.getElementById('vehicleStatusWrap');
+  if (lb) { lb.style.display = 'block'; wrap.style.display = 'block'; }
+
+  // Animate progress bar during fetch
+  let prog = 0;
+  const steps = [
+    [300, 30, 'เชื่อมต่อเซิร์ฟเวอร์...'],
+    [600, 60, 'กำลังดึงข้อมูลสถานะรถ...'],
+    [900, 85, 'ประมวลผล...'],
+  ];
+  const timers = steps.map(([delay, val, msg]) =>
+    setTimeout(() => {
+      if (fill) { fill.style.width = val + '%'; }
+      if (pct)  pct.textContent = val + '%';
+      if (sub)  sub.textContent = msg;
+    }, delay)
+  );
+
+  try {
+    const res  = await fetch(GAS_URL + '?action=getStatusSummary');
+    const json = await res.json();
+    if (json.status !== 'ok') throw new Error('api error');
+
+    // Complete bar
+    timers.forEach(clearTimeout);
+    if (fill) fill.style.width = '100%';
+    if (pct)  pct.textContent = '100%';
+    if (sub)  sub.textContent = 'โหลดสำเร็จ';
+
+    document.getElementById('sv-notchecked').textContent = json.notCheckedCount ?? '—';
+    document.getElementById('sv-ready').textContent      = json.readyCount       ?? '—';
+    document.getElementById('sv-inuse').textContent      = json.inUseCount       ?? '—';
+    document.getElementById('statusUpdateTime').textContent = fmtNow();
+    const bvc = document.getElementById('bandVehicleCount');
+    if (bvc) bvc.textContent = ALL_VEHICLES.length || '—';
+
+    const nc = json.notCheckedCount || 0;
+    const dotNc = document.getElementById('dot-nc');
+    if (dotNc) dotNc.className = 'stat-dot ' + (nc === 0 ? 'green' : nc <= 3 ? 'yellow' : 'red');
+
+    setTimeout(() => renderVehicleCards(json), 200); // let bar show 100% briefly
+  } catch (_) {
+    timers.forEach(clearTimeout);
+    document.getElementById('statusUpdateTime').textContent = 'โหลดข้อมูลไม่สำเร็จ';
+    renderVehicleCardsOffline();
+  }
+}
+
+function renderVehicleCards(json) {
+  // ── sync ALL_VEHICLES จาก vehicles meta ที่ GAS ส่งมา ──────────────
+
+  // อัปเดต sheetStatus/sheetDriver/sheetDest เพื่อนำมา fallback แสดงสถานะ
+  const sheetMeta = {}; // key = plateKey (ไม่มี ชม.) → {sheetStatus, sheetDriver, sheetDest, type, sys}
+  if (json.vehicles && json.vehicles.length) {
+    json.vehicles.forEach(v => {
+      const key = String(v.plate || '').replace(/ ชม\.?.*/, '').trim();
+      sheetMeta[key] = v;
+    });
+    // อัปเดตเฉพาะ type จาก sheet (ถ้ามี)
+    // ⚠️ ห้าม override sys / category / isEms เด็ดขาด — ใช้ hardcoded เท่านั้น
+    // เพราะ GAS Vehicles sheet อาจส่ง sys:'ทั่วไป' สำหรับรถ Refer ที่ไม่ใช่ EMS จริง
+    // ซึ่งจะทำให้รถ Refer หลุดไปอยู่กลุ่มทั่วไปแทนกลุ่ม REFER/EMS
+    ALL_VEHICLES = ALL_VEHICLES.map(v => {
+      const key = v.plate.replace(/ ชม\.?.*/, '').trim();
+      const m   = sheetMeta[key];
+      return m
+        ? { ...v, type: m.type || v.type }  // อัปเดตแค่ type, sys/category/isEms คง hardcoded
+        : v;
+    });
+  }
+
+  // ── build lookup maps จาก API ──────────────────────────────────────
+  const inUseMap={}, readyMap={}, checkedMap={};
+  (json.inUse||[]).forEach(x => { inUseMap[x.carType] = x; });
+  (json.ready||[]).forEach(x => { readyMap[x.carType] = x; });
+  (json.todayChecked||[]).forEach(x => { checkedMap[x.carType] = x; });
+
+  // ── build fueledMap: plateKey → trip info สำหรับรถที่ไปปั๊มแล้วกลับมา ──
+  // ครอบคลุม: มีรูปบิล (6.2/6.3), ปลายทางเป็นปั๊ม+กลับมาแล้ว (6.4), CheckLog fuelFill='เติม'
+  const fueledMap = {};
+  (json.todayFueled||[]).forEach(function(f) {
+    const plate = String(f.carType || '').split(' ')[0].trim();
+    if (!plate) return;
+    fueledMap[plate] = f;
+  });
+
+  // ── สร้าง fuelMap: plate → fuelLevel ──────────────────────────────
+  //    Pass 1: วนจาก todayChecked (มีค่า fuelLevel จาก CheckLog)
+  //    Pass 2: วนจาก todayFueled → override/inject 100% เสมอ
+  window._fuelAlertMap = {};
+
+  // Pass 1 — ค่าจาก CheckLog (ก่อนเติม)
+  (json.todayChecked||[]).forEach(function(c) {
+    const plate = String(c.carType || '').split(' ')[0].trim();
+    if (!plate) return;
+    const rawLevel = String(c.fuelLevel || '').trim();
+    if (!rawLevel) return;
+    const numStr = rawLevel.replace('%', '').trim();
+    let pct = parseFloat(numStr);
+    if (isNaN(pct)) return;
+    // decimal (0–1) → เปอร์เซ็นต์จริง
+    if (pct > 0 && pct <= 1) pct = Math.round(pct * 100);
+    window._fuelAlertMap[plate] = { carType: c.carType, fuelPct: pct, refueled: false };
+  });
+
+  // Pass 2 — override ด้วย todayFueled → 100% เสมอ ไม่ว่าจะตรวจสภาพหรือยัง
+  (json.todayFueled||[]).forEach(function(f) {
+    const plate = String(f.carType || '').split(' ')[0].trim();
+    if (!plate) return;
+    window._fuelAlertMap[plate] = { carType: f.carType, fuelPct: 100, refueled: true };
+  });
+
+  // ── สร้าง oxygenAlertMap: plate → สถานะ O₂ (เฉพาะรถ EMS/Refer ที่ผิดปกติ หรือ ไม่ตรวจ) ──
+  // มาจาก getStatusSummary() → oxygenAlerts (ดู code.gs ข้อ 8.5)
+  window._oxygenAlertMap = {};
+  (json.oxygenAlerts||[]).forEach(function(o) {
+    const plate = String(o.carType || '').split(' ')[0].trim();
+    if (!plate) return;
+    window._oxygenAlertMap[plate] = o;
+  });
+
+  // helper: หา key ใน map ที่ plate ตรงกัน (fuzzy match)
+  function findInMap(map, plateKey) {
+    return Object.keys(map).find(k => {
+      const kp = k.replace(/ ชม\.?/,' ชม.').split(' ')[0].trim();
+      return kp === plateKey || k.split(' ')[0].trim() === plateKey;
+    });
+  }
+
+  // ตัดข้อความยาวเกิน เพื่อไม่ให้การ์ดสูงเบี้ยว/ข้อความล้นซ้อนกัน
+  function truncate(str, n) {
+    str = String(str || '');
+    return str.length > n ? str.slice(0, n - 1).trim() + '…' : str;
+  }
+
+  function buildCard(v) {
+    const plateKey = v.plate.replace(/ ชม\.?.*/, '').trim();
+
+    // ── หาสถานะจาก API ──
+    const inUseKey = findInMap(inUseMap,   plateKey);
+    const readyKey = findInMap(readyMap,   plateKey);
+    const chkKey   = findInMap(checkedMap, plateKey);
+    const isInUse   = !!inUseKey;
+    const isChecked = !!chkKey || !!readyKey;
+
+    // ── ตรวจสอบว่าไปปั๊มน้ำมันแล้วกลับมาหรือยัง ──
+    // fueledMap ครอบคลุม: รูปบิล + ปลายทางปั๊ม + CheckLog fuelFill='เติม'
+    const fueledInfo = fueledMap[plateKey] || null;
+    // รถที่ "กำลังใช้งาน" อยู่ยังไม่นับว่ากลับมาแล้ว (ยังออกอยู่)
+    const isFueled = !!fueledInfo && !isInUse;
+
+    // ── fallback: ใช้ sheetStatus จาก Vehicles sheet (ถ้า API ไม่มีข้อมูล) ──
+    const meta        = sheetMeta[plateKey] || {};
+    const sheetStatus = String(meta.sheetStatus || '').trim();
+    const sheetDriver = String(meta.sheetDriver || '').trim();
+    const sheetDest   = String(meta.sheetDest   || '').trim();
+
+    let vmClass, statusHtml;
+
+    if (isInUse) {
+      // ✅ รถออกปฏิบัติงานจาก MileLog
+      const x = inUseMap[inUseKey];
+      vmClass    = 'vm-inuse';
+      statusHtml = '<span class="vm-status st-inuse"><span class="vm-status-dot inuse"></span>กำลังใช้งาน'
+                 + (x && x.destination ? ' — ' + truncate(x.destination, 16) : '') + '</span>';
+    } else if (isChecked) {
+      // ✅ ตรวจสภาพแล้ว / พร้อมใช้งาน
+      vmClass    = 'vm-ready';
+      statusHtml = '<span class="vm-status st-ready"><span class="vm-status-dot ready"></span>พร้อมใช้งาน</span>';
+    } else if (sheetStatus === 'กำลังใช้งาน') {
+      // ✅ fallback จาก Vehicles sheet
+      vmClass    = 'vm-inuse';
+      statusHtml = '<span class="vm-status st-inuse"><span class="vm-status-dot inuse"></span>กำลังใช้งาน'
+                 + (sheetDest ? ' — ' + truncate(sheetDest, 16) : '') + '</span>';
+    } else if (sheetStatus === 'พร้อมใช้งาน') {
+      // ✅ fallback จาก Vehicles sheet
+      vmClass    = 'vm-ready';
+      statusHtml = '<span class="vm-status st-ready"><span class="vm-status-dot ready"></span>พร้อมใช้งาน</span>';
+    } else if (sheetStatus === 'รอซ่อม' || sheetStatus === 'ส่งซ่อม') {
+      vmClass    = 'vm-wait';
+      statusHtml = '<span class="vm-status" style="background:#ffedd5;color:#9a3412;border:1px solid rgba(212,88,10,.3);">'
+                 + '<span class="vm-status-dot" style="background:#f97316;"></span>ส่งซ่อม</span>';
+    } else {
+      // รอตรวจสภาพ (default)
+      vmClass    = 'vm-wait';
+      statusHtml = '<span class="vm-status st-wait"><span class="vm-status-dot wait"></span>รอตรวจสภาพ</span>';
+    }
+
+    // ── subtext: ผู้ขับ / เวลาตรวจ / เวลาเติมน้ำมัน ──
+    const chkInfo = chkKey ? checkedMap[chkKey] : null;
+    let chkSub;
+    if (isInUse && inUseKey) {
+      // ✅ FIX: รถที่ "กำลังใช้งาน" ต้องโชว์ "พขร. ผู้ขับปัจจุบัน" ของทริปที่ออกอยู่จริง
+      // (เดิม chkInfo ของการตรวจสภาพเช้าจะถูกอ่านก่อน ทำให้ขึ้นชื่อคนตรวจสภาพ
+      //  แทนที่จะเป็นคนขับที่นำรถออกไปในทริปปัจจุบัน — ผิดกรณีคนตรวจ ≠ คนขับทริปนี้)
+      const x = inUseMap[inUseKey];
+      const curDriver = truncate((x && x.driver) ? x.driver : (sheetDriver || '—'), 14);
+      const outTime = x && x.startTime ? (extractTimeOnly(x.startTime) || x.startTime) : '';
+      chkSub = 'พขร. ' + curDriver + (outTime ? ' · ' + outTime : '');
+    } else if (isFueled) {
+      // แสดงข้อมูลการเติมน้ำมัน: เวลา + ผู้ขับ
+      const fTime = fueledInfo.time || '';
+      const fDrv  = truncate(fueledInfo.driverName || (chkInfo && chkInfo.driverName) || sheetDriver || '', 14);
+      const fLit  = fueledInfo.fuelLiters ? ' · ' + fueledInfo.fuelLiters + ' ล.' : '';
+      chkSub = (fTime ? 'เติม ' + fTime : 'เติมน้ำมันวันนี้') + (fDrv ? ' · ' + fDrv : '') + fLit;
+    } else if (chkInfo) {
+      chkSub = 'ตรวจ ' + (extractTimeOnly(chkInfo.inspTime) || chkInfo.inspTime || '') + (chkInfo.driverName ? ' · ' + truncate(chkInfo.driverName, 14) : '');
+    } else if (sheetDriver) {
+      chkSub = 'พขร. ' + truncate(sheetDriver, 14);
+    } else {
+      chkSub = 'ยังไม่ได้ตรวจสภาพวันนี้';
+    }
+
+    // ── EMS badge: แสดงเฉพาะ isEms:true ──
+    const emsBadge = v.isEms ? '<span class="ems-badge">EMS</span>' : '';
+
+    // ── Fuel mark: ดึงจาก _fuelAlertMap หรือ fueledMap ──────────────────────
+    //    refueled=true → เติมวันนี้ใน MileLog → แสดง 100% สีเขียว + badge
+    //    isFueled (ปั๊มน้ำมัน/ไม่มีรูปบิล) → แสดง 100% สีเขียว + badge เช่นกัน
+    let fuelMarkHtml = '';
+    const fuelAlert = (window._fuelAlertMap || {})[plateKey];
+
+    if (fuelAlert) {
+      const barPct   = Math.max(0, Math.min(100, fuelAlert.fuelPct));
+      const refueled = !!fuelAlert.refueled || isFueled; // isFueled override
+      const isLow    = !refueled && barPct <= 50;
+      const barColor = refueled ? '#16a34a'
+                     : barPct >= 75 ? '#22c55e'
+                     : barPct >= 51 ? '#f59e0b'
+                     : barPct <= 25 ? '#ef4444' : '#f97316';
+      const pctColor = refueled ? '#065f3a' : (isLow ? '#b45309' : '#065f3a');
+      const displayPct = refueled ? 100 : fuelAlert.fuelPct;
+      const refuelBadge = refueled
+        ? '<span style="font-size:9px;font-weight:800;background:#dcfce7;color:#15803d;' +
+          'border:1px solid #86efac;border-radius:4px;padding:1px 5px;margin-left:4px;">✓ เติมแล้ว</span>'
+        : '';
+      fuelMarkHtml =
+        '<div class="vm-fuel-row">' +
+          '<span style="font-size:9.5px;color:var(--text-light);">⛽</span>' +
+          '<span style="font-size:10px;font-weight:700;color:' + pctColor + ';">' + displayPct + '%</span>' +
+          refuelBadge +
+          '<div class="vm-fuel-bar-wrap">' +
+            '<div class="vm-fuel-bar refueled" style="width:' + (refueled ? 100 : barPct) + '%;background:' + barColor + ';"></div>' +
+          '</div>' +
+        '</div>';
+    } else if (isFueled) {
+      // ไม่มีข้อมูล fuelLevel จาก CheckLog แต่รู้ว่าเติมน้ำมันแล้ว (จากปลายทาง/บิล)
+      fuelMarkHtml =
+        '<div class="vm-fuel-row">' +
+          '<span style="font-size:9.5px;color:var(--text-light);">⛽</span>' +
+          '<span style="font-size:10px;font-weight:700;color:#065f3a;">100%</span>' +
+          '<span style="font-size:9px;font-weight:800;background:#dcfce7;color:#15803d;' +
+          'border:1px solid #86efac;border-radius:4px;padding:1px 5px;margin-left:4px;">✓ เติมแล้ว</span>' +
+          '<div class="vm-fuel-bar-wrap">' +
+            '<div class="vm-fuel-bar refueled" style="width:100%;background:#16a34a;"></div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    // ── O₂ tank mark: เฉพาะรถ EMS/Refer ที่ตรวจสภาพแล้วพบ "ผิดปกติ" หรือ "ไม่ตรวจ" ──
+    //    ผิดปกติ → แสดงเตือนสีส้ม/แดง "ต้องเปลี่ยน" จนกว่า Startmile จะไปที่ "เปลี่ยนออกซิเจน" แล้วกลับมา (เขียว "เปลี่ยนแล้ว")
+    //    ไม่ตรวจ → แสดงป้ายเทาเฉยๆ ไม่ต้องรอการเปลี่ยน
+    let oxygenMarkHtml = '';
+    const oxygenAlert = (window._oxygenAlertMap || {})[plateKey];
+    if (v.sys === 'EMS' && oxygenAlert) {
+      if (oxygenAlert.changed) {
+        oxygenMarkHtml =
+          '<div class="vm-fuel-row">' +
+            '<span style="font-size:9.5px;color:var(--text-light);">🅾️</span>' +
+            '<span style="font-size:10px;font-weight:700;color:#065f3a;">O₂</span>' +
+            '<span style="font-size:9px;font-weight:800;background:#dcfce7;color:#15803d;' +
+            'border:1px solid #86efac;border-radius:4px;padding:1px 5px;margin-left:4px;">✓ เปลี่ยนแล้ว</span>' +
+          '</div>';
+      } else if (oxygenAlert.o2Status === 'ไม่ตรวจ') {
+        oxygenMarkHtml =
+          '<div class="vm-fuel-row">' +
+            '<span style="font-size:9.5px;color:var(--text-light);">🅾️</span>' +
+            '<span style="font-size:10px;font-weight:700;color:var(--text-light);">O₂</span>' +
+            '<span style="font-size:9px;font-weight:800;background:#e5e7eb;color:#4b5563;' +
+            'border:1px solid #cbd5e1;border-radius:4px;padding:1px 5px;margin-left:4px;">— ไม่ตรวจ</span>' +
+          '</div>';
+      } else {
+        // ผิดปกติ ยังไม่ได้เปลี่ยน
+        oxygenMarkHtml =
+          '<div class="vm-fuel-row">' +
+            '<span style="font-size:9.5px;color:var(--text-light);">🅾️</span>' +
+            '<span style="font-size:10px;font-weight:700;color:#b91c1c;">O₂ ต่ำ</span>' +
+            '<span style="font-size:9px;font-weight:800;background:#fee2e2;color:#b91c1c;' +
+            'border:1px solid #fca5a5;border-radius:4px;padding:1px 5px;margin-left:4px;">⚠ ต้องเปลี่ยน</span>' +
+          '</div>';
+      }
+    }
+
+    // title = ข้อความเต็มไม่ตัด สำหรับ hover ดูรายละเอียดครบ (ปลายทาง/ชื่อ พขร.)
+    const fullDest = (isInUse && inUseKey && inUseMap[inUseKey] && inUseMap[inUseKey].destination)
+      ? inUseMap[inUseKey].destination
+      : (sheetStatus === 'กำลังใช้งาน' ? sheetDest : '');
+    const fullDriver = (isInUse && inUseKey && inUseMap[inUseKey] && inUseMap[inUseKey].driver)
+      ? inUseMap[inUseKey].driver
+      : sheetDriver;
+    const titleParts = [];
+    if (fullDest)   titleParts.push('ปลายทาง: ' + fullDest);
+    if (fullDriver) titleParts.push('พขร.: ' + fullDriver);
+    const titleAttr = titleParts.length ? ' title="' + titleParts.join(' | ').replace(/"/g,'&quot;') + '"' : '';
+
+    return '<div class="vehicle-mini ' + vmClass + '"' + titleAttr + '>'         + '<div class="vm-plate">' + plateKey + emsBadge + '</div>'         + '<div class="vm-type">' + v.type + '</div>'         + statusHtml         + '<div class="vm-sub">' + chkSub + '</div>'         + fuelMarkHtml         + oxygenMarkHtml         + '</div>';
+  }
+
+  // ── แบ่งกลุ่ม: ทั่วไป (van+pickup) | EMS/Refer ──────────────────
+  const generalVehicles = ALL_VEHICLES.filter(v => v.sys !== 'EMS');
+  const emsVehicles     = ALL_VEHICLES.filter(v => v.sys === 'EMS');
+
+  const gEl = document.getElementById('vehicleCardsGeneral');
+  const eEl = document.getElementById('vehicleCardsEMS');
+  if (gEl) gEl.innerHTML = generalVehicles.map(buildCard).join('');
+  if (eEl) eEl.innerHTML = emsVehicles.map(buildCard).join('');
+
+  // ── ซ่อน loading bar ──
+  const lb = document.getElementById('vehicleLoadingBar');
+  if (lb) lb.style.display = 'none';
+  document.getElementById('vehicleStatusWrap').style.display = 'block';
+}
+
+function renderVehicleCardsOffline() {
+  function buildOfflineCard(v) {
+    const plateKey = v.plate.replace(/ ชม\.?.*/, '').trim();
+    const emsBadge = v.isEms ? '<span class="ems-badge">EMS</span>' : '';
+    return '<div class="vehicle-mini vm-wait">'
+         + '<div class="vm-plate">' + plateKey + emsBadge + '</div>'
+         + '<div class="vm-type">' + v.type + '</div>'
+         + '<span class="vm-status st-wait"><span class="vm-status-dot wait"></span>ไม่สามารถโหลดสถานะได้</span>'
+         + '</div>';
+  }
+  const gEl = document.getElementById('vehicleCardsGeneral');
+  const eEl = document.getElementById('vehicleCardsEMS');
+  if (gEl) gEl.innerHTML = ALL_VEHICLES.filter(v => v.sys !== 'EMS').map(buildOfflineCard).join('');
+  if (eEl) eEl.innerHTML = ALL_VEHICLES.filter(v => v.sys === 'EMS').map(buildOfflineCard).join('');
+  const lb = document.getElementById('vehicleLoadingBar');
+  if (lb) lb.style.display = 'none';
+  document.getElementById('vehicleStatusWrap').style.display = 'block';
+}
+
+// ─── FAQ MODAL ─────────────────────────────────────────────────────────────
+function openFAQ() {
+  document.getElementById('faqModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeFAQ() {
+  document.getElementById('faqModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeFAQOutside(e) {
+  if (e.target === document.getElementById('faqModal')) closeFAQ();
+}
+function toggleFAQ(el) {
+  el.classList.toggle('open');
+}
+
+// ─── FEEDBACK ──────────────────────────────────────────────────────────────
+let fbType = '';
+function selFbType(btn, type) {
+  document.querySelectorAll('.fb-type-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  fbType = type;
+}
+
+async function submitFeedback() {
+  const txt = document.getElementById('fbText').value.trim();
+  const btn = document.getElementById('fbSubmit');
+  const res = document.getElementById('fbResult');
+  if (!txt) {
+    res.className = 'fb-result err'; res.style.display = 'block';
+    res.textContent = 'กรุณาระบุรายละเอียดก่อนส่ง'; return;
+  }
+  btn.disabled = true; btn.textContent = 'กำลังส่ง...';
+  res.style.display = 'none';
+  try {
+    // ต้องส่งเป็น URLSearchParams { payload: JSON.stringify({action, ...}) }
+    // เหมือน saveSatisfaction และ saveCheck อื่น ๆ
+    const payload = {
+      action  : 'submitFeedback',
+      type    : fbType || 'ทั่วไป',
+      message : txt,
+      page    : 'index',
+      ts      : new Date().toISOString()
+    };
+    const r = await fetch(GAS_URL, {
+      method : 'POST',
+      body   : new URLSearchParams({ payload: JSON.stringify(payload) })
+    });
+    const data = await r.json();
+    if (data.status === 'ok') {
+      res.className = 'fb-result ok'; res.style.display = 'block';
+      res.textContent = 'ขอบคุณสำหรับข้อมูล ทีมงานจะดำเนินการตรวจสอบ';
+      document.getElementById('fbText').value = '';
+      document.querySelectorAll('.fb-type-btn').forEach(b => b.classList.remove('sel'));
+      fbType = '';
+    } else {
+      res.className = 'fb-result err'; res.style.display = 'block';
+      res.textContent = 'เกิดข้อผิดพลาด: ' + (data.message || 'ลองใหม่อีกครั้ง');
+    }
+  } catch (_) {
+    res.className = 'fb-result err'; res.style.display = 'block';
+    res.textContent = 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง';
+  }
+  btn.disabled = false; btn.textContent = 'ส่งข้อมูล';
+}
+
+// ─── SATISFACTION TOKEN ────────────────────────────────────────────────────
+function openSatisfaction() {
+  // สร้าง token แบบ random ที่ใช้ได้ครั้งเดียว
+  const token = 'sat_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+  // เก็บ token ใน sessionStorage ของหน้าหลัก (origin เดียวกัน)
+  // satisfaction.html จะอ่านผ่าน localStorage (shared same origin)
+  const tokenData = { token: token, used: false, created: Date.now() };
+  localStorage.setItem('sat_token_pending', JSON.stringify(tokenData));
+  // เปิดหน้าประเมินในแท็บใหม่พร้อม token
+  window.open('satisfaction.html?token=' + encodeURIComponent(token), '_blank', 'noopener');
+}
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initIndex();
+  // ✅ REAL-TIME: smart poll — ตรวจ reloadSignal ก่อน ถ้าไม่เปลี่ยนไม่ fetch
+  let _indexLastSignal = null;
+  async function smartIndexRefresh() {
+    try {
+      const r   = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'payload=' + encodeURIComponent(JSON.stringify({ action: 'getReloadSignal' })),
+        cache: 'no-cache'
+      });
+      const sig = await r.json();
+      const sigStr = JSON.stringify(sig);
+      if (_indexLastSignal === null || sigStr !== _indexLastSignal) {
+        _indexLastSignal = sigStr;
+        await loadStatus(); // มีการเปลี่ยนแปลง → โหลดใหม่
+      }
+      // ถ้าไม่เปลี่ยน → ไม่ทำอะไร ประหยัด GAS quota
+    } catch(_) { await loadStatus(); } // fallback
+  }
+  setInterval(smartIndexRefresh, 30000); // ทุก 30 วินาที (ลดจาก 2 นาที)
+});
+</script>
+
+<!-- ── SITE FOOTER ── -->
+<footer class="site-footer">
+  <div class="footer-inner">
+
+    <div class="footer-left">
+      <div class="footer-logo-mark">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <div class="footer-org">
+        <span class="footer-org-name">กลุ่มงานพัฒนาคุณภาพและรูปแบบบริการ</span>
+        <span class="footer-org-sub">โรงพยาบาลสันทราย · สำนักงานสาธารณสุขจังหวัดเชียงใหม่</span>
+      </div>
+    </div>
+
+    <div class="footer-divider"></div>
+
+    <div class="footer-right">
+      <span class="footer-copy">
+        &copy; <span id="footerYear"></span> TKN &mdash; SAND
+      </span>
+      <span class="footer-version">v2.0</span>
+    </div>
+
+  </div>
+</footer>
+
+<style>
+/* ── FOOTER ── */
+.site-footer {
+  background: var(--navy);
+  border-top: 1px solid rgba(255,255,255,.07);
+  margin-top: 0;
+}
+.footer-inner {
+  max-width: 1140px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Left — logo + org */
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+.footer-logo-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(29,111,181,.20);
+  border: 1px solid rgba(29,111,181,.30);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255,255,255,.55);
+  flex-shrink: 0;
+}
+.footer-org {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.footer-org-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255,255,255,.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.footer-org-sub {
+  font-size: 0.66rem;
+  color: rgba(255,255,255,.35);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Divider */
+.footer-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255,255,255,.10);
+  flex-shrink: 0;
+}
+
+/* Right — copyright + version */
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.footer-copy {
+  font-size: 0.70rem;
+  color: rgba(255,255,255,.35);
+  font-family: 'IBM Plex Mono', monospace;
+  white-space: nowrap;
+}
+.footer-version {
+  font-size: 0.60rem;
+  font-weight: 700;
+  font-family: 'IBM Plex Mono', monospace;
+  color: rgba(255,255,255,.25);
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.10);
+  padding: 1px 6px;
+  border-radius: 3px;
+  letter-spacing: 0.05em;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .footer-inner {
+    padding: 12px 16px;
+    gap: 12px;
+  }
+  .footer-divider { display: none; }
+  .footer-left { flex-basis: 100%; }
+  .footer-right { width: 100%; justify-content: flex-start; }
+  .footer-org-sub { display: none; }
+}
+</style>
+
+<script>
+document.getElementById('footerYear').textContent = new Date().getFullYear();
+</script>
+
+<script>
+
+</script>
+
+</body>
+</html>

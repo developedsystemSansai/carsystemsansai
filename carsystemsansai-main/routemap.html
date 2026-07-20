@@ -1,0 +1,1989 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>แผนที่เส้นทางการใช้รถ — SAND</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<style>
+  :root {
+    --navy: #0d2137; --navy-mid: #163251; --navy-light: #1e4a7a;
+    --blue: #1d6fb5; --blue-soft: #e8f1fb;
+    --teal: #007a6e; --teal-soft: #e0f4f1;
+    --amber: #c07a00; --amber-soft: #fdf4dc;
+    --success: #1a8a4a; --success-soft: #e4f5eb;
+    --danger: #c0392b; --danger-soft: #fdecea;
+    --bg: #eef2f7; --card: #ffffff;
+    --border: #d5dce8; --border-strong: #b8c4d4;
+    --text: #182332; --text-mid: #3d5168; --text-light: #7a8ea5;
+    --radius: 12px; --radius-sm: 8px;
+    --shadow-sm: 0 1px 6px rgba(13,33,55,.07);
+    --shadow: 0 2px 14px rgba(13,33,55,.09);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.5; }
+
+  .site-header { background: var(--navy); position: sticky; top: 0; z-index: 200; box-shadow: 0 2px 16px rgba(0,0,0,.28); }
+  .header-inner { max-width: 1280px; margin: auto; padding: 0 20px; height: 58px; display: flex; align-items: center; gap: 14px; }
+  .header-logo { width: 36px; height: 36px; background: linear-gradient(145deg, var(--blue) 0%, var(--teal) 100%); border-radius: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .header-logo svg { width: 18px; height: 18px; }
+  .header-titles { flex: 1; min-width: 0; }
+  .header-titles .main-title { font-size: 13.5px; font-weight: 700; color: #fff; }
+  .header-titles .sub-title { font-size: 11px; color: rgba(255,255,255,.45); }
+  .back-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 999px; color: rgba(255,255,255,.8); font-size: 12.5px; font-weight: 600; text-decoration: none; transition: background .18s; font-family: inherit; }
+  .back-btn:hover { background: rgba(255,255,255,.14); color: #fff; }
+
+  .main-wrap { max-width: 1280px; margin: auto; padding: 20px; }
+
+  .stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .stat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow-sm); }
+  .stat-label { font-size: 11.5px; color: var(--text-light); font-weight: 600; }
+  .stat-val { font-size: 24px; font-weight: 700; color: var(--navy); font-family: 'IBM Plex Mono', monospace; margin-top: 2px; }
+  .stat-sub { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
+  .filter-bar input { font-family: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--card); color: var(--text); }
+  .filter-bar label { font-size: 12px; color: var(--text-mid); font-weight: 600; margin-right: 4px; }
+  .filter-bar select { font-family: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--card); color: var(--text); }
+  .sequence-info { margin: -10px 0 16px; padding: 10px 14px; background: #eef4fb; border: 1px solid #cfe0f2; border-radius: var(--radius-sm); font-size: 12.5px; color: var(--navy); }
+  .seq-marker { display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-family:'IBM Plex Mono',monospace;border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,.4);border:2px solid #fff; }
+  .filter-group { display: flex; align-items: center; gap: 6px; }
+  .btn { font-family: inherit; font-size: 13px; font-weight: 600; padding: 8px 16px; border-radius: var(--radius-sm); border: none; cursor: pointer; transition: opacity .15s; }
+  .btn:hover { opacity: .88; }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-ghost { background: var(--card); color: var(--text-mid); border: 1px solid var(--border-strong); }
+
+  .layout { display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: 16px; align-items: start; }
+  @media (max-width: 880px) { .layout { grid-template-columns: 1fr; } }
+
+  .map-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden; }
+  #mapEl { width: 100%; height: 560px; background: #dbe6f2; }
+  .pin-mode-bar { display: none; padding: 10px 14px; background: var(--navy); color: #fff; font-size: 12.5px; align-items: center; justify-content: space-between; gap: 10px; }
+  .pin-mode-bar.show { display: flex; }
+  .pin-mode-bar button { font-family: inherit; font-size: 12px; padding: 5px 12px; border-radius: 999px; border: none; background: rgba(255,255,255,.15); color: #fff; cursor: pointer; }
+
+  /* ── ค้นหาสถานที่จริงบนแผนที่ (Nominatim/OpenStreetMap) เพื่อปักหมุดโดยไม่ต้องเปิด Google Maps แยก ── */
+  .place-search-bar { position: relative; padding: 10px 14px; background: var(--blue-soft); border-bottom: 1px solid var(--border); }
+  .place-search-input-wrap { display: flex; gap: 8px; }
+  #placeSearchInput { flex: 1; font-family: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: #fff; color: var(--text); }
+  .place-search-results { position: absolute; left: 14px; right: 14px; top: 100%; background: #fff; border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius-sm) var(--radius-sm); box-shadow: var(--shadow); max-height: 280px; overflow-y: auto; z-index: 500; display: none; }
+  .place-search-results.show { display: block; }
+  .place-result-row { padding: 9px 13px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 12.5px; }
+  .place-result-row:last-child { border-bottom: none; }
+  .place-result-row:hover { background: var(--bg); }
+  .place-result-row .pr-name { font-weight: 700; color: var(--text); }
+  .place-result-row .pr-addr { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+  .place-search-empty, .place-search-loading { padding: 10px 13px; font-size: 12px; color: var(--text-light); }
+
+  .list-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); max-height: 420px; display: flex; flex-direction: column; }
+  .side-col { display: flex; flex-direction: column; gap: 16px; }
+  .mission-panel { max-height: 320px; height: auto; }
+  .mission-panel .list-body { flex: 0 1 auto; padding-bottom: 6px; }
+  .mission-panel .dest-rank { background: var(--amber-soft); color: var(--amber); }
+  .mission-panel .dest-row { cursor: default; padding-top: 16px; padding-bottom: 16px; }
+
+  /* ── ตารางระยะเวลาที่ใช้ต่อทริป (แยกตามจุดหมาย) — วิเคราะห์ความเหมาะสมของภารกิจ ── */
+  .duration-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); margin-top: 16px; overflow: hidden; }
+  .duration-head { padding: 14px 16px; border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+  .duration-head .title { font-size: 13px; font-weight: 700; color: var(--navy); }
+  .duration-head .sub { font-size: 11.5px; color: var(--text-light); font-weight: 400; margin-left: 6px; }
+  .duration-summary { padding: 10px 16px; background: var(--bg); font-size: 12px; color: var(--text-mid); border-bottom: 1px solid var(--border); }
+  .duration-summary b { color: var(--navy); font-family: 'IBM Plex Mono', monospace; }
+  .duration-table-wrap { overflow-x: auto; }
+  .duration-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .duration-table th { background: var(--navy); color: rgba(255,255,255,.85); padding: 9px 12px; text-align: left; font-size: 10.5px; font-weight: 600; letter-spacing: .3px; white-space: nowrap; }
+  .duration-table th.sortable { cursor: pointer; user-select: none; }
+  .duration-table th.sortable:hover { color: #fff; }
+  .duration-table th.sortable.active { color: #ffd88a; }
+  .duration-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  .duration-table tr:hover td { background: var(--blue-soft); }
+  .duration-table td.dname { white-space: normal; max-width: 260px; font-weight: 600; color: var(--text); }
+  .duration-flag { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .duration-flag.warn { background: var(--amber-soft); color: #7a4800; }
+  .duration-flag.danger { background: var(--danger-soft); color: var(--danger); }
+  .duration-empty { padding: 30px 16px; text-align: center; color: var(--text-light); font-size: 13px; white-space: normal; }
+  .duration-pager { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 12px 16px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+  .duration-pager button { font-family: inherit; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--card); color: var(--text-mid); cursor: pointer; transition: all .15s; }
+  .duration-pager button:hover:not(:disabled) { background: var(--blue-soft); border-color: var(--blue); color: var(--blue); }
+  .duration-pager button.active { background: var(--navy); border-color: var(--navy); color: #fff; }
+  .duration-pager button:disabled { opacity: .4; cursor: not-allowed; }
+  .duration-pager .pager-info { font-size: 11.5px; color: var(--text-light); margin: 0 6px; }
+  .list-head { padding: 14px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--navy); display: flex; justify-content: space-between; align-items: center; }
+  .list-body { overflow-y: auto; flex: 1; }
+  .dest-row { padding: 11px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background .12s; }
+  .dest-row:hover { background: var(--bg); }
+  .dest-rank { width: 22px; height: 22px; border-radius: 50%; background: var(--blue-soft); color: var(--blue); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-family: 'IBM Plex Mono', monospace; }
+  .dest-info { flex: 1; min-width: 0; }
+  .dest-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dest-sub { font-size: 11px; color: var(--text-light); margin-top: 1px; }
+  .dest-count { font-size: 13px; font-weight: 700; color: var(--navy); font-family: 'IBM Plex Mono', monospace; flex-shrink: 0; }
+  .pin-badge { font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; flex-shrink: 0; border: none; font-family: inherit; cursor: pointer; }
+  .pin-badge.pinned { background: var(--success-soft); color: #0f5c2e; }
+  .pin-badge.unpinned { background: var(--amber-soft); color: #7a4800; }
+  .pin-badge.unpinned:hover { background: #ffe6a8; }
+  .pin-badge.editbtn { background: var(--blue-soft); color: var(--blue); }
+  .pin-badge.editbtn:hover { background: #d3e6f8; }
+  .pin-badge.delbtn { background: var(--danger-soft); color: var(--danger); }
+  .pin-badge.delbtn:hover { background: #fbd9d4; }
+
+  .empty-state { padding: 30px 16px; text-align: center; color: var(--text-light); font-size: 13px; }
+
+  /* ── การ์ดสถานการณ์ปัจจุบัน (รถที่กำลังเดินทาง) — แสดงทันทีเมื่อเปิดหน้า ── */
+  .live-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); margin-bottom: 18px; overflow: hidden; }
+  .live-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; background: linear-gradient(90deg, var(--navy) 0%, var(--navy-mid) 100%); }
+  .live-card-title { display: flex; align-items: center; gap: 9px; color: #fff; font-weight: 700; font-size: 13.5px; }
+  .live-dot { width: 9px; height: 9px; border-radius: 50%; background: #3ee06a; box-shadow: 0 0 0 rgba(62,224,106,.6); animation: liveDotPulse 1.6s ease-out infinite; flex-shrink: 0; }
+  @keyframes liveDotPulse { 0% { box-shadow: 0 0 0 0 rgba(62,224,106,.55); } 70% { box-shadow: 0 0 0 7px rgba(62,224,106,0); } 100% { box-shadow: 0 0 0 0 rgba(62,224,106,0); } }
+  .live-count-badge { background: rgba(255,255,255,.16); color: #fff; font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 11.5px; padding: 2px 9px; border-radius: 999px; }
+  .live-card-meta { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,.7); font-size: 11.5px; }
+  .live-refresh-btn { padding: 5px 12px; font-size: 11.5px; }
+  .live-trip-list { display: flex; flex-wrap: wrap; gap: 10px; padding: 12px 16px; }
+  .live-empty { padding: 10px 4px; color: var(--text-light); font-size: 13px; }
+  .live-trip-chip { display: flex; align-items: center; gap: 10px; padding: 9px 13px; background: var(--amber-soft); border: 1px solid #f0d9a6; border-radius: var(--radius-sm); cursor: pointer; transition: transform .12s, box-shadow .12s; min-width: 220px; }
+  .live-trip-chip:hover { transform: translateY(-1px); box-shadow: var(--shadow-sm); }
+  .live-trip-chip .chip-icon { width: 30px; height: 30px; border-radius: 50%; background: var(--amber); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .live-trip-chip .chip-icon svg { width: 16px; height: 16px; }
+  .live-trip-chip .chip-body { min-width: 0; }
+  .live-trip-chip .chip-plate { font-size: 12px; font-weight: 700; color: var(--navy); font-family: 'IBM Plex Mono', monospace; }
+  .live-trip-chip .chip-dest { font-size: 12.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+  .live-trip-chip .chip-sub { font-size: 11px; color: var(--text-light); margin-top: 1px; }
+  .live-trip-chip .chip-sub.unpinned { color: var(--danger); font-weight: 600; }
+
+  /* ── แถบควบคุมเส้นทาง (เดิมไม่มี CSS/JS ผูกไว้ — ตอนนี้ใช้คุมการแสดง/ซ่อนเส้นทางสด) ── */
+  .route-info-bar { display: none; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 14px; background: #fff4e0; border-bottom: 1px solid #f0d9a6; font-size: 12px; color: #7a4800; }
+  .route-info-bar.show { display: flex; }
+  .route-info-bar button { font-family: inherit; font-size: 11.5px; font-weight: 600; padding: 5px 12px; border-radius: 999px; border: none; background: rgba(192,122,0,.15); color: #7a4800; cursor: pointer; }
+  .route-info-bar button:hover { background: rgba(192,122,0,.25); }
+
+  .freq-marker { background: rgba(29,111,181,.88); border: 2px solid #fff; border-radius: 50%; color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'IBM Plex Mono', monospace; font-weight: 700; box-shadow: 0 1px 6px rgba(0,0,0,.3); cursor: grab; }
+  .freq-marker.dragging { cursor: grabbing; }
+
+  /* ── ไอคอนหมวดหมู่ภายในหมุด (แทนวงกลม+ตัวเลขล้วนๆ) ── */
+  .freq-marker-icon { width: 60%; height: 60%; display: flex; align-items: center; justify-content: center; }
+  .freq-marker-icon svg { width: 100%; height: 100%; overflow: visible; }
+  .freq-marker-icon.money-glyph { font-family: 'Noto Sans Thai', sans-serif; font-weight: 700; line-height: 1; }
+
+  /* ── ป้ายจำนวนทริปมุมหมุด (แสดงคู่กับไอคอนหมวดหมู่) ── */
+  .freq-count-badge { position: absolute; right: -3px; bottom: -3px; min-width: 15px; height: 15px; padding: 0 3px; border-radius: 999px; background: #fff; color: var(--navy); font-family: 'IBM Plex Mono', monospace; font-weight: 700; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 4px rgba(0,0,0,.4); z-index: 3; line-height: 1; }
+
+  /* ── สัญลักษณ์รูปดาว: ใช้กับจุดหมายที่ "รถที่ใช้บ่อยที่สุด" (โดยรวม) ไปบ่อยที่สุด ── */
+  .freq-marker.top-car-star {
+    border-radius: 0;
+    clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+    border: none;
+    box-shadow: 0 1px 8px rgba(0,0,0,.45);
+  }
+
+  /* ── วงแหวนเน้นพิเศษสำหรับ Top 3 จุดหมายยอดนิยม (ทุกโหมดสี) ── */
+  .freq-marker.top-rank-1, .freq-marker.top-rank-2, .freq-marker.top-rank-3 {
+    outline: 3px solid rgba(255,255,255,.0);
+  }
+  .freq-marker-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+  .freq-marker-ring { position: absolute; border-radius: 50%; border: 2px dashed rgba(255,255,255,.85); animation: rankPulse 2.2s ease-in-out infinite; pointer-events: none; }
+  @keyframes rankPulse { 0%,100% { opacity: .35; } 50% { opacity: .9; } }
+
+  /* ── หมุดโรงพยาบาลสันทราย (ต้นทาง) — เด่นสะดุดตา ── */
+  .hospital-pulse-wrap { position: relative; display: flex; align-items: center; justify-content: center; }
+  .hospital-pulse-ring { position: absolute; width: 46px; height: 46px; border-radius: 50%; background: rgba(192,57,43,.35); animation: hospPulse 1.8s ease-out infinite; }
+  .hospital-pulse-core { position: relative; width: 30px; height: 30px; border-radius: 50%; background: linear-gradient(145deg,#e6423a,#a9241a); border: 3px solid #fff; box-shadow: 0 2px 10px rgba(0,0,0,.45); display: flex; align-items: center; justify-content: center; z-index: 2; }
+  .hospital-pulse-core svg { width: 16px; height: 16px; }
+  @keyframes hospPulse { 0% { transform: scale(.5); opacity: .8; } 100% { transform: scale(1.9); opacity: 0; } }
+
+  /* ── หมุดรถที่ "กำลังเดินทาง" อยู่ ณ ขณะนี้ — ลอยเหนือหมุดปลายทางเดิม ให้เห็นชัดว่ากำลังไปจุดนี้ ── */
+  .live-trip-wrap { position: relative; display: flex; flex-direction: column; align-items: center; }
+  .live-trip-ring { position: absolute; top: 0; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,138,0,.32); animation: hospPulse 1.6s ease-out infinite; }
+  .live-trip-core { position: relative; width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(145deg,#ffa733,#c07a00); border: 2.5px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 2; }
+  .live-trip-core svg { width: 14px; height: 14px; }
+  .live-trip-plate { margin-top: 3px; padding: 1px 7px; background: var(--navy); color: #fff; font-size: 9.5px; font-weight: 700; border-radius: 999px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.35); z-index: 2; }
+  .live-trip-stem { width: 2px; height: 14px; background: rgba(192,122,0,.55); z-index: 1; }
+
+  /* ── เส้นทางเดินรถ (ไล่ตามถนนจริงผ่าน OSRM/OpenStreetMap) — ลายเส้นประวิ่ง บ่งบอกทิศทางการเดินทาง ── */
+  path.live-route-line { stroke-dasharray: 9 7; animation: liveRouteDash 1s linear infinite; }
+  path.live-route-line.approx { stroke-dasharray: 3 8; }
+  @keyframes liveRouteDash { to { stroke-dashoffset: -32; } }
+
+  /* ── โหมดสี: ตัวเลือกโหมดการแสดงสี ── */
+  .color-mode-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 10px 14px; background: var(--card); border-bottom: 1px solid var(--border); font-size: 12px; }
+  .color-mode-bar .seg { display: flex; background: var(--bg); border-radius: 999px; padding: 3px; gap: 2px; }
+  .color-mode-bar .seg button { font-family: inherit; font-size: 12px; font-weight: 600; padding: 6px 13px; border-radius: 999px; border: none; background: transparent; color: var(--text-mid); cursor: pointer; transition: all .15s; }
+  .color-mode-bar .seg button.active { background: var(--navy); color: #fff; }
+  .color-mode-bar .switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; font-weight: 600; color: var(--text-mid); white-space: nowrap; }
+  .color-mode-bar .switch input[type="checkbox"] { width: 30px; height: 16px; accent-color: var(--amber); cursor: pointer; }
+
+  .legend-panel { padding: 10px 14px; background: var(--card); border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 12px; align-items: center; font-size: 11.5px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-mid); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 1.5px solid rgba(0,0,0,.15); }
+  .legend-title { font-weight: 700; color: var(--navy); margin-right: 2px; }
+
+  .edit-toolbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--blue-soft); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--navy); }
+  .edit-toolbar .switch { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; font-weight: 600; }
+  .edit-toolbar input[type="checkbox"] { width: 30px; height: 16px; accent-color: var(--blue); cursor: pointer; }
+  .edit-hint { color: var(--text-light); font-size: 11px; }
+
+  .import-panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 14px 16px; margin-bottom: 16px; }
+  .import-panel-head { font-size: 13px; font-weight: 700; color: var(--navy); display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .import-panel-body { margin-top: 10px; display: none; }
+  .import-panel-body.show { display: block; }
+  .import-panel-body p { font-size: 12px; color: var(--text-mid); margin-bottom: 8px; line-height: 1.6; }
+  .import-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .import-log { margin-top: 10px; max-height: 160px; overflow-y: auto; font-family: 'IBM Plex Mono', monospace; font-size: 11px; background: var(--bg); border-radius: var(--radius-sm); padding: 8px 10px; display: none; }
+  .import-log.show { display: block; }
+  .import-log .ok { color: var(--success); }
+  .import-log .skip { color: var(--text-light); }
+  .import-log .err { color: var(--danger); }
+</style>
+<script src="secure-fetch.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6-13l6 3m0 0l4.553-2.276A1 1 0 0121 5.618v10.764a1 1 0 01-.553.894L15 20m0-13v13"/>
+      </svg>
+    </div>
+    <div class="header-titles">
+      <div class="main-title">แผนที่เส้นทางการใช้รถ</div>
+      <div class="sub-title">โรงพยาบาลสันทราย · วิเคราะห์ความถี่จุดหมายปลายทาง (OpenStreetMap)</div>
+    </div>
+    <a href="index.html" class="back-btn">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      หน้าหลัก
+    </a>
+  </div>
+</header>
+
+<main class="main-wrap">
+
+  <div class="live-card" id="liveCard">
+    <div class="live-card-head">
+      <div class="live-card-title">
+        <span class="live-dot" id="liveDot"></span>
+        <span>สถานการณ์ปัจจุบัน — รถที่กำลังเดินทาง</span>
+        <span class="live-count-badge" id="liveCountBadge">0</span>
+      </div>
+      <div class="live-card-meta">
+        <span id="liveUpdatedText">กำลังโหลด…</span>
+        <button class="btn btn-ghost live-refresh-btn" onclick="loadLiveStatus()">รีเฟรชตอนนี้</button>
+      </div>
+    </div>
+    <div class="live-trip-list" id="liveTripList">
+      <div class="live-empty">กำลังตรวจสอบสถานะรถ...</div>
+    </div>
+  </div>
+
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-label">ทริปที่วิเคราะห์</div>
+      <div class="stat-val" id="statTrips">—</div>
+      <div class="stat-sub">รายการใน MileLog</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">จุดหมายทั้งหมด</div>
+      <div class="stat-val" id="statDest">—</div>
+      <div class="stat-sub">ปลายทางไม่ซ้ำ</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">ปักหมุดแล้ว</div>
+      <div class="stat-val" id="statPinned" style="color:var(--success);">—</div>
+      <div class="stat-sub">พร้อมแสดงบนแผนที่</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">รอปักหมุด</div>
+      <div class="stat-val" id="statUnpinned" style="color:var(--amber);">—</div>
+      <div class="stat-sub">ยังไม่มีพิกัด</div>
+    </div>
+  </div>
+
+  <div class="import-panel">
+    <div class="import-panel-head" onclick="toggleImportPanel()">
+      <span>นำเข้าพิกัดจากไฟล์ (ลดเวลาปักหมุดเอง)</span>
+      <span id="importToggleIcon">▾</span>
+    </div>
+    <div class="import-panel-body" id="importPanelBody">
+      <p>อัปโหลดไฟล์ .json ที่มีรายการ [{"name":"ชื่อจุดหมาย","lat":...,"lng":...}, ...] ระบบจะบันทึกพิกัดให้ทุกชื่อในไฟล์อัตโนมัติ (ชื่อที่ตรงกับปลายทางที่มีอยู่แล้วจะถูกปักหมุดทันที ส่วนชื่อที่ปักหมุดไว้แล้วจะถูกอัปเดตพิกัดใหม่)</p>
+      <div class="import-row">
+        <input type="file" id="importFileInput" accept=".json" style="font-size:12px;">
+        <button class="btn btn-primary" onclick="runImport()">นำเข้าและปักหมุด</button>
+        <span id="importStatus" style="font-size:12px;color:var(--text-light);"></span>
+      </div>
+      <div class="import-log" id="importLog"></div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label>ตั้งแต่</label>
+      <input type="date" id="fDateFrom">
+    </div>
+    <div class="filter-group">
+      <label>ถึง</label>
+      <input type="date" id="fDateTo">
+    </div>
+    <button class="btn btn-ghost" onclick="setDateRangeToday()">📅 วันนี้</button>
+    <div class="filter-group" style="flex:1;min-width:180px;">
+      <input type="text" id="fSearch" placeholder="ค้นหาชื่อจุดหมาย..." style="width:100%;">
+    </div>
+    <div class="filter-group">
+      <label>🚗 ลำดับเส้นทางของรถ</label>
+      <select id="fCar" onchange="applyFilters()">
+        <option value="">— ไม่แสดง —</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="applyFilters()">กรองข้อมูล</button>
+    <button class="btn btn-ghost" onclick="resetFilters()">ล้างตัวกรอง</button>
+  </div>
+  <div class="sequence-info" id="sequenceInfo" style="display:none;"></div>
+
+  <div class="layout">
+    <div class="map-panel">
+      <div class="color-mode-bar">
+        <span style="font-weight:700;color:var(--navy);">แสดงสีตาม:</span>
+        <div class="seg" id="colorModeSeg">
+          <button class="active" data-mode="freq" onclick="setColorMode('freq')">ความถี่การไป</button>
+          <button data-mode="category" onclick="setColorMode('category')">ประเภทสถานที่</button>
+          <button data-mode="car" onclick="setColorMode('car')">รถที่ใช้บ่อยที่สุด</button>
+        </div>
+        <label class="switch" style="margin-left:auto;">
+          <input type="checkbox" id="heatmapToggle" onchange="toggleHeatmap()">
+          🔥 แสดง Heatmap ความหนาแน่น
+        </label>
+      </div>
+      <div class="place-search-bar" id="placeSearchBar">
+        <div class="place-search-input-wrap">
+          <input type="text" id="placeSearchInput" placeholder="ค้นหาสถานที่จริงเพื่อปักหมุด เช่น ธนาคารกรุงไทย สันทราย, ปั๊ม ปตท. ..." autocomplete="off"
+                 oninput="onPlaceSearchInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();searchPlace();}">
+          <button class="btn btn-primary" onclick="searchPlace()">ค้นหา</button>
+        </div>
+        <div class="place-search-results" id="placeSearchResults"></div>
+      </div>
+      <div class="edit-toolbar">
+        <label class="switch">
+          <input type="checkbox" id="editModeToggle" onchange="toggleEditMode()">
+          โหมดแก้ไขหมุด
+        </label>
+        <span class="edit-hint" id="editHintText">เปิดโหมดนี้เพื่อลากหมุดย้ายตำแหน่ง หรือลบหมุดที่ปักผิด</span>
+      </div>
+      <div class="pin-mode-bar" id="pinModeBar">
+        <span id="pinModeText">คลิกบนแผนที่เพื่อปักหมุดตำแหน่งของ "…"</span>
+        <button onclick="cancelPinMode()">ยกเลิก</button>
+      </div>
+      <div class="route-info-bar" id="routeInfoBar">
+        <span id="routeInfoText"></span>
+        <button onclick="toggleLiveRoutes()" id="routeInfoBtn">ซ่อนเส้นทาง</button>
+      </div>
+      <div id="mapEl"></div>
+      <div class="legend-panel" id="legendPanel"></div>
+    </div>
+
+    <div class="side-col">
+      <div class="list-panel">
+        <div class="list-head">
+          <span>อันดับจุดหมายยอดนิยม</span>
+          <span id="listCount" style="font-weight:400;color:var(--text-light);"></span>
+        </div>
+        <div class="list-body" id="destList">
+          <div class="empty-state">กำลังโหลดข้อมูล...</div>
+        </div>
+      </div>
+
+      <!-- ภารกิจนอกเหนือปลายทาง — รายการที่ไม่มีปลายทางชัดเจน (เดินทางซับซ้อนหลายจุด/หลายปัจจัย) -->
+      <div class="list-panel mission-panel" id="missionPanel">
+        <div class="list-head">
+          <span>🧭 ภารกิจนอกเหนือปลายทาง</span>
+          <span id="missionCount" style="font-weight:400;color:var(--text-light);"></span>
+        </div>
+        <div class="list-body" id="missionBody">
+          <div class="empty-state">กำลังโหลดข้อมูล...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ ตารางระยะเวลาที่ใช้ต่อทริป (รายทริป — ล่าสุดก่อน) ═══════════ -->
+  <div class="duration-panel" id="durationPanel">
+    <div class="duration-head">
+      <div><span class="title">⏱ ระยะเวลาที่ใช้ต่อทริป</span><span class="sub">แยกตามจุดหมาย — แสดงทีละทริป (ล่าสุดก่อน) — ใช้ตรวจสอบความเหมาะสมของภารกิจ/การเดินทางแต่ละครั้ง</span></div>
+      <span id="durationCount" style="font-size:11.5px;color:var(--text-light);"></span>
+    </div>
+    <div class="duration-summary" id="durationSummary">กำลังคำนวณ...</div>
+    <div class="duration-table-wrap">
+      <table class="duration-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>วันที่</th>
+            <th>จุดหมาย</th>
+            <th>ทะเบียน/รถ</th>
+            <th>เวลาออก</th>
+            <th>เวลากลับ</th>
+            <th>ระยะเวลาที่ใช้</th>
+            <th>ระยะทาง</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="durationTbody">
+          <tr><td colspan="9" class="duration-empty">กำลังโหลดข้อมูล...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="duration-pager" id="durationPager"></div>
+  </div>
+
+</main>
+
+<script>
+// ════════════════════════════════════════════════════════════
+//  CONFIG
+// ════════════════════════════════════════════════════════════
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec'; // ✅ เรียก code.gs ตรง — ไม่ใช้ proxy แล้ว
+
+// ศูนย์กลางแผนที่เริ่มต้น: โรงพยาบาลสันทราย เชียงใหม่ (พิกัดยืนยันแล้ว)
+const HOSPITAL_LOCATION = { lat: 18.9209926, lng: 98.9942253 };
+
+const CURRENT_USER = 'ผู้ใช้งานหน้าแผนที่'; // ใช้บันทึกว่าใครเป็นคนปักหมุด (ถ้ามีระบบ login ในอนาคตค่อยเปลี่ยนตรงนี้)
+
+// ════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════
+let allTrips = [];
+let allPins  = {};      // { destinationName: {lat,lng,...} }
+let destFreq = [];      // [{name, count, distanceKm, category, carBreakdown, topCar, topCarColor}]
+let missionFreq = [];   // [{label, count}] — ภารกิจนอกเหนือปลายทาง (ไม่ใช่ชื่อสถานที่)
+let map = null;
+let markerByName = {};
+let pinModeTarget = null;
+let pinClickHandler = null;
+let editMode = false;
+let colorMode = 'freq'; // 'freq' | 'category' | 'car'
+let topOverallCar = null;      // ทะเบียน/รถที่ถูกใช้งานบ่อยที่สุดโดยรวม (ทุกทริปที่กรองไว้)
+let topOverallCarCount = 0;
+let heatLayer = null;          // เลเยอร์ Heatmap (Leaflet.heat)
+let sequenceLayer = null;      // เลเยอร์เส้นทาง+หมุดลำดับการเดินทางของรถคันที่เลือก
+let durationPage = 1;                  // หน้าปัจจุบันของตารางระยะเวลาที่ใช้ต่อทริป
+const DURATION_PAGE_SIZE = 20;         // จำนวนแถว(ทริป)ต่อหน้า
+const DURATION_EXCLUDE_PLATES = ['8781']; // ทะเบียนที่ไม่ต้องนับในตารางนี้ (เทียบแบบ contains)
+let durationStatsCache = { trips: [], overallAvg: 0, totalValidTrips: 0 };
+
+// ── สถานการณ์ปัจจุบัน (รถที่กำลังเดินทาง) ──
+let liveTrips = [];                 // ผลลัพธ์ล่าสุดจาก getStatusSummary().inUse
+let liveMarkersLayer = null;        // L.layerGroup ของหมุดรถกำลังเดินทาง
+let liveRoutesLayer = null;         // L.layerGroup ของเส้นทางที่ลากไว้
+let liveMarkerByTrip = {};          // tripId → L.marker (ใช้โฟกัส/เปิด popup จากรายการด้านบน)
+let liveRouteCache = {};            // "lat1,lng1|lat2,lng2" → { latlngs, approx }
+let liveRoutesVisible = true;
+let liveTimer = null;
+let hasAutoFocusedLive = false;     // fitBounds อัตโนมัติแค่ครั้งแรกที่เปิดหน้า ไม่ทำซ้ำทุกรอบ poll
+
+// ── หมวดหมู่สถานที่ (จับคำสำคัญในชื่อปลายทาง) + สีประจำหมวด ──
+const CATEGORY_RULES = [
+  { key: 'garage',   color: '#5a4632', label: 'อู่/ศูนย์ซ่อมรถ',        test: n => /อู่|ซ่อมรถ|ซ่อมบำรุง|การช่าง|เคาะพ่นสี|ยางรถยนต์|ล้างรถ|เต็นท์รถ/.test(n) },
+  { key: 'gas',      color: '#c07a00', label: 'ปั๊มน้ำมัน',            test: n => /ปั๊ม|ปั้ม|น้ำมัน/.test(n) },
+  { key: 'hospital', color: '#c0392b', label: 'โรงพยาบาล/สถานพยาบาล', test: n => /รพ\.|รพสต|รพ\.สต|โรงพยาบาล|โรงบาล/.test(n) },
+  { key: 'bank',     color: '#1a8a4a', label: 'ธนาคาร',                test: n => /ธนาคาร|ธ\.กรุงไทย|กรุงไทย|กรุ่งไทย/.test(n) },
+  { key: 'gov',      color: '#1d6fb5', label: 'ราชการ/สสจ./ศาลากลาง',  test: n => /สสจ|ศาลากลาง|อบจ|เทศบาล|ที่ว่าการ|อำเภอ|สหกรณ์|กาชาด|กาชาติ/.test(n) },
+  { key: 'temple',   color: '#7a4fae', label: 'วัด',                   test: n => /วัด/.test(n) },
+  { key: 'hotel',    color: '#d6336c', label: 'โรงแรม',                test: n => /โรงแรม/.test(n) },
+  { key: 'edu',      color: '#007a6e', label: 'โรงเรียน/มหาวิทยาลัย',  test: n => /โรงเรียน|ร\.ร\.|มหาวิทยาลัย|วิทยาลัย/.test(n) },
+  { key: 'other',    color: '#7a8ea5', label: 'อื่นๆ',                 test: () => true }
+];
+
+function categorize(name) {
+  const n = String(name || '');
+  for (const rule of CATEGORY_RULES) {
+    if (rule.key !== 'other' && rule.test(n)) return rule;
+  }
+  return CATEGORY_RULES[CATEGORY_RULES.length - 1];
+}
+
+// ── ไอคอนประจำหมวดหมู่ที่แสดงบนหมุด (แทนตัวเลขล้วนๆ) ──
+// คืนค่า HTML ของไอคอน (SVG แบบ stroke ขาว) หรือ null ถ้าหมวดนั้นยังใช้ตัวเลขแทน
+function categoryMarkerIcon(key) {
+  const S = 'fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"';
+  switch (key) {
+    case 'garage': // อู่/ศูนย์ซ่อมรถ — ประแจ
+      return '<svg viewBox="0 0 24 24" ' + S + '><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94z"/></svg>';
+    case 'hospital': // ตราพยาบาล — เครื่องหมายกากบาท
+      return '<svg viewBox="0 0 24 24"><path fill="#fff" stroke="none" d="M9 2h6v7h7v6h-7v7h-6v-7h-7v-6h7z"/></svg>';
+    case 'gas': // ปั๊มน้ำมัน
+      return '<svg viewBox="0 0 24 24" ' + S + '><rect x="5" y="4" width="9" height="16" rx="1"/><path d="M5 10h9"/>'
+        + '<path d="M14 9l3 3v6a1.5 1.5 0 0 0 3 0v-5.2a1.5 1.5 0 0 0-.44-1.06L17 9"/><path d="M3 20h13"/></svg>';
+    case 'bank': // ธนาคาร — สัญลักษณ์รูปเงิน (บาท)
+      return null; // ใช้ตัวอักษร ฿ แทน (จัดการใน destIcon)
+    case 'gov': // สสจ./ราชการ — อาคารสำนักงาน
+      return '<svg viewBox="0 0 24 24" ' + S + '><rect x="5" y="3" width="14" height="18" rx="1"/>'
+        + '<path d="M9 7h1M14 7h1M9 11h1M14 11h1M9 15h1M14 15h1"/><path d="M10 21v-4h4v4"/></svg>';
+    case 'temple': // วัด
+      return '<svg viewBox="0 0 24 24" ' + S + '><path d="M12 2l9 6H3z"/><path d="M5 10v9M19 10v9M9 10v9M15 10v9"/><path d="M3 21h18"/></svg>';
+    case 'hotel': // โรงแรม
+      return '<svg viewBox="0 0 24 24" ' + S + '><path d="M3 20V6"/><path d="M3 13h14a3 3 0 0 1 3 3v4"/><path d="M7 13V9a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v4"/></svg>';
+    case 'edu': // โรงเรียน/มหาวิทยาลัย
+      return '<svg viewBox="0 0 24 24" ' + S + '><path d="M2 8l10-5 10 5-10 5-10-5z"/><path d="M6 10.5V16c0 1.5 2.5 3 6 3s6-1.5 6-3v-5.5"/><path d="M22 8v6"/></svg>';
+    default:
+      return null; // 'other' และหมวดที่ไม่รู้จัก — ใช้ตัวเลขแทน
+  }
+}
+
+// ── สีประจำรถแต่ละคัน (hash ชื่อ/ทะเบียนให้ได้สีเดิมทุกครั้ง) ──
+const CAR_PALETTE = ['#1d6fb5','#c0392b','#1a8a4a','#c07a00','#7a4fae','#d6336c','#007a6e','#8b5e34','#4a4ae0','#c8862c','#2b8fa0','#a13a6b'];
+const carColorCache = {};
+function carColor(plate) {
+  const key = String(plate || 'ไม่ระบุ').trim() || 'ไม่ระบุ';
+  if (!carColorCache[key]) {
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+    carColorCache[key] = CAR_PALETTE[hash % CAR_PALETTE.length];
+  }
+  return carColorCache[key];
+}
+
+// เติมรายชื่อรถทั้งหมด (จากทริปที่มีอยู่) ลงใน dropdown "ลำดับเส้นทางของรถ"
+function populateCarFilterSelect() {
+  const sel = document.getElementById('fCar');
+  const prev = sel.value;
+  const cars = new Set();
+  allTrips.forEach(t => {
+    const car = normName(t['ทะเบียน/รถ'] || t['carType']);
+    if (car) cars.add(car);
+  });
+  const sorted = [...cars].sort((a, b) => a.localeCompare(b, 'th'));
+  sel.innerHTML = '<option value="">— ไม่แสดง —</option>'
+    + sorted.map(c => '<option value="' + escAttr(c) + '">' + escHtml(c) + '</option>').join('');
+  if (sorted.includes(prev)) sel.value = prev;
+}
+
+// ════════════════════════════════════════════════════════════
+//  MAP INIT (Leaflet + OpenStreetMap — ไม่ต้องใช้ API key)
+// ════════════════════════════════════════════════════════════
+function initMap() {
+  map = L.map('mapEl').setView([HOSPITAL_LOCATION.lat, HOSPITAL_LOCATION.lng], 12);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+  }).addTo(map);
+
+  // เมื่อซูมเปลี่ยน วาด heatmap ใหม่ด้วยรัศมี/ความเบลอที่เหมาะกับระดับซูมนั้น (ถ้ากำลังเปิดอยู่)
+  map.on('zoomend', function () {
+    if (heatLayer) refreshHeatmap();
+  });
+
+  // มาร์กเกอร์โรงพยาบาลสันทราย (จุดต้นทาง) — ทำให้เด่นสะดุดตาด้วยวงแหวนเรืองแสง + ไอคอนตึก
+  const hospIcon = L.divIcon({
+    className: '',
+    html: '<div class="hospital-pulse-wrap">'
+        +   '<div class="hospital-pulse-ring"></div>'
+        +   '<div class="hospital-pulse-core">'
+        +     '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">'
+        +       '<path d="M12 2 3 7v13h6v-6h6v6h6V7z"/><path d="M12 8v4M10 10h4"/>'
+        +     '</svg>'
+        +   '</div>'
+        + '</div>',
+    iconSize: [46, 46],
+    iconAnchor: [23, 23]
+  });
+  L.marker([HOSPITAL_LOCATION.lat, HOSPITAL_LOCATION.lng], {
+    icon: hospIcon,
+    zIndexOffset: 1000,
+    title: 'โรงพยาบาลสันทราย (ต้นทาง)'
+  }).addTo(map).bindPopup('<b>🏥 โรงพยาบาลสันทราย</b><br>จุดต้นทางของทุกทริป');
+
+  // เลเยอร์สำหรับ "สถานการณ์ปัจจุบัน" — หมุดรถกำลังเดินทาง + เส้นทาง (อยู่เหนือหมุดปลายทางปกติเสมอ)
+  liveRoutesLayer  = L.layerGroup().addTo(map);
+  liveMarkersLayer = L.layerGroup().addTo(map);
+
+  renderMarkers();
+}
+
+function destIcon(size, count, color, categoryKey, opts) {
+  opts = opts || {};
+  const starClass = opts.star ? ' top-car-star' : '';
+  const showRing = opts.rank && opts.rank <= 3;
+  const wrapSize = showRing ? size + 16 : size;
+  const ringHtml = showRing
+    ? '<div class="freq-marker-ring" style="width:' + wrapSize + 'px;height:' + wrapSize + 'px;"></div>'
+    : '';
+
+  // เนื้อหาตรงกลางหมุด: ดาว (รถยอดนิยม) > ไอคอนหมวดหมู่ / สัญลักษณ์เงิน > ตัวเลขจำนวนทริป (กรณีไม่มีไอคอนเฉพาะ)
+  let innerHtml;
+  if (opts.star) {
+    const fontSize = Math.max(9, Math.round(size * 0.32));
+    innerHtml = '<span style="font-size:' + fontSize + 'px;">★</span>';
+  } else if (categoryKey === 'bank') {
+    const fontSize = Math.max(9, Math.round(size * 0.46));
+    innerHtml = '<div class="freq-marker-icon money-glyph" style="font-size:' + fontSize + 'px;color:#fff;">฿</div>';
+  } else {
+    const iconSvg = categoryMarkerIcon(categoryKey);
+    if (iconSvg) {
+      innerHtml = '<div class="freq-marker-icon">' + iconSvg + '</div>';
+    } else {
+      const fontSize = Math.max(9, Math.round(size * 0.3));
+      innerHtml = '<span style="font-size:' + fontSize + 'px;">' + count + '</span>';
+    }
+  }
+
+  // ป้ายจำนวนทริปมุมหมุด — แสดงเฉพาะเมื่อกลางหมุดถูกแทนด้วยไอคอน/สัญลักษณ์ (ไม่ใช่ตัวเลขอยู่แล้ว) และหมุดใหญ่พอให้อ่านได้
+  const usedIconOrGlyph = opts.star || categoryKey === 'bank' || !!categoryMarkerIcon(categoryKey);
+  const badgeFont = Math.max(8, Math.round(size * 0.22));
+  const countBadge = (usedIconOrGlyph && size >= 18)
+    ? '<div class="freq-count-badge" style="font-size:' + badgeFont + 'px;">' + count + '</div>'
+    : '';
+
+  return L.divIcon({
+    className: '',
+    html: '<div class="freq-marker-wrap" style="width:' + wrapSize + 'px;height:' + wrapSize + 'px;">'
+        +   ringHtml
+        +   '<div class="freq-marker' + starClass + '" style="width:' + size + 'px;height:' + size + 'px;background:' + color + ';position:relative;z-index:2;">' + innerHtml + countBadge + '</div>'
+        + '</div>',
+    iconSize: [wrapSize, wrapSize],
+    iconAnchor: [wrapSize / 2, wrapSize / 2]
+  });
+}
+
+function markerColorFor(d) {
+  if (colorMode === 'category') return d.category.color;
+  if (colorMode === 'car') return d.topCarColor;
+  // โหมด "ความถี่การไป": ใช้สีตามช่วง (tier) เดียวกับที่กำหนดขนาด เพื่อให้ต่างชั้นความถี่แยกออกจากกันชัดทั้งสีและขนาด
+  return sizeTierFor(d.count).color;
+}
+
+// ── ระดับขนาดหมุดตาม "จำนวนทริปจริง" (ไม่ใช่สัดส่วนเทียบค่าสูงสุด) ──
+// แบ่งเป็นช่วงชัดเจนแทนการไล่ระดับต่อเนื่อง เพื่อให้เห็นความต่างของความถี่ได้ทันทีโดยไม่ต้องเทียบตัวเลข
+// ระยะห่างของขนาดถูกถ่างให้กว้างขึ้น (18 → 96px) และแต่ละช่วงมีสีของตัวเอง (ใช้ตอนโหมดสี = "ความถี่การไป")
+// เพื่อให้ความแตกต่างระหว่างช่วงมองเห็นชัดทั้งจาก "ขนาด" และ "สี" พร้อมกัน ไม่ต้องไล่เทียบตัวเลข
+const SIZE_TIERS = [
+  { max: 5,        size: 22, label: '1–5 ครั้ง',    color: '#6aa9dd' },  // ฟ้าอ่อน
+  { max: 10,       size: 30, label: '6–10 ครั้ง',   color: '#1d6fb5' },  // ฟ้าเข้ม
+  { max: 20,       size: 40, label: '11–20 ครั้ง',  color: '#1a8a4a' },  // เขียว
+  { max: 100,      size: 52, label: '21–100 ครั้ง', color: '#c07a00' },  // ส้ม/อำพัน
+  { max: Infinity, size: 66, label: '100+ ครั้ง',   color: '#c0392b' }   // แดง
+];
+function sizeTierFor(count) {
+  for (let i = 0; i < SIZE_TIERS.length; i++) {
+    if (count <= SIZE_TIERS[i].max) return SIZE_TIERS[i];
+  }
+  return SIZE_TIERS[SIZE_TIERS.length - 1];
+}
+
+// ── สลับโหมดสีบนแผนที่ ──
+function setColorMode(mode) {
+  colorMode = mode;
+  document.querySelectorAll('#colorModeSeg button').forEach(b => {
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  renderMarkers();
+}
+
+function renderMarkers() {
+  if (!map) return;
+  Object.values(markerByName).forEach(m => map.removeLayer(m));
+  markerByName = {};
+
+  // destFreq เรียงจากมากไปน้อยอยู่แล้ว (ดู applyFilters) ดังนั้น index+1 = อันดับความนิยม
+  destFreq.forEach((d, i) => {
+    const pin = allPins[normName(d.name)];
+    if (!pin) return;
+    // ✅ ขนาดหมุดอิงตามช่วงจำนวนทริปจริง (ดู SIZE_TIERS) แทนสัดส่วนต่อเนื่อง
+    // เพื่อให้ความแตกต่างระหว่างช่วงความถี่ (เช่น 1–5 กับ 100+) มองเห็นชัดในทันที
+    const size = sizeTierFor(d.count).size;
+    const color = markerColorFor(d);
+    const isTopCarDest = colorMode === 'car' && topOverallCar && d.topCar === topOverallCar;
+    const marker = L.marker([pin.lat, pin.lng], {
+      icon: destIcon(size, d.count, color, d.category.key, { star: isTopCarDest, rank: i + 1 }),
+      draggable: editMode
+    }).addTo(map);
+    bindMarkerPopup(marker, d);
+    if (editMode) attachDragHandlers(marker, d.name);
+    markerByName[normName(d.name)] = marker;
+  });
+
+  renderLegend();
+  refreshHeatmap();
+}
+
+// ── แผงคำอธิบายขนาดหมุดตามช่วงความถี่ (แสดงทุกโหมดสี เพื่อให้อ่านขนาดหมุดออกชัดเจน) ──
+function renderSizeLegend() {
+  // ย่อสัดส่วนขนาดจริง (18–96px) ลงมาพอดีกับแถบ legend แต่ยังคงสัดส่วนสัมพัทธ์เดิมไว้ ให้เห็นความต่างชัดเจน
+  const scale = 0.42;
+  return '<span class="legend-item legend-title">ขนาดหมุด (จำนวนทริป):</span>'
+    + SIZE_TIERS.map(t => {
+        const d = Math.round(t.size * scale);
+        return '<span class="legend-item"><span style="display:inline-flex;align-items:center;justify-content:center;'
+          + 'width:' + d + 'px;height:' + d + 'px;border-radius:50%;background:' + t.color + ';'
+          + 'border:1.5px solid rgba(0,0,0,.15);flex-shrink:0;"></span>' + t.label + '</span>';
+      }).join('');
+}
+
+// ── แผงคำอธิบายสี (legend) ใต้แผนที่ ตามโหมดที่เลือก ──
+function renderLegend() {
+  const el = document.getElementById('legendPanel');
+  if (!el) return;
+  if (colorMode === 'category') {
+    el.innerHTML = '<span class="legend-item legend-title">หมวดหมู่:</span>' + CATEGORY_RULES.map(r =>
+      '<span class="legend-item"><span class="legend-dot" style="background:' + r.color + ';"></span>' + r.label + '</span>'
+    ).join('') + renderSizeLegend();
+  } else if (colorMode === 'car') {
+    const carsUsed = {};
+    destFreq.forEach(d => { if (d.topCar) carsUsed[d.topCar] = true; });
+    const plates = Object.keys(carsUsed).sort();
+    if (!plates.length) {
+      el.innerHTML = '<span style="color:var(--text-light);">ไม่มีข้อมูลรถในทริปที่กรองไว้</span>' + renderSizeLegend();
+      return;
+    }
+    let starNote = '';
+    if (topOverallCar) {
+      starNote = '<span class="legend-item">★ = จุดหมายที่รถ "' + escHtml(topOverallCar)
+        + '" (ใช้งานบ่อยที่สุดโดยรวม ' + topOverallCarCount + ' ทริป) ไปบ่อยที่สุด</span>';
+    }
+    el.innerHTML = '<span class="legend-item legend-title">รถที่ไปบ่อยที่สุดต่อจุดหมาย:</span>' + plates.map(p =>
+      '<span class="legend-item"><span class="legend-dot" style="background:' + carColor(p) + ';"></span>' + escHtml(p) + '</span>'
+    ).join('') + starNote + renderSizeLegend();
+  } else {
+    el.innerHTML = '<span class="legend-item"><span class="legend-dot" style="background:rgba(29,111,181,.88);"></span>เลขในหมุด = จำนวนทริป</span>'
+      + '<span class="legend-item">วงแหวนประ = ติด Top 3 จุดหมายยอดนิยม</span>' + renderSizeLegend();
+  }
+}
+
+function bindMarkerPopup(marker, d) {
+  const safeName = escAttr(d.name);
+  let extra = '';
+  if (colorMode === 'category') {
+    extra = '<div style="margin-top:6px;font-size:11.5px;">'
+      + '<span style="display:inline-flex;align-items:center;gap:5px;font-weight:700;color:' + d.category.color + ';">'
+      + '<span style="width:9px;height:9px;border-radius:50%;background:' + d.category.color + ';display:inline-block;"></span>'
+      + d.category.label + '</span></div>';
+  } else if (colorMode === 'car') {
+    const rows = Object.entries(d.carBreakdown).sort((a, b) => b[1] - a[1]).map(([plate, count]) =>
+      '<div style="display:flex;align-items:center;gap:5px;margin-top:2px;">'
+      + '<span style="width:9px;height:9px;border-radius:50%;background:' + carColor(plate) + ';display:inline-block;flex-shrink:0;"></span>'
+      + escHtml(plate) + ' — ' + count + ' ทริป</div>'
+    ).join('');
+    extra = '<div style="margin-top:6px;font-size:11.5px;"><b>สรุปตามรถที่ไปจุดนี้:</b>' + rows + '</div>';
+    if (topOverallCar && d.topCar === topOverallCar) {
+      extra += '<div style="margin-top:4px;font-size:11px;color:var(--amber);font-weight:700;">★ จุดหมายนี้ใช้รถที่ใช้งานบ่อยที่สุดโดยรวม</div>';
+    }
+  }
+  const editRow = editMode
+    ? '<div style="margin-top:8px;display:flex;gap:6px;">'
+      + '<button class="pin-badge delbtn" style="padding:4px 10px;" onclick="removePin(\'' + safeName + '\')">ลบหมุดนี้</button>'
+      + '</div><div style="margin-top:6px;font-size:11px;color:#7a8ea5;">ลากหมุดบนแผนที่เพื่อย้ายตำแหน่ง</div>'
+    : '';
+  marker.bindPopup(
+    '<b>' + escHtml(d.name) + '</b><br>จำนวนทริป: ' + d.count +
+    '<br>ระยะทางรวม: ' + d.distanceKm.toFixed(1) + ' กม.' + extra + editRow
+  );
+}
+
+function attachDragHandlers(marker, name) {
+  marker.on('dragstart', function () {
+    marker.getElement() && marker.getElement().classList.add('dragging');
+  });
+  marker.on('dragend', function (e) {
+    marker.getElement() && marker.getElement().classList.remove('dragging');
+    const pos = e.target.getLatLng();
+    savePin(name, pos.lat, pos.lng);
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+//  HEATMAP — แสดงความหนาแน่นของพื้นที่ที่ไปบ่อย (Leaflet.heat)
+// ════════════════════════════════════════════════════════════
+// แปลงระยะทาง (เมตร) เป็นค่า offset ของ lat/lng แบบคร่าวๆ (1 องศา lat ≈ 111,320 ม.)
+function metersToLatLng(meters, atLat) {
+  const dLat = meters / 111320;
+  const dLng = meters / (111320 * Math.cos(atLat * Math.PI / 180));
+  return { dLat, dLng };
+}
+
+function buildHeatData() {
+  const maxCount = Math.max(1, ...destFreq.map(d => d.count));
+  const pts = [];
+  destFreq.forEach(d => {
+    const pin = allPins[normName(d.name)];
+    if (!pin) return;
+    // ใช้ sqrt แทนสัดส่วนตรง ๆ เพื่อไม่ให้จุดที่ไปบ่อยที่สุดกลืนจุดอื่นจนแบนราบ
+    // แต่ยังคงไล่ระดับความเข้ม (น้ำหนัก) ตามความถี่จริงให้เห็นต่างชัดเจน
+    const norm = Math.sqrt(d.count / maxCount); // 0..1
+    const weight = 0.22 + norm * 0.78;
+
+    // ยิ่งไปบ่อย ยิ่งกระจายจุดย่อยรอบตำแหน่งเดิมมากขึ้น (จำลองความ "หนาแน่น" ของพื้นที่จริง
+    // แทนที่จะเป็นจุดเดียวสว่างขึ้นเฉย ๆ — ทำให้ก้อนความร้อนขยายตัวสมจริงกว่าจุดวงกลมสมบูรณ์แบบ)
+    const subPoints = 1 + Math.round(norm * 14); // 1–15 จุดย่อยต่อปลายทาง
+    for (let k = 0; k < subPoints; k++) {
+      let lat = pin.lat, lng = pin.lng;
+      if (k > 0) {
+        const jitterM = 15 + Math.random() * 130; // กระจายตัว ~15–145 เมตรรอบจุดจริง
+        const angle = Math.random() * Math.PI * 2;
+        const off = metersToLatLng(jitterM, pin.lat);
+        lat += off.dLat * Math.sin(angle);
+        lng += off.dLng * Math.cos(angle);
+      }
+      pts.push([lat, lng, weight]);
+    }
+  });
+  return pts;
+}
+
+function refreshHeatmap() {
+  const toggle = document.getElementById('heatmapToggle');
+  if (!map || !toggle || !toggle.checked) return;
+  if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+  // รัศมี/ความเบลอปรับตามระดับซูม เหมือนซอฟต์แวร์ GIS จริง — ซูมออกก้อนความร้อนจะกว้างนุ่มขึ้น
+  // ซูมเข้าจะกระชับและคมขึ้น แทนที่จะใช้ค่าคงที่ตายตัวทุกระดับซูม
+  const zoom = map.getZoom();
+  const radius = Math.max(16, Math.min(46, 10 + zoom * 2.1));
+  const blur = Math.max(14, Math.min(38, 8 + zoom * 1.9));
+  heatLayer = L.heatLayer(buildHeatData(), {
+    radius,
+    blur,
+    max: 1.0,
+    maxZoom: 17,
+    minOpacity: 0.25,
+    // ไล่สีแบบ heatmap ความหนาแน่นทั่วไป: ฟ้า → เขียวอมฟ้า → เหลือง → ส้ม → แดงเข้ม
+    gradient: { 0.0: '#1d6fb5', 0.3: '#159e8a', 0.5: '#d9c400', 0.7: '#e0791f', 0.85: '#d13a1f', 1.0: '#7a1710' }
+  }).addTo(map);
+}
+
+function toggleHeatmap() {
+  const toggle = document.getElementById('heatmapToggle');
+  if (!map) return;
+  if (toggle.checked) {
+    refreshHeatmap();
+  } else if (heatLayer) {
+    map.removeLayer(heatLayer);
+    heatLayer = null;
+  }
+}
+
+// ── EDIT MODE — เปิดให้ลากหมุดย้ายตำแหน่ง หรือลบหมุดที่ปักผิด ──
+function toggleEditMode() {
+  editMode = document.getElementById('editModeToggle').checked;
+  document.getElementById('editHintText').textContent = editMode
+    ? 'กำลังแก้ไข: ลากหมุดเพื่อย้ายตำแหน่ง หรือคลิกหมุด > "ลบหมุดนี้" เพื่อลบ'
+    : 'เปิดโหมดนี้เพื่อลากหมุดย้ายตำแหน่ง หรือลบหมุดที่ปักผิด';
+  renderMarkers();
+}
+
+async function removePin(name) {
+  if (!confirm('ยืนยันลบหมุดของ "' + name + '" ?')) return;
+  try {
+    const payload = { action: 'deleteLocationPin', name };
+    const res = await fetch(GAS_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body   : JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (!json || json.status !== 'ok') throw new Error((json && json.message) || 'ไม่ทราบสาเหตุ');
+    delete allPins[normName(name)];
+    if (map) map.closePopup();
+    applyFilters();
+  } catch (err) {
+    alert('ลบหมุดไม่สำเร็จ: ' + (err.message || err));
+  }
+}
+
+function focusDest(name) {
+  const pin = allPins[normName(name)];
+  if (!pin || !map) {
+    startPinMode(name);
+    return;
+  }
+  map.setView([pin.lat, pin.lng], 15);
+  const m = markerByName[normName(name)];
+  if (m) m.openPopup();
+}
+
+// ── PIN MODE — คลิกบนแผนที่ หรือค้นหาสถานที่จริงด้านบน เพื่อปักหมุดจุดหมายที่ยังไม่มีพิกัด ──
+function startPinMode(name) {
+  if (!map) return;
+  pinModeTarget = name;
+  document.getElementById('pinModeText').textContent = 'ค้นหาสถานที่จริงด้านบน แล้วเลือกผลลัพธ์ หรือคลิกบนแผนที่ เพื่อปักหมุดตำแหน่งของ "' + name + '"';
+  document.getElementById('pinModeBar').classList.add('show');
+  map.getContainer().style.cursor = 'crosshair';
+  document.getElementById('placeSearchInput').focus();
+
+  if (pinClickHandler) map.off('click', pinClickHandler);
+  pinClickHandler = function (e) {
+    savePin(pinModeTarget, e.latlng.lat, e.latlng.lng);
+    cancelPinMode();
+  };
+  map.on('click', pinClickHandler);
+}
+
+function cancelPinMode() {
+  pinModeTarget = null;
+  document.getElementById('pinModeBar').classList.remove('show');
+  document.getElementById('placeSearchInput').value = '';
+  document.getElementById('placeSearchResults').classList.remove('show');
+  if (map) {
+    map.getContainer().style.cursor = '';
+    if (pinClickHandler) { map.off('click', pinClickHandler); pinClickHandler = null; }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  LOAD DATA
+// ════════════════════════════════════════════════════════════
+async function loadAll() {
+  try {
+    const [mileRes, pinRes] = await Promise.all([
+      fetch(GAS_URL + '?action=getMileData', { cache: 'no-store' }).then(r => r.json()),
+      fetch(GAS_URL + '?action=getLocationPins', { cache: 'no-store' }).then(r => r.json())
+    ]);
+    allTrips = (mileRes && mileRes.data) || [];
+    allPins = {};
+    ((pinRes && pinRes.data) || []).forEach(p => { allPins[normName(p.name)] = p; });
+    populateCarFilterSelect();
+    applyFilters();
+    renderLiveMap(); // ปักหมุดโหลดเสร็จแล้ว → วาดหมุด/เส้นทาง "กำลังเดินทาง" ทันที (เผื่อ getStatusSummary โหลดเสร็จก่อนหน้านี้)
+  } catch (err) {
+    document.getElementById('destList').innerHTML =
+      '<div class="empty-state">โหลดข้อมูลไม่สำเร็จ: ' + (err.message || err) + '</div>';
+  }
+}
+
+function normName(s) {
+  return String(s || '').trim();
+}
+
+// แยกชื่อปลายทางที่บันทึกรวมหลายจุดไว้ในทริปเดียว (เช่น "สสจ.เชียงใหม่, ศาลากลาง, กาชาด, สหกรณ์, เทศบาลแม่โจ้"
+// หรือ "รพ.ประสาทเชียงใหม่ / อบจ.ชม" หรือแบบไม่มีวรรคเลย เช่น "สสจ./ศาลากลาง/กาชาด/สหกรณ์")
+// ให้เป็นรายชื่อแยกทีละจุด — ตัดด้วยทั้งจุลภาค (,) และเครื่องหมาย (/) โดยไม่สนใจว่ามีวรรคคั่นหน้า-หลังหรือไม่ก็ตาม
+// แล้ว group ชื่อที่หมายถึงสถานที่เดียวกันแต่เขียนคนละแบบให้เป็นชื่อเดียวกัน (ดู canonicalDestName)
+function splitDestNames(raw) {
+  return String(raw || '')
+    .split(/[,/]/)
+    .map(s => canonicalDestName(normName(s)))
+    .filter(Boolean);
+}
+
+// รวมชื่อสถานที่ที่สะกด/เขียนย่อต่างกันแต่หมายถึงที่เดียวกัน ให้กลายเป็นชื่อมาตรฐานเดียว ก่อนนับความถี่/ปักหมุด
+// เช่น "โรงพยาบาลประสาทเชียงใหม่" กับ "รพ.ประสาทเชียงใหม่" → "รพ.ประสาทเชียงใหม่"
+//      "อบจ.ชม", "อบจ.ชม.", "อบจ." → "อบจ." (ตัดคำขยายจังหวัดที่ซ้ำซ้อนออก เหลือคำย่อหลัก)
+
+// ════════════════════════════════════════════════════════════
+//  ภารกิจนอกเหนือปลายทาง — บางทริปไม่มีปลายทางเป็น "สถานที่" ชัดเจน เพราะเป็นภารกิจที่ต้อง
+//  เดินทางซับซ้อนหลายจุด/หลายปัจจัย (เช่น ออกไปรับส่งหลายที่ต่อเนื่องกัน) ผู้บันทึกจึงเขียนเป็น
+//  "ประเภทภารกิจ" แทนชื่อสถานที่ — คัดกรองด้วย keyword แล้วนับแยกเป็นตารางต่างหาก ไม่ปนกับจุดหมายบนแผนที่
+// ════════════════════════════════════════════════════════════
+const MISSION_TYPES = [
+  { label: 'ชันสูตร',            test: n => /ชันสูตร/.test(n) },
+  { label: 'เยี่ยมบ้าน',          test: n => /เยี่ยมบ้าน/.test(n) },
+  { label: 'ส่งแลป / ส่งแล็บ',    test: n => /ส่งแล[ปบ็]/.test(n) || /ส่ง\s*lab/i.test(n) },
+  { label: 'EMS',                test: n => /ems/i.test(n) },
+  { label: 'ในพื้นที่สันทราย',     test: n => /ในพื้นที่สันทราย/.test(n) },
+  { label: 'ส่ง จนท.',           test: n => /ส่ง\s*จนท\.?/.test(n) },
+  { label: 'จ่ายเช็ค',           test: n => /จ่ายเช็?ค/.test(n) }, // ครอบคลุมทั้ง "จ่ายเช็ค" และ "จ่ายเชค" (ไม่มีไม้ไต่คู้) เช่น "จ่ายเชค ส่วนราชการ"
+  { label: 'ส่งเช็ค',            test: n => /ส่งเช็ค/.test(n) },
+  { label: 'รับอาจารย์',          test: n => /รับอาจารย์/.test(n) },
+  { label: 'นำผ้าไปส่งร้านเย็บ',   test: n => /ร้านเย็บ/.test(n) },
+  { label: 'เปลี่ยนออกซิเจน',      test: n => /เปลี่ยนออกซิเจน/.test(n) },
+  { label: 'ออกหน่วย',           test: n => /ออกหน่วย/.test(n) },
+  { label: 'ออกเหตุ',            test: n => /ออกเหตุ/.test(n) }, // เช่น "ออกเหตุหน้าเซเว่นป่าบง"
+  { label: 'ในเมือง',            test: n => /ในเมือง/.test(n) },
+  { label: 'อื่นๆ',              test: n => /^อื่นๆ(\s*\(.*\))?$/.test(n.trim()) }, // รวม "อื่นๆ (ระบุในหมายเหตุ)" ด้วย แต่แสดงป้ายกำกับแค่ "อื่นๆ" เฉยๆ
+];
+
+// คืน label ของประเภทภารกิจถ้าปลายทางดิบ (ทั้งข้อความ ก่อนตัดจุลภาค/สแลช) เข้าเงื่อนไขข้อใดข้อหนึ่ง มิเช่นนั้นคืน null
+// (ใช้ข้อความดิบทั้งก้อน ไม่ใช้ splitDestNames เพราะภารกิจพวกนี้ไม่ใช่ชื่อสถานที่ที่ควรถูกแยกทีละจุด)
+function classifyMission(raw) {
+  const n = normName(raw);
+  if (!n) return null;
+  for (const m of MISSION_TYPES) if (m.test(n)) return m.label;
+  return null;
+}
+// วงเล็บท้ายชื่อบางแบบเป็นแค่คำอธิบายเส้นทาง ไม่ใช่ส่วนหนึ่งของชื่อสถานที่ — ตัดออกได้เพื่อให้นับรวมกับชื่อเปล่าๆ ได้
+// ส่วนวงเล็บที่สื่อความหมายของสถานที่จริง เช่น (สวนดอก) (มช.) (อบจ.) ต้องคงไว้ เพราะเป็นส่วนหนึ่งของชื่อ
+const ROUTE_DESC_ANNOTATIONS = ['เส้นทางในเมือง'];
+
+function canonicalDestName(name) {
+  let s = normName(name);
+  if (!s) return s;
+  // "โรงพยาบาลXXX" → "รพ.XXX"
+  s = s.replace(/^โรงพยาบาล\s*/, 'รพ.');
+  // "องค์การบริหารส่วนจังหวัดเชียงใหม่ (อบจ.)" (ชื่อเต็ม) → อบจ. (รวมเป็นหมุดเดียวกับชื่อย่อ)
+  if (/^องค์การบริหารส่วนจังหวัด/.test(s)) s = 'อบจ.';
+  // อบจ. / อบจ.ชม / อบจ.ชม. (และแบบไม่มีจุด) → อบจ.
+  if (/^อบจ\.?\s*(ชม\.?)?$/.test(s)) s = 'อบจ.';
+  // "รับเลือดกาชาด" / "รับ เลือด กาชาด" / "รับเลือก กาชาด" (พิมพ์ผิด เลือด→เลือก) → กาชาด
+  if (/^รับ\s*เลือ[ดก]\s*กาชาด$/.test(s)) s = 'กาชาด';
+  // "ศาลากลาง" / "ส่งแฟ้มศาลากลาง" / "ศาลากลางจังหวัดเชียงใหม่" → ศาลากลาง (รวมเป็นหมุดเดียว)
+  if (/^(ส่งแฟ้ม\s*)?ศาลากลาง(จังหวัดเชียงใหม่)?$/.test(s)) s = 'ศาลากลาง';
+  // "สสจ." / "สสจ.เชียงใหม่" / "ส่งแฟ้ม สสจ." / "ส่งแฟ้มสสจ.เชียงใหม่" (และแบบไม่มีจุด) → สสจ.เชียงใหม่ (รวมเป็นหมุดเดียว ใช้ชื่อเต็มที่ระบุจังหวัดชัดเจน)
+  if (/^(ส่งแฟ้ม\s*)?สสจ\.?\s*(เชียงใหม่)?$/.test(s)) s = 'สสจ.เชียงใหม่';
+  // ตัดเฉพาะวงเล็บที่เป็นคำอธิบายเส้นทาง (ไม่ใช่ชื่อสถานที่) ท้ายข้อความ เช่น "สหกรณ์ (เส้นทางในเมือง)" → "สหกรณ์"
+  s = s.replace(/\s*\(([^)]*)\)\s*$/, (m, inner) => ROUTE_DESC_ANNOTATIONS.includes(inner.trim()) ? '' : m).trim();
+  return s;
+}
+
+// ════════════════════════════════════════════════════════════
+//  สถานการณ์ปัจจุบัน — รถที่กำลังเดินทาง (ดึงจาก getStatusSummary().inUse ทุก 25 วิ)
+// ════════════════════════════════════════════════════════════
+const LIVE_POLL_MS = 25000;
+
+async function loadLiveStatus() {
+  try {
+    const res = await fetch(GAS_URL + '?action=getStatusSummary', { cache: 'no-store' }).then(r => r.json());
+    liveTrips = (res && res.inUse) || [];
+    document.getElementById('liveUpdatedText').textContent = 'อัปเดตล่าสุด ' + nowTimeText();
+  } catch (err) {
+    document.getElementById('liveUpdatedText').textContent = 'โหลดสถานะไม่สำเร็จ — ลองใหม่อัตโนมัติ';
+  }
+  renderLiveList();
+  renderLiveMap();
+}
+
+function nowTimeText() {
+  const d = new Date();
+  return d.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+}
+
+// ── แปลงวันที่+เวลาออกทริป → ข้อความวันที่/เวลาอ่านง่าย (ตัด "Sat Dec 30 1899 ... GMT+xxxx" ที่มาจาก Date ของ Google Sheets ทิ้ง) ──
+function formatTripDateTime(tripDateYMD, timeRaw) {
+  const m = String(timeRaw || '').match(/(\d{1,2}):(\d{2})/);
+  const timeText = m ? m[1].padStart(2, '0') + ':' + m[2] + ' น.' : '';
+
+  let dateText = '';
+  if (tripDateYMD) {
+    const dm = String(tripDateYMD).match(/(\d{4})-(\d{2})-(\d{2})/);
+    if (dm) dateText = dm[3] + '/' + dm[2] + '/' + dm[1];
+    else dateText = String(tripDateYMD);
+  }
+
+  if (dateText && timeText) return dateText + ' ' + timeText;
+  return dateText || timeText || '-';
+}
+
+// ── แปลงวันที่+เวลาออกทริป → ข้อความ "เดินทางมาแล้ว X นาที/ชม." ──
+function elapsedSinceTrip(tripDateYMD, timeRaw) {
+  const m = String(timeRaw || '').match(/(\d{1,2}):(\d{2})/);
+  if (!tripDateYMD || !m) return '';
+  const dt = new Date(tripDateYMD + 'T' + m[1].padStart(2, '0') + ':' + m[2] + ':00');
+  if (isNaN(dt.getTime())) return '';
+  const mins = Math.max(0, Math.round((Date.now() - dt.getTime()) / 60000));
+  if (mins < 1) return 'เพิ่งออกเดินทาง';
+  if (mins < 60) return 'เดินทางมาแล้ว ' + mins + ' นาที';
+  return 'เดินทางมาแล้ว ' + Math.floor(mins / 60) + ' ชม. ' + (mins % 60) + ' นาที';
+}
+
+function renderLiveList() {
+  const listEl  = document.getElementById('liveTripList');
+  const badgeEl = document.getElementById('liveCountBadge');
+  badgeEl.textContent = liveTrips.length;
+
+  if (!liveTrips.length) {
+    listEl.innerHTML = '<div class="live-empty">ไม่มีรถกำลังเดินทางในขณะนี้ — รถทุกคันอยู่ที่โรงพยาบาลหรือยังไม่ออกทริป</div>';
+    return;
+  }
+
+  listEl.innerHTML = liveTrips.map(t => {
+    const pin = allPins[normName(t.destination)];
+    const sub = pin
+      ? elapsedSinceTrip(t.tripDate, t.startTime)
+      : 'ยังไม่ได้ปักหมุดจุดหมายนี้';
+    const subClass = pin ? '' : ' unpinned';
+    const col = carColor(t.carType);
+    return '<div class="live-trip-chip" onclick="focusLiveTrip(\'' + escAttr(String(t.tripId)) + '\')">'
+      + '<div class="chip-icon" style="background:' + col + ';">' + CAR_ICON_SVG + '</div>'
+      + '<div class="chip-body">'
+      +   '<div class="chip-plate">' + escHtml(t.carType) + (t.driver ? ' · ' + escHtml(t.driver) : '') + '</div>'
+      +   '<div class="chip-dest" title="' + escAttr(t.destination) + '">→ ' + escHtml(t.destination || 'ไม่ระบุปลายทาง') + '</div>'
+      +   '<div class="chip-sub' + subClass + '">' + escHtml(sub) + '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+const CAR_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+  + '<path d="M3 13l1.6-4.8A2 2 0 0 1 6.5 7h11a2 2 0 0 1 1.9 1.2L21 13"/>'
+  + '<rect x="2" y="13" width="20" height="5" rx="1.5"/>'
+  + '<circle cx="7" cy="18.5" r="1.4" fill="#fff" stroke="none"/>'
+  + '<circle cx="17" cy="18.5" r="1.4" fill="#fff" stroke="none"/>'
+  + '</svg>';
+
+function liveTripIcon(plateShort, color) {
+  const wrapW = 40, coreY = 40, labelH = 16, stemH = 14;
+  const totalH = coreY + stemH + labelH;
+  color = color || '#c07a00';
+  return L.divIcon({
+    className: '',
+    html: '<div class="live-trip-wrap" style="width:' + wrapW + 'px;">'
+        +   '<div class="live-trip-ring" style="background:' + color + '52;"></div>'
+        +   '<div class="live-trip-core" style="background:linear-gradient(145deg,' + color + 'cc,' + color + ');border-color:#fff;">' + CAR_ICON_SVG + '</div>'
+        +   '<div class="live-trip-stem" style="background:' + color + '8c;"></div>'
+        +   '<div class="live-trip-plate" style="background:' + color + ';">' + escHtml(plateShort) + '</div>'
+        + '</div>',
+    iconSize: [wrapW, totalH],
+    iconAnchor: [wrapW / 2, totalH] // ปลายก้าน (ล่างสุด) ชี้ตรงตำแหน่งจุดหมายจริง หมุดลอยอยู่เหนือหมุดปลายทางเดิม
+  });
+}
+
+// ── วาดหมุด "กำลังเดินทาง" + เส้นทางบนแผนที่ ตาม liveTrips ปัจจุบัน ──
+function renderLiveMap() {
+  if (!map || !liveMarkersLayer || !liveRoutesLayer) return;
+  liveMarkersLayer.clearLayers();
+  liveRoutesLayer.clearLayers();
+  liveMarkerByTrip = {};
+
+  const pinnedTrips = liveTrips.filter(t => allPins[normName(t.destination)]);
+  updateRouteInfoBar(pinnedTrips.length);
+
+  pinnedTrips.forEach(t => {
+    const pin = allPins[normName(t.destination)];
+    const plateShort = String(t.carType || '').split(' ')[0].trim();
+    const col = carColor(t.carType);
+
+    const marker = L.marker([pin.lat, pin.lng], {
+      icon: liveTripIcon(plateShort, col),
+      zIndexOffset: 900
+    }).addTo(liveMarkersLayer);
+    marker.bindPopup(
+      '<b><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + col + ';margin-right:5px;"></span>🚗 ' + escHtml(t.carType) + '</b>' + (t.driver ? '<br>ผู้ขับ: ' + escHtml(t.driver) : '')
+      + '<br>ปลายทาง: ' + escHtml(t.destination)
+      + '<br>ออกเมื่อ: ' + escHtml(formatTripDateTime(t.tripDate, t.startTime))
+      + '<br>' + escHtml(elapsedSinceTrip(t.tripDate, t.startTime))
+    );
+    liveMarkerByTrip[String(t.tripId)] = marker;
+
+    drawLiveRoute(pin, t, col);
+  });
+
+  if (!hasAutoFocusedLive && pinnedTrips.length) {
+    hasAutoFocusedLive = true;
+    const bounds = L.latLngBounds([[HOSPITAL_LOCATION.lat, HOSPITAL_LOCATION.lng]]);
+    pinnedTrips.forEach(t => {
+      const pin = allPins[normName(t.destination)];
+      bounds.extend([pin.lat, pin.lng]);
+    });
+    map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
+  }
+}
+
+function updateRouteInfoBar(count) {
+  const bar = document.getElementById('routeInfoBar');
+  const txt = document.getElementById('routeInfoText');
+  const btn = document.getElementById('routeInfoBtn');
+  if (!count) { bar.classList.remove('show'); return; }
+  bar.classList.add('show');
+
+  // สร้าง legend สีต่อคัน จากรถที่กำลังเดินทางอยู่ตอนนี้ (ไม่ซ้ำคัน)
+  const seen = new Set();
+  const chips = [];
+  liveTrips.forEach(t => {
+    if (!allPins[normName(t.destination)]) return;
+    const plate = String(t.carType || 'ไม่ระบุ').trim() || 'ไม่ระบุ';
+    if (seen.has(plate)) return;
+    seen.add(plate);
+    chips.push('<span style="display:inline-flex;align-items:center;gap:4px;margin-left:8px;">'
+      + '<span style="width:8px;height:8px;border-radius:50%;background:' + carColor(plate) + ';display:inline-block;"></span>'
+      + escHtml(plate) + '</span>');
+  });
+
+  txt.innerHTML = '🛣️ กำลังแสดงเส้นทางรถที่เดินทางอยู่ ' + count + ' คัน แยกสีตามคันรถ (เส้นประไล่ตามถนนจริงจาก OpenStreetMap โดยประมาณ)'
+    + chips.join('');
+  btn.textContent = liveRoutesVisible ? 'ซ่อนเส้นทาง' : 'แสดงเส้นทาง';
+}
+
+function toggleLiveRoutes() {
+  liveRoutesVisible = !liveRoutesVisible;
+  if (liveRoutesVisible) { liveRoutesLayer.addTo(map); } else { map.removeLayer(liveRoutesLayer); }
+  const pinnedCount = liveTrips.filter(t => allPins[normName(t.destination)]).length;
+  updateRouteInfoBar(pinnedCount);
+}
+
+// ── ดึงเส้นทางถนนจริงจาก OSRM (ใช้ข้อมูลถนน OpenStreetMap เดียวกับแผนที่ ไม่ต้องใช้ API key) ──
+// ถ้าดึงไม่สำเร็จ (เน็ตช้า/บริการไม่ว่าง) จะ fallback เป็นเส้นตรงระหว่างจุดแทน พร้อมทำเส้นประถี่ขึ้นเพื่อบอกว่าเป็นเส้นโดยประมาณ
+async function drawLiveRoute(pin, trip, color) {
+  const origin = [HOSPITAL_LOCATION.lat, HOSPITAL_LOCATION.lng];
+  const dest = [pin.lat, pin.lng];
+  const cacheKey = origin.join(',') + '|' + dest.join(',');
+
+  let result = liveRouteCache[cacheKey];
+  if (!result) {
+    result = await fetchOsrmRoute(origin, dest);
+    liveRouteCache[cacheKey] = result;
+  }
+
+  // guard: ถ้าทริปนี้หายไปจาก liveTrips แล้ว (จบทริป/ข้อมูลเปลี่ยนระหว่างรอ fetch) ไม่ต้องวาด
+  if (!liveTrips.some(t => t.tripId === trip.tripId)) return;
+  if (!map || !liveRoutesLayer) return;
+
+  const line = L.polyline(result.latlngs, {
+    color: color || carColor(trip.carType),
+    weight: 4,
+    opacity: 0.85,
+    className: 'live-route-line' + (result.approx ? ' approx' : '')
+  });
+  line.bindTooltip(escHtml(trip.carType || 'ไม่ระบุคัน'), { sticky: true, opacity: 0.9 });
+  line.addTo(liveRoutesLayer);
+  if (!liveRoutesVisible) map.removeLayer(liveRoutesLayer); // เผื่อผู้ใช้กด "ซ่อนเส้นทาง" ไว้ระหว่างที่ยังโหลดเส้นทางอยู่
+}
+
+async function fetchOsrmRoute(origin, dest) {
+  try {
+    const url = 'https://router.project-osrm.org/route/v1/driving/'
+      + origin[1] + ',' + origin[0] + ';' + dest[1] + ',' + dest[0]
+      + '?overview=full&geometries=geojson';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 7000);
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeout);
+    const json = await res.json();
+    const coords = json && json.routes && json.routes[0] && json.routes[0].geometry && json.routes[0].geometry.coordinates;
+    if (coords && coords.length) {
+      return { latlngs: coords.map(c => [c[1], c[0]]), approx: false };
+    }
+  } catch (err) {
+    // เงียบไว้ — ใช้เส้นตรงแทนด้านล่าง
+  }
+  return { latlngs: [origin, dest], approx: true };
+}
+
+// ════════════════════════════════════════════════════════════
+//  ลำดับเส้นทางของรถคันที่เลือก (เรียงตามทริปจริง วันนี้/ช่วงที่กรองไว้)
+//  โยงเส้น รพ. → จุดที่ 1 → จุดที่ 2 → ... ตามลำดับเวลาออกจริง พร้อมเลขกำกับ
+// ════════════════════════════════════════════════════════════
+let seqRouteToken = 0; // กันปัญหาผลลัพธ์เก่าที่โหลดช้ามาทับผลลัพธ์ใหม่ เวลาผู้ใช้กดเปลี่ยนตัวกรองรัวๆ
+
+async function renderSequenceRoute() {
+  const myToken = ++seqRouteToken;
+  const infoBar = document.getElementById('sequenceInfo');
+
+  if (sequenceLayer) { map.removeLayer(sequenceLayer); sequenceLayer = null; }
+
+  const car = document.getElementById('fCar').value;
+  if (!car) { infoBar.style.display = 'none'; return; }
+
+  const from = document.getElementById('fDateFrom').value;
+  const to   = document.getElementById('fDateTo').value;
+
+  // รวมทริปของรถคันนี้ในช่วงวันที่กรองไว้ เรียงจากเวลาออกก่อน-หลัง (ตามลำดับการเดินทางจริง)
+  const carTrips = allTrips
+    .filter(t => normName(t['ทะเบียน/รถ'] || t['carType']) === car)
+    .filter(t => {
+      const d = toYMD(t['วันที่']);
+      if (from && d && d < from) return false;
+      if (to && d && d > to) return false;
+      return true;
+    })
+    .map(t => ({ trip: t, ts: buildTripTimestamp(toYMD(t['วันที่']), t['เวลาออก']) }))
+    .sort((a, b) => a.ts - b.ts);
+
+  // แตกปลายทางแบบหลายจุด/ทริป ให้เป็นจุดแวะทีละจุดตามลำดับ แล้วจับคู่กับพิกัดที่ปักหมุดไว้แล้วเท่านั้น
+  const stops = [];
+  let skipped = 0;
+  carTrips.forEach(({ trip }) => {
+    splitDestNames(trip['ปลายทาง']).forEach(name => {
+      const pin = allPins[normName(name)];
+      if (pin) {
+        stops.push({ name, lat: pin.lat, lng: pin.lng, out: trip['เวลาออก'], back: trip['เวลากลับ'] });
+      } else {
+        skipped++;
+      }
+    });
+  });
+
+  if (!stops.length) {
+    infoBar.style.display = 'block';
+    infoBar.innerHTML = '🚗 <b>' + escHtml(car) + '</b> — ไม่มีจุดหมายที่ปักหมุดไว้แล้วในช่วงวันที่เลือก'
+      + (skipped ? ' (ข้าม ' + skipped + ' จุดที่ยังไม่ได้ปักหมุด — ปักหมุดให้ก่อนถึงจะแสดงเส้นทางได้)' : '');
+    return;
+  }
+
+  infoBar.style.display = 'block';
+  infoBar.innerHTML = '🚗 กำลังโหลดเส้นทาง <b>' + escHtml(car) + '</b> — ' + stops.length + ' จุดแวะ...';
+
+  const color = carColor(car);
+  const points = [[HOSPITAL_LOCATION.lat, HOSPITAL_LOCATION.lng], ...stops.map(s => [s.lat, s.lng])];
+
+  // จำกัดจำนวนเส้นทางที่ดึงจาก OSRM (บริการสาธารณะฟรี ไม่ควรยิงรัวเกินไป) — ถ้าจุดแวะเยอะมาก
+  // (เช่น ไม่ได้กรองวันที่ไว้เลย) จะวาดเป็นเส้นตรงแทนเส้นตามถนนจริง เพื่อความเร็ว/มารยาทต่อบริการฟรี
+  const TOO_MANY_LEGS = 30;
+  const legCount = points.length - 1;
+  let legs;
+  if (legCount > TOO_MANY_LEGS) {
+    legs = points.slice(0, -1).map((p, i) => ({ latlngs: [p, points[i + 1]], approx: true }));
+  } else {
+    legs = await Promise.all(
+      points.slice(0, -1).map((p, i) => fetchOsrmRoute(p, points[i + 1]))
+    );
+  }
+
+  if (myToken !== seqRouteToken || !map) return; // ตัวกรองถูกเปลี่ยนไปแล้วระหว่างรอโหลด ไม่ต้องวาดผลลัพธ์เก่า
+
+  sequenceLayer = L.layerGroup().addTo(map);
+
+  legs.forEach(leg => {
+    L.polyline(leg.latlngs, {
+      color, weight: 4, opacity: 0.8, dashArray: '1,8', lineCap: 'round',
+      className: leg.approx ? 'approx' : ''
+    }).addTo(sequenceLayer);
+  });
+
+  stops.forEach((s, i) => {
+    const icon = L.divIcon({
+      className: '',
+      html: '<div class="seq-marker" style="width:26px;height:26px;font-size:12.5px;background:' + color + ';">' + (i + 1) + '</div>',
+      iconSize: [26, 26],
+      iconAnchor: [13, 13]
+    });
+    L.marker([s.lat, s.lng], { icon, zIndexOffset: 900 })
+      .bindPopup(
+        '<b>ลำดับที่ ' + (i + 1) + ': ' + escHtml(s.name) + '</b>'
+        + '<br>เวลาออก: ' + escHtml(formatTimeOfDay(s.out))
+        + ' — เวลากลับ: ' + escHtml(formatTimeOfDay(s.back))
+      )
+      .addTo(sequenceLayer);
+  });
+
+  infoBar.innerHTML = '🚗 <b>' + escHtml(car) + '</b> — เส้นทางตามลำดับ ' + stops.length + ' จุดแวะ'
+    + (from || to ? ' (' + (from || '…') + ' ถึง ' + (to || '…') + ')' : ' (ทุกวันที่มีข้อมูล)')
+    + (skipped ? ' · ข้าม ' + skipped + ' จุดที่ยังไม่ได้ปักหมุด' : '')
+    + (legCount > TOO_MANY_LEGS ? ' · จุดแวะเยอะมาก แสดงเป็นเส้นตรงแทนเส้นตามถนนจริงเพื่อความเร็ว (แนะนำกรองวันที่ให้แคบลง)' : '');
+
+  map.fitBounds(L.latLngBounds(points), { padding: [40, 40] });
+}
+
+// ── โฟกัสแผนที่ไปยังรถที่กำลังเดินทาง เมื่อคลิกจากการ์ดสถานการณ์ปัจจุบัน ──
+function focusLiveTrip(tripId) {
+  const trip = liveTrips.find(t => String(t.tripId) === tripId);
+  if (!trip) return;
+  const pin = allPins[normName(trip.destination)];
+  if (!pin) {
+    startPinMode(trip.destination);
+    return;
+  }
+  map.setView([pin.lat, pin.lng], 15);
+  const marker = liveMarkerByTrip[tripId];
+  if (marker) marker.openPopup();
+}
+
+// ════════════════════════════════════════════════════════════
+//  AGGREGATE + FILTER
+// ════════════════════════════════════════════════════════════
+function applyFilters() {
+  const from = document.getElementById('fDateFrom').value;
+  const to   = document.getElementById('fDateTo').value;
+  const q    = document.getElementById('fSearch').value.trim().toLowerCase();
+
+  const filtered = allTrips.filter(t => {
+    const dest = normName(t['ปลายทาง']);
+    if (!dest) return false;
+    if (q && !dest.toLowerCase().includes(q)) return false;
+    const d = toYMD(t['วันที่']);
+    if (from && d && d < from) return false;
+    if (to && d && d > to) return false;
+    return true;
+  });
+
+  const map_ = {};
+  const overallCarTally = {};
+  const missionTally = {};
+  filtered.forEach(t => {
+    const rawDest = t['ปลายทาง'];
+    const missionLabel = classifyMission(rawDest);
+    if (missionLabel) {
+      // ภารกิจที่ไม่มีปลายทางชัดเจน — นับแยกไว้ในตาราง "ภารกิจนอกเหนือปลายทาง" ไม่ปนกับจุดหมายบนแผนที่
+      missionTally[missionLabel] = (missionTally[missionLabel] || 0) + 1;
+      const car = normName(t['ทะเบียน/รถ'] || t['carType']) || 'ไม่ระบุ';
+      overallCarTally[car] = (overallCarTally[car] || 0) + 1;
+      return;
+    }
+    const destNames = splitDestNames(rawDest);
+    if (!destNames.length) return;
+    const km = Number(t['ระยะทาง(กม.)']);
+    const car = normName(t['ทะเบียน/รถ'] || t['carType']) || 'ไม่ระบุ';
+    destNames.forEach(dest => {
+      if (!map_[dest]) map_[dest] = { name: dest, count: 0, distanceKm: 0, carBreakdown: {} };
+      map_[dest].count++;
+      if (!isNaN(km)) map_[dest].distanceKm += km;
+      map_[dest].carBreakdown[car] = (map_[dest].carBreakdown[car] || 0) + 1;
+    });
+    overallCarTally[car] = (overallCarTally[car] || 0) + 1;
+  });
+  missionFreq = Object.entries(missionTally)
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // หา "รถที่ใช้บ่อยที่สุดโดยรวม" จากทริปทั้งหมดที่กรองไว้ (ไม่ใช่แค่ต่อจุดหมาย)
+  topOverallCar = null;
+  topOverallCarCount = 0;
+  Object.entries(overallCarTally).forEach(([car, count]) => {
+    if (count > topOverallCarCount) { topOverallCar = car; topOverallCarCount = count; }
+  });
+
+  destFreq = Object.values(map_).map(d => {
+    d.category = categorize(d.name);
+    const carEntries = Object.entries(d.carBreakdown).sort((a, b) => b[1] - a[1]);
+    d.topCar = carEntries.length ? carEntries[0][0] : null;
+    d.topCarCount = carEntries.length ? carEntries[0][1] : 0;
+    d.topCarColor = d.topCar ? carColor(d.topCar) : '#7a8ea5';
+    return d;
+  }).sort((a, b) => b.count - a.count);
+
+  const pinnedCount = destFreq.filter(d => allPins[normName(d.name)]).length;
+  document.getElementById('statTrips').textContent = filtered.length;
+  document.getElementById('statDest').textContent = destFreq.length;
+  document.getElementById('statPinned').textContent = pinnedCount;
+  document.getElementById('statUnpinned').textContent = destFreq.length - pinnedCount;
+  document.getElementById('listCount').textContent = destFreq.length + ' รายการ';
+
+  renderList();
+  renderMarkers();
+  renderMissionTable(filtered.length);
+
+  durationStatsCache = computeDurationStats(filtered);
+  durationPage = 1; // กรองใหม่ → กลับไปหน้าแรก (ล่าสุดก่อน) เสมอ
+  renderDurationTable();
+
+  renderSequenceRoute();
+}
+
+function resetFilters() {
+  document.getElementById('fDateFrom').value = '';
+  document.getElementById('fDateTo').value = '';
+  document.getElementById('fSearch').value = '';
+  document.getElementById('fCar').value = '';
+  applyFilters();
+}
+
+// ── ปุ่ม "วันนี้" — ตั้งช่วงวันที่เป็นวันปัจจุบันทั้งสองช่อง ลดขั้นตอนกดปฏิทินเอง ──
+function setDateRangeToday() {
+  const todayYMD = new Date().toLocaleDateString('sv-SE'); // yyyy-MM-dd ตามเวลาเครื่องผู้ใช้ (เลี่ยงปัญหา timezone ของ toISOString)
+  document.getElementById('fDateFrom').value = todayYMD;
+  document.getElementById('fDateTo').value = todayYMD;
+  applyFilters();
+}
+
+function toYMD(v) {
+  const s = String(v || '').trim();
+  if (!s) return '';
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+  return '';
+}
+
+// ════════════════════════════════════════════════════════════
+//  RENDER LIST
+// ════════════════════════════════════════════════════════════
+function renderList() {
+  const el = document.getElementById('destList');
+  if (!destFreq.length) {
+    el.innerHTML = '<div class="empty-state">ไม่พบข้อมูลตามเงื่อนไขที่กรอง</div>';
+    return;
+  }
+  el.innerHTML = destFreq.map((d, i) => {
+    const pin = allPins[normName(d.name)];
+    let badge;
+    if (pin && editMode) {
+      badge = '<button class="pin-badge delbtn" onclick="event.stopPropagation();removePin(\'' + escAttr(d.name) + '\')">ลบ</button>';
+    } else if (pin) {
+      badge = '<button class="pin-badge pinned" onclick="event.stopPropagation();focusDest(\'' + escAttr(d.name) + '\')">ปักแล้ว</button>';
+    } else {
+      badge = '<button class="pin-badge unpinned" onclick="event.stopPropagation();startPinMode(\'' + escAttr(d.name) + '\')">ปักหมุด</button>';
+    }
+    return '<div class="dest-row" onclick="focusDest(\'' + escAttr(d.name) + '\')">'
+      + '<div class="dest-rank">' + (i + 1) + '</div>'
+      + '<div class="dest-info">'
+      +   '<div class="dest-name" title="' + escAttr(d.name) + '">' + escHtml(d.name) + '</div>'
+      +   '<div class="dest-sub">รวม ' + d.distanceKm.toFixed(1) + ' กม.</div>'
+      + '</div>'
+      + '<div class="dest-count">' + d.count + '</div>'
+      + badge
+      + '</div>';
+  }).join('');
+}
+
+function escHtml(s) { return String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function escAttr(s) { return String(s).replace(/'/g, "\\'"); }
+
+// ตาราง "ภารกิจนอกเหนือปลายทาง" — แสดงรายการที่ไม่มีปลายทางเป็นสถานที่ชัดเจน (ดู classifyMission/MISSION_TYPES ด้านบน)
+// หมายเหตุ: % ของแต่ละแถวคำนวณเทียบกับ "ผลรวมจำนวนภารกิจทั้งหมด" (ตัวเลขที่แสดงในหัวตาราง เช่น 96 ครั้ง)
+// ไม่ใช่เทียบกับจำนวนทริปทั้งหมด — เพื่อให้สัดส่วน % ของทุกแถวรวมกันได้เต็ม 100% พอดี
+function renderMissionTable(totalTrips) {
+  const body = document.getElementById('missionBody');
+  const totalMissions = missionFreq.reduce((sum, m) => sum + m.count, 0);
+  document.getElementById('missionCount').textContent = missionFreq.length
+    ? totalMissions + ' ครั้ง'
+    : '';
+  if (!missionFreq.length) {
+    body.innerHTML = '<div class="empty-state">ไม่พบภารกิจประเภทนี้ในช่วงที่กรอง</div>';
+    return;
+  }
+  body.innerHTML = missionFreq.map((m, i) => {
+    const pct = totalMissions ? (m.count / totalMissions * 100).toFixed(1) : '0.0';
+    return '<div class="dest-row">'
+      + '<div class="dest-rank">' + (i + 1) + '</div>'
+      + '<div class="dest-info">'
+      +   '<div class="dest-name" title="' + escAttr(m.label) + '">' + escHtml(m.label) + '</div>'
+      +   '<div class="dest-sub">' + pct + '% ของภารกิจนอกเหนือปลายทาง</div>'
+      + '</div>'
+      + '<div class="dest-count">' + m.count + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════
+//  ระยะเวลาที่ใช้ต่อทริป (แยกตามจุดหมาย)
+//  — คำนวณจาก "เวลาออก" / "เวลากลับ" ใน MileLog (backend ส่งมาเป็น string ที่มี
+//    HH:mm:ss ต่อท้าย แม้บางครั้งจะติดวันที่ปลอม 30/12/1899 มาจาก time-only cell
+//    ของ Google Sheets ก็ตาม — ใช้ regex ดึงเฉพาะเวลาออกมา แล้วประกอบกับ "วันที่" จริงของทริปเอง)
+// ════════════════════════════════════════════════════════════
+function parseTimeOfDay(raw) {
+  const m = String(raw || '').match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (!m) return null;
+  const h = +m[1], mi = +m[2], s = +(m[3] || 0);
+  if (h > 23 || mi > 59 || s > 59) return null;
+  return { h, m: mi, s };
+}
+
+function tripDurationMinutes(t) {
+  const dYMD = toYMD(t['วันที่']);
+  const out  = parseTimeOfDay(t['เวลาออก']);
+  const back = parseTimeOfDay(t['เวลากลับ']);
+  if (!dYMD || !out || !back) return null;
+
+  const pad2 = n => String(n).padStart(2, '0');
+  const outDt  = new Date(dYMD + 'T' + pad2(out.h)  + ':' + pad2(out.m)  + ':' + pad2(out.s));
+  const backDt = new Date(dYMD + 'T' + pad2(back.h) + ':' + pad2(back.m) + ':' + pad2(back.s));
+  if (isNaN(outDt.getTime()) || isNaN(backDt.getTime())) return null;
+
+  let diffMin = (backDt.getTime() - outDt.getTime()) / 60000;
+  if (diffMin < 0) diffMin += 24 * 60; // เผื่อทริปข้ามเที่ยงคืน
+  if (diffMin <= 0 || diffMin > 24 * 60) return null; // ข้อมูลผิดปกติ ไม่นำมานับ
+  return diffMin;
+}
+
+function formatDurationMin(min) {
+  if (min == null || isNaN(min)) return '—';
+  const h = Math.floor(min / 60);
+  const m = Math.round(min % 60);
+  if (h <= 0) return m + ' นาที';
+  return h + ' ชม. ' + m + ' นาที';
+}
+
+// แปลงเวลาในช่อง "เวลาออก"/"เวลากลับ" ให้เป็นข้อความเวลาแบบ HH:mm สำหรับแสดงผล
+function formatTimeOfDay(raw) {
+  const t = parseTimeOfDay(raw);
+  if (!t) return '—';
+  const pad2 = n => String(n).padStart(2, '0');
+  return pad2(t.h) + ':' + pad2(t.m);
+}
+
+// ประกอบ "วันที่ + เวลาออก" เป็น timestamp (ms) สำหรับใช้เรียงล่าสุด-ก่อน
+function buildTripTimestamp(dYMD, outRaw) {
+  const t = parseTimeOfDay(outRaw);
+  if (!dYMD || !t) return 0;
+  const pad2 = n => String(n).padStart(2, '0');
+  const dt = new Date(dYMD + 'T' + pad2(t.h) + ':' + pad2(t.m) + ':' + pad2(t.s));
+  return isNaN(dt.getTime()) ? 0 : dt.getTime();
+}
+
+// ทะเบียนที่ต้องข้าม (ไม่นับในตารางนี้) — เทียบแบบ "มีคำนี้อยู่" กันปัญหาจุด/ช่องว่างต่างรูปแบบ
+function isExcludedPlate(plateRaw) {
+  const p = String(plateRaw || '');
+  return DURATION_EXCLUDE_PLATES.some(ex => p.indexOf(ex) >= 0);
+}
+
+// ทริปนำส่ง/รับผู้ป่วย (EMS) — มีปัจจัยควบคุมเวลาไม่ได้หลายด้าน (รอเคส, อาการคนไข้, จราจร ฯลฯ)
+// จึงไม่นำมาประเมิน/ตีธงว่านานผิดปกติ และไม่นำมาถ่วงค่าเฉลี่ยของจุดหมายอื่น
+function isEmsTrip(dest) {
+  return /ems/i.test(String(dest || ''));
+}
+
+function computeDurationStats(filtered) {
+  const trips = [];
+  let totalMin = 0, cnt = 0;
+
+  filtered.forEach(t => {
+    const plate = String(t['ทะเบียน/รถ'] || t['carType'] || '').trim();
+    if (isExcludedPlate(plate)) return; // ข้ามรถทะเบียนที่กำหนด (เช่น 8781)
+
+    const dur = tripDurationMinutes(t);
+    if (dur == null) return;
+    const dest = normName(t['ปลายทาง']);
+    if (!dest) return;
+
+    const dYMD = toYMD(t['วันที่']);
+    const km   = Number(t['ระยะทาง(กม.)']);
+
+    trips.push({
+      date : dYMD,
+      dest : dest,
+      plate: plate || 'ไม่ระบุ',
+      outRaw : t['เวลาออก'],
+      backRaw: t['เวลากลับ'],
+      durMin : dur,
+      km     : (!isNaN(km) && km > 0) ? km : null,
+      ts     : buildTripTimestamp(dYMD, t['เวลาออก']),
+      isEms  : isEmsTrip(dest)
+    });
+    if (!isEmsTrip(dest)) { totalMin += dur; cnt++; } // ไม่นำทริป EMS มาถ่วงค่าเฉลี่ยรวม
+  });
+
+  const overallAvg = cnt ? totalMin / cnt : 0;
+
+  // เฉลี่ยต่อ "จุดหมายเดียวกัน" — ใช้เป็นเกณฑ์เทียบความผิดปกติแทนค่าเฉลี่ยรวมทั้งหมด
+  // เหตุผล: บางจุดหมายอยู่ไกล/ใช้เวลาโดยธรรมชาตินานกว่าจุดอื่นอยู่แล้ว (เช่น รพ.ต่างอำเภอ)
+  // การเทียบกับค่าเฉลี่ยรวมทุกจุดหมายจึงทำให้ทริปที่ไปไกลถูกตีเป็น "ผิดปกติ" อย่างไม่เป็นธรรม
+  // ทริป EMS ไม่ถูกนำมาคำนวณฐาน เพราะเวลาคุมไม่ได้อยู่แล้ว (รอเคส/อาการคนไข้/จราจร ฯลฯ)
+  const destStats = {};
+  trips.forEach(tr => {
+    if (tr.isEms) return;
+    if (!destStats[tr.dest]) destStats[tr.dest] = { totalMin: 0, count: 0 };
+    destStats[tr.dest].totalMin += tr.durMin;
+    destStats[tr.dest].count++;
+  });
+
+  // เทียบแต่ละทริปกับ "ค่าเฉลี่ยของจุดหมายเดียวกัน" — ต้องมีอย่างน้อย 2 ทริปของจุดหมายนั้น
+  // จึงจะมีฐานเทียบที่มีความหมาย (จุดหมายที่มีข้อมูลแค่ทริปเดียวจะไม่ถูกตีธงว่าผิดปกติ)
+  // ทริป EMS: ยกเลิกการวิเคราะห์/ตีธงทั้งหมด (ไม่ตัดสินว่านานผิดปกติ)
+  trips.forEach(tr => {
+    if (tr.isEms) { tr.flag = null; return; }
+    let flag = null;
+    const ds = destStats[tr.dest];
+    if (ds && ds.count >= 2) {
+      const destAvg = ds.totalMin / ds.count;
+      if (destAvg > 0) {
+        if (tr.durMin > destAvg * 2.5) flag = 'danger';
+        else if (tr.durMin > destAvg * 1.6) flag = 'warn';
+      }
+    }
+    tr.flag = flag;
+  });
+
+  // ล่าสุดก่อนเสมอ (เรียงตาม timestamp วันที่+เวลาออก)
+  trips.sort((a, b) => b.ts - a.ts);
+
+  return { trips, overallAvg, totalValidTrips: cnt };
+}
+
+function renderDurationTable() {
+  const tbody     = document.getElementById('durationTbody');
+  const countEl   = document.getElementById('durationCount');
+  const summaryEl = document.getElementById('durationSummary');
+  const pagerEl   = document.getElementById('durationPager');
+  const { trips, overallAvg, totalValidTrips } = durationStatsCache;
+
+  countEl.textContent = trips.length + ' ทริป';
+  summaryEl.innerHTML = totalValidTrips
+    ? 'ทริปที่มีข้อมูล "เวลาออก–เวลากลับ" ครบถ้วน: <b>' + totalValidTrips + '</b> ทริป (จากที่กรองไว้ · ไม่รวมทะเบียน ' + DURATION_EXCLUDE_PLATES.join(', ') + ')'
+      + ' &nbsp;·&nbsp; เวลาเฉลี่ยรวมทุกจุดหมาย: <b>' + formatDurationMin(overallAvg) + '</b>'
+      + ' &nbsp;·&nbsp; <span class="duration-flag warn" style="margin-right:4px;">⚠ นานกว่าเฉลี่ย</span>เกิน 1.6 เท่าของค่าเฉลี่ย "จุดหมายเดียวกัน"'
+      + ' &nbsp; <span class="duration-flag danger">⚠ นานเป็นพิเศษ</span>เกิน 2.5 เท่าของค่าเฉลี่ย "จุดหมายเดียวกัน" (เทียบได้เฉพาะจุดหมายที่มีข้อมูล ≥2 ทริป · ไม่รวมประเมินรายการ EMS)'
+    : 'ยังไม่มีทริปที่มีข้อมูล "เวลาออก" และ "เวลากลับ" ครบถ้วนพอสำหรับคำนวณ (ต้องมีทั้งสองค่าในทริปเดียวกัน)';
+
+  if (!trips.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="duration-empty">ไม่มีทริปที่มีข้อมูลเวลาออก-กลับครบถ้วนตามเงื่อนไขที่กรองไว้</td></tr>';
+    pagerEl.innerHTML = '';
+    return;
+  }
+
+  const totalPages = Math.max(1, Math.ceil(trips.length / DURATION_PAGE_SIZE));
+  if (durationPage > totalPages) durationPage = totalPages;
+  if (durationPage < 1) durationPage = 1;
+
+  const startIdx   = (durationPage - 1) * DURATION_PAGE_SIZE;
+  const pageTrips  = trips.slice(startIdx, startIdx + DURATION_PAGE_SIZE);
+
+  tbody.innerHTML = pageTrips.map((d, i) => {
+    const flagHtml = d.flag === 'danger'
+      ? '<span class="duration-flag danger">⚠ นานเป็นพิเศษ</span>'
+      : d.flag === 'warn'
+        ? '<span class="duration-flag warn">⚠ นานกว่าเฉลี่ย</span>'
+        : '';
+    return '<tr>'
+      + '<td>' + (startIdx + i + 1) + '</td>'
+      + '<td>' + escHtml(d.date || '—') + '</td>'
+      + '<td class="dname" title="' + escAttr(d.dest) + '">' + escHtml(d.dest) + '</td>'
+      + '<td>' + escHtml(d.plate) + '</td>'
+      + '<td>' + formatTimeOfDay(d.outRaw) + '</td>'
+      + '<td>' + formatTimeOfDay(d.backRaw) + '</td>'
+      + '<td><b>' + formatDurationMin(d.durMin) + '</b></td>'
+      + '<td>' + (d.km != null ? d.km.toFixed(1) + ' กม.' : '—') + '</td>'
+      + '<td>' + flagHtml + '</td>'
+      + '</tr>';
+  }).join('');
+
+  renderDurationPager(totalPages);
+}
+
+// ── ตัวแบ่งหน้าตารางระยะเวลาที่ใช้ต่อทริป (20 รายการ/หน้า) ──
+function renderDurationPager(totalPages) {
+  const pagerEl = document.getElementById('durationPager');
+  if (totalPages <= 1) { pagerEl.innerHTML = ''; return; }
+
+  const windowSize = 2;
+  let startP = Math.max(1, durationPage - windowSize);
+  let endP   = Math.min(totalPages, durationPage + windowSize);
+
+  let html = '';
+  html += '<button' + (durationPage <= 1 ? ' disabled' : '') + ' onclick="goDurationPage(1)">« แรก</button>';
+  html += '<button' + (durationPage <= 1 ? ' disabled' : '') + ' onclick="goDurationPage(' + (durationPage - 1) + ')">‹ ก่อนหน้า</button>';
+  if (startP > 1) html += '<span class="pager-info">…</span>';
+  for (let p = startP; p <= endP; p++) {
+    html += '<button class="' + (p === durationPage ? 'active' : '') + '" onclick="goDurationPage(' + p + ')">' + p + '</button>';
+  }
+  if (endP < totalPages) html += '<span class="pager-info">…</span>';
+  html += '<button' + (durationPage >= totalPages ? ' disabled' : '') + ' onclick="goDurationPage(' + (durationPage + 1) + ')">ถัดไป ›</button>';
+  html += '<button' + (durationPage >= totalPages ? ' disabled' : '') + ' onclick="goDurationPage(' + totalPages + ')">สุดท้าย »</button>';
+  html += '<span class="pager-info">หน้า ' + durationPage + ' / ' + totalPages + '</span>';
+
+  pagerEl.innerHTML = html;
+}
+
+function goDurationPage(p) {
+  durationPage = p;
+  renderDurationTable();
+  const panel = document.getElementById('durationPanel');
+  if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+// ════════════════════════════════════════════════════════════
+//  SAVE PIN (บันทึกลง Google Sheet ผ่าน GAS เดิม)
+// ════════════════════════════════════════════════════════════
+async function savePin(name, lat, lng) {
+  try {
+    const payload = { action: 'saveLocationPin', name, lat, lng, pinnedBy: CURRENT_USER };
+    const res = await fetch(GAS_URL, {
+      method : 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body   : JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (!json || json.status !== 'ok') {
+      throw new Error((json && json.message) || 'ไม่ทราบสาเหตุ');
+    }
+    allPins[normName(name)] = { name, lat, lng };
+    applyFilters();
+    renderLiveMap(); // เผื่อจุดที่เพิ่งปักตรงกับปลายทางของรถที่กำลังเดินทางอยู่ตอนนี้
+  } catch (err) {
+    alert('บันทึกหมุดไม่สำเร็จ: ' + (err.message || err));
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  ค้นหาสถานที่จริงบนแผนที่ (Nominatim/OpenStreetMap) — ปักหมุดได้เลยโดยไม่ต้องไปหาพิกัดจาก Google Maps ก่อน
+//  ใช้บริการฟรีของ OpenStreetMap เช่นเดียวกับ OSRM ที่ใช้ลากเส้นทาง ไม่ต้องขอ API key
+// ════════════════════════════════════════════════════════════
+let placeSearchDebounce = null;
+let placeSearchAbort = null;
+let placeSearchResultsData = [];
+let placeSearchMarker = null;
+
+function onPlaceSearchInput() {
+  const q = document.getElementById('placeSearchInput').value.trim();
+  clearTimeout(placeSearchDebounce);
+  if (q.length < 3) {
+    document.getElementById('placeSearchResults').classList.remove('show');
+    return;
+  }
+  placeSearchDebounce = setTimeout(() => doPlaceSearch(q), 550); // รอพิมพ์นิ่งก่อนค่อยค้นหา (ลดจำนวนคำขอ)
+}
+
+function searchPlace() {
+  clearTimeout(placeSearchDebounce);
+  const q = document.getElementById('placeSearchInput').value.trim();
+  if (q) doPlaceSearch(q);
+}
+
+async function doPlaceSearch(q) {
+  const resultsEl = document.getElementById('placeSearchResults');
+  resultsEl.innerHTML = '<div class="place-search-loading">กำลังค้นหา "' + escHtml(q) + '"...</div>';
+  resultsEl.classList.add('show');
+
+  if (placeSearchAbort) placeSearchAbort.abort();
+  placeSearchAbort = new AbortController();
+
+  try {
+    // bias ผลลัพธ์ให้อยู่แถวเชียงใหม่/สันทราย (รอบโรงพยาบาล ~0.6 องศา) แต่ไม่ตัดผลลัพธ์นอกพื้นที่ทิ้ง (bounded=0)
+    const d = 0.6;
+    const viewbox = [
+      HOSPITAL_LOCATION.lng - d, HOSPITAL_LOCATION.lat + d,
+      HOSPITAL_LOCATION.lng + d, HOSPITAL_LOCATION.lat - d
+    ].join(',');
+    const url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=7&countrycodes=th'
+      + '&addressdetails=1&accept-language=th&viewbox=' + viewbox + '&bounded=0&q=' + encodeURIComponent(q);
+    const res  = await fetch(url, { signal: placeSearchAbort.signal });
+    const list = await res.json();
+    placeSearchResultsData = Array.isArray(list) ? list : [];
+    renderPlaceResults();
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      resultsEl.innerHTML = '<div class="place-search-empty">ค้นหาไม่สำเร็จ: ' + escHtml(err.message || String(err)) + '</div>';
+    }
+  }
+}
+
+function renderPlaceResults() {
+  const resultsEl = document.getElementById('placeSearchResults');
+  if (!placeSearchResultsData.length) {
+    resultsEl.innerHTML = '<div class="place-search-empty">ไม่พบสถานที่ที่ค้นหา ลองเพิ่มชื่ออำเภอ/จังหวัด เช่น "สันทราย เชียงใหม่"</div>';
+    resultsEl.classList.add('show');
+    return;
+  }
+  resultsEl.innerHTML = placeSearchResultsData.map((r, i) => {
+    const name = (r.display_name || '').split(',')[0];
+    return '<div class="place-result-row" onclick="selectPlaceResult(' + i + ')">'
+      + '<div class="pr-name">' + escHtml(name) + '</div>'
+      + '<div class="pr-addr">' + escHtml(r.display_name || '') + '</div>'
+      + '</div>';
+  }).join('');
+  resultsEl.classList.add('show');
+}
+
+function selectPlaceResult(i) {
+  const r = placeSearchResultsData[i];
+  if (!r) return;
+  const lat = parseFloat(r.lat), lng = parseFloat(r.lon);
+  document.getElementById('placeSearchResults').classList.remove('show');
+  map.setView([lat, lng], 17);
+
+  if (pinModeTarget) {
+    // มาจากปุ่ม "ปักหมุด" ของจุดหมายที่รู้ชื่ออยู่แล้ว (จากรายการด้านขวา) → บันทึกพิกัดให้ทันที ไม่ต้องเลือกชื่อซ้ำ
+    savePin(pinModeTarget, lat, lng);
+    cancelPinMode();
+    return;
+  }
+  // ค้นหาอิสระ (ยังไม่ได้กด "ปักหมุด" จากรายการ) → ให้เลือกว่าจะปักหมุดนี้ให้จุดหมายไหนที่ยังไม่มีพิกัด
+  showPlaceAssignPopup(lat, lng, r.display_name || '');
+}
+
+function showPlaceAssignPopup(lat, lng, label) {
+  if (placeSearchMarker) map.removeLayer(placeSearchMarker);
+  const names = allUnpinnedNames();
+  const optionsHtml = names.length
+    ? names.map(n => '<option value="' + escAttr(n) + '">' + escHtml(n) + '</option>').join('')
+    : '<option value="">— ไม่มีจุดหมายที่รอปักหมุด —</option>';
+
+  const popupHtml = '<div style="min-width:230px;">'
+    + '<b>📍 ตำแหน่งที่เลือก</b><br>'
+    + '<span style="font-size:11.5px;color:var(--text-light);">' + escHtml(label) + '</span>'
+    + '<div style="margin-top:8px;">'
+    +   '<label style="font-size:11.5px;font-weight:600;color:var(--navy);">ปักหมุดนี้ให้จุดหมาย:</label><br>'
+    +   '<select id="assignDestSelect" style="width:100%;margin-top:4px;font-size:12.5px;padding:5px;border:1px solid var(--border-strong);border-radius:6px;">'
+    +     optionsHtml
+    +   '</select>'
+    + '</div>'
+    + (names.length
+        ? '<button class="pin-badge pinned" style="margin-top:8px;width:100%;padding:6px;" onclick="confirmAssignPin(' + lat + ',' + lng + ')">บันทึกหมุด</button>'
+        : '<div style="margin-top:8px;font-size:11px;color:var(--text-light);">จุดหมายทั้งหมดปักหมุดครบแล้ว — ถ้าต้องการปักตำแหน่งนี้ ให้กด "ปักหมุด" จากรายการด้านขวาก่อน แล้วค่อยค้นหาใหม่</div>')
+    + '</div>';
+
+  placeSearchMarker = L.marker([lat, lng], {
+    icon: L.divIcon({
+      className: '',
+      html: '<div style="width:22px;height:22px;border-radius:50%;background:#1d6fb5;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.45);"></div>',
+      iconSize: [22, 22], iconAnchor: [11, 11]
+    })
+  }).addTo(map).bindPopup(popupHtml).openPopup();
+}
+
+function confirmAssignPin(lat, lng) {
+  const sel  = document.getElementById('assignDestSelect');
+  const name = sel && sel.value;
+  if (!name) { alert('กรุณาเลือกจุดหมายที่จะปักหมุด'); return; }
+  savePin(name, lat, lng);
+  if (placeSearchMarker) { map.removeLayer(placeSearchMarker); placeSearchMarker = null; }
+  document.getElementById('placeSearchInput').value = '';
+}
+
+// รายชื่อปลายทาง (จากทริปทั้งหมด ไม่จำกัดตามตัวกรองวันที่ปัจจุบัน) ที่ยังไม่มีพิกัด
+function allUnpinnedNames() {
+  const seen = new Set();
+  const names = [];
+  allTrips.forEach(t => {
+    splitDestNames(t['ปลายทาง']).forEach(n => {
+      if (!n || seen.has(n)) return;
+      seen.add(n);
+      if (!allPins[n]) names.push(n);
+    });
+  });
+  return names.sort((a, b) => a.localeCompare(b, 'th'));
+}
+
+// ════════════════════════════════════════════════════════════
+//  IMPORT PINS FROM FILE — นำเข้ารายชื่อ+พิกัดที่รีวิวไว้ล่วงหน้า
+//  รูปแบบไฟล์: [{ "name": "...", "lat": 18.xx, "lng": 99.xx }, ...]
+// ════════════════════════════════════════════════════════════
+function toggleImportPanel() {
+  const body = document.getElementById('importPanelBody');
+  const icon = document.getElementById('importToggleIcon');
+  body.classList.toggle('show');
+  icon.textContent = body.classList.contains('show') ? '▴' : '▾';
+}
+
+async function runImport() {
+  const fileInput = document.getElementById('importFileInput');
+  const statusEl  = document.getElementById('importStatus');
+  const logEl     = document.getElementById('importLog');
+  if (!fileInput.files || !fileInput.files[0]) {
+    statusEl.textContent = 'กรุณาเลือกไฟล์ .json ก่อน';
+    return;
+  }
+
+  let items;
+  try {
+    const text = await fileInput.files[0].text();
+    items = JSON.parse(text);
+    if (!Array.isArray(items)) throw new Error('ไฟล์ต้องเป็น array');
+  } catch (err) {
+    statusEl.textContent = 'อ่านไฟล์ไม่สำเร็จ: ' + (err.message || err);
+    return;
+  }
+
+  logEl.classList.add('show');
+  logEl.innerHTML = '';
+  let okCount = 0, errCount = 0, skipCount = 0;
+
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const name = String((it && it.name) || '').trim();
+    const lat = Number(it && it.lat);
+    const lng = Number(it && it.lng);
+    statusEl.textContent = 'กำลังนำเข้า ' + (i + 1) + ' / ' + items.length + ' ...';
+
+    if (!name || isNaN(lat) || isNaN(lng)) {
+      skipCount++;
+      logEl.innerHTML += '<div class="skip">ข้าม: ข้อมูลไม่ครบ (' + escHtml(name || '?') + ')</div>';
+      continue;
+    }
+    try {
+      const payload = { action: 'saveLocationPin', name, lat, lng, pinnedBy: CURRENT_USER + ' (นำเข้าไฟล์)' };
+      const res = await fetch(GAS_URL, {
+        method : 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body   : JSON.stringify(payload)
+      });
+      const json = await res.json();
+      if (!json || json.status !== 'ok') throw new Error((json && json.message) || 'ไม่ทราบสาเหตุ');
+      allPins[normName(name)] = { name, lat, lng };
+      okCount++;
+      logEl.innerHTML += '<div class="ok">สำเร็จ: ' + escHtml(name) + '</div>';
+    } catch (err) {
+      errCount++;
+      logEl.innerHTML += '<div class="err">ผิดพลาด: ' + escHtml(name) + ' — ' + escHtml(err.message || err) + '</div>';
+    }
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  statusEl.textContent = 'เสร็จสิ้น: สำเร็จ ' + okCount + ' รายการ, ข้าม ' + skipCount + ', ผิดพลาด ' + errCount;
+  applyFilters();
+}
+
+// ════════════════════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════════════════════
+initMap();
+loadAll();
+loadLiveStatus();
+liveTimer = setInterval(loadLiveStatus, LIVE_POLL_MS);
+</script>
+</body>
+</html>
