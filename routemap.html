@@ -156,6 +156,9 @@
   .alias-group-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-mid); padding: 3px 0; }
   .btn-unlink { font-family: inherit; font-size: 11px; font-weight: 600; color: var(--danger); background: var(--danger-soft); border: none; border-radius: 999px; padding: 3px 10px; cursor: pointer; }
   .btn-unlink:hover { background: #fbd9d4; }
+  .badge-nopin { display: inline-block; font-size: 10px; font-weight: 700; color: #b5760a; background: #fdf0d6; border-radius: 999px; padding: 1px 8px; margin-left: 4px; }
+  .alias-group-warn { font-size: 11.5px; color: #9a6300; background: #fdf4dc; border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; line-height: 1.5; }
+  .alias-group-warn .btn-unlink { color: var(--blue); background: var(--blue-soft); margin-left: 2px; }
   .dest-name .dest-grouped-badge { font-size: 10px; font-weight: 700; color: var(--blue); background: var(--blue-soft); border-radius: 999px; padding: 1px 7px; margin-left: 6px; }
 
   .empty-state { padding: 30px 16px; text-align: center; color: var(--text-light); font-size: 13px; }
@@ -479,7 +482,8 @@
           <input type="text" id="groupModalSearch" placeholder="ค้นหาชื่อดิบ เช่น รับ จนท." oninput="renderGroupModalList()" style="width:100%;margin-bottom:8px;">
           <div class="group-item-list" id="groupModalList"></div>
           <div class="group-apply-row">
-            <input type="text" id="groupModalTarget" placeholder="รวมเข้าเป็นปลายทาง เช่น สสจ.เชียงใหม่" style="flex:1;">
+            <input type="text" id="groupModalTarget" list="groupTargetOptions" placeholder="รวมเข้าเป็นปลายทาง เช่น สสจ.เชียงใหม่" style="flex:1;">
+            <datalist id="groupTargetOptions"></datalist>
             <button class="btn btn-primary" onclick="applyGroupSelection()">รวมรายการที่เลือกเข้ากลุ่มนี้</button>
           </div>
         </div>
@@ -1188,6 +1192,15 @@ function openGroupModal() {
   document.getElementById('groupModalSearch').value = '';
   renderGroupModalList();
   renderGroupAliasList();
+  renderGroupTargetOptions();
+}
+
+// เติมชื่อปลายทางที่ "ปักหมุดไว้แล้ว" ลงกล่อง datalist ของช่องปลายทางเป้าหมาย — เพื่อให้เลือกชื่อที่มีหมุดอยู่แล้วได้ตรงๆ
+// (ยังพิมพ์ชื่อใหม่เองได้เสมอ แต่ถ้าเป็นชื่อใหม่ที่ยังไม่เคยปักหมุด ต้องปักหมุดให้ปลายทางนั้นเองก่อน เส้นทางจึงจะแสดงได้)
+function renderGroupTargetOptions() {
+  const names = new Set(Object.values(allPins).map(p => p.name));
+  document.getElementById('groupTargetOptions').innerHTML =
+    Array.from(names).map(n => '<option value="' + escAttr(n) + '"></option>').join('');
 }
 
 function closeGroupModal() {
@@ -1245,17 +1258,22 @@ function renderGroupAliasList() {
   // จัดกลุ่มตามปลายทางเป้าหมาย เพื่อให้เห็นภาพรวมว่าแต่ละปลายทางรวมมาจากชื่อดิบอะไรบ้าง
   const byTarget = {};
   entries.forEach(([raw, target]) => { (byTarget[target] = byTarget[target] || []).push(raw); });
-  el.innerHTML = Object.entries(byTarget).map(([target, raws]) =>
-    '<div class="alias-group">'
-      + '<div class="alias-group-target">📍 ' + escHtml(target) + '</div>'
+  el.innerHTML = Object.entries(byTarget).map(([target, raws]) => {
+    const hasPin = !!allPins[normName(target)];
+    const warn = hasPin ? '' :
+      '<div class="alias-group-warn">⚠ ปลายทางนี้ยังไม่เคยปักหมุด — จะไม่แสดงบนแผนที่หรือในเส้นทางจนกว่าจะปักหมุด '
+      + '<button class="btn-unlink" style="color:var(--blue);" onclick="closeGroupModal();startPinMode(\'' + escAttr(target) + '\')">ปักหมุดตอนนี้</button></div>';
+    return '<div class="alias-group">'
+      + '<div class="alias-group-target">📍 ' + escHtml(target) + (hasPin ? '' : ' <span class="badge-nopin">ไม่มีหมุด</span>') + '</div>'
+      + warn
       + raws.map(raw =>
           '<div class="alias-group-row">'
             + '<span>' + escHtml(raw) + '</span>'
             + '<button class="btn-unlink" onclick="removeGroupAlias(\'' + escAttr(raw) + '\')">ยกเลิก</button>'
           + '</div>'
         ).join('')
-    + '</div>'
-  ).join('');
+      + '</div>';
+  }).join('');
 }
 
 function removeGroupAlias(raw) {
