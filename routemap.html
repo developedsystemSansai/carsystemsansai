@@ -424,8 +424,8 @@
       <!-- ภารกิจนอกเหนือปลายทาง — รายการที่ไม่มีปลายทางชัดเจน (เดินทางซับซ้อนหลายจุด/หลายปัจจัย) -->
       <div class="list-panel mission-panel" id="missionPanel">
         <div class="list-head">
-          <span>🧭 ภารกิจนอกเหนือปลายทาง</span>
-          <span id="missionCount" style="font-weight:400;color:var(--text-light);"></span>
+          <span>🧭 ภารกิจนอกเหนือปลายทาง <span id="missionCount" style="font-weight:400;color:var(--text-light);"></span></span>
+          <button class="btn btn-ghost" style="padding:4px 10px;font-size:11.5px;" onclick="openMissionGroupModal()">🔗 จัดกลุ่มภารกิจ</button>
         </div>
         <div class="list-body" id="missionBody">
           <div class="empty-state">กำลังโหลดข้อมูล...</div>
@@ -552,6 +552,28 @@ function saveDestGroupsToStorage() {
   try {
     localStorage.setItem(DEST_GROUPS_STORAGE_KEY, JSON.stringify(destGroups));
   } catch (err) { /* เก็บไม่ได้ (โหมด private/เต็ม) ไม่ใช่ปัญหาร้ายแรง — ใช้งานต่อได้ในเซสชันนี้ */ }
+}
+
+// เช่นเดียวกับ destGroups แต่ใช้กับ "ภารกิจนอกเหนือปลายทาง" — จับคู่ข้อความปลายทางดิบ "ทั้งก้อน"
+// (ไม่ตัดจุลภาค/สแลช เพราะภารกิจพวกนี้ไม่ใช่ชื่อสถานที่ที่ควรถูกแยกทีละจุด) เข้ากับป้ายกำกับภารกิจ
+// เช่น พขร. เขียน "ออกไปรับส่งผู้ป่วยหลายจุดในเมือง" ซึ่งไม่เข้า MISSION_TYPES ข้อไหนเลย จึงถูกนับผิดเป็น
+// "ปลายทาง" — ผู้ใช้ดึงเข้ากลุ่ม "ในเมือง" เองได้จากหน้าเว็บ โดยไม่ต้องแก้ MISSION_TYPES ในโค้ดหรือแก้ชีต
+let missionGroups = {}; // { normalizedRawFullText: missionLabel }
+const MISSION_GROUPS_STORAGE_KEY = 'sansaiRoutemapMissionGroupsV1';
+
+function loadMissionGroups() {
+  try {
+    const raw = localStorage.getItem(MISSION_GROUPS_STORAGE_KEY);
+    missionGroups = raw ? JSON.parse(raw) : {};
+  } catch (err) {
+    missionGroups = {};
+  }
+}
+
+function saveMissionGroupsToStorage() {
+  try {
+    localStorage.setItem(MISSION_GROUPS_STORAGE_KEY, JSON.stringify(missionGroups));
+  } catch (err) { /* เก็บไม่ได้ ไม่ใช่ปัญหาร้ายแรง */ }
 }
 
 // ── สถานการณ์ปัจจุบัน (รถที่กำลังเดินทาง) ──
@@ -1079,6 +1101,8 @@ const MISSION_TYPES = [
 function classifyMission(raw) {
   const n = normName(raw);
   if (!n) return null;
+  // ── เช็คตาราง "กลุ่มภารกิจ" ที่ผู้ใช้ปักไว้เองก่อน (เหมือนหลักการของ destGroups ด้านล่าง) ──
+  if (missionGroups[n]) return missionGroups[n];
   for (const m of MISSION_TYPES) if (m.test(n)) return m.label;
   return null;
 }
@@ -1212,6 +1236,127 @@ function removeGroupAlias(raw) {
   saveDestGroupsToStorage();
   renderGroupModalList();
   renderGroupAliasList();
+  applyFilters();
+}
+
+// ════════════════════════════════════════════════════════════
+//  จัดกลุ่ม "ภารกิจนอกเหนือปลายทาง" — เหมือนกับจัดกลุ่มปลายทางด้านบน แต่ใช้ข้อความปลายทางดิบ
+//  "ทั้งก้อน" (ไม่ตัดจุลภาค/สแลช) จับคู่เข้ากับป้ายกำกับภารกิจ ดูฟังก์ชัน classifyMission/MISSION_TYPES
+// ════════════════════════════════════════════════════════════
+
+// รวบรวมข้อความปลายทางดิบ "ทั้งก้อน" ทุกแบบที่เคยถูกพิมพ์ไว้ พร้อมจำนวนครั้ง และสถานะการจัดประเภทปัจจุบัน
+// (เป็นภารกิจอะไรอยู่แล้ว หรือถ้ายังไม่เข้าเงื่อนไขภารกิจใดเลย จะถูกนับเป็น "ปลายทาง" — แสดงให้เห็นตรงนี้)
+function getRawMissionTally() {
+  const tally = {}; // { rawFullText: { count, current, isMission } }
+  allTrips.forEach(t => {
+    const raw = normName(t['ปลายทาง']);
+    if (!raw) return;
+    if (!tally[raw]) {
+      const missionLabel = classifyMission(raw);
+      tally[raw] = {
+        raw, count: 0,
+        isMission: !!missionLabel,
+        current: missionLabel || ('นับเป็นปลายทาง: ' + (splitDestNames(raw).join(', ') || '—'))
+      };
+    }
+    tally[raw].count++;
+  });
+  return Object.values(tally).sort((a, b) => b.count - a.count);
+}
+
+let missionModalSelected = new Set();
+
+function openMissionGroupModal() {
+  missionModalSelected = new Set();
+  document.getElementById('missionModalOverlay').classList.add('show');
+  document.getElementById('missionModalSearch').value = '';
+  renderMissionModalList();
+  renderMissionAliasList();
+  renderMissionLabelOptions();
+}
+
+function closeMissionGroupModal() {
+  document.getElementById('missionModalOverlay').classList.remove('show');
+}
+
+// เติมตัวเลือกป้ายภารกิจที่มีอยู่แล้ว (จาก MISSION_TYPES + กลุ่มที่ผู้ใช้เคยตั้งเอง) ไว้ในกล่อง datalist
+// เพื่อให้เลือกจากของเดิมได้เร็วๆ แต่ยังพิมพ์ชื่อใหม่เองได้เสมอถ้าต้องการสร้างประเภทภารกิจใหม่
+function renderMissionLabelOptions() {
+  const labels = new Set(MISSION_TYPES.map(m => m.label));
+  Object.values(missionGroups).forEach(l => labels.add(l));
+  document.getElementById('missionLabelOptions').innerHTML =
+    Array.from(labels).map(l => '<option value="' + escAttr(l) + '"></option>').join('');
+}
+
+function renderMissionModalList() {
+  const q = document.getElementById('missionModalSearch').value.trim().toLowerCase();
+  const listEl = document.getElementById('missionModalList');
+  const tally = getRawMissionTally().filter(r => !q || r.raw.toLowerCase().includes(q));
+
+  if (!tally.length) {
+    listEl.innerHTML = '<div class="empty-state">ไม่พบข้อความที่ตรงกับคำค้นหา</div>';
+    return;
+  }
+  listEl.innerHTML = tally.map(r => {
+    const checked = missionModalSelected.has(r.raw) ? ' checked' : '';
+    const statusClass = r.isMission ? 'group-item-current' : 'group-item-current group-item-current-auto';
+    const statusText = r.isMission ? '🧭 ' + r.current : r.current;
+    return '<label class="group-item">'
+      + '<input type="checkbox" value="' + escAttr(r.raw) + '"' + checked + ' onchange="toggleMissionSelect(this)">'
+      + '<span class="group-item-name">' + escHtml(r.raw) + '</span>'
+      + '<span class="group-item-count">' + r.count + ' ครั้ง</span>'
+      + '<span class="' + statusClass + '">' + escHtml(statusText) + '</span>'
+      + '</label>';
+  }).join('');
+}
+
+function toggleMissionSelect(checkbox) {
+  if (checkbox.checked) missionModalSelected.add(checkbox.value);
+  else missionModalSelected.delete(checkbox.value);
+}
+
+// ผูกข้อความดิบที่เลือกไว้ทั้งหมด เข้ากับป้ายภารกิจที่ระบุ — ไม่กระทบข้อมูลดิบในชีต มีผลแค่การนับ/แสดงผล
+function applyMissionGroupSelection() {
+  const target = normName(document.getElementById('missionModalTarget').value);
+  if (!target) { alert('กรุณาระบุชื่อประเภทภารกิจที่จะรวมเข้าไป'); return; }
+  if (!missionModalSelected.size) { alert('กรุณาเลือกอย่างน้อย 1 รายการที่จะดึงเข้ากลุ่ม'); return; }
+  missionModalSelected.forEach(raw => { missionGroups[raw] = target; });
+  saveMissionGroupsToStorage();
+  missionModalSelected = new Set();
+  document.getElementById('missionModalTarget').value = '';
+  renderMissionModalList();
+  renderMissionAliasList();
+  renderMissionLabelOptions();
+  applyFilters(); // รีเฟรชตาราง "ภารกิจนอกเหนือปลายทาง" และรายการปลายทางให้สะท้อนกลุ่มใหม่ทันที
+}
+
+function renderMissionAliasList() {
+  const el = document.getElementById('missionAliasList');
+  const entries = Object.entries(missionGroups);
+  if (!entries.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:10px 0;">ยังไม่มีกลุ่มที่ตั้งไว้</div>';
+    return;
+  }
+  const byTarget = {};
+  entries.forEach(([raw, target]) => { (byTarget[target] = byTarget[target] || []).push(raw); });
+  el.innerHTML = Object.entries(byTarget).map(([target, raws]) =>
+    '<div class="alias-group">'
+      + '<div class="alias-group-target">🧭 ' + escHtml(target) + '</div>'
+      + raws.map(raw =>
+          '<div class="alias-group-row">'
+            + '<span>' + escHtml(raw) + '</span>'
+            + '<button class="btn-unlink" onclick="removeMissionAlias(\'' + escAttr(raw) + '\')">ยกเลิก</button>'
+          + '</div>'
+        ).join('')
+    + '</div>'
+  ).join('');
+}
+
+function removeMissionAlias(raw) {
+  delete missionGroups[raw];
+  saveMissionGroupsToStorage();
+  renderMissionModalList();
+  renderMissionAliasList();
   applyFilters();
 }
 
