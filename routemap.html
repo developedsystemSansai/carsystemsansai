@@ -491,6 +491,33 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="missionModalOverlay" onclick="if(event.target===this) closeMissionGroupModal();">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">🔗 จัดกลุ่มภารกิจ</div>
+          <div class="modal-sub">เลือกข้อความภารกิจที่พขร. พิมพ์ไว้ไม่ตรงกัน แล้วดึงเข้ารวมกับป้ายภารกิจที่ถูกต้อง — <b>ไม่แก้ข้อมูลในชีตต้นทาง</b> มีผลแค่การนับ/แสดงผลในหน้านี้เท่านั้น ยกเลิกได้ทุกเมื่อ</div>
+        </div>
+        <button class="modal-close" onclick="closeMissionGroupModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="group-picker">
+          <input type="text" id="missionModalSearch" placeholder="ค้นหาข้อความภารกิจ" oninput="renderMissionModalList()" style="width:100%;margin-bottom:8px;">
+          <div class="group-item-list" id="missionModalList"></div>
+          <div class="group-apply-row">
+            <input type="text" id="missionModalTarget" list="missionLabelOptions" placeholder="รวมเข้าเป็นป้ายภารกิจ เช่น รับ-ส่งผู้ป่วย" style="flex:1;">
+            <datalist id="missionLabelOptions"></datalist>
+            <button class="btn btn-primary" onclick="applyMissionGroupSelection()">รวมรายการที่เลือกเข้ากลุ่มนี้</button>
+          </div>
+        </div>
+        <div class="group-alias-panel">
+          <div class="group-alias-head">กลุ่มที่ตั้งไว้แล้ว</div>
+          <div id="missionAliasList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <script>
