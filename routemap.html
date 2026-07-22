@@ -129,6 +129,35 @@
   .pin-badge.delbtn { background: var(--danger-soft); color: var(--danger); }
   .pin-badge.delbtn:hover { background: #fbd9d4; }
 
+  /* ── โมดัล "จัดกลุ่มปลายทาง" ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(13,33,55,.55); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
+  .modal-overlay.show { display: flex; }
+  .modal-box { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); width: 100%; max-width: 720px; max-height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
+  .modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+  .modal-title { font-size: 15px; font-weight: 700; color: var(--navy); }
+  .modal-sub { font-size: 12px; color: var(--text-light); margin-top: 4px; line-height: 1.5; max-width: 560px; }
+  .modal-close { background: none; border: none; font-size: 16px; color: var(--text-light); cursor: pointer; padding: 4px 8px; flex-shrink: 0; }
+  .modal-close:hover { color: var(--text); }
+  .modal-body { padding: 16px 18px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+  .group-item-list { max-height: 230px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+  .group-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 12.5px; cursor: pointer; }
+  .group-item:last-child { border-bottom: none; }
+  .group-item:hover { background: var(--bg); }
+  .group-item-name { flex: 1; color: var(--text); }
+  .group-item-count { color: var(--text-light); font-size: 11px; }
+  .group-item-current { font-size: 11px; color: var(--blue); font-weight: 600; white-space: nowrap; }
+  .group-item-current-auto { color: var(--text-light); font-weight: 500; }
+  .group-apply-row { display: flex; gap: 8px; margin-top: 10px; }
+  .group-apply-row input { font-family: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); }
+  .group-alias-panel { border-top: 1px dashed var(--border); padding-top: 14px; }
+  .group-alias-head { font-size: 12.5px; font-weight: 700; color: var(--navy); margin-bottom: 8px; }
+  .alias-group { margin-bottom: 10px; background: var(--bg); border-radius: var(--radius-sm); padding: 8px 10px; }
+  .alias-group-target { font-size: 12.5px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+  .alias-group-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-mid); padding: 3px 0; }
+  .btn-unlink { font-family: inherit; font-size: 11px; font-weight: 600; color: var(--danger); background: var(--danger-soft); border: none; border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+  .btn-unlink:hover { background: #fbd9d4; }
+  .dest-name .dest-grouped-badge { font-size: 10px; font-weight: 700; color: var(--blue); background: var(--blue-soft); border-radius: 999px; padding: 1px 7px; margin-left: 6px; }
+
   .empty-state { padding: 30px 16px; text-align: center; color: var(--text-light); font-size: 13px; }
 
   /* ── การ์ดสถานการณ์ปัจจุบัน (รถที่กำลังเดินทาง) — แสดงทันทีเมื่อเปิดหน้า ── */
@@ -367,6 +396,7 @@
           โหมดแก้ไขหมุด
         </label>
         <span class="edit-hint" id="editHintText">เปิดโหมดนี้เพื่อลากหมุดย้ายตำแหน่ง หรือลบหมุดที่ปักผิด</span>
+        <button class="btn btn-ghost" style="margin-left:auto;" onclick="openGroupModal()">🔗 จัดกลุ่มปลายทาง</button>
       </div>
       <div class="pin-mode-bar" id="pinModeBar">
         <span id="pinModeText">คลิกบนแผนที่เพื่อปักหมุดตำแหน่งของ "…"</span>
@@ -434,6 +464,33 @@
     <div class="duration-pager" id="durationPager"></div>
   </div>
 
+  <!-- ═══════════ โมดัล "จัดกลุ่มปลายทาง" ═══════════ -->
+  <div class="modal-overlay" id="groupModalOverlay" onclick="if(event.target===this) closeGroupModal();">
+    <div class="modal-box">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">🔗 จัดกลุ่มปลายทาง</div>
+          <div class="modal-sub">เลือกชื่อดิบที่พขร. พิมพ์ไว้ไม่ตรงกัน แล้วดึงเข้ารวมกับปลายทางที่ถูกต้อง — <b>ไม่แก้ข้อมูลในชีตต้นทาง</b> มีผลแค่การนับ/แสดงผลในหน้านี้เท่านั้น ยกเลิกได้ทุกเมื่อ</div>
+        </div>
+        <button class="modal-close" onclick="closeGroupModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="group-picker">
+          <input type="text" id="groupModalSearch" placeholder="ค้นหาชื่อดิบ เช่น รับ จนท." oninput="renderGroupModalList()" style="width:100%;margin-bottom:8px;">
+          <div class="group-item-list" id="groupModalList"></div>
+          <div class="group-apply-row">
+            <input type="text" id="groupModalTarget" placeholder="รวมเข้าเป็นปลายทาง เช่น สสจ.เชียงใหม่" style="flex:1;">
+            <button class="btn btn-primary" onclick="applyGroupSelection()">รวมรายการที่เลือกเข้ากลุ่มนี้</button>
+          </div>
+        </div>
+        <div class="group-alias-panel">
+          <div class="group-alias-head">กลุ่มที่ตั้งไว้แล้ว</div>
+          <div id="groupAliasList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <script>
@@ -468,6 +525,34 @@ let durationPage = 1;                  // หน้าปัจจุบัน�
 const DURATION_PAGE_SIZE = 20;         // จำนวนแถว(ทริป)ต่อหน้า
 const DURATION_EXCLUDE_PLATES = ['8781']; // ทะเบียนที่ไม่ต้องนับในตารางนี้ (เทียบแบบ contains)
 let durationStatsCache = { trips: [], overallAvg: 0, totalValidTrips: 0 };
+
+// ════════════════════════════════════════════════════════════
+//  กลุ่มปลายทาง (Destination Groups) — พขร. มักเขียนปลายทางปนกับข้อความภารกิจ เช่น
+//  "รับ จนท.สสจ." ซึ่งควรถูกนับรวมกับ "สสจ.เชียงใหม่" แต่ regex เดิมจับไม่ได้ทุกแบบที่พิมพ์
+//  ฟีเจอร์นี้ให้ผู้ใช้ "ดึงชื่อดิบ" ที่พิมพ์ไม่ตรง เข้ารวมกับปลายทางที่มีอยู่แล้วได้เอง จากหน้าเว็บ
+//  โดย "ไม่แก้ไขข้อมูลดิบในชีต" เลย — เก็บเป็นตาราง alias แยกต่างหาก (rawName → groupName)
+//  แล้วใช้ประกอบการคำนวณ/แสดงผลเท่านั้น ถ้าลบกลุ่มทิ้ง ข้อมูลเดิมในชีตก็ยังอยู่ครบเหมือนเดิม
+// ════════════════════════════════════════════════════════════
+let destGroups = {}; // { normalizedRawName: canonicalGroupName }
+const DEST_GROUPS_STORAGE_KEY = 'sansaiRoutemapDestGroupsV1';
+
+function loadDestGroups() {
+  try {
+    const raw = localStorage.getItem(DEST_GROUPS_STORAGE_KEY);
+    destGroups = raw ? JSON.parse(raw) : {};
+  } catch (err) {
+    destGroups = {};
+  }
+  // ถ้ามีการเชื่อมต่อ backend สำหรับเก็บกลุ่มแบบใช้ร่วมกันทั้งทีม (ดูหมายเหตุท้ายไฟล์ Code.gs)
+  // ให้ดึงมาซ้อนทับค่า local ตรงนี้แทน/เพิ่มเติม เช่น:
+  // fetch(GAS_URL + '?action=getDestGroups').then(r=>r.json()).then(res=>{ if(res&&res.data){ destGroups = res.data; renderList(); applyFilters(); }});
+}
+
+function saveDestGroupsToStorage() {
+  try {
+    localStorage.setItem(DEST_GROUPS_STORAGE_KEY, JSON.stringify(destGroups));
+  } catch (err) { /* เก็บไม่ได้ (โหมด private/เต็ม) ไม่ใช่ปัญหาร้ายแรง — ใช้งานต่อได้ในเซสชันนี้ */ }
+}
 
 // ── สถานการณ์ปัจจุบัน (รถที่กำลังเดินทาง) ──
 let liveTrips = [];                 // ผลลัพธ์ล่าสุดจาก getStatusSummary().inUse
@@ -1004,6 +1089,9 @@ const ROUTE_DESC_ANNOTATIONS = ['เส้นทางในเมือง'];
 function canonicalDestName(name) {
   let s = normName(name);
   if (!s) return s;
+  // ── เช็คตาราง "กลุ่มปลายทาง" ที่ผู้ใช้ปักไว้เองก่อนเป็นอันดับแรก (ดูหัวข้อ "กลุ่มปลายทาง" ด้านบน) ──
+  // ถ้าชื่อดิบนี้ถูกจัดกลุ่มไว้แล้ว ให้ใช้ชื่อกลุ่มนั้นตรงๆ โดยไม่ต้องผ่าน regex ด้านล่างอีก
+  if (destGroups[s]) return destGroups[s];
   // "โรงพยาบาลXXX" → "รพ.XXX"
   s = s.replace(/^โรงพยาบาล\s*/, 'รพ.');
   // "องค์การบริหารส่วนจังหวัดเชียงใหม่ (อบจ.)" (ชื่อเต็ม) → อบจ. (รวมเป็นหมุดเดียวกับชื่อย่อ)
@@ -1019,6 +1107,112 @@ function canonicalDestName(name) {
   // ตัดเฉพาะวงเล็บที่เป็นคำอธิบายเส้นทาง (ไม่ใช่ชื่อสถานที่) ท้ายข้อความ เช่น "สหกรณ์ (เส้นทางในเมือง)" → "สหกรณ์"
   s = s.replace(/\s*\(([^)]*)\)\s*$/, (m, inner) => ROUTE_DESC_ANNOTATIONS.includes(inner.trim()) ? '' : m).trim();
   return s;
+}
+
+// ════════════════════════════════════════════════════════════
+//  โมดัล "จัดกลุ่มปลายทาง" — เลือกชื่อดิบที่พิมพ์ไม่ตรง แล้วดึงเข้ารวมกับปลายทางที่มีอยู่แล้ว
+//  (ไม่แก้ข้อมูลในชีต — มีผลแค่การนับ/แสดงผลในหน้านี้เท่านั้น ยกเลิกกลุ่มเมื่อไหร่ก็กลับไปเป็นเดิมทันที)
+// ════════════════════════════════════════════════════════════
+
+// รวบรวม "ชื่อดิบ" ทุกชื่อที่เคยถูกพิมพ์ไว้ในคอลัมน์ปลายทาง (ตัดจุลภาค/สแลชแล้ว แต่ยังไม่ผ่าน canonicalDestName)
+// พร้อมจำนวนครั้งที่เจอ และปลายทางที่มันถูกจัดกลุ่มเข้าไปอยู่ตอนนี้ (ใช้แสดงในโมดัล)
+function getRawDestTally() {
+  const tally = {}; // { rawName: { count, current } }
+  allTrips.forEach(t => {
+    const rawDest = t['ปลายทาง'];
+    if (classifyMission(rawDest)) return; // ข้อความภารกิจล้วนๆ ไม่ใช่ชื่อสถานที่ ไม่ต้องเอามาจัดกลุ่ม
+    String(rawDest || '').split(/[,/]/).map(s => normName(s)).filter(Boolean).forEach(raw => {
+      if (!tally[raw]) tally[raw] = { raw, count: 0, current: canonicalDestName(raw) };
+      tally[raw].count++;
+    });
+  });
+  return Object.values(tally).sort((a, b) => b.count - a.count);
+}
+
+let groupModalSelected = new Set();
+
+function openGroupModal() {
+  groupModalSelected = new Set();
+  document.getElementById('groupModalOverlay').classList.add('show');
+  document.getElementById('groupModalSearch').value = '';
+  renderGroupModalList();
+  renderGroupAliasList();
+}
+
+function closeGroupModal() {
+  document.getElementById('groupModalOverlay').classList.remove('show');
+}
+
+function renderGroupModalList() {
+  const q = document.getElementById('groupModalSearch').value.trim().toLowerCase();
+  const listEl = document.getElementById('groupModalList');
+  const tally = getRawDestTally().filter(r => !q || r.raw.toLowerCase().includes(q));
+
+  if (!tally.length) {
+    listEl.innerHTML = '<div class="empty-state">ไม่พบชื่อปลายทางที่ตรงกับคำค้นหา</div>';
+    return;
+  }
+  listEl.innerHTML = tally.map(r => {
+    const checked = groupModalSelected.has(r.raw) ? ' checked' : '';
+    const isGrouped = !!destGroups[r.raw];
+    return '<label class="group-item">'
+      + '<input type="checkbox" value="' + escAttr(r.raw) + '"' + checked + ' onchange="toggleGroupSelect(this)">'
+      + '<span class="group-item-name">' + escHtml(r.raw) + '</span>'
+      + '<span class="group-item-count">' + r.count + ' ครั้ง</span>'
+      + (isGrouped ? '<span class="group-item-current">→ ' + escHtml(r.current) + '</span>' : '<span class="group-item-current group-item-current-auto">อัตโนมัติ: ' + escHtml(r.current) + '</span>')
+      + '</label>';
+  }).join('');
+}
+
+function toggleGroupSelect(checkbox) {
+  if (checkbox.checked) groupModalSelected.add(checkbox.value);
+  else groupModalSelected.delete(checkbox.value);
+}
+
+// ผูกรายชื่อดิบที่เลือกไว้ทั้งหมด เข้ากับปลายทางเป้าหมายที่ระบุ — ไม่กระทบข้อมูลดิบในชีต มีผลแค่การนับ/แสดงผล
+function applyGroupSelection() {
+  const target = normName(document.getElementById('groupModalTarget').value);
+  if (!target) { alert('กรุณาระบุชื่อปลายทางเป้าหมายที่จะรวมเข้าไป'); return; }
+  if (!groupModalSelected.size) { alert('กรุณาเลือกอย่างน้อย 1 ชื่อที่จะดึงเข้ากลุ่ม'); return; }
+  groupModalSelected.forEach(raw => { destGroups[raw] = target; });
+  saveDestGroupsToStorage();
+  groupModalSelected = new Set();
+  document.getElementById('groupModalTarget').value = '';
+  renderGroupModalList();
+  renderGroupAliasList();
+  applyFilters(); // รีเฟรชรายการปลายทาง/แผนที่/สถิติทั้งหมดให้สะท้อนกลุ่มใหม่ทันที
+}
+
+// แสดงรายการกลุ่มที่ตั้งไว้แล้วทั้งหมด พร้อมปุ่มยกเลิก (คืนชื่อดิบนั้นกลับไปนับแยกตามเดิม)
+function renderGroupAliasList() {
+  const el = document.getElementById('groupAliasList');
+  const entries = Object.entries(destGroups);
+  if (!entries.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:10px 0;">ยังไม่มีกลุ่มที่ตั้งไว้</div>';
+    return;
+  }
+  // จัดกลุ่มตามปลายทางเป้าหมาย เพื่อให้เห็นภาพรวมว่าแต่ละปลายทางรวมมาจากชื่อดิบอะไรบ้าง
+  const byTarget = {};
+  entries.forEach(([raw, target]) => { (byTarget[target] = byTarget[target] || []).push(raw); });
+  el.innerHTML = Object.entries(byTarget).map(([target, raws]) =>
+    '<div class="alias-group">'
+      + '<div class="alias-group-target">📍 ' + escHtml(target) + '</div>'
+      + raws.map(raw =>
+          '<div class="alias-group-row">'
+            + '<span>' + escHtml(raw) + '</span>'
+            + '<button class="btn-unlink" onclick="removeGroupAlias(\'' + escAttr(raw) + '\')">ยกเลิก</button>'
+          + '</div>'
+        ).join('')
+    + '</div>'
+  ).join('');
+}
+
+function removeGroupAlias(raw) {
+  delete destGroups[raw];
+  saveDestGroupsToStorage();
+  renderGroupModalList();
+  renderGroupAliasList();
+  applyFilters();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1488,10 +1682,12 @@ function renderList() {
     } else {
       badge = '<button class="pin-badge unpinned" onclick="event.stopPropagation();startPinMode(\'' + escAttr(d.name) + '\')">ปักหมุด</button>';
     }
+    const groupedCount = Object.values(destGroups).filter(t => t === d.name).length;
+    const groupedBadge = groupedCount ? '<span class="dest-grouped-badge">รวม ' + groupedCount + ' ชื่อ</span>' : '';
     return '<div class="dest-row" onclick="focusDest(\'' + escAttr(d.name) + '\')">'
       + '<div class="dest-rank">' + (i + 1) + '</div>'
       + '<div class="dest-info">'
-      +   '<div class="dest-name" title="' + escAttr(d.name) + '">' + escHtml(d.name) + '</div>'
+      +   '<div class="dest-name" title="' + escAttr(d.name) + '">' + escHtml(d.name) + groupedBadge + '</div>'
       +   '<div class="dest-sub">รวม ' + d.distanceKm.toFixed(1) + ' กม.</div>'
       + '</div>'
       + '<div class="dest-count">' + d.count + '</div>'
@@ -1980,6 +2176,7 @@ async function runImport() {
 // ════════════════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════════════════
+loadDestGroups();
 initMap();
 loadAll();
 loadLiveStatus();
