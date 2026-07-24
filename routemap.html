@@ -1414,6 +1414,15 @@ function removeMissionAlias(raw) {
 // ════════════════════════════════════════════════════════════
 const LIVE_POLL_MS = 25000;
 
+// ปลายทางของ "รถที่กำลังเดินทาง" มาจาก getStatusSummary() เป็นชื่อดิบเหมือนในชีต (ยังไม่ผ่าน
+// canonicalDestName/destGroups) — ถ้าจับคู่กับ allPins ด้วยชื่อดิบตรงๆ แบบเดิม พอผู้ใช้ "จัดกลุ่มปลายทาง"
+// ให้ชื่อดิบนี้ไปรวมกับหมุดอื่น (คนละชื่อ) จะหาหมุดไม่เจอ ทำให้ไม่วาดหมุด/เส้นทาง "กำลังเดินทาง"
+// จึงต้อง resolve ผ่าน canonicalDestName ก่อนเสมอ เพื่อให้กลุ่มปลายทางมีผลกับสถานะปัจจุบันด้วย
+// เช่นเดียวกับจุดอื่นๆ ในหน้านี้ (renderDestList, renderSequenceRoute ฯลฯ)
+function liveDestName(raw) {
+  return canonicalDestName(normName(raw));
+}
+
 async function loadLiveStatus() {
   try {
     const res = await fetch(GAS_URL + '?action=getStatusSummary', { cache: 'no-store' }).then(r => r.json());
@@ -1470,7 +1479,7 @@ function renderLiveList() {
   }
 
   listEl.innerHTML = liveTrips.map(t => {
-    const pin = allPins[normName(t.destination)];
+    const pin = allPins[liveDestName(t.destination)];
     const sub = pin
       ? elapsedSinceTrip(t.tripDate, t.startTime)
       : 'ยังไม่ได้ปักหมุดจุดหมายนี้';
@@ -1518,11 +1527,11 @@ function renderLiveMap() {
   liveRoutesLayer.clearLayers();
   liveMarkerByTrip = {};
 
-  const pinnedTrips = liveTrips.filter(t => allPins[normName(t.destination)]);
+  const pinnedTrips = liveTrips.filter(t => allPins[liveDestName(t.destination)]);
   updateRouteInfoBar(pinnedTrips.length);
 
   pinnedTrips.forEach(t => {
-    const pin = allPins[normName(t.destination)];
+    const pin = allPins[liveDestName(t.destination)];
     const plateShort = String(t.carType || '').split(' ')[0].trim();
     const col = carColor(t.carType);
 
@@ -1545,7 +1554,7 @@ function renderLiveMap() {
     hasAutoFocusedLive = true;
     const bounds = L.latLngBounds([[HOSPITAL_LOCATION.lat, HOSPITAL_LOCATION.lng]]);
     pinnedTrips.forEach(t => {
-      const pin = allPins[normName(t.destination)];
+      const pin = allPins[liveDestName(t.destination)];
       bounds.extend([pin.lat, pin.lng]);
     });
     map.fitBounds(bounds, { padding: [60, 60], maxZoom: 14 });
@@ -1563,7 +1572,7 @@ function updateRouteInfoBar(count) {
   const seen = new Set();
   const chips = [];
   liveTrips.forEach(t => {
-    if (!allPins[normName(t.destination)]) return;
+    if (!allPins[liveDestName(t.destination)]) return;
     const plate = String(t.carType || 'ไม่ระบุ').trim() || 'ไม่ระบุ';
     if (seen.has(plate)) return;
     seen.add(plate);
@@ -1580,7 +1589,7 @@ function updateRouteInfoBar(count) {
 function toggleLiveRoutes() {
   liveRoutesVisible = !liveRoutesVisible;
   if (liveRoutesVisible) { liveRoutesLayer.addTo(map); } else { map.removeLayer(liveRoutesLayer); }
-  const pinnedCount = liveTrips.filter(t => allPins[normName(t.destination)]).length;
+  const pinnedCount = liveTrips.filter(t => allPins[liveDestName(t.destination)]).length;
   updateRouteInfoBar(pinnedCount);
 }
 
@@ -1741,9 +1750,9 @@ async function renderSequenceRoute() {
 function focusLiveTrip(tripId) {
   const trip = liveTrips.find(t => String(t.tripId) === tripId);
   if (!trip) return;
-  const pin = allPins[normName(trip.destination)];
+  const pin = allPins[liveDestName(trip.destination)];
   if (!pin) {
-    startPinMode(trip.destination);
+    startPinMode(liveDestName(trip.destination));
     return;
   }
   map.setView([pin.lat, pin.lng], 15);
