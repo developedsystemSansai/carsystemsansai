@@ -162,6 +162,19 @@
   .alias-group-ok { font-size: 11.5px; color: #067a3d; background: var(--success-soft, #e8faf0); border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; line-height: 1.5; }
   .dest-name .dest-grouped-badge { font-size: 10px; font-weight: 700; color: var(--blue); background: var(--blue-soft); border-radius: 999px; padding: 1px 7px; margin-left: 6px; }
 
+  /* ── โมดัล "เลือกวิธีปักหมุด" — ปักหมุดใหม่บนแผนที่ หรือรวมกับปลายทางที่มีหมุดอยู่แล้ว ── */
+  .pinchoice-box { max-width: 480px; }
+  .pinchoice-option { display: flex; align-items: flex-start; gap: 10px; text-align: left; width: 100%; padding: 12px 14px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: #fff; cursor: pointer; font-family: inherit; margin-bottom: 10px; }
+  .pinchoice-option:hover { background: var(--bg); border-color: var(--blue); }
+  .pinchoice-option:last-of-type { margin-bottom: 0; }
+  .pinchoice-option-icon { font-size: 18px; flex-shrink: 0; line-height: 1.3; }
+  .pinchoice-option-title { font-size: 13px; font-weight: 700; color: var(--navy); }
+  .pinchoice-option-desc { display: inline-block; font-size: 11.5px; color: var(--text-light); margin-top: 3px; line-height: 1.5; }
+  .pinchoice-merge-panel { display: none; margin-top: 10px; padding: 12px; background: var(--bg); border-radius: var(--radius-sm); }
+  .pinchoice-merge-panel.show { display: block; }
+  .pinchoice-merge-panel input { width: 100%; font-family: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); margin: 6px 0 10px; box-sizing: border-box; }
+  .pinchoice-merge-hint { font-size: 11.5px; color: var(--text-mid); }
+
   .empty-state { padding: 30px 16px; text-align: center; color: var(--text-light); font-size: 13px; }
 
   /* ── การ์ดสถานการณ์ปัจจุบัน (รถที่กำลังเดินทาง) — แสดงทันทีเมื่อเปิดหน้า ── */
@@ -518,6 +531,41 @@
         <div class="group-alias-panel">
           <div class="group-alias-head">กลุ่มที่ตั้งไว้แล้ว</div>
           <div id="missionAliasList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ โมดัล "เลือกวิธีปักหมุด" — ปักหมุดใหม่บนแผนที่ หรือรวมกับปลายทางที่มีหมุดอยู่แล้ว ═══════════ -->
+  <div class="modal-overlay" id="pinChoiceOverlay" onclick="if(event.target===this) closePinChoiceModal();">
+    <div class="modal-box pinchoice-box">
+      <div class="modal-head">
+        <div>
+          <div class="modal-title">📍 ปักหมุดปลายทางนี้</div>
+          <div class="modal-sub">เลือกวิธีปักหมุดให้ "<b id="pinChoiceName"></b>"</div>
+        </div>
+        <button class="modal-close" onclick="closePinChoiceModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <button type="button" class="pinchoice-option" onclick="choosePinNewOnMap()">
+          <span class="pinchoice-option-icon">🗺️</span>
+          <span>
+            <span class="pinchoice-option-title">ปักหมุดตำแหน่งใหม่บนแผนที่</span><br>
+            <span class="pinchoice-option-desc">ค้นหาสถานที่จริง หรือคลิกบนแผนที่ เพื่อระบุพิกัดใหม่ — ใช้เมื่อปลายทางนี้ยังไม่เคยมีหมุดอยู่ที่ไหนเลย</span>
+          </span>
+        </button>
+        <button type="button" class="pinchoice-option" onclick="togglePinChoiceMergePanel()">
+          <span class="pinchoice-option-icon">🔗</span>
+          <span>
+            <span class="pinchoice-option-title">รวมกับปลายทางที่มีหมุดอยู่แล้ว</span><br>
+            <span class="pinchoice-option-desc">ใช้เมื่อปลายทางนี้จริงๆ คือที่เดียวกับหมุดที่ปักไว้แล้ว แค่พิมพ์ชื่อ/บันทึกภารกิจไว้คนละแบบ — ไม่ต้องปักหมุดซ้ำ</span>
+          </span>
+        </button>
+        <div class="pinchoice-merge-panel" id="pinChoiceMergePanel">
+          <div class="pinchoice-merge-hint">เลือกปลายทางที่มีหมุดอยู่แล้ว ซึ่งเป็นสถานที่เดียวกัน:</div>
+          <input type="text" id="pinChoiceMergeInput" list="pinChoiceMergeOptions" placeholder="พิมพ์ค้นหาชื่อปลายทางที่ปักหมุดไว้แล้ว...">
+          <datalist id="pinChoiceMergeOptions"></datalist>
+          <button class="btn btn-primary" style="width:100%;" onclick="confirmPinChoiceMerge()">รวมเป็นปลายทางเดียวกัน</button>
         </div>
       </div>
     </div>
@@ -1028,10 +1076,11 @@ async function removePin(name) {
 
 function focusDest(name) {
   const pin = allPins[normName(name)];
-  if (!pin || !map) {
-    startPinMode(name);
+  if (!pin) {
+    openPinChoiceModal(name); // ยังไม่มีหมุด — ให้เลือกว่าจะปักใหม่ หรือรวมกับปลายทางที่มีหมุดอยู่แล้ว
     return;
   }
+  if (!map) return;
   map.setView([pin.lat, pin.lng], 15);
   const m = markerByName[normName(name)];
   if (m) m.openPopup();
@@ -1062,6 +1111,76 @@ function cancelPinMode() {
   if (map) {
     map.getContainer().style.cursor = '';
     if (pinClickHandler) { map.off('click', pinClickHandler); pinClickHandler = null; }
+  }
+}
+
+// ════════════════════════════════════════════════════════════
+//  เลือกวิธีปักหมุด — ปักตำแหน่งใหม่บนแผนที่ (พฤติกรรมเดิม) หรือรวมกับปลายทางที่มีหมุดอยู่แล้ว (ของใหม่)
+//  ทุกที่ที่เดิมกดแล้วเข้า startPinMode(name) ตรงๆ สำหรับปลายทางที่ "ยังไม่มีหมุด" จะเปิดโมดัลนี้ก่อนแทน
+//  เพื่อให้เลือกได้ว่าจะปักหมุดใหม่ หรือรวมเข้ากับหมุดเดิมที่มีอยู่แล้ว (เช่น "นำรถเข้าซ่อมอู่ประยูร" ควรรวมกับ
+//  "อู่ประยูร" ที่ปักหมุดไว้แล้ว แทนที่จะต้องปักหมุดตำแหน่งเดิมซ้ำอีกรอบ) — ไม่กระทบฟังก์ชัน startPinMode เดิมเลย
+// ════════════════════════════════════════════════════════════
+let pinChoiceTarget = null;
+
+function openPinChoiceModal(name) {
+  pinChoiceTarget = name;
+  document.getElementById('pinChoiceName').textContent = name;
+  document.getElementById('pinChoiceMergePanel').classList.remove('show');
+  document.getElementById('pinChoiceMergeInput').value = '';
+  renderPinChoiceMergeOptions();
+  document.getElementById('pinChoiceOverlay').classList.add('show');
+}
+
+function closePinChoiceModal() {
+  document.getElementById('pinChoiceOverlay').classList.remove('show');
+  pinChoiceTarget = null;
+}
+
+// ตัวเลือกที่ 1: ปักหมุดตำแหน่งใหม่บนแผนที่ — เรียก startPinMode เดิมตรงๆ พฤติกรรมเหมือนเดิมทุกประการ
+function choosePinNewOnMap() {
+  const name = pinChoiceTarget;
+  closePinChoiceModal();
+  startPinMode(name);
+}
+
+function togglePinChoiceMergePanel() {
+  document.getElementById('pinChoiceMergePanel').classList.toggle('show');
+}
+
+// เติมรายชื่อปลายทางที่ "ปักหมุดไว้แล้ว" ทั้งหมด ลง datalist ให้เลือก/พิมพ์ค้นหาได้ตรงๆ
+function renderPinChoiceMergeOptions() {
+  const names = new Set(Object.values(allPins).map(p => p.name));
+  document.getElementById('pinChoiceMergeOptions').innerHTML =
+    Array.from(names).map(n => '<option value="' + escAttr(n) + '"></option>').join('');
+}
+
+// ตัวเลือกที่ 2: รวมปลายทางนี้เข้ากับปลายทางที่มีหมุดอยู่แล้ว — ไม่ปักหมุดใหม่ ใช้พิกัดของหมุดเดิมร่วมกัน
+// ใช้กลไกเดียวกับฟีเจอร์ "จัดกลุ่มปลายทาง" ที่มีอยู่แล้ว (ตาราง destGroups) จึงมีผลทันทีทั่วทั้งหน้า
+// (แผนที่ / สถานการณ์ปัจจุบัน / อันดับจุดหมายยอดนิยม ฯลฯ) โดยไม่แก้ข้อมูลดิบในชีตเลย ยกเลิกได้ทุกเมื่อผ่าน
+// ปุ่ม "จัดกลุ่มปลายทาง" ด้านบน — และดึงชื่อดิบทุกแบบที่ตอนนี้ถูกนับเป็นปลายทางเดียวกับปลายทางนี้มารวมไปด้วยในคราวเดียว
+function confirmPinChoiceMerge() {
+  const target = pinChoiceTarget;
+  if (!target) return;
+  const mergeName = normName(document.getElementById('pinChoiceMergeInput').value);
+  if (!mergeName) { alert('กรุณาเลือกปลายทางที่มีหมุดอยู่แล้วจากรายการ'); return; }
+  const existingPin = allPins[normName(mergeName)];
+  if (!existingPin) { alert('ไม่พบหมุดของปลายทางนี้ — กรุณาเลือก/พิมพ์ให้ตรงกับรายการที่ขึ้นให้เลือกเท่านั้น'); return; }
+  if (normName(existingPin.name) === normName(target)) { alert('เลือกปลายทางเดียวกับที่กำลังจะปักหมุดไม่ได้'); return; }
+
+  // ดึงชื่อดิบทุกแบบที่ตอนนี้ถูกนับเป็นปลายทางเดียวกับ target มารวมไปยังปลายทางที่มีหมุดอยู่แล้วทั้งหมดในคราวเดียว
+  const rawVariants = new Set([target]);
+  getRawDestTally().forEach(r => { if (r.current === target) rawVariants.add(r.raw); });
+  rawVariants.forEach(raw => { destGroups[raw] = existingPin.name; });
+  saveDestGroupsToStorage();
+
+  closePinChoiceModal();
+  applyFilters();      // รีเฟรชรายการปลายทาง/อันดับ/สถิติ/แผนที่ทั้งหมดให้สะท้อนการรวมทันที
+  renderLiveMap();     // เผื่อรถที่กำลังเดินทางอยู่ตอนนี้ใช้ปลายทางนี้ ให้ขึ้นหมุด "กำลังเดินทาง" ทันทีโดยไม่ต้องรีเฟรชหน้า
+  // ถ้าโมดัล "จัดกลุ่มปลายทาง" เปิดอยู่พอดี ให้รีเฟรชรายการในนั้นด้วยเผื่อผู้ใช้เปิดดูควบคู่กัน
+  const groupOverlay = document.getElementById('groupModalOverlay');
+  if (groupOverlay && groupOverlay.classList.contains('show')) {
+    renderGroupModalList();
+    renderGroupAliasList();
   }
 }
 
@@ -1752,9 +1871,10 @@ function focusLiveTrip(tripId) {
   if (!trip) return;
   const pin = allPins[liveDestName(trip.destination)];
   if (!pin) {
-    startPinMode(liveDestName(trip.destination));
+    openPinChoiceModal(liveDestName(trip.destination)); // ยังไม่มีหมุด — ให้เลือกว่าจะปักใหม่ หรือรวมกับปลายทางที่มีหมุดอยู่แล้ว
     return;
   }
+  if (!map) return;
   map.setView([pin.lat, pin.lng], 15);
   const marker = liveMarkerByTrip[tripId];
   if (marker) marker.openPopup();
@@ -1883,7 +2003,7 @@ function renderList() {
     } else if (pin) {
       badge = '<button class="pin-badge pinned" onclick="event.stopPropagation();focusDest(\'' + escAttr(d.name) + '\')">ปักแล้ว</button>';
     } else {
-      badge = '<button class="pin-badge unpinned" onclick="event.stopPropagation();startPinMode(\'' + escAttr(d.name) + '\')">ปักหมุด</button>';
+      badge = '<button class="pin-badge unpinned" onclick="event.stopPropagation();openPinChoiceModal(\'' + escAttr(d.name) + '\')">ปักหมุด</button>';
     }
     const groupedCount = Object.values(destGroups).filter(t => t === d.name).length;
     const groupedBadge = groupedCount ? '<span class="dest-grouped-badge">รวม ' + groupedCount + ' ชื่อ</span>' : '';
