@@ -5531,6 +5531,10 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="exp-stat-num" style="color:#e67e22;" id="expStatCheckGap">—</div>
           <div class="exp-stat-lbl">ทริปน่าสงสัย</div>
         </div>
+        <div class="exp-stat" title="รายการตรวจสภาพที่เลขไมล์ผิดปกติมาก (สงสัยพิมพ์ผิด) — ไม่นับรวมใน กม. หายไป แต่ควรไปแก้ไขค่าที่ชีท CheckLog">
+          <div class="exp-stat-num" style="color:#c0392b;" id="expStatDataErr">—</div>
+          <div class="exp-stat-lbl">เลขไมล์ตรวจผิดปกติ</div>
+        </div>
       </div>
 
       <!-- 1. เลือกชุดข้อมูล -->
@@ -5769,6 +5773,14 @@ function expUpdateCount(type, n) {
 // 2) ระยะหาย "ตรวจเช็ค→ออกรถ" = ไมล์ต้น (ออกรถ) - ไมล์ตรวจสภาพรถล่าสุดก่อนวันนั้น
 //    ถ้า > 0 แปลว่ารถวิ่งไปก่อนออกรถอย่างเป็นทางการ
 
+// ── ค่าคงที่: ระยะที่ถือว่า "เป็นไปไม่ได้ในทางปฏิบัติ" สำหรับ 1 ช่วง ──
+// ใช้แยก "ข้อมูลพิมพ์ผิด" (เลขไมล์กระโดดหลักแสน-ล้าน กม.) ออกจาก "ระยะหายจริง" (หลักสิบ-ร้อย กม.)
+// รถโรงพยาบาลไม่มีทางวิ่งเกินหลักพัน กม. ระหว่างการตรวจสภาพ 2 ครั้งติดกัน หรือระหว่างตรวจกับออกรถ 1 ทริป
+const EXP_IMPOSSIBLE_GAP_KM = 3000;
+
+// เก็บรายการเลขไมล์ตรวจสภาพที่ถูกตัดออกเพราะผิดปกติเกินจริง (สำหรับแสดงผลใน stat + รายงาน)
+let _expCheckOutliers = [];
+
 // สร้าง index: carPlate + date → odometer ของ CheckLog ล่าสุดก่อนวันนั้น
 function expBuildCheckIndex(checks) {
   // { 'ทะเบียน|yyyy-MM-dd': maxOdoBefore }
@@ -5786,6 +5798,35 @@ function expBuildCheckIndex(checks) {
   Object.keys(byPlate).forEach(function(p) {
     byPlate[p].sort(function(a,b){ return a.date < b.date ? -1 : 1; });
   });
+
+  // ── กรอง "เลขไมล์ตรวจสภาพพิมพ์ผิด" ออกจาก index ──
+  // ตรวจพบจากข้อมูลจริงว่ามีบางแถวเลขไมล์ผิดหลัก (เช่น พิมพ์ 2,218,895 แทนที่จะเป็น ~221,895)
+  // ค่าผิดปกติแบบนี้ค้างอยู่ใน index จนกว่าจะมีการตรวจครั้งถัดไป ทำให้ "ระยะหาย" ของทุกทริป
+  // ที่คั่นระหว่างนั้นพองขึ้นมหาศาล (พบจริง: ทำให้ยอดรวมพุ่งจากหลักหมื่นเป็น 9.5 ล้าน กม.)
+  // วิธีตรวจจับ: จุดที่กระโดดห่างจากเพื่อนบ้านทั้งสองข้างเกิน EXP_IMPOSSIBLE_GAP_KM
+  // แต่เพื่อนบ้านสองข้างนั้นเองกลับใกล้เคียงกัน (แปลว่าตัวมันเองคือตัวที่ผิด ไม่ใช่เพื่อนบ้าน)
+  _expCheckOutliers = [];
+  Object.keys(byPlate).forEach(function(p) {
+    const entries = byPlate[p];
+    const n = entries.length;
+    const keep = new Array(n).fill(true);
+    for (let i = 0; i < n; i++) {
+      const cur  = entries[i].odo;
+      const prev = i > 0     ? entries[i-1].odo : null;
+      const next = i < n - 1 ? entries[i+1].odo : null;
+      if (prev !== null && next !== null) {
+        const jumpBack  = Math.abs(cur - prev);
+        const jumpFwd   = Math.abs(next - cur);
+        const neighborsClose = Math.abs(next - prev) <= EXP_IMPOSSIBLE_GAP_KM;
+        if (jumpBack > EXP_IMPOSSIBLE_GAP_KM && jumpFwd > EXP_IMPOSSIBLE_GAP_KM && neighborsClose) {
+          keep[i] = false;
+          _expCheckOutliers.push({ plate: p, date: entries[i].date, badOdo: cur, neighborOdo: prev });
+        }
+      }
+    }
+    byPlate[p] = entries.filter(function(_, i) { return keep[i]; });
+  });
+
   return byPlate;
 }
 
@@ -5864,6 +5905,7 @@ function expComputeMileGap(r, checkIndex) {
   let checkOdo    = null;
   let gapCheck    = '—';
   let gapCheckNum = null;
+  let isDataError = false; // เลขไมล์ตรวจสภาพผิดปกติเกินจริง (สงสัยพิมพ์ผิด) — ไม่ใช่ "ระยะหายจริง"
 
   if (checkIndex && plate && tripDate) {
     checkOdo = expGetLastCheckOdoBefore(checkIndex, plate, tripDate);
@@ -5879,14 +5921,26 @@ function expComputeMileGap(r, checkIndex) {
     }
 
     if (checkOdo !== null && odoStart > 0) {
-      gapCheckNum = Math.round((odoStart - checkOdo) * 10) / 10;
-      if (gapCheckNum > 5) {
-        gapCheck = `+${gapCheckNum} กม. (วิ่งก่อนออกรถอย่างเป็นทางการ)`;
-      } else if (gapCheckNum < -5) {
-        gapCheck = `${gapCheckNum} กม. (ไมล์ออกรถต่ำกว่าตรวจเช็ค — ตรวจสอบ)`;
-      } else {
-        gapCheck    = '—';
+      const rawGap = Math.round((odoStart - checkOdo) * 10) / 10;
+
+      // ── Safety net: ถ้าระยะห่างเกินจริงในทางปฏิบัติ (>3,000 กม.) แม้หลังกรอง outlier
+      //    ที่ expBuildCheckIndex แล้ว (เช่น จับคู่ทะเบียนผิดคันผ่าน shortPlate fallback)
+      //    ให้ถือเป็น "ข้อมูลผิดปกติ" แยกต่างหาก ไม่นับรวมเป็นระยะหายจริง/ทริปน่าสงสัย
+      //    ป้องกันไม่ให้ค่าผิดพลาดเพียงจุดเดียวทำให้ยอดรวมทั้งระบบพองจนไร้ความหมาย
+      if (Math.abs(rawGap) > EXP_IMPOSSIBLE_GAP_KM) {
+        isDataError = true;
+        gapCheck    = `⚠ เลขไมล์ตรวจสภาพผิดปกติ (${checkOdo.toLocaleString()} กม.) — น่าจะพิมพ์ผิด`;
         gapCheckNum = 0;
+      } else {
+        gapCheckNum = rawGap;
+        if (gapCheckNum > 5) {
+          gapCheck = `+${gapCheckNum} กม. (วิ่งก่อนออกรถอย่างเป็นทางการ)`;
+        } else if (gapCheckNum < -5) {
+          gapCheck = `${gapCheckNum} กม. (ไมล์ออกรถต่ำกว่าตรวจเช็ค — ตรวจสอบ)`;
+        } else {
+          gapCheck    = '—';
+          gapCheckNum = 0;
+        }
       }
     }
   }
@@ -5895,7 +5949,8 @@ function expComputeMileGap(r, checkIndex) {
   const hasGapTrip  = gapTripNum  !== null && Math.abs(gapTripNum)  > 2;
   const hasGapCheck = gapCheckNum !== null && Math.abs(gapCheckNum) > 5;
   let flag = '✅ ปกติ';
-  if (hasGapTrip && hasGapCheck) flag = '🔴 ผิดปกติทั้งคู่';
+  if (isDataError)               flag = '⚠ เลขไมล์ตรวจสภาพผิดปกติ';
+  else if (hasGapTrip && hasGapCheck) flag = '🔴 ผิดปกติทั้งคู่';
   else if (hasGapTrip)           flag = '🟡 ระยะหาย (ออกรถ→รพ.)';
   else if (hasGapCheck)          flag = '🟠 ระยะหาย (ก่อนออกรถ)';
 
@@ -5906,7 +5961,8 @@ function expComputeMileGap(r, checkIndex) {
     __gapFlag       : flag,
     __gapTripNum    : gapTripNum  || 0,
     __gapCheckNum   : gapCheckNum || 0,
-    __isSuspect     : hasGapTrip || hasGapCheck
+    __isDataError   : isDataError,
+    __isSuspect     : !isDataError && (hasGapTrip || hasGapCheck)
   };
 }
 
@@ -5965,18 +6021,36 @@ function expUpdateAnalytics() {
     _expCheckIndex = expBuildCheckIndex(EXP.cache.check || []);
   }
 
-  let totalGapKm  = 0;
+  let totalGapKm   = 0;
   let suspectTrips = 0;
+  let dataErrTrips = 0;
   miles.forEach(function(r) {
     expEnrichMileRow(r);
+    // ── รวมเฉพาะระยะหายที่ "เป็นไปได้จริง" ── แถวที่เป็น __isDataError (เลขไมล์ตรวจสภาพ
+    // ผิดปกติเกินจริง คาดว่าพิมพ์ผิด) จะมี __gapCheckNum = 0 อยู่แล้วจากขั้นตอนคำนวณ
+    // จึงไม่ทำให้ยอดรวมนี้พองผิดปกติ — นับแยกไว้ใน dataErrTrips แทน
     totalGapKm += Math.abs(r.__gapTripNum || 0) + Math.abs(r.__gapCheckNum || 0);
-    if (r.__isSuspect) suspectTrips++;
+    if (r.__isDataError) dataErrTrips++;
+    else if (r.__isSuspect) suspectTrips++;
   });
 
   document.getElementById('expStatMileGap').textContent =
     totalGapKm > 0 ? Math.round(totalGapKm).toLocaleString() + ' กม.' : '—';
   document.getElementById('expStatCheckGap').textContent =
     suspectTrips > 0 ? suspectTrips.toLocaleString() + ' ทริป' : '—';
+
+  // ── สต็อกใหม่: จำนวนรายการตรวจสภาพที่เลขไมล์ผิดปกติ (พบจาก outlier filter + safety-net) ──
+  const dataErrEl = document.getElementById('expStatDataErr');
+  if (dataErrEl) {
+    const totalDataErr = (_expCheckOutliers ? _expCheckOutliers.length : 0);
+    dataErrEl.textContent = totalDataErr > 0
+      ? totalDataErr.toLocaleString() + ' รายการ'
+      : '—';
+    dataErrEl.parentElement.title = totalDataErr > 0
+      ? 'พบเลขไมล์ตรวจสภาพผิดปกติ ' + totalDataErr + ' รายการในชีท CheckLog (คาดว่าพิมพ์ผิดหลัก) '
+        + '— ดูรายละเอียดใน Sheet "ข้อมูลตรวจผิดปกติ" ของไฟล์ Excel แล้วไปแก้ไขค่าที่ชีทต้นทาง'
+      : 'ไม่พบเลขไมล์ตรวจสภาพที่ผิดปกติ';
+  }
 }
 
 // ── Card Selection ─────────────────────────────────────
@@ -6420,16 +6494,17 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
     });
   }
 
-  // highlight แถวที่ isSuspect (สีส้มอ่อน) ใน sheet ข้อมูลหลัก
+  // highlight แถวที่ isSuspect (สีส้มอ่อน) หรือ isDataError (สีแดงเข้ม) ใน sheet ข้อมูลหลัก
   if (addHdr && EXP.selectedCard === 'mile') {
     const gapFlagColIdx = cols.findIndex(function(c){ return c.key === '__gapFlag'; });
     rows.forEach(function(r, ri) {
-      if (!r.__isSuspect) return;
+      if (!r.__isSuspect && !r.__isDataError) return;
+      const fillColor = r.__isDataError ? 'F5B7B1' : 'FDECEA';
       cols.forEach(function(c, ci) {
         const cellRef = XLSX.utils.encode_cell({ r: ri + 1, c: ci });
         if (ws[cellRef]) {
           ws[cellRef].s = ws[cellRef].s || {};
-          ws[cellRef].s.fill = { fgColor: { rgb: 'FDECEA' } };
+          ws[cellRef].s.fill = { fgColor: { rgb: fillColor } };
         }
       });
     });
@@ -6476,7 +6551,13 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
       { label: '1–5 กม.',    min: 1,  max: 5,   color: 'FDF4DC', hdr: 'FFC300' },  // เหลืองอ่อน
       { label: '6–10 กม.',   min: 6,  max: 10,  color: 'FDEBD0', hdr: 'E67E22' },  // ส้มอ่อน
       { label: '11–20 กม.',  min: 11, max: 20,  color: 'FDEDEC', hdr: 'C0392B' },  // แดงอ่อน
-      { label: '20+ กม.',    min: 21, max: 9999, color: 'F4ECF7', hdr: '7D3C98' },  // ม่วงอ่อน = ร้ายแรงมาก
+      { label: '20+ กม.',    min: 21, max: Infinity, color: 'F4ECF7', hdr: '7D3C98' },  // ม่วงอ่อน = ร้ายแรงมาก
+      // ✅ FIX: เดิม max:9999 ทำให้ทริปที่ระยะหายเกิน 9,999 กม. (ซึ่งเกิดจากเลขไมล์ตรวจสภาพ
+      // พิมพ์ผิดหลักแสน-ล้าน) ไม่ตกอยู่ใน tier ไหนเลย จึงหายไปจากรายงานโดยไม่มีร่องรอย
+      // ทั้งที่ยังถูกนับรวมใน "กม. หายไป" ของสรุปด้านบน — ทำให้ตัวเลขสรุปดูผิดปกติมหาศาล
+      // โดยไม่มีทางตรวจสอบย้อนกลับได้ในรายงานเลย ตอนนี้แก้ที่ต้นตอแล้ว (กรอง outlier
+      // ออกจาก __isDataError ตั้งแต่ขั้นคำนวณ) จึงไม่ควรมีแถวแบบนี้หลงเหลือใน tier นี้อีก
+      // แต่ยังคง max เป็น Infinity ไว้เพื่อไม่ให้ระยะหายจริงจำนวนมากในอนาคตหายไปจากรายงานอีก
     ];
 
     const gapCols = [
@@ -6528,15 +6609,67 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
     const gapAoa = [];
     let styleMap = []; // [{row, type:'hdr'|'data'|'section'|'summary', tierIdx}]
 
-    if (gapRows.length === 0) {
+    const hasAnyDataErr = (_expCheckOutliers && _expCheckOutliers.length > 0) ||
+                          rows.some(function(r){ return r.__isDataError; });
+
+    if (gapRows.length === 0 && !hasAnyDataErr) {
       gapAoa.push(['✅ ไม่พบทริปที่มีระยะหายผิดปกติในช่วงที่เลือก']);
     } else {
       // ── แถว 0: ชื่อรายงาน ──
       gapAoa.push(['รายงานวิเคราะห์ระยะทางหาย — ระบบ SAND โรงพยาบาลสันทราย']);
-      gapAoa.push(['Export เมื่อ: ' + new Date().toLocaleString('th-TH'), '', 'ทริปน่าสงสัยทั้งหมด: ' + gapRows.length + ' ทริป']);
+      const dataErrTripRows = rows.filter(function(r){ return r.__isDataError; });
+      const dataErrCount = (_expCheckOutliers ? _expCheckOutliers.length : 0);
+      gapAoa.push([
+        'Export เมื่อ: ' + new Date().toLocaleString('th-TH'), '',
+        'ทริปน่าสงสัยทั้งหมด: ' + gapRows.length + ' ทริป', '',
+        'เลขไมล์ตรวจสภาพผิดปกติ: ' + dataErrCount + ' รายการ (ไม่นับรวมในระยะหาย)'
+      ]);
       gapAoa.push([]); // spacer
 
       let currentAoaRow = 3; // เริ่มหลัง title 3 แถว
+
+      // ── ส่วนที่ 0: เลขไมล์ตรวจสภาพผิดปกติ (สงสัยพิมพ์ผิด) ───────────
+      // แยกออกมาให้เห็นชัดเจน เพราะเป็นปัญหา "คุณภาพข้อมูลต้นทาง" ในชีท CheckLog
+      // ไม่ใช่ "ระยะทางหายจริง" ของทริป — ต้องไปแก้ไขค่าที่ชีท CheckLog โดยตรง
+      if (dataErrCount > 0 || dataErrTripRows.length > 0) {
+        gapAoa.push([
+          '⚠ เลขไมล์ตรวจสภาพผิดปกติ (สงสัยพิมพ์ผิด) — ไม่นับรวมเป็นระยะหาย  (' + dataErrCount + ' รายการ)',
+          '', '', '', '', '', '', '', '', '', '', '', ''
+        ]);
+        styleMap.push({ row: currentAoaRow, type: 'dataErrSection' });
+        currentAoaRow++;
+
+        const dataErrCols = ['ทะเบียน/รถ', 'วันที่ตรวจ (มีปัญหา)', 'เลขไมล์ที่บันทึกไว้ (ผิด)', 'เลขไมล์ใกล้เคียงที่ควรจะเป็น', 'คำแนะนำ'];
+        gapAoa.push(dataErrCols);
+        styleMap.push({ row: currentAoaRow, type: 'dataErrHdr' });
+        currentAoaRow++;
+
+        (_expCheckOutliers || []).forEach(function(o) {
+          gapAoa.push([
+            o.plate, o.date, o.badOdo.toLocaleString(), o.neighborOdo.toLocaleString(),
+            'ไปแก้ไขเลขไมล์ในชีท CheckLog แถววันที่ ' + o.date + ' ของรถ ' + o.plate
+          ]);
+          styleMap.push({ row: currentAoaRow, type: 'dataErrRow' });
+          currentAoaRow++;
+        });
+
+        if (dataErrTripRows.length > 0) {
+          dataErrTripRows.forEach(function(r) {
+            gapAoa.push([
+              r['ทะเบียน/รถ'] || r.carType || '—',
+              r['วันที่'] || '—',
+              '(ดูรายละเอียดในคอลัมน์ "ไมล์ตรวจสภาพก่อนออก" ของทริป ' + (r.TripID || '—') + ')',
+              '—',
+              'ทริปนี้อ้างอิงเลขไมล์ตรวจสภาพที่ผิดปกติ ไม่สามารถระบุค่าเปรียบเทียบได้'
+            ]);
+            styleMap.push({ row: currentAoaRow, type: 'dataErrRow' });
+            currentAoaRow++;
+          });
+        }
+
+        gapAoa.push([]); // spacer
+        currentAoaRow++;
+      }
 
       // ── วนแต่ละ tier ──────────────────────────────────────────
       TIERS.forEach(function(tier, ti) {
@@ -6631,7 +6764,20 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
     // apply styles จาก styleMap
     styleMap.forEach(function(s) {
       const tier = TIERS[s.tierIdx] || TIERS[0];
-      if (s.type === 'hdr') {
+      if (s.type === 'dataErrSection') {
+        const ref = XLSX.utils.encode_cell({ r: s.row, c: 0 });
+        if (wsGap[ref]) {
+          wsGap[ref].s = {
+            font: { bold: true, sz: 12, color: { rgb: 'FFFFFF' } },
+            fill: { fgColor: { rgb: 'C0392B' } },
+            alignment: { horizontal: 'left', vertical: 'center' }
+          };
+        }
+      } else if (s.type === 'dataErrHdr') {
+        for (let ci = 0; ci < 5; ci++) applyHdrStyle(wsGap, s.row, ci, 'C0392B');
+      } else if (s.type === 'dataErrRow') {
+        applyRowStyle(wsGap, s.row, 5, 'FDEDEC');
+      } else if (s.type === 'hdr') {
         gapCols.forEach(function(c, ci) {
           applyHdrStyle(wsGap, s.row, ci, tier.hdr);
         });
