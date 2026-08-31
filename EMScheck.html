@@ -488,6 +488,20 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
   .sum-divider { display: none; }
   .progress-wrap { top: 60px; }
   .item-name { font-size: 15px; line-height: 1.35; }
+
+  /* ✅ NEW: กัน iOS ซูมจอตอน focus input/select (font-size ต้อง >= 16px) + header ไม่ล้นจอแคบ */
+  input[type="text"], input[type="date"], input[type="time"], input[type="number"],
+  select, textarea { font-size: 16px !important; }
+  .header-inner { padding: 0 12px; gap: 8px; }
+  .header-titles .main-title { font-size: 12.5px; }
+  .header-titles .sub-title { font-size: 10px; }
+  .back-btn { padding: 5px 9px; font-size: 11px; }
+}
+
+/* จอแคบมาก (มือถือจอเล็ก) — บีบ pills ให้อยู่แถวเดียวกันแบบพอดี */
+@media (max-width: 380px) {
+  .status-pills .status-pill { font-size: 9.5px; padding: 5px 6px; }
+  .item-controls { min-width: 120px; }
 }
 </style>
 <script src="secure-fetch.js"></script>
