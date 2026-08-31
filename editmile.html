@@ -190,6 +190,56 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
 .photo-thumb-sm .up-badge.ok         { background: var(--success); color: #fff; }
 .photo-thumb-sm .up-badge.err        { background: var(--danger); color: #fff; }
 .photo-empty-note { font-size: 11.5px; color: var(--text-light); padding: 10px 0; }
+
+/* ══════════════════════════════════════════════════════════════
+   ✅ NEW: MOBILE UX — หน้านี้เดิมไม่มี @media เลยแม้แต่จุดเดียว ทำให้บนมือถือ:
+   - โมดัลแก้ไข/ลบ กว้างเกิน + ปุ่มด้านล่างโดนคีย์บอร์ดบัง เลื่อนดูลำบาก
+   - ช่อง input กด focus แล้ว iOS ซูมจอ (font-size < 16px)
+   - ปุ่ม/แถวตารางเล็กเกินกดแม่นบนจอสัมผัส
+   - แถบ role-toggle/filter-bar ล้นจอในแนวนอน
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 720px) {
+  .header-inner { padding: 0 12px; gap: 8px; }
+  .header-titles .main-title { font-size: 12.5px; }
+  .header-titles .sub-title { font-size: 10px; }
+  .back-btn { font-size: 11px; padding: 5px 9px; }
+  .main-wrap { padding: 14px 10px 60px; }
+
+  .gate-wrap { margin: 20px auto; max-width: 100%; }
+  .gate-card { padding: 20px 16px; }
+  .role-toggle { gap: 6px; }
+  .role-btn { padding: 12px 6px; font-size: 12.5px; }
+
+  .card-header { padding: 13px 14px; }
+  .card-body { padding: 14px; }
+
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  .filter-bar input, .filter-bar select { width: 100%; font-size: 16px; padding: 11px 12px; }
+  .filter-bar input[type="text"] { min-width: 0; }
+
+  /* ตาราง: เลื่อนแนวนอนได้ (มี .table-wrap อยู่แล้ว) + ปุ่มในแถวไม่ล้น */
+  .trip-table .btn { padding: 7px 10px; font-size: 11.5px; margin-bottom: 4px; }
+
+  /* โมดัล: เต็มจอแนวตั้ง เลื่อนเนื้อหาได้ ปุ่มล่างไม่โดนคีย์บอร์ดบัง */
+  .modal-overlay { padding: 0; align-items: stretch; }
+  .modal-box { max-width: 100%; width: 100%; min-height: 100%; border-radius: 0; display: flex; flex-direction: column; }
+  .modal-body { flex: 1; overflow-y: auto; padding: 16px; }
+  .modal-head { padding: 14px 16px; position: sticky; top: 0; background: #fff; z-index: 2; }
+  .modal-foot { padding: 12px 16px; position: sticky; bottom: 0; background: #fff; box-shadow: 0 -2px 10px rgba(13,33,55,.08); flex-wrap: wrap; }
+  .modal-foot .btn { flex: 1; min-width: 100px; padding: 12px 10px; }
+
+  /* ฟอร์มแก้ไข: 1 คอลัมน์บนจอแคบ กันช่องแคบจนพิมพ์ลำบาก */
+  .form-grid { grid-template-columns: 1fr; }
+  .form-group.span2 { grid-column: span 1; }
+  .form-group input, .form-group select, .form-group textarea { font-size: 16px; padding: 11px 12px; } /* 16px กัน iOS ซูมจอตอน focus */
+
+  .pending-top { flex-direction: column; }
+  .pending-actions { flex-wrap: wrap; }
+  .pending-actions .btn { flex: 1; min-width: 100px; }
+
+  .photo-cat-tabs { flex-wrap: wrap; }
+  .btn { min-height: 40px; }
+}
 </style>
 <script src="secure-fetch.js"></script>
 </head>
@@ -309,14 +359,20 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
       <div class="role-hint" id="editRoleHint"></div>
       <div class="form-grid">
         <div class="form-group"><label>วันที่</label><input type="date" id="edDate"></div>
-        <div class="form-group"><label>ทะเบียน/รถ</label><input type="text" id="edPlate"></div>
-        <div class="form-group"><label>พนักงานขับรถ</label><input type="text" id="edDriver"></div>
+        <div class="form-group"><label>ทะเบียน/รถ</label><input type="text" id="edPlate" list="edPlateList" autocomplete="off"><datalist id="edPlateList"></datalist></div>
+        <div class="form-group"><label>พนักงานขับรถ</label><input type="text" id="edDriver" list="edDriverList" autocomplete="off"><datalist id="edDriverList"></datalist></div>
         <div class="form-group"><label>ปลายทาง</label><input type="text" id="edDest"></div>
-        <div class="form-group"><label>เลขไมล์ต้น</label><input type="number" id="edOdoStart"></div>
-        <div class="form-group"><label>เลขไมล์ปลาย</label><input type="number" id="edOdoEnd"></div>
-        <div class="form-group"><label>ระยะทาง (กม.)</label><input type="number" id="edDist" placeholder="เว้นว่าง = คำนวณอัตโนมัติ"></div>
-        <div class="form-group"><label>สถานะ</label><input type="text" id="edStatus"></div>
+        <div class="form-group"><label>เลขไมล์ต้น</label><input type="number" id="edOdoStart" min="0" step="1" oninput="recalcEdDist()"></div>
+        <div class="form-group"><label>เลขไมล์ปลาย</label><input type="number" id="edOdoEnd" min="0" step="1" oninput="recalcEdDist()"></div>
+        <div class="form-group"><label>ระยะทาง (กม.)</label><input type="number" id="edDist" readonly placeholder="คำนวณอัตโนมัติจากเลขไมล์ต้น/ปลาย" style="background:var(--bg); color:var(--text-light);"></div>
+        <div class="form-group"><label>สถานะ</label>
+          <select id="edStatus">
+            <option value="กำลังใช้งาน">กำลังใช้งาน (ยังไม่กลับ)</option>
+            <option value="พร้อมใช้งาน">พร้อมใช้งาน (กลับแล้ว)</option>
+          </select>
+        </div>
         <div class="form-group span2"><label>หมายเหตุ</label><input type="text" id="edNote"></div>
+        <div class="form-group span2" id="edOdoWarning" style="display:none; color:var(--danger); font-size:12.5px; font-weight:600;">⚠️ เลขไมล์ปลายต้องไม่น้อยกว่าเลขไมล์ต้น</div>
         <div class="form-group span2">
           <label>เหตุผลในการแก้ไข <span style="color:var(--danger);">*</span></label>
           <textarea id="edReason" placeholder="เช่น พขร. ลืมลงเลขไมล์ปลาย, พิมพ์เลขไมล์ผิด ฯลฯ"></textarea>
@@ -445,8 +501,34 @@ async function loadDriverList() {
     const sel = document.getElementById('gateDriverSelect');
     const names = (json && json.drivers) || [];
     sel.innerHTML = '<option value="">— เลือกชื่อ —</option>' + names.map(n => '<option value="' + escHtml(n) + '">' + escHtml(n) + '</option>').join('');
+
+    // ── เตรียม datalist ชื่อ พขร. สำหรับช่อง "พนักงานขับรถ" ในโมดัลแก้ไข ──
+    // (เป็นแค่คำแนะนำ ไม่บังคับเลือก เพราะบางทริปอาจมีคนขับที่ไม่อยู่ในรายชื่อปัจจุบันแล้ว
+    //  แต่ช่วยกันพิมพ์ชื่อผิด/สะกดไม่ตรงกับที่ใช้ในรายงานอื่นๆ ซึ่งทำให้ข้อมูลไม่สอดคล้องกัน)
+    const dList = document.getElementById('edDriverList');
+    if (dList) dList.innerHTML = names.map(n => '<option value="' + escHtml(n) + '">').join('');
   } catch (err) {
     document.getElementById('gateDriverSelect').innerHTML = '<option value="">โหลดรายชื่อไม่สำเร็จ</option>';
+  }
+}
+
+/** เตรียม datalist ทะเบียน/รถ สำหรับช่อง "ทะเบียน/รถ" ในโมดัลแก้ไข
+ *  ใช้รูปแบบข้อความเดียวกับที่ startmile.html บันทึกลง MileLog จริง (ทะเบียน — ประเภท)
+ *  เพื่อไม่ให้ค่าที่แก้ไขเพี้ยนไปจากรูปแบบที่ใช้จับคู่รถ/สรุปรายงานหน้าอื่นๆ */
+async function loadVehicleList() {
+  try {
+    const res = await fetch(GAS_URL + '?action=getVehicles', { cache: 'no-store' });
+    const json = await res.json();
+    const vehicles = (json && json.vehicles) || (json && json.data) || [];
+    const dList = document.getElementById('edPlateList');
+    if (dList) {
+      dList.innerHTML = vehicles.map(v => {
+        const label = (v['ทะเบียน'] || '') + ' — ' + (v['ประเภท'] || '');
+        return '<option value="' + escHtml(label) + '">';
+      }).join('');
+    }
+  } catch (err) {
+    // เงียบไว้ — datalist เป็นแค่ตัวช่วย ไม่ใช่ข้อมูลจำเป็นต่อการทำงาน
   }
 }
 
@@ -611,9 +693,15 @@ function openEditModal(tripId) {
   document.getElementById('edOdoStart').value = editingOldValues['เลขไมล์ต้น'];
   document.getElementById('edOdoEnd').value = editingOldValues['เลขไมล์ปลาย'];
   document.getElementById('edDist').value = editingOldValues['ระยะทาง(กม.)'];
-  document.getElementById('edStatus').value = editingOldValues['สถานะ'];
+  // ✅ FIX: 'สถานะ' ตอนนี้เป็น <select> ที่มีแค่ 2 ค่าที่ระบบยอมรับจริง
+  // (กันแอดมินพิมพ์สถานะแปลกๆ ที่หน้าอื่น เช่น dashboard/startmile จะไม่รู้จักและกรองไม่เจอ)
+  // ถ้าค่าที่บันทึกไว้เดิมไม่ตรงกับ 2 ค่านี้ (ข้อมูลเก่าที่อาจเพี้ยนมาก่อน) ให้ตั้งเป็น "พร้อมใช้งาน" ไว้ก่อน
+  const validStatuses = ['กำลังใช้งาน', 'พร้อมใช้งาน'];
+  document.getElementById('edStatus').value = validStatuses.includes(editingOldValues['สถานะ'])
+    ? editingOldValues['สถานะ'] : 'พร้อมใช้งาน';
   document.getElementById('edNote').value = editingOldValues['หมายเหตุ'];
   document.getElementById('edReason').value = '';
+  recalcEdDist();
 
   document.getElementById('editRoleHint').textContent = role === 'admin'
     ? 'คุณกำลังแก้ไขในฐานะแอดมิน — การกดบันทึกจะเปลี่ยนข้อมูลจริงทันที'
@@ -630,10 +718,48 @@ function closeEditModal() {
   editingTrip = null;
 }
 
+/** คำนวณ "ระยะทาง (กม.)" อัตโนมัติจาก เลขไมล์ต้น/ปลาย ทุกครั้งที่มีการแก้ไขค่าใดค่าหนึ่ง
+ *  ✅ FIX: เดิมช่อง "ระยะทาง (กม.)" เป็น text ที่แก้เองได้อิสระ — แอดมินอาจพิมพ์ระยะทาง
+ *  ที่ไม่ตรงกับผลต่างของเลขไมล์จริง ทำให้ข้อมูลไม่สอดคล้องกัน (เช่น เลขไมล์ต่างกัน 50 กม.
+ *  แต่ระยะทางที่บันทึกบอก 20 กม.) เปลี่ยนเป็นคำนวณให้เสมอ + แจ้งเตือนถ้าเลขไมล์ปลาย < เลขไมล์ต้น */
+function recalcEdDist() {
+  const s = document.getElementById('edOdoStart').value;
+  const e = document.getElementById('edOdoEnd').value;
+  const distEl = document.getElementById('edDist');
+  const warnEl = document.getElementById('edOdoWarning');
+  const sNum = s === '' ? null : Number(s);
+  const eNum = e === '' ? null : Number(e);
+
+  if (sNum === null || eNum === null || isNaN(sNum) || isNaN(eNum)) {
+    distEl.value = '';
+    warnEl.style.display = 'none';
+    return true;
+  }
+  if (eNum < sNum) {
+    warnEl.style.display = 'block';
+    distEl.value = '';
+    return false;
+  }
+  warnEl.style.display = 'none';
+  distEl.value = eNum - sNum;
+  return true;
+}
+
 async function submitEdit() {
   if (!editingTrip) return;
   const reason = document.getElementById('edReason').value.trim();
   if (!reason) { showToast('กรุณาระบุเหตุผลในการแก้ไข', 'err'); return; }
+
+  // ✅ FIX: กันส่งข้อมูลที่ไม่สอดคล้องกัน (เลขไมล์ปลาย < เลขไมล์ต้น) ตั้งแต่ฝั่งหน้าเว็บ
+  // ก่อนหน้านี้ไม่มีการตรวจเลย ปล่อยให้เขียนระยะทางติดลบ/ผิดพลาดลง MileLog ได้
+  if (!recalcEdDist()) {
+    showToast('เลขไมล์ปลายต้องไม่น้อยกว่าเลขไมล์ต้น กรุณาแก้ไขก่อนบันทึก', 'err');
+    return;
+  }
+  const plateVal = document.getElementById('edPlate').value.trim();
+  const driverVal = document.getElementById('edDriver').value.trim();
+  if (!plateVal) { showToast('กรุณาระบุทะเบียน/รถ', 'err'); return; }
+  if (!driverVal) { showToast('กรุณาระบุพนักงานขับรถ', 'err'); return; }
 
   const newValues = {
     'วันที่'       : document.getElementById('edDate').value,
@@ -1010,6 +1136,7 @@ async function rejectRequest(requestId, btnEl) {
 //  INIT
 // ════════════════════════════════════════════════════════════
 loadDriverList();
+loadVehicleList();
 </script>
 </body>
 </html>
