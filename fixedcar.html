@@ -557,6 +557,18 @@ textarea { resize: vertical; min-height: 80px; }
 .chip-danger  { background: var(--danger-soft); color: var(--danger); }
 .chip-blue    { background: var(--blue-soft);   color: var(--blue); }
 .chip-teal    { background: var(--teal-soft);   color: var(--teal); }
+
+/* ✅ NEW: มือถือ — header/ฟอร์ม/timeline ปรับให้ใช้งานง่ายบนจอแคบ */
+@media (max-width: 640px) {
+  .header-inner { padding: 0 12px; gap: 8px; }
+  .form-wrapper { padding: 16px 10px 60px; }
+  input[type="text"], input[type="date"], input[type="time"], input[type="number"],
+  input[type="tel"], select, textarea { font-size: 16px !important; } /* กัน iOS ซูมจอตอน focus */
+  .timeline { padding-left: 22px; }
+  .modal-box { padding: 28px 20px; }
+  .urgency-group { gap: 6px; }
+  .urgency-opt .pill, .urgency-opt label { font-size: 12px; padding: 7px 12px; min-height: 32px; }
+}
 </style>
 <script src="secure-fetch.js"></script>
 </head>
