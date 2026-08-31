@@ -166,6 +166,26 @@ body {
 .field-row.three { grid-template-columns: 1fr 1fr 1fr; }
 @media (max-width: 600px) {
   .field-row, .field-row.three { grid-template-columns: 1fr; }
+
+  /* ✅ NEW: มือถือ — header/ปุ่ม/ตาราง/input ปรับให้กดง่าย พิมพ์ง่าย ไม่ล้นจอ */
+  .header-inner { padding: 0 12px; gap: 8px; }
+  .header-titles .main-title { font-size: 12.5px; }
+  .header-titles .sub-title { font-size: 10px; }
+  .back-btn { padding: 5px 9px; font-size: 11px; }
+  .form-wrapper { padding: 16px 10px 60px; }
+
+  input[type="text"], input[type="date"], input[type="time"], input[type="number"],
+  select, textarea { font-size: 16px; padding: 11px 12px; } /* กัน iOS ซูมจอตอน focus */
+
+  .check-table, .equip-table { font-size: 12px; }
+  .check-table thead th, .equip-table thead th { font-size: 10.5px; padding: 8px 6px; white-space: nowrap; }
+  .check-table tbody td, .equip-table tbody td { padding: 8px 6px; }
+
+  .modal-box { padding: 28px 20px; }
+
+  /* ปุ่มเลือกผล (ปกติ/ผิดปกติ/ไม่ตรวจ) ใหญ่พอกดด้วยนิ้วบนตาราง */
+  .radio-opt .pill { padding: 7px 12px; font-size: 12px; min-height: 32px; display: inline-flex; align-items: center; }
+  .radio-group { gap: 6px; }
 }
 .field-group { display: flex; flex-direction: column; gap: 6px; }
 label {
@@ -737,7 +757,7 @@ textarea { resize: vertical; min-height: 80px; }
         <h2>การเปลี่ยนอุปกรณ์รถทั่วไป</h2>
         <span class="badge">จำเป็น</span>
       </div>
-      <div class="card-body" style="padding:0">
+      <div class="card-body" style="padding:0; overflow-x:auto; -webkit-overflow-scrolling:touch;">
         <table class="equip-table">
           <thead>
             <tr>
@@ -773,7 +793,7 @@ textarea { resize: vertical; min-height: 80px; }
         <div class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
         <h2>การตรวจสอบระบบและอุปกรณ์</h2>
       </div>
-      <div class="card-body" style="padding:0;">
+      <div class="card-body" style="padding:0; overflow-x:auto; -webkit-overflow-scrolling:touch;">
         <table class="check-table">
           <thead>
             <tr>
