@@ -522,6 +522,17 @@ input[readonly] { background: #f8fafb; color: var(--text-mid); cursor: default; 
   .form-grid.three { grid-template-columns: 1fr 1fr; }
   .form-group.span2, .form-group.span3 { grid-column: span 1; }
   .active-trip-grid { grid-template-columns: 1fr 1fr; }
+
+  /* ✅ NEW: กัน iOS ซูมจอตอน focus input/select/textarea (font-size ต้อง >= 16px) —
+     เดิม 14px ทำให้ พขร. โฟกัสช่องกรอกเลขไมล์/หมายเหตุแล้วจอซูมเข้าอัตโนมัติ ต้องซูมออกเอง */
+  input, select, textarea { font-size: 16px; }
+  #rp-toggle, #rp-search { font-size: 16px !important; }
+
+  .header-inner { padding: 0 12px; gap: 8px; }
+  .header-titles .main-title { font-size: 12.5px; }
+  .tab-btn { font-size: 12px; padding: 10px 6px; }
+  .hist-table { font-size: 11.5px; }
+  .photo-thumb-sm { width: 76px; height: 76px; }
 }
 
 /* ── DESTINATION DROPDOWN ── */
