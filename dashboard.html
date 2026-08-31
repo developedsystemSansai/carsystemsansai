@@ -1134,12 +1134,15 @@ body {
   #fuelTrackerGrid { grid-template-columns: 1fr !important; }
   /* card-body padding reduction */
   .card-body { padding: 12px; }
+  /* ✅ NEW: กัน iOS ซูมจอตอน focus input/select ทั่วหน้า (รวม input type=date/month ที่ font-size เดิม < 16px) */
+  input, select { font-size: 16px !important; }
 }
 @media(max-width:480px) {
   .kpi-grid { grid-template-columns: 1fr 1fr; }
   .live-veh-grid { grid-template-columns: 1fr 1fr; }
   .filter-bar { padding: 10px 12px; gap: 6px; }
-  .filter-bar select, .filter-bar input { font-size: 12px; }
+  /* ✅ FIX: เดิมลด font-size เหลือ 12px ตรงนี้ ทำให้ iOS ซูมจอทุกครั้งที่แตะช่องนี้ (เกณฑ์ iOS คือ >=16px) */
+  .filter-bar select, .filter-bar input { font-size: 16px; padding: 8px 10px; }
   .filter-actions { width: 100%; }
 }
 @media(max-width:360px) {
@@ -1759,19 +1762,23 @@ async function checkPw() {
         <span class="badge" id="fuelSummaryBadge" style="background:rgba(255,255,255,0.25);color:#fff;">—</span>
       </div>
       <div class="card-body" style="padding:0;">
+        <div class="table-scroll">
         <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
           <thead>
             <tr style="background:var(--bg);">
               <th style="padding:9px 12px;text-align:left;font-size:0.7rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);">ทะเบียน</th>
               <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);">จำนวนครั้ง</th>
               <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);">ลิตร / บาท</th>
+              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);" title="ระยะทางรวมที่รถคันนี้วิ่งจริงในช่วงเวลาเดียวกัน (จากทุกทริป ไม่ใช่แค่ทริปที่เติมน้ำมัน)">ระยะทางรวม</th>
+              <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);" title="ระยะทางรวม ÷ น้ำมันที่เติมรวม — ยิ่งสูงยิ่งประหยัด">อัตราสิ้นเปลือง</th>
               <th style="padding:9px 12px;text-align:center;font-size:0.7rem;font-weight:700;color:var(--text-mid);text-transform:uppercase;letter-spacing:.7px;border-bottom:2px solid var(--border-strong);">เติมล่าสุด</th>
             </tr>
           </thead>
           <tbody id="fuelSummaryTbody">
-            <tr><td colspan="4" class="loading-state"><div class="spinner-sm"></div></td></tr>
+            <tr><td colspan="6" class="loading-state"><div class="spinner-sm"></div></td></tr>
           </tbody>
         </table>
+        </div>
         <div id="fuelSummaryFooter" style="padding:8px 14px;font-size:0.7rem;color:var(--text-light);border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
           <span>⛽ รวมจาก MileLog ตามช่วงเวลาที่เลือก</span>
           <span id="fuelSummaryTotal" style="font-weight:700;color:var(--blue);font-family:'IBM Plex Mono',monospace;"></span>
@@ -2780,6 +2787,21 @@ function renderFuelSummary(_unused) {
     return true;
   });
 
+  // ✅ NEW: ระยะทางรวมที่รถแต่ละคัน "วิ่งจริง" ในช่วงเวลาเดียวกัน — ต้องนับจากทริปทั้งหมด
+  // ไม่ใช่แค่ทริปที่เติมน้ำมัน ไม่งั้นอัตราสิ้นเปลืองจะคลาดเคลื่อนมาก (ทริปที่ไม่ได้เติมน้ำมันก็ยังกินน้ำมันอยู่)
+  const distByPlate = {};
+  (_mileLogAll || []).forEach(r => {
+    if (monF) {
+      const rowDate = normalizeInspDate(r['วันที่'] || r['Timestamp'] || '');
+      if (!rowDate.startsWith(monF)) return;
+    }
+    const raw   = String(r['ทะเบียน/รถ'] || r['carType'] || '');
+    const plate = raw.split(' ')[0].trim();
+    if (!plate) return;
+    const d = parseFloat(String(r['ระยะทาง(กม.)'] || r['distance'] || 0).replace(/[^0-9.]/g, '')) || 0;
+    distByPlate[plate] = (distByPlate[plate] || 0) + d;
+  });
+
   // จัดกลุ่มตามทะเบียน
   const byPlate = {};
   mileRows.forEach(r => {
@@ -2804,12 +2826,26 @@ function renderFuelSummary(_unused) {
     }
   });
 
+  // ผูกระยะทางรวมเข้ากับแต่ละคัน + คำนวณอัตราสิ้นเปลือง (กม./ลิตร)
+  Object.keys(byPlate).forEach(plate => {
+    byPlate[plate].totalDist = distByPlate[plate] || 0;
+    byPlate[plate].kmPerLiter = byPlate[plate].totalLiters > 0
+      ? byPlate[plate].totalDist / byPlate[plate].totalLiters
+      : null;
+  });
+
   const rows = Object.entries(byPlate).sort((a, b) => b[1].trips - a[1].trips);
   const grandLiters = rows.reduce((s, [,v]) => s + v.totalLiters, 0);
   const grandPrice  = rows.reduce((s, [,v]) => s + v.totalPrice,  0);
+  const grandDist   = rows.reduce((s, [,v]) => s + v.totalDist,   0);
+
+  // ── ค่ากลาง (ค่ามัธยฐาน) ของ กม./ลิตร ทั้งกองรถ ใช้เป็นเกณฑ์เทียบว่าคันไหน "สิ้นเปลืองผิดปกติ" ──
+  // (รถแต่ละประเภทกินน้ำมันไม่เท่ากันอยู่แล้ว เทียบกับค่ากลางของกองรถตัวเองแม่นกว่าเทียบกับตัวเลขตายตัว)
+  const validRates = rows.map(([,v]) => v.kmPerLiter).filter(x => x !== null && x > 0).sort((a,b) => a-b);
+  const medianRate = validRates.length ? validRates[Math.floor(validRates.length / 2)] : null;
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty-state"><div class="em">—</div>ยังไม่มีข้อมูลการเติมน้ำมันจาก MileLog</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty-state"><div class="em">—</div>ยังไม่มีข้อมูลการเติมน้ำมันจาก MileLog</td></tr>';
     if (badge)   badge.textContent  = '—';
     if (totalEl) totalEl.textContent = '';
     return;
@@ -2819,6 +2855,20 @@ function renderFuelSummary(_unused) {
     const litersStr = v.totalLiters > 0 ? v.totalLiters.toLocaleString(undefined, {maximumFractionDigits:1}) + ' ล.' : '—';
     const priceStr  = v.totalPrice  > 0 ? v.totalPrice.toLocaleString()  + ' ฿' : '—';
     const lastStr   = v.lastDate ? v.lastDate.slice(5).replace('-', '/') : '—';
+    const distStr   = v.totalDist > 0 ? Math.round(v.totalDist).toLocaleString() + ' กม.' : '—';
+
+    // ป้ายอัตราสิ้นเปลือง — เทียบกับค่ากลางกองรถ: ต่ำกว่าค่ากลางมาก (สิ้นเปลืองกว่าเพื่อน) → แดง, สูงกว่า → เขียว
+    let rateStr = '—', rateColor = 'var(--text-light)', rateBg = 'transparent';
+    if (v.kmPerLiter !== null && v.kmPerLiter > 0) {
+      rateStr = v.kmPerLiter.toLocaleString(undefined, {maximumFractionDigits:1}) + ' กม./ล.';
+      if (medianRate && medianRate > 0) {
+        const ratio = v.kmPerLiter / medianRate;
+        if (ratio < 0.7)      { rateColor = '#c0392b'; rateBg = '#fdecea'; } // สิ้นเปลืองผิดปกติ (ต่ำกว่าค่ากลาง 30%+)
+        else if (ratio > 1.3) { rateColor = '#1a8a4a'; rateBg = '#e4f5eb'; } // ประหยัดกว่าค่าเฉลี่ยชัดเจน
+        else                  { rateColor = 'var(--text-mid)'; }
+      }
+    }
+
     return `<tr style="border-bottom:1px solid var(--border);transition:background .15s;"
               onmouseover="this.style.background='var(--blue-soft)'" onmouseout="this.style.background=''">
       <td style="padding:9px 12px;font-weight:700;color:var(--navy);font-family:'IBM Plex Mono',monospace;font-size:0.82rem;">${plate}</td>
@@ -2829,6 +2879,10 @@ function renderFuelSummary(_unused) {
       <td style="padding:9px 12px;text-align:center;">
         <div style="font-weight:700;color:var(--navy);font-family:'IBM Plex Mono',monospace;font-size:0.82rem;">${litersStr}</div>
         <div style="font-size:0.68rem;color:var(--amber);font-weight:600;">${priceStr}</div>
+      </td>
+      <td style="padding:9px 12px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:var(--text-mid);">${distStr}</td>
+      <td style="padding:9px 12px;text-align:center;">
+        <span style="background:${rateBg};color:${rateColor};font-size:0.78rem;font-weight:700;padding:3px 9px;border-radius:4px;font-family:'IBM Plex Mono',monospace;">${rateStr}</span>
       </td>
       <td style="padding:9px 12px;text-align:center;">
         <span style="background:var(--blue-soft);color:var(--blue);font-size:0.72rem;font-weight:700;padding:3px 9px;border-radius:4px;font-family:'IBM Plex Mono',monospace;">
@@ -2843,11 +2897,13 @@ function renderFuelSummary(_unused) {
       <div style="font-weight:700;color:var(--navy);font-family:'IBM Plex Mono',monospace;">${grandLiters.toLocaleString(undefined,{maximumFractionDigits:1})} ล.</div>
       <div style="font-size:0.72rem;color:var(--amber);font-weight:700;">${grandPrice.toLocaleString()} ฿</div>
     </td>
+    <td style="padding:9px 12px;text-align:center;font-weight:700;color:var(--navy);font-family:'IBM Plex Mono',monospace;">${Math.round(grandDist).toLocaleString()} กม.</td>
+    <td style="padding:9px 12px;text-align:center;font-weight:700;color:var(--navy);font-family:'IBM Plex Mono',monospace;">${grandLiters > 0 ? (grandDist/grandLiters).toLocaleString(undefined,{maximumFractionDigits:1}) + ' กม./ล.' : '—'}</td>
     <td></td>
   </tr>`;
 
   if (badge)   badge.textContent  = 'เติมแล้ว ' + rows.length + ' คัน · ' + grandLiters.toLocaleString(undefined,{maximumFractionDigits:1}) + ' ล.';
-  if (totalEl) totalEl.textContent = 'รวม ' + grandPrice.toLocaleString() + ' บาท';
+  if (totalEl) totalEl.textContent = 'รวม ' + grandPrice.toLocaleString() + ' บาท' + (grandLiters > 0 ? ' · เฉลี่ย ' + (grandDist/grandLiters).toLocaleString(undefined,{maximumFractionDigits:1}) + ' กม./ล.' : '');
 }
 
 
@@ -5527,6 +5583,10 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="exp-stat-num" style="color:#9b59b6;" id="expStatMileGap">—</div>
           <div class="exp-stat-lbl">กม. หายไป (ทริป)</div>
         </div>
+        <div class="exp-stat" title="✅ NEW: ไมล์ปลายทริปก่อนหน้า ไม่ตรงกับไมล์ต้นทริปถัดไปของรถคันเดียวกัน — แปลว่ามีระยะทางที่วิ่งจริงแต่ไม่มีทริปบันทึกไว้เลย นี่คือ 'ระยะหายจริง' ที่ตรงจุดที่สุด">
+          <div class="exp-stat-num" style="color:#c0392b;" id="expStatChainGap">—</div>
+          <div class="exp-stat-lbl">กม. หายจริง (ระหว่างทริป)</div>
+        </div>
         <div class="exp-stat" title="ทริปที่ไมล์ออกรถ ≠ ไมล์ตรวจเช็ครถล่าสุด">
           <div class="exp-stat-num" style="color:#e67e22;" id="expStatCheckGap">—</div>
           <div class="exp-stat-lbl">ทริปน่าสงสัย</div>
@@ -5536,6 +5596,9 @@ document.addEventListener('DOMContentLoaded', function() {
           <div class="exp-stat-lbl">เลขไมล์ตรวจผิดปกติ</div>
         </div>
       </div>
+
+      <!-- ✅ NEW: ชี้จุดตรงๆ ว่ารถคันไหน ช่วงไหน หายมากที่สุด -->
+      <div id="expChainTopHint" style="display:none; margin:-8px 0 16px; padding:10px 14px; background:#fdecea; border:1px solid #f5b7b1; border-radius:8px; font-size:12.5px; color:#922b21; line-height:1.6;"></div>
 
       <!-- 1. เลือกชุดข้อมูล -->
       <div class="exp-section">
@@ -5639,7 +5702,8 @@ document.addEventListener('DOMContentLoaded', function() {
           <label class="exp-opt-label"><input type="checkbox" id="expOptBOM" checked> UTF-8 BOM (เปิด Excel ถูก)</label>
           <label class="exp-opt-label"><input type="checkbox" id="expOptSummary"> รวมแถวสรุปท้ายไฟล์</label>
           <label class="exp-opt-label"><input type="checkbox" id="expOptIssueOnly"> เฉพาะรายการที่มีปัญหา</label>
-          <label class="exp-opt-label"><input type="checkbox" id="expOptMileGap" checked> วิเคราะห์ระยะหาย (เฉพาะ Excel · เพิ่ม sheet แยก)</label>
+          <label class="exp-opt-label"><input type="checkbox" id="expOptMileGap" checked> วิเคราะห์ระยะหาย + จุดระยะหายมากที่สุดรายคัน (เฉพาะ Excel · เพิ่ม sheet แยก)</label>
+          <label class="exp-opt-label"><input type="checkbox" id="expOptFuelEff" checked> วิเคราะห์อัตราการใช้น้ำมันรายคัน (เฉพาะ Excel · เพิ่ม sheet แยก)</label>
         </div>
       </div>
 
@@ -5734,6 +5798,8 @@ async function expLoadAll() {
     delete r.__gapFlag;
     expEnrichMileRow(r);
   });
+  // ✅ NEW: คำนวณระยะหายจริงระหว่างทริป (ต้องทำหลัง mile โหลดครบ + เรียงตามลำดับเวลาได้)
+  _expChainFindings = expBuildTripChainGaps(EXP.cache.mile || []);
 
   expUpdateAnalytics();
   expRefreshPreview();
@@ -5839,6 +5905,82 @@ function expGetLastCheckOdoBefore(checkIndex, plate, tripDate) {
     else break;
   }
   return lastOdo;
+}
+
+// ══════════════════════════════════════════════════════════════
+//  ✅ NEW: ระยะหายจริงระหว่างทริป (Trip-to-Trip Chain Gap)
+//  ══════════════════════════════════════════════════════════════
+//  เดิมระบบตรวจ "ระยะหาย" แค่ 2 มิติ:
+//    1) ในทริปเดียวกัน: ไมล์ปลาย−ไมล์ต้น ตรงกับระยะที่บันทึกไหม (เช็คแค่ความสอดคล้องข้อมูล ไม่ใช่ระยะหายจริง)
+//    2) ไมล์ต้นทริปนี้ ตรงกับไมล์ตรวจสภาพรถ "ครั้งล่าสุด" ไหม (ต้องมีรายการตรวจสภาพในช่วงนั้นด้วย
+//       รถบางคันตรวจนานๆครั้ง ทำให้ตรวจจับไม่ได้เป็นเดือนๆ)
+//  แต่ไม่เคยเช็คสิ่งที่สำคัญและตรงประเด็นที่สุด: "ไมล์ปลายของทริปก่อนหน้า" ของรถคันเดียวกัน
+//  ตรงกับ "ไมล์ต้นของทริปถัดไป" หรือไม่ — ถ้าไม่ตรง แปลว่ามีระยะทางที่รถวิ่งจริงแต่ไม่มีทริปบันทึกไว้เลย
+//  (อาจถูกนำรถไปใช้โดยไม่บันทึก) นี่คือ "ระยะหายจริง" ที่ตรงและครอบคลุมกว่าเดิม เพราะไม่ต้องพึ่ง
+//  รายการตรวจสภาพ และตรวจจับได้ทุกช่วงระหว่าง 2 ทริปติดกัน ไม่ใช่แค่รอบตรวจสภาพเท่านั้น
+function expBuildTripChainGaps(miles) {
+  const byPlate = {};
+  (miles || []).forEach(function (r) {
+    const plate = String(r['ทะเบียน/รถ'] || r['carType'] || '').trim();
+    if (!plate) return;
+    const odoStart = parseFloat(String(r['เลขไมล์ต้น'] || r['ไมล์เริ่มต้น'] || 0).replace(/[^0-9.]/g, '')) || 0;
+    const odoEnd   = parseFloat(String(r['เลขไมล์ปลาย'] || r['ไมล์สิ้นสุด'] || 0).replace(/[^0-9.]/g, '')) || 0;
+    let dateStr = String(r['วันที่'] || '').substring(0, 10);
+    if (dateStr.includes('/')) {
+      const parts = dateStr.split('/');
+      if (parts.length === 3) {
+        const y = parts[2].length === 4 ? parts[2] : (parseInt(parts[2]) > 2400 ? String(parseInt(parts[2]) - 543) : parts[2]);
+        dateStr = y + '-' + parts[1].padStart(2, '0') + '-' + parts[0].padStart(2, '0');
+      }
+    }
+    const timeStr  = String(r['เวลาออก'] || '00:00').trim();
+    const sortKey  = dateStr + ' ' + timeStr;
+    if (!byPlate[plate]) byPlate[plate] = [];
+    byPlate[plate].push({ row: r, odoStart, odoEnd, sortKey, dateStr });
+  });
+
+  const chainFindings = []; // เก็บทุกจุดที่ตรวจพบ "ระยะหายจริง" ไว้ชี้จุดเฉพาะเจาะจงได้
+
+  Object.keys(byPlate).forEach(function (p) {
+    const list = byPlate[p].filter(function (x) { return x.odoStart > 0; });
+    list.sort(function (a, b) { return a.sortKey < b.sortKey ? -1 : (a.sortKey > b.sortKey ? 1 : 0); });
+    for (let i = 0; i < list.length; i++) {
+      if (i === 0) { list[i].row.__gapChainNum = 0; continue; } // ทริปแรกสุดของคันนี้ไม่มีทริปก่อนหน้าให้เทียบ
+      const prev = list[i - 1];
+      const cur  = list[i];
+      if (prev.odoEnd > 0 && cur.odoStart > 0) {
+        const gap = Math.round((cur.odoStart - prev.odoEnd) * 10) / 10;
+        // นับเป็น "ระยะหายจริง" เมื่อห่างเกิน 2 กม. (กันคลาดเคลื่อนปัดเศษ) แต่ไม่เกินเกณฑ์ที่เป็นไปไม่ได้จริง
+        // (กันกรณี plate ชนกันเองจากข้อมูลพิมพ์ผิดหลักแสน-ล้าน ซึ่งไม่ใช่ระยะหายจริงแต่เป็นข้อมูลผิด)
+        if (Math.abs(gap) > 2 && Math.abs(gap) <= EXP_IMPOSSIBLE_GAP_KM) {
+          cur.row.__gapChainNum = gap;
+          cur.row.__gapChainKm  = gap > 0
+            ? `+${gap} กม. (ไม่มีทริปบันทึกช่วงนี้)`
+            : `${gap} กม. (ไมล์ต้นทริปนี้ต่ำกว่าไมล์ปลายทริปก่อน — ตรวจสอบ)`;
+          chainFindings.push({
+            plate: p,
+            prevTripId: prev.row['TripID'] || '', prevDate: prev.row['วันที่'] || '', prevEnd: prev.odoEnd,
+            nextTripId: cur.row['TripID'] || '',  nextDate: cur.row['วันที่'] || '',  nextStart: cur.odoStart,
+            gapKm: gap
+          });
+        } else {
+          cur.row.__gapChainNum = 0;
+        }
+      } else {
+        cur.row.__gapChainNum = 0;
+      }
+    }
+  });
+
+  chainFindings.sort(function (a, b) { return Math.abs(b.gapKm) - Math.abs(a.gapKm); });
+  return chainFindings;
+}
+
+let _expChainFindings = []; // จุดที่พบระยะหายจริงระหว่างทริป เรียงมากไปน้อย ใช้ชี้จุดที่แย่ที่สุด
+
+function escHtmlExp(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // คำนวณ gap fields สำหรับ MileLog row หนึ่ง
@@ -6038,6 +6180,38 @@ function expUpdateAnalytics() {
     totalGapKm > 0 ? Math.round(totalGapKm).toLocaleString() + ' กม.' : '—';
   document.getElementById('expStatCheckGap').textContent =
     suspectTrips > 0 ? suspectTrips.toLocaleString() + ' ทริป' : '—';
+
+  // ✅ NEW: ระยะหายจริงระหว่างทริป — สรุปรวม + ชี้จุดที่แย่ที่สุดตรงๆ
+  const totalChainGapKm = (_expChainFindings || []).reduce(function (s, f) { return s + Math.abs(f.gapKm); }, 0);
+  const chainStatEl = document.getElementById('expStatChainGap');
+  if (chainStatEl) {
+    chainStatEl.textContent = totalChainGapKm > 0 ? Math.round(totalChainGapKm).toLocaleString() + ' กม.' : '—';
+    chainStatEl.parentElement.title = totalChainGapKm > 0
+      ? 'พบระยะทางที่วิ่งจริงแต่ไม่มีทริปบันทึกไว้ รวม ' + Math.round(totalChainGapKm).toLocaleString() + ' กม. ใน ' + _expChainFindings.length + ' ช่วง — ดูรายละเอียดใน sheet "จุดระยะหายมากที่สุด" ของไฟล์ Excel'
+      : 'ไม่พบระยะทางที่หายไปจริงระหว่างทริป (ไมล์ปลาย-ไมล์ต้น ของทริปติดกันตรงกันทุกคัน)';
+  }
+
+  // รวมยอดต่อคัน เพื่อชี้ว่า "คันไหน" หายมากที่สุด (ไม่ใช่แค่จุดเดียว)
+  const hintEl = document.getElementById('expChainTopHint');
+  if (hintEl) {
+    if (_expChainFindings && _expChainFindings.length) {
+      const byPlateTotal = {};
+      _expChainFindings.forEach(function (f) {
+        byPlateTotal[f.plate] = (byPlateTotal[f.plate] || 0) + Math.abs(f.gapKm);
+      });
+      const worstPlate = Object.keys(byPlateTotal).sort(function (a, b) { return byPlateTotal[b] - byPlateTotal[a]; })[0];
+      const worstPoint = _expChainFindings[0]; // เรียง desc ไว้แล้วตอนสร้าง
+      hintEl.style.display = 'block';
+      hintEl.innerHTML = '⚠️ <b>รถที่ระยะหายมากที่สุด: ' + escHtmlExp(worstPlate) + '</b> รวม '
+        + Math.round(byPlateTotal[worstPlate]).toLocaleString() + ' กม. ('
+        + Object.keys(byPlateTotal).length + ' คันที่พบระยะหาย) — จุดที่หายมากที่สุด: ทริป '
+        + escHtmlExp(worstPoint.prevTripId) + ' → ' + escHtmlExp(worstPoint.nextTripId)
+        + ' (' + escHtmlExp(worstPoint.prevDate) + ' → ' + escHtmlExp(worstPoint.nextDate) + ') หายไป '
+        + Math.abs(worstPoint.gapKm).toLocaleString() + ' กม. · ดูทุกจุดใน sheet "จุดระยะหายมากที่สุด" ตอน Export Excel';
+    } else {
+      hintEl.style.display = 'none';
+    }
+  }
 
   // ── สต็อกใหม่: จำนวนรายการตรวจสภาพที่เลขไมล์ผิดปกติ (พบจาก outlier filter + safety-net) ──
   const dataErrEl = document.getElementById('expStatDataErr');
@@ -6833,6 +7007,142 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
     wsGap['!view']   = [{ state: 'normal' }];
 
     XLSX.utils.book_append_sheet(wb, wsGap, 'วิเคราะห์ระยะหาย');
+
+    // ── ✅ NEW Sheet 2b: "จุดระยะหายมากที่สุด" ──────────────────────
+    // ชี้จุดตรงๆ ว่า "รถคันไหน" "ช่วงระหว่างทริปไหน" ที่ระยะทางหายไปเยอะที่สุด
+    // (ไมล์ปลายทริปก่อนหน้า ไม่ตรงกับไมล์ต้นทริปถัดไปของรถคันเดียวกัน = วิ่งจริงแต่ไม่มีทริปบันทึก)
+    if (_expChainFindings && _expChainFindings.length) {
+      // สรุปรวมรายคันไว้ด้านบนสุด ก่อนตารางรายจุด — เห็นภาพรวมได้ทันทีว่าคันไหนแย่สุด
+      const byPlateTotal = {};
+      _expChainFindings.forEach(function (f) {
+        if (!byPlateTotal[f.plate]) byPlateTotal[f.plate] = { total: 0, count: 0 };
+        byPlateTotal[f.plate].total += Math.abs(f.gapKm);
+        byPlateTotal[f.plate].count += 1;
+      });
+      const plateRanking = Object.keys(byPlateTotal)
+        .map(function (p) { return { plate: p, total: byPlateTotal[p].total, count: byPlateTotal[p].count }; })
+        .sort(function (a, b) { return b.total - a.total; });
+
+      const chainAoa = [
+        ['สรุประยะหายจริงรายคัน (เรียงจากมากไปน้อย)'],
+        ['ทะเบียน/รถ', 'จำนวนจุดที่หาย', 'ระยะหายรวม (กม.)'],
+      ];
+      plateRanking.forEach(function (p) {
+        chainAoa.push([p.plate, p.count, Math.round(p.total * 10) / 10]);
+      });
+      chainAoa.push([]);
+      chainAoa.push(['รายละเอียดทุกจุดที่พบระยะหาย (เรียงจากหายมากไปน้อย)']);
+      chainAoa.push(['ทะเบียน/รถ', 'ทริปก่อนหน้า', 'วันที่ (ทริปก่อนหน้า)', 'ไมล์ปลาย (ทริปก่อนหน้า)',
+                     'ทริปถัดไป', 'วันที่ (ทริปถัดไป)', 'ไมล์ต้น (ทริปถัดไป)', 'ระยะหาย (กม.)']);
+      _expChainFindings.forEach(function (f) {
+        chainAoa.push([f.plate, f.prevTripId, f.prevDate, f.prevEnd, f.nextTripId, f.nextDate, f.nextStart, f.gapKm]);
+      });
+
+      const wsChain = XLSX.utils.aoa_to_sheet(chainAoa);
+      wsChain['!cols'] = [
+        { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 16 }, { wch: 16 }, { wch: 20 }, { wch: 16 }, { wch: 14 }
+      ];
+      // หัวตารางย่อย (แถวที่ 2 = header ของสรุปรายคัน, แถวหลัง blank line = header ของรายละเอียด)
+      applyHdrStyle(wsChain, 1, 0, '922B21'); applyHdrStyle(wsChain, 1, 1, '922B21'); applyHdrStyle(wsChain, 1, 2, '922B21');
+      const detailHdrRow = 2 + plateRanking.length + 2; // +หัวข้อ +blank
+      for (let c = 0; c < 8; c++) applyHdrStyle(wsChain, detailHdrRow, c, 'C0392B');
+      wsChain['!freeze'] = { xSplit: 0, ySplit: 0 };
+      XLSX.utils.book_append_sheet(wb, wsChain, 'จุดระยะหายมากที่สุด');
+    }
+  }
+
+  // ── ✅ NEW Sheet 3: วิเคราะห์อัตราการใช้น้ำมันรายคัน (เฉพาะ mile + checkbox เปิด) ──
+  // ตอบโจทย์ "อัตราการใช้น้ำมันเทียบกับระยะทางที่ใช้งานของรถแต่ละคัน" — สรุปเป็นรายคัน
+  // ระยะทางรวม ÷ น้ำมันที่เติมรวม = กม./ลิตร (สิ้นเปลืองน้อย = ตัวเลขสูง) พร้อมเทียบกับค่ากลางกองรถ
+  const addFuelSheet = document.getElementById('expOptFuelEff') &&
+                       document.getElementById('expOptFuelEff').checked &&
+                       EXP.selectedCard === 'mile';
+
+  if (addFuelSheet) {
+    const fuelByPlate = {};
+    rows.forEach(function (r) {
+      const plate = String(r['ทะเบียน/รถ'] || r['carType'] || '').split(' ')[0].trim();
+      if (!plate) return;
+      if (!fuelByPlate[plate]) fuelByPlate[plate] = { trips: 0, dist: 0, liters: 0, price: 0, fillCount: 0 };
+      const dist   = parseFloat(String(r['ระยะทาง(กม.)'] || 0).replace(/[^0-9.]/g, '')) || 0;
+      const liters = parseFloat(String(r['น้ำมันที่เติม(ลิตร)'] || 0).replace(/[^0-9.]/g, '')) || 0;
+      const price  = parseFloat(String(r['ราคาน้ำมัน(บาท)'] || 0).replace(/[^0-9.]/g, '')) || 0;
+      fuelByPlate[plate].trips += 1;
+      fuelByPlate[plate].dist  += dist;
+      fuelByPlate[plate].liters += liters;
+      fuelByPlate[plate].price += price;
+      if (liters > 0) fuelByPlate[plate].fillCount += 1;
+    });
+
+    const fuelList = Object.keys(fuelByPlate).map(function (p) {
+      const v = fuelByPlate[p];
+      const kmPerLiter = v.liters > 0 ? v.dist / v.liters : null;
+      const bahtPerKm  = v.dist > 0 ? v.price / v.dist : null;
+      return { plate: p, trips: v.trips, dist: v.dist, liters: v.liters, price: v.price,
+               fillCount: v.fillCount, kmPerLiter: kmPerLiter, bahtPerKm: bahtPerKm };
+    });
+
+    const ratesOnly = fuelList.map(function (f) { return f.kmPerLiter; }).filter(function (x) { return x !== null && x > 0; }).sort(function (a,b) { return a-b; });
+    const medianRate = ratesOnly.length ? ratesOnly[Math.floor(ratesOnly.length / 2)] : null;
+
+    fuelList.forEach(function (f) {
+      if (f.kmPerLiter === null) f.status = 'ไม่มีข้อมูลน้ำมัน';
+      else if (!medianRate) f.status = '—';
+      else {
+        const ratio = f.kmPerLiter / medianRate;
+        f.status = ratio < 0.7 ? '⚠ สิ้นเปลืองผิดปกติ (ต่ำกว่าค่ากลางกองรถ)'
+                 : ratio > 1.3 ? '✅ ประหยัดกว่าค่าเฉลี่ย' : 'ปกติ';
+      }
+    });
+    // เรียงแย่สุดก่อน (สิ้นเปลืองมากสุด) — ไม่มีข้อมูลไปท้ายสุด
+    fuelList.sort(function (a, b) {
+      if (a.kmPerLiter === null) return 1;
+      if (b.kmPerLiter === null) return -1;
+      return a.kmPerLiter - b.kmPerLiter;
+    });
+
+    const fuelAoa = [
+      ['ทะเบียน/รถ', 'จำนวนทริป', 'ระยะทางรวม (กม.)', 'น้ำมันเติมรวม (ลิตร)', 'ค่าใช้จ่ายรวม (บาท)',
+       'จำนวนครั้งเติม', 'อัตราสิ้นเปลือง (กม./ลิตร)', 'ต้นทุน (บาท/กม.)', 'สถานะเทียบค่ากลางกองรถ'],
+    ];
+    fuelList.forEach(function (f) {
+      fuelAoa.push([
+        f.plate, f.trips, Math.round(f.dist), Math.round(f.liters * 10) / 10, Math.round(f.price),
+        f.fillCount, f.kmPerLiter !== null ? Math.round(f.kmPerLiter * 100) / 100 : '—',
+        f.bahtPerKm !== null ? Math.round(f.bahtPerKm * 100) / 100 : '—', f.status
+      ]);
+    });
+    if (medianRate) {
+      fuelAoa.push([]);
+      fuelAoa.push(['ค่ากลางกองรถ (median กม./ลิตร)', Math.round(medianRate * 100) / 100]);
+    }
+
+    const wsFuel = XLSX.utils.aoa_to_sheet(fuelAoa);
+    wsFuel['!cols'] = [
+      { wch: 16 }, { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 16 },
+      { wch: 14 }, { wch: 20 }, { wch: 16 }, { wch: 26 }
+    ];
+    for (let c = 0; c < 9; c++) {
+      const ref = XLSX.utils.encode_cell({ r: 0, c: c });
+      if (wsFuel[ref]) {
+        wsFuel[ref].s = {
+          font: { bold: true, color: { rgb: 'FFFFFF' } },
+          fill: { fgColor: { rgb: '1A5276' } },
+          alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
+        };
+      }
+    }
+    // ไฮไลท์แถวที่สิ้นเปลืองผิดปกติเป็นสีแดงอ่อน
+    fuelList.forEach(function (f, i) {
+      if (f.status.indexOf('⚠') !== 0 && f.status.indexOf('⚠') === -1) return;
+      for (let c = 0; c < 9; c++) {
+        const ref = XLSX.utils.encode_cell({ r: i + 1, c: c });
+        if (!wsFuel[ref]) wsFuel[ref] = { t: 's', v: '' };
+        wsFuel[ref].s = { fill: { fgColor: { rgb: 'FDECEA' } } };
+      }
+    });
+    wsFuel['!freeze'] = { xSplit: 0, ySplit: 1 };
+    XLSX.utils.book_append_sheet(wb, wsFuel, 'วิเคราะห์การใช้น้ำมัน');
   }
 
   // ── เขียนและดาวน์โหลด ──
