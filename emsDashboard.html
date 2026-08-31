@@ -142,6 +142,7 @@
 
   /* ── Expiry watch ── */
   .panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); overflow: hidden; }
+  .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; } /* ✅ NEW: ตารางเลื่อนแนวนอนได้บนมือถือแทนที่จะล้นจอ */
   table.data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
   table.data-table th { text-align: left; padding: 9px 12px; background: #f4f7fb; color: var(--text-mid); font-weight: 700; font-size: 11.5px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   table.data-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
@@ -189,6 +190,9 @@
     .chart-grid { grid-template-columns: 1fr; }
     .filter-bar { flex-direction: column; align-items: stretch; }
     table.data-table { font-size: 11.5px; }
+    table.data-table th, table.data-table td { padding: 7px 8px; white-space: nowrap; }
+    .header-inner { padding: 0 12px; gap: 8px; }
+    .modal-box { max-width: 100%; margin: 0 8px; }
   }
 
   /* ── Password overlay ── */
@@ -207,7 +211,7 @@
     <div style="font-family:var(--font-display);font-size:1.2rem;font-weight:600;color:var(--navy);margin-bottom:6px;">แดชบอร์ด EMS Check</div>
     <div style="font-size:0.82rem;color:var(--text-light);margin-bottom:24px;line-height:1.6;">กรุณาใส่รหัสเข้าใช้งาน<br>สำหรับหัวหน้าพยาบาลฉุกเฉิน</div>
     <input id="pwInput" type="password" placeholder="รหัสเข้าใช้งาน..."
-      style="width:100%;padding:11px 14px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:0.95rem;font-family:inherit;outline:none;margin-bottom:10px;"
+      style="width:100%;padding:11px 14px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:16px;font-family:inherit;outline:none;margin-bottom:10px;"
       onkeydown="if(event.key==='Enter')checkPw()">
     <div id="pwError" style="color:var(--danger);font-size:0.8rem;min-height:18px;margin-bottom:6px;display:none;">รหัสไม่ถูกต้อง กรุณาลองใหม่</div>
     <button onclick="checkPw()" class="btn btn-primary" style="width:100%;padding:11px;font-size:0.95rem;">เข้าสู่ระบบ</button>
@@ -370,10 +374,12 @@ if (checkEmsSession()) {
     <div><div class="title"><svg class="sec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg> รายการใกล้หมดอายุ / หมดอายุแล้ว</div><div class="sub">จากการตรวจล่าสุดของแต่ละคัน — เรียงใกล้หมดอายุที่สุดก่อน</div></div>
   </div>
   <div class="panel reveal" style="margin-bottom: 8px;">
+    <div class="table-scroll">
     <table class="data-table">
       <thead><tr><th>สถานะ</th><th>อุปกรณ์</th><th>หมวด</th><th>รถ</th><th>วันหมดอายุ</th><th>เหลือ</th></tr></thead>
       <tbody id="expiryBody"><tr class="empty-row"><td colspan="6">กำลังโหลด…</td></tr></tbody>
     </table>
+    </div>
   </div>
 
   <!-- ═══════════ SESSIONS TABLE ═══════════ -->
@@ -381,10 +387,12 @@ if (checkEmsSession()) {
     <div><div class="title"><svg class="sec-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6v3H9z"/><path d="M6 5H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-1"/><path d="M8 11h8M8 15h5"/></svg> ประวัติการตรวจ (รายครั้ง)</div><div class="sub" id="sessionCountSub">–</div></div>
   </div>
   <div class="panel reveal">
+    <div class="table-scroll">
     <table class="data-table">
       <thead><tr><th>วันที่</th><th>เวลา</th><th>รถ EMS</th><th>ผู้ตรวจ</th><th>รวม</th><th>ผ่าน</th><th>ไม่ผ่าน</th><th>อัตราผ่าน</th><th></th></tr></thead>
       <tbody id="sessionBody"><tr class="empty-row"><td colspan="9">กำลังโหลด…</td></tr></tbody>
     </table>
+    </div>
     <div class="pager">
       <span id="pagerInfo">–</span>
       <div class="pager-btns">
