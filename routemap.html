@@ -280,6 +280,35 @@
   .import-log .ok { color: var(--success); }
   .import-log .skip { color: var(--text-light); }
   .import-log .err { color: var(--danger); }
+
+  /* ✅ NEW: มือถือ — แผนที่/สถิติ/ตาราง/โมดัล ปรับให้ใช้งานสะดวกบนจอแคบ */
+  @media (max-width: 640px) {
+    .header-inner { padding: 0 12px; gap: 8px; }
+    .header-titles .main-title { font-size: 12.5px; }
+    .header-titles .sub-title { font-size: 10px; }
+    .back-btn { padding: 6px 10px; font-size: 11px; }
+    .main-wrap { padding: 14px 10px; }
+
+    .stat-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat-val { font-size: 19px; }
+
+    .filter-bar { gap: 6px; }
+    .filter-bar input, .filter-bar select, #placeSearchInput { font-size: 16px !important; } /* กัน iOS ซูมจอตอน focus */
+    .filter-group { flex-wrap: wrap; }
+    .btn { padding: 9px 14px; min-height: 40px; }
+
+    /* แผนที่บนมือถือลดความสูงลง กันแผนที่กินพื้นที่จนต้องเลื่อนยาว */
+    #mapEl { height: 320px; }
+    .list-panel, .mission-panel { max-height: 300px; }
+
+    .duration-table, .duration-table th, .duration-table td { font-size: 11.5px; }
+    .duration-table th, .duration-table td { padding: 7px 8px; }
+    .duration-head { padding: 12px 14px; }
+
+    .modal-box { max-width: 100%; max-height: 100vh; border-radius: 0; }
+    .modal-head { padding: 14px 16px; }
+    .import-row { flex-direction: column; align-items: stretch; }
+  }
 </style>
 <script src="secure-fetch.js"></script>
 </head>
