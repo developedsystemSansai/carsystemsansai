@@ -460,6 +460,12 @@
     .hero { padding: 22px 18px 20px; }
     .media-btn-row { grid-template-columns: 1fr; }
   }
+
+  /* ✅ NEW: กัน iOS ซูมจอตอน focus ช่องกรอกความเห็น/select (font-size ต้อง >= 16px) */
+  @media (max-width: 640px) {
+    .field-textarea, .field-select, .field-input { font-size: 16px !important; }
+    .submit-btn { min-height: 46px; }
+  }
 </style>
 <script src="secure-fetch.js"></script>
 </head>
