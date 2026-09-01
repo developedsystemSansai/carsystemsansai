@@ -334,6 +334,17 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
           </div>
           <button class="btn btn-primary" onclick="openAddFuelModal()" style="white-space:nowrap;">➕ เพิ่มรายการน้ำมันย้อนหลัง (ไม่มีทริปเดิม)</button>
         </div>
+        <!-- ✅ NEW: ตัวกรอง/ค้นหา + จัดกลุ่มตามทะเบียน เพื่อลดความรกเวลามีรายการค้างเยอะ -->
+        <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:10px;">
+          <input type="text" id="fbSearch" placeholder="🔍 ค้นหา: ทะเบียน / พขร. / ปลายทาง..." oninput="renderFuelBacklogFiltered()" style="flex:1; min-width:200px; padding:9px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-family:inherit; font-size:13px;">
+          <input type="date" id="fbFrom" onchange="renderFuelBacklogFiltered()" style="padding:9px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-family:inherit; font-size:13px;">
+          <span style="font-size:12px; color:var(--text-light);">ถึง</span>
+          <input type="date" id="fbTo" onchange="renderFuelBacklogFiltered()" style="padding:9px 12px; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-family:inherit; font-size:13px;">
+          <button class="btn btn-ghost" onclick="resetFuelBacklogFilters()">ล้างตัวกรอง</button>
+          <button class="btn btn-ghost" onclick="toggleAllFbGroups(true)">ขยายทั้งหมด</button>
+          <button class="btn btn-ghost" onclick="toggleAllFbGroups(false)">ย่อทั้งหมด</button>
+          <span id="fbResultCount" style="font-size:11.5px; color:var(--text-light); white-space:nowrap;"></span>
+        </div>
         <div id="fuelBacklogList"><div class="loading-note"><span class="inline-spinner"></span>กำลังโหลด...</div></div>
       </div>
     </div>
@@ -457,8 +468,8 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
       <!-- ✅ NEW: คำเตือนบิลน้ำมันซ้ำซ้อน — โชว์ทันทีตอนกรอกวันที่/ทะเบียน ก่อนกดบันทึกจริง -->
       <div id="afDupWarning" style="display:none; background:#fff3e0; border:1px solid var(--amber, #f0ad4e); border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:12.5px; color:#7a4a00; white-space:pre-line; line-height:1.6;"></div>
       <div class="form-grid">
-        <div class="form-group"><label>วันที่เติมน้ำมัน <span style="color:var(--danger);">*</span></label><input type="date" id="afDate" onchange="checkAfDuplicate()"></div>
-        <div class="form-group"><label>ทะเบียน/รถ <span style="color:var(--danger);">*</span></label><input type="text" id="afPlate" list="edPlateList" autocomplete="off" onchange="checkAfDuplicate()"></div>
+        <div class="form-group"><label>วันที่เติมน้ำมัน <span style="color:var(--danger);">*</span></label><input type="date" id="afDate" oninput="scheduleAfDupCheck()" onchange="scheduleAfDupCheck()"></div>
+        <div class="form-group"><label>ทะเบียน/รถ <span style="color:var(--danger);">*</span></label><input type="text" id="afPlate" list="edPlateList" autocomplete="off" oninput="scheduleAfDupCheck()" onchange="scheduleAfDupCheck()"></div>
         <div class="form-group"><label>พนักงานขับรถ</label><input type="text" id="afDriver" list="edDriverList" autocomplete="off"></div>
         <div class="form-group"><label>เลขไมล์ ณ วันเติม (ถ้าทราบ)</label><input type="number" id="afOdo" min="0" step="1" placeholder="ไม่ทราบเว้นว่างได้"></div>
         <div class="form-group"><label>น้ำมันที่เติม (ลิตร) <span style="color:var(--danger);">*</span></label><input type="number" id="afFuelLiters" min="0" max="500" step="0.01" placeholder="เช่น 25.5"></div>
@@ -751,7 +762,15 @@ function renderTrips() {
 
 // ════════════════════════════════════════════════════════════
 //  FUEL BACKLOG — ทริปที่ยังไม่ได้ลงบิลน้ำมัน (สำหรับเติมย้อนหลัง)
+//  ✅ NEW: จัดกลุ่มตามทะเบียนรถ + ค้นหา/กรองวันที่ + จำกัดจำนวนแถวต่อกลุ่ม
+//  แก้ปัญหาเดิมที่โชว์ทุกแถว (หลักร้อย-พัน) เป็น list ยาวรวดเดียวจนหาอะไรไม่เจอ
 // ════════════════════════════════════════════════════════════
+let fuelBacklogAll = [];              // ข้อมูลดิบทั้งหมดจาก server (ไม่กรอง)
+let fuelBacklogExpandedGroups = {};   // { 'ทะเบียน': true } กลุ่มที่กางอยู่
+let fuelBacklogShowAllInGroup = {};   // { 'ทะเบียน': true } กดดูครบทุกแถวในกลุ่มนั้นแล้ว
+let fuelBacklogGroupKeysCache = [];   // ลำดับกลุ่มของการ render ล่าสุด (ใช้ผูกกับ index ใน onclick)
+const FB_GROUP_CAP = 6;               // จำนวนแถวที่โชว์ต่อกลุ่มก่อนต้องกด "ดูเพิ่ม"
+
 async function loadFuelBacklog() {
   const listEl = document.getElementById('fuelBacklogList');
   try {
@@ -764,24 +783,114 @@ async function loadFuelBacklog() {
 }
 
 function renderFuelBacklog(list) {
+  fuelBacklogAll = list || [];
+  fuelBacklogExpandedGroups = {};
+  fuelBacklogShowAllInGroup = {};
   const badge = document.getElementById('fuelBacklogBadge');
-  const listEl = document.getElementById('fuelBacklogList');
-  badge.style.display = list.length ? 'inline-block' : 'none';
-  badge.textContent = list.length;
+  badge.style.display = fuelBacklogAll.length ? 'inline-block' : 'none';
+  badge.textContent = fuelBacklogAll.length;
+  renderFuelBacklogFiltered();
+}
 
-  if (!list.length) {
+function resetFuelBacklogFilters() {
+  document.getElementById('fbSearch').value = '';
+  document.getElementById('fbFrom').value = '';
+  document.getElementById('fbTo').value = '';
+  renderFuelBacklogFiltered();
+}
+
+function toggleAllFbGroups(expand) {
+  fuelBacklogGroupKeysCache.forEach(function (k) { fuelBacklogExpandedGroups[k] = expand; });
+  renderFuelBacklogFiltered();
+}
+
+function toggleFbGroup(i) {
+  const plate = fuelBacklogGroupKeysCache[i];
+  fuelBacklogExpandedGroups[plate] = !fuelBacklogExpandedGroups[plate];
+  renderFuelBacklogFiltered();
+}
+
+function showMoreFbGroup(i) {
+  const plate = fuelBacklogGroupKeysCache[i];
+  fuelBacklogShowAllInGroup[plate] = true;
+  renderFuelBacklogFiltered();
+}
+
+function renderFuelBacklogFiltered() {
+  const listEl = document.getElementById('fuelBacklogList');
+  const countEl = document.getElementById('fbResultCount');
+
+  if (!fuelBacklogAll.length) {
     listEl.innerHTML = '<div class="loading-note">✅ ทุกทริปมีข้อมูลน้ำมันครบแล้ว</div>';
+    if (countEl) countEl.textContent = '';
     return;
   }
 
-  listEl.innerHTML = list.map(r => {
-    return '<div class="pending-row">'
-      + '<div class="pending-top">'
-      +   '<div><span class="pending-plate">' + escHtml(r.plate) + '</span> · ' + escHtml(r.date) + ' · ' + escHtml(r.driver) + ' → ' + escHtml(r.dest) + '</div>'
+  const q = (document.getElementById('fbSearch').value || '').trim().toLowerCase();
+  const from = document.getElementById('fbFrom').value;
+  const to = document.getElementById('fbTo').value;
+  const isFiltering = !!(q || from || to);
+
+  const rows = fuelBacklogAll.filter(function (r) {
+    if (q) {
+      const hay = [r.plate, r.driver, r.dest].join(' ').toLowerCase();
+      if (hay.indexOf(q) < 0) return false;
+    }
+    if (from && r.date && r.date < from) return false;
+    if (to && r.date && r.date > to) return false;
+    return true;
+  });
+
+  if (countEl) countEl.textContent = rows.length + ' / ' + fuelBacklogAll.length + ' รายการ';
+
+  if (!rows.length) {
+    listEl.innerHTML = '<div class="loading-note">ไม่พบรายการที่ตรงกับตัวกรอง</div>';
+    return;
+  }
+
+  // จัดกลุ่มตามทะเบียนรถ — เรียงกลุ่มตามวันที่ล่าสุดในกลุ่มนั้นก่อน (รถที่ค้างล่าสุดขึ้นบนสุด)
+  const groups = {};
+  rows.forEach(function (r) {
+    const key = r.plate || '(ไม่ระบุทะเบียน)';
+    (groups[key] = groups[key] || []).push(r);
+  });
+  Object.keys(groups).forEach(function (k) {
+    groups[k].sort(function (a, b) { return (b.date || '').localeCompare(a.date || ''); });
+  });
+  const groupKeys = Object.keys(groups).sort(function (a, b) {
+    return (groups[b][0].date || '').localeCompare(groups[a][0].date || '');
+  });
+  fuelBacklogGroupKeysCache = groupKeys;
+
+  listEl.innerHTML = groupKeys.map(function (plate, gi) {
+    const items = groups[plate];
+    // ค้นหา/กรองอยู่ → กางทุกกลุ่มให้เห็นผลลัพธ์ทันที ไม่ต้องกดขยายเอง
+    const expanded = isFiltering || !!fuelBacklogExpandedGroups[plate];
+    const showAll = !!fuelBacklogShowAllInGroup[plate];
+    const capped = showAll ? items : items.slice(0, FB_GROUP_CAP);
+    const hiddenCount = items.length - capped.length;
+
+    const rowsHtml = capped.map(function (r) {
+      return '<div class="pending-row" style="margin:0 0 8px;">'
+        + '<div class="pending-top">'
+        +   '<div>' + escHtml(r.date) + ' · ' + escHtml(r.driver || '—') + ' → ' + escHtml(r.dest || '—') + '</div>'
+        + '</div>'
+        + '<div class="pending-actions">'
+        +   '<button class="btn btn-primary" onclick="openEditModal(\'' + escHtml(r.tripId) + '\', true)">🛢️ เติมน้ำมันย้อนหลัง</button>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+
+    const moreBtn = hiddenCount > 0
+      ? '<button class="btn btn-ghost" style="margin-bottom:6px;" onclick="showMoreFbGroup(' + gi + ')">ดูอีก ' + hiddenCount + ' รายการในทะเบียนนี้</button>'
+      : '';
+
+    return '<div style="margin-bottom:8px; border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden;">'
+      + '<div style="cursor:pointer; display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:var(--bg);" onclick="toggleFbGroup(' + gi + ')">'
+      +   '<span><span class="plate-chip">' + escHtml(plate) + '</span> <span style="font-size:12px; color:var(--text-light); font-weight:600; margin-left:6px;">' + items.length + ' ทริปค้างลงน้ำมัน</span></span>'
+      +   '<span style="font-size:11.5px; color:var(--text-light); font-weight:700;">' + (expanded ? '▲ ย่อ' : '▼ ขยาย') + '</span>'
       + '</div>'
-      + '<div class="pending-actions">'
-      +   '<button class="btn btn-primary" onclick="openEditModal(\'' + escHtml(r.tripId) + '\', true)">🛢️ เติมน้ำมันย้อนหลัง</button>'
-      + '</div>'
+      + (expanded ? '<div style="padding:10px 12px;">' + rowsHtml + moreBtn + '</div>' : '')
       + '</div>';
   }).join('');
 }
@@ -865,6 +974,8 @@ function openAddFuelModal() {
   dupWarnEl.style.display = 'none';
   dupWarnEl.textContent = '';
   afDupFound = [];
+  afDupCheckSeq++;             // ยกเลิกผลเช็กเก่าที่อาจค้างมาจากครั้งก่อนเปิดโมดัลนี้
+  clearTimeout(afDupCheckTimer);
   document.getElementById('addFuelRoleHint').textContent = role === 'admin'
     ? 'คุณกำลังเพิ่มรายการในฐานะแอดมิน — การกดบันทึกจะสร้างรายการจริงทันที'
     : 'คุณกำลังส่งคำขอในฐานะ พขร. — ข้อมูลจริงจะยังไม่ถูกสร้าง จนกว่าแอดมินจะอนุมัติ';
@@ -878,7 +989,24 @@ function closeAddFuelModal() {
 
 // ✅ NEW: เช็กบิลน้ำมันซ้ำซ้อน — เก็บผลลัพธ์ล่าสุดไว้ใน afDupFound เพื่อใช้ตอนกดบันทึกจริงด้วย
 let afDupFound = [];
-let afDupCheckSeq = 0; // กันผลเก่ามาทับผลใหม่ ถ้าผู้ใช้พิมพ์เปลี่ยนวันที่/ทะเบียนเร็วๆ
+let afDupCheckSeq = 0;    // กันผลเก่ามาทับผลใหม่ ถ้าผู้ใช้พิมพ์เปลี่ยนวันที่/ทะเบียนเร็วๆ
+let afDupCheckTimer = null; // debounce — เช็กหลังผู้ใช้หยุดพิมพ์ ไม่ใช่ทุกตัวอักษร
+
+/**
+ * scheduleAfDupCheck — เรียกทุกครั้งที่ผู้ใช้แก้ "วันที่" หรือ "ทะเบียน" (แม้ยังไม่ blur ออกจากช่อง)
+ * ✅ FIX: เดิมใช้ onchange (fire ตอน blur เท่านั้น) ทำให้ถ้าผู้ใช้ลบ/พิมพ์ทะเบียนใหม่ทับโดยไม่คลิกออกจากช่อง
+ * คำเตือนที่ค้างอยู่จากทะเบียน/วันที่เดิมจะไม่ถูกเช็กซ้ำหรือเคลียร์ทิ้งเลย ทำให้เห็นรายการซ้ำของทะเบียนเก่า
+ * ค้างอยู่ทั้งที่กำลังกรอกทะเบียนใหม่แล้ว — เปลี่ยนมาเช็กทุกครั้งที่พิมพ์ (debounce) แทน และเคลียร์คำเตือนเดิม
+ * ทิ้งทันทีที่เริ่มแก้ไข เพื่อไม่ให้ข้อมูลของทะเบียน/วันที่เดิมค้างโชว์ผิดๆ ระหว่างรอผลเช็กใหม่
+ */
+function scheduleAfDupCheck() {
+  const dupWarnEl = document.getElementById('afDupWarning');
+  dupWarnEl.style.display = 'none';
+  afDupFound = [];
+  afDupCheckSeq++; // ยกเลิกผลเช็กที่ยังค้างอยู่ในอากาศ (ถ้ามี) เพราะค่าฟิลด์เปลี่ยนไปแล้ว
+  clearTimeout(afDupCheckTimer);
+  afDupCheckTimer = setTimeout(checkAfDuplicate, 450);
+}
 
 async function checkAfDuplicate() {
   const date = document.getElementById('afDate').value;
@@ -891,7 +1019,15 @@ async function checkAfDuplicate() {
     return;
   }
 
-  const seq = ++afDupCheckSeq;
+  const seq = afDupCheckSeq; // seq ปัจจุบันถูกตั้งไว้แล้วจาก scheduleAfDupCheck() ตอนเรียกฟังก์ชันนี้
+
+  // ✅ NEW: โชว์สถานะ "กำลังตรวจสอบ..." ทันทีที่เริ่มยิงคำขอ กันดูเหมือนเว็บค้าง/ไม่ตอบสนองระหว่างรอผลจากเซิร์ฟเวอร์
+  dupWarnEl.style.display = 'block';
+  dupWarnEl.style.background = '#eef2f7';
+  dupWarnEl.style.borderColor = '#d5dce8';
+  dupWarnEl.style.color = '#7a8ea5';
+  dupWarnEl.innerHTML = '<span class="inline-spinner" style="margin-right:6px; vertical-align:-3px;"></span>กำลังตรวจสอบรายการซ้ำ...';
+
   try {
     const res = await fetch(GAS_URL, {
       method: 'POST',
@@ -902,6 +1038,9 @@ async function checkAfDuplicate() {
     if (seq !== afDupCheckSeq) return; // ผลลัพธ์เก่า ไม่ทันสมัยแล้ว ทิ้งไป
     if (json && json.status === 'ok' && json.duplicates && json.duplicates.length > 0) {
       afDupFound = json.duplicates;
+      dupWarnEl.style.background = '#fff3e0';
+      dupWarnEl.style.borderColor = '#f0ad4e';
+      dupWarnEl.style.color = '#7a4a00';
       dupWarnEl.textContent = '⚠️ ' + json.message;
       dupWarnEl.style.display = 'block';
     } else {
@@ -909,7 +1048,15 @@ async function checkAfDuplicate() {
       dupWarnEl.style.display = 'none';
     }
   } catch (err) {
-    // เช็กไม่สำเร็จ (เช่น เน็ตหลุด) — ไม่บล็อกผู้ใช้ ปล่อยให้กรอกต่อได้ตามปกติ แค่ไม่มีคำเตือนล่วงหน้า
+    if (seq !== afDupCheckSeq) return; // ค่าฟิลด์เปลี่ยนไปแล้วระหว่างรอ — ไม่ต้องโชว์ error ของค่าเก่า
+    // ✅ FIX: เดิม catch ไม่ทำอะไรเลย ถ้าเช็กพัง (เช่น เน็ตหลุด) กล่อง "กำลังตรวจสอบ..." จะค้างอยู่แบบนั้นตลอดไป
+    // ดูเหมือนเว็บค้าง — ตอนนี้เปลี่ยนเป็นแจ้งชัดเจนว่าตรวจสอบไม่สำเร็จ แต่ไม่บล็อกไม่ให้กรอก/บันทึกต่อ
+    afDupFound = [];
+    dupWarnEl.style.background = '#fdecea';
+    dupWarnEl.style.borderColor = '#c0392b';
+    dupWarnEl.style.color = '#c0392b';
+    dupWarnEl.textContent = '⚠️ ตรวจสอบรายการซ้ำไม่สำเร็จ (เช่น เน็ตหลุด) — ยังกรอกและบันทึกต่อได้ตามปกติ';
+    dupWarnEl.style.display = 'block';
   }
 }
 
