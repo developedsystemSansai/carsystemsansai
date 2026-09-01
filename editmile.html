@@ -454,9 +454,11 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
         ระบบจะสร้างรายการใหม่ให้โดยไม่กระทบระยะทาง/สถานะรถปัจจุบัน — ถ้าทริปมีอยู่แล้วในตารางด้านล่าง
         ให้กด "แก้ไข" ที่แถวนั้นแทน จะแม่นยำกว่า
       </div>
+      <!-- ✅ NEW: คำเตือนบิลน้ำมันซ้ำซ้อน — โชว์ทันทีตอนกรอกวันที่/ทะเบียน ก่อนกดบันทึกจริง -->
+      <div id="afDupWarning" style="display:none; background:#fff3e0; border:1px solid var(--amber, #f0ad4e); border-radius:8px; padding:10px 12px; margin-bottom:14px; font-size:12.5px; color:#7a4a00; white-space:pre-line; line-height:1.6;"></div>
       <div class="form-grid">
-        <div class="form-group"><label>วันที่เติมน้ำมัน <span style="color:var(--danger);">*</span></label><input type="date" id="afDate"></div>
-        <div class="form-group"><label>ทะเบียน/รถ <span style="color:var(--danger);">*</span></label><input type="text" id="afPlate" list="edPlateList" autocomplete="off"></div>
+        <div class="form-group"><label>วันที่เติมน้ำมัน <span style="color:var(--danger);">*</span></label><input type="date" id="afDate" onchange="checkAfDuplicate()"></div>
+        <div class="form-group"><label>ทะเบียน/รถ <span style="color:var(--danger);">*</span></label><input type="text" id="afPlate" list="edPlateList" autocomplete="off" onchange="checkAfDuplicate()"></div>
         <div class="form-group"><label>พนักงานขับรถ</label><input type="text" id="afDriver" list="edDriverList" autocomplete="off"></div>
         <div class="form-group"><label>เลขไมล์ ณ วันเติม (ถ้าทราบ)</label><input type="number" id="afOdo" min="0" step="1" placeholder="ไม่ทราบเว้นว่างได้"></div>
         <div class="form-group"><label>น้ำมันที่เติม (ลิตร) <span style="color:var(--danger);">*</span></label><input type="number" id="afFuelLiters" min="0" max="500" step="0.01" placeholder="เช่น 25.5"></div>
@@ -859,6 +861,10 @@ function openAddFuelModal() {
   document.getElementById('afFuelPrice').value = '';
   document.getElementById('afNote').value = '';
   document.getElementById('afReason').value = '';
+  const dupWarnEl = document.getElementById('afDupWarning');
+  dupWarnEl.style.display = 'none';
+  dupWarnEl.textContent = '';
+  afDupFound = [];
   document.getElementById('addFuelRoleHint').textContent = role === 'admin'
     ? 'คุณกำลังเพิ่มรายการในฐานะแอดมิน — การกดบันทึกจะสร้างรายการจริงทันที'
     : 'คุณกำลังส่งคำขอในฐานะ พขร. — ข้อมูลจริงจะยังไม่ถูกสร้าง จนกว่าแอดมินจะอนุมัติ';
@@ -868,6 +874,43 @@ function openAddFuelModal() {
 
 function closeAddFuelModal() {
   document.getElementById('addFuelModal').classList.remove('show');
+}
+
+// ✅ NEW: เช็กบิลน้ำมันซ้ำซ้อน — เก็บผลลัพธ์ล่าสุดไว้ใน afDupFound เพื่อใช้ตอนกดบันทึกจริงด้วย
+let afDupFound = [];
+let afDupCheckSeq = 0; // กันผลเก่ามาทับผลใหม่ ถ้าผู้ใช้พิมพ์เปลี่ยนวันที่/ทะเบียนเร็วๆ
+
+async function checkAfDuplicate() {
+  const date = document.getElementById('afDate').value;
+  const plate = document.getElementById('afPlate').value.trim();
+  const dupWarnEl = document.getElementById('afDupWarning');
+
+  if (!date || !plate) {
+    dupWarnEl.style.display = 'none';
+    afDupFound = [];
+    return;
+  }
+
+  const seq = ++afDupCheckSeq;
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'checkFuelBacklogDuplicate', date, plate })
+    });
+    const json = await res.json();
+    if (seq !== afDupCheckSeq) return; // ผลลัพธ์เก่า ไม่ทันสมัยแล้ว ทิ้งไป
+    if (json && json.status === 'ok' && json.duplicates && json.duplicates.length > 0) {
+      afDupFound = json.duplicates;
+      dupWarnEl.textContent = '⚠️ ' + json.message;
+      dupWarnEl.style.display = 'block';
+    } else {
+      afDupFound = [];
+      dupWarnEl.style.display = 'none';
+    }
+  } catch (err) {
+    // เช็กไม่สำเร็จ (เช่น เน็ตหลุด) — ไม่บล็อกผู้ใช้ ปล่อยให้กรอกต่อได้ตามปกติ แค่ไม่มีคำเตือนล่วงหน้า
+  }
 }
 
 async function submitAddFuelBacklog() {
@@ -881,6 +924,14 @@ async function submitAddFuelBacklog() {
   if (!fuelLiters || Number(fuelLiters) <= 0) { showToast('กรุณาระบุจำนวนน้ำมันที่เติม (ลิตร) มากกว่า 0', 'err'); return; }
   if (!reason) { showToast('กรุณาระบุเหตุผล/ที่มาของรายการนี้', 'err'); return; }
 
+  // ✅ NEW: ถ้าเจอคำเตือนบิลซ้ำซ้อนค้างอยู่ ให้ถามยืนยันอีกครั้งก่อนบันทึกจริง (ผู้ใช้ยังยกเลิกได้)
+  let confirmDuplicate = false;
+  if (afDupFound.length > 0) {
+    const ok = confirm('พบว่าทะเบียนนี้มีบิลน้ำมันลงไว้แล้วใกล้เคียงวันที่นี้ ต้องการบันทึกรายการนี้เพิ่ม (ซ้อนกับรายการเดิม) หรือไม่?');
+    if (!ok) return;
+    confirmDuplicate = true;
+  }
+
   const common = {
     date,
     plate,
@@ -889,7 +940,8 @@ async function submitAddFuelBacklog() {
     fuelLiters,
     fuelPrice: document.getElementById('afFuelPrice').value.trim(),
     note: document.getElementById('afNote').value.trim(),
-    reason
+    reason,
+    confirmDuplicate
   };
 
   const btn = document.getElementById('addFuelSubmitBtn');
@@ -904,6 +956,27 @@ async function submitAddFuelBacklog() {
       body: JSON.stringify(payload)
     });
     const json = await res.json();
+    // ✅ NEW: เผื่อกรณี frontend ไม่ทันเช็ก (หรือมีคนอื่นลงบิลแทรกมาระหว่างนั้น) — backend เช็กซ้ำอีกชั้น
+    // ถ้าเจอซ้ำและยังไม่ได้ confirm ให้ถามยืนยันแล้วส่งซ้ำอีกครั้งพร้อม confirmDuplicate:true
+    if (json && json.status === 'confirm_needed') {
+      restoreBtn(btn);
+      const ok = confirm(json.message || 'พบรายการที่อาจซ้ำซ้อน ต้องการบันทึกต่อหรือไม่?');
+      if (!ok) return;
+      common.confirmDuplicate = true;
+      setBtnLoading(btn, role === 'admin' ? 'กำลังบันทึก...' : 'กำลังส่งคำขอ...');
+      const payload2 = Object.assign({}, payload, { confirmDuplicate: true });
+      const res2 = await fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload2)
+      });
+      const json2 = await res2.json();
+      if (!json2 || json2.status !== 'ok') throw new Error((json2 && json2.message) || 'ไม่ทราบสาเหตุ');
+      showToast(json2.message || 'บันทึกสำเร็จ', 'ok');
+      closeAddFuelModal();
+      if (role === 'admin') { loadTrips(); loadFuelBacklog(); }
+      return;
+    }
     if (!json || json.status !== 'ok') throw new Error((json && json.message) || 'ไม่ทราบสาเหตุ');
     showToast(json.message || 'บันทึกสำเร็จ', 'ok');
     closeAddFuelModal();
