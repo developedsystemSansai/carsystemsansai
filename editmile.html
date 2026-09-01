@@ -317,10 +317,31 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
       </div>
     </div>
 
+    <!-- ✅ NEW: Fuel backlog — ทริปที่จบแล้วแต่ยังไม่ได้ลงบิลน้ำมัน (สำหรับเติมย้อนหลัง) -->
+    <div class="card" id="fuelBacklogCard">
+      <div class="card-header" onclick="toggleCard('fuelBacklogCardBody', this)">
+        <div>
+          <span class="card-header-title">🛢️ ทริปที่ยังไม่ได้ลงบิลน้ำมัน</span>
+          <span class="badge-count" id="fuelBacklogBadge" style="display:none; background:var(--amber);">0</span>
+          <span class="card-header-sub">รายการทริปที่กลับรถแล้วแต่ยังไม่มีข้อมูลลิตร/ราคาน้ำมัน — เติมย้อนหลังได้จากที่นี่</span>
+        </div>
+        <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </div>
+      <div class="card-body" id="fuelBacklogCardBody">
+        <div style="margin-bottom:14px; padding:12px 14px; background:var(--teal-soft); border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+          <div style="font-size:12.5px; color:var(--text-mid); line-height:1.6;">
+            ไม่เจอทริปที่ต้องการในรายการด้านล่าง หรือ <b>ไม่มีทริปนี้บันทึกไว้เลย</b> (เช่น พขร. ลืมกดออกรถ/กลับรถทั้งทริป มีแต่ใบเสร็จน้ำมัน)?
+          </div>
+          <button class="btn btn-primary" onclick="openAddFuelModal()" style="white-space:nowrap;">➕ เพิ่มรายการน้ำมันย้อนหลัง (ไม่มีทริปเดิม)</button>
+        </div>
+        <div id="fuelBacklogList"><div class="loading-note"><span class="inline-spinner"></span>กำลังโหลด...</div></div>
+      </div>
+    </div>
+
     <!-- Trip list -->
     <div class="card">
       <div class="card-header" onclick="toggleCard('tripCardBody', this)">
-        <div><span class="card-header-title">รายการทริปทั้งหมด</span><span class="card-header-sub">คลิก "แก้ไข" เพื่อแก้ข้อมูลรายทริป</span></div>
+        <div><span class="card-header-title">รายการทริปทั้งหมด</span><span class="card-header-sub">คลิก "แก้ไข" เพื่อแก้ข้อมูลรายทริป · หรือ "เติมน้ำมัน" เพื่อลงบิลย้อนหลังอย่างเดียว</span></div>
         <svg class="chevron open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
       </div>
       <div class="card-body" id="tripCardBody">
@@ -328,6 +349,9 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
           <input type="text" id="fSearch" placeholder="ค้นหา: ทะเบียนรถ / ชื่อ พขร. / ปลายทาง..." oninput="renderTrips()">
           <input type="date" id="fFrom" onchange="renderTrips()">
           <input type="date" id="fTo" onchange="renderTrips()">
+          <label style="display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-mid); white-space:nowrap;">
+            <input type="checkbox" id="fNoFuel" onchange="renderTrips()" style="width:auto;"> เฉพาะที่ยังไม่ลงน้ำมัน
+          </label>
           <button class="btn btn-ghost" onclick="resetTripFilters()">ล้างตัวกรอง</button>
         </div>
         <div class="table-wrap">
@@ -335,11 +359,11 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
             <thead>
               <tr>
                 <th>วันที่</th><th>ทะเบียน/รถ</th><th>พขร.</th><th>ปลายทาง</th>
-                <th>ไมล์ต้น</th><th>ไมล์ปลาย</th><th>ระยะทาง(กม.)</th><th>สถานะ</th><th>หมายเหตุ</th><th></th>
+                <th>ไมล์ต้น</th><th>ไมล์ปลาย</th><th>ระยะทาง(กม.)</th><th>สถานะ</th><th>น้ำมัน</th><th>หมายเหตุ</th><th></th>
               </tr>
             </thead>
             <tbody id="tripTbody">
-              <tr class="empty-row"><td colspan="10"><span class="inline-spinner"></span>กำลังโหลดข้อมูล...</td></tr>
+              <tr class="empty-row"><td colspan="11"><span class="inline-spinner"></span>กำลังโหลดข้อมูล...</td></tr>
             </tbody>
           </table>
         </div>
@@ -371,6 +395,12 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
             <option value="พร้อมใช้งาน">พร้อมใช้งาน (กลับแล้ว)</option>
           </select>
         </div>
+        <div class="form-group span2" style="border-top:1.5px dashed var(--border); padding-top:12px; margin-top:2px;">
+          <label style="color:var(--teal); font-weight:700;">🛢️ ข้อมูลน้ำมัน (กรอกเพื่อลงบิลย้อนหลัง ถ้ายังไม่มี)</label>
+        </div>
+        <div class="form-group"><label>น้ำมันที่เติม (ลิตร)</label><input type="number" id="edFuelLiters" min="0" max="500" step="0.01" placeholder="เช่น 25.5"></div>
+        <div class="form-group"><label>ราคาน้ำมัน (บาท)</label><input type="number" id="edFuelPrice" min="0" step="1" placeholder="เช่น 950"></div>
+        <div class="form-group span2" style="font-size:12px; color:var(--text-light);">💡 ถ้ามีรูปบิลน้ำมันด้วย ให้แนบเพิ่มได้จากแท็บ "รูปบิลน้ำมันออกรถ / ขากลับ" ด้านล่าง</div>
         <div class="form-group span2"><label>หมายเหตุ</label><input type="text" id="edNote"></div>
         <div class="form-group span2" id="edOdoWarning" style="display:none; color:var(--danger); font-size:12.5px; font-weight:600;">⚠️ เลขไมล์ปลายต้องไม่น้อยกว่าเลขไมล์ต้น</div>
         <div class="form-group span2">
@@ -406,6 +436,41 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
     <div class="modal-foot">
       <button class="btn btn-ghost" onclick="closeEditModal()">ยกเลิก</button>
       <button class="btn btn-primary" id="editSubmitBtn" onclick="submitEdit()">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ NEW: Add fuel-only backlog entry modal — สำหรับกรณี "ไม่มีทริปนี้บันทึกไว้เลย" -->
+<div class="modal-overlay" id="addFuelModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>🛢️ เพิ่มรายการเติมน้ำมันย้อนหลัง</h3>
+      <button class="modal-close" onclick="closeAddFuelModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="role-hint" id="addFuelRoleHint"></div>
+      <div style="font-size:12.5px; color:var(--text-light); margin-bottom:14px; line-height:1.6;">
+        ใช้เมื่อ "ไม่มีทริปบันทึกไว้เลย" ในระบบ (เช่น ลืมกดออกรถ/กลับรถทั้งทริป มีแต่ใบเสร็จน้ำมัน)
+        ระบบจะสร้างรายการใหม่ให้โดยไม่กระทบระยะทาง/สถานะรถปัจจุบัน — ถ้าทริปมีอยู่แล้วในตารางด้านล่าง
+        ให้กด "แก้ไข" ที่แถวนั้นแทน จะแม่นยำกว่า
+      </div>
+      <div class="form-grid">
+        <div class="form-group"><label>วันที่เติมน้ำมัน <span style="color:var(--danger);">*</span></label><input type="date" id="afDate"></div>
+        <div class="form-group"><label>ทะเบียน/รถ <span style="color:var(--danger);">*</span></label><input type="text" id="afPlate" list="edPlateList" autocomplete="off"></div>
+        <div class="form-group"><label>พนักงานขับรถ</label><input type="text" id="afDriver" list="edDriverList" autocomplete="off"></div>
+        <div class="form-group"><label>เลขไมล์ ณ วันเติม (ถ้าทราบ)</label><input type="number" id="afOdo" min="0" step="1" placeholder="ไม่ทราบเว้นว่างได้"></div>
+        <div class="form-group"><label>น้ำมันที่เติม (ลิตร) <span style="color:var(--danger);">*</span></label><input type="number" id="afFuelLiters" min="0" max="500" step="0.01" placeholder="เช่น 25.5"></div>
+        <div class="form-group"><label>ราคาน้ำมัน (บาท)</label><input type="number" id="afFuelPrice" min="0" step="1" placeholder="เช่น 950"></div>
+        <div class="form-group span2"><label>หมายเหตุ</label><input type="text" id="afNote" placeholder="ค่าเริ่มต้น: เติมน้ำมันย้อนหลัง (ไม่มีทริปบันทึกไว้เดิม)"></div>
+        <div class="form-group span2">
+          <label>เหตุผล/ที่มาของรายการนี้ <span style="color:var(--danger);">*</span></label>
+          <textarea id="afReason" placeholder="เช่น พขร. ลืมกดออกรถ มีแต่บิลน้ำมัน, ใช้รถนอกระบบแล้วมาลงย้อนหลัง ฯลฯ"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeAddFuelModal()">ยกเลิก</button>
+      <button class="btn btn-primary" id="addFuelSubmitBtn" onclick="submitAddFuelBacklog()">บันทึก</button>
     </div>
   </div>
 </div>
@@ -577,6 +642,7 @@ function enterApp() {
     loadPendingEdits();
   }
   loadTrips();
+  loadFuelBacklog();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -589,7 +655,7 @@ async function loadTrips() {
     allTrips = (json && json.data) || [];
     renderTrips();
   } catch (err) {
-    document.getElementById('tripTbody').innerHTML = '<tr class="empty-row"><td colspan="10">โหลดข้อมูลไม่สำเร็จ: ' + escHtml(err.message || err) + '</td></tr>';
+    document.getElementById('tripTbody').innerHTML = '<tr class="empty-row"><td colspan="11">โหลดข้อมูลไม่สำเร็จ: ' + escHtml(err.message || err) + '</td></tr>';
   }
 }
 
@@ -597,7 +663,13 @@ function resetTripFilters() {
   document.getElementById('fSearch').value = '';
   document.getElementById('fFrom').value = '';
   document.getElementById('fTo').value = '';
+  document.getElementById('fNoFuel').checked = false;
   renderTrips();
+}
+
+// ทริปถือว่า "ยังไม่ลงน้ำมัน" เมื่อยังไม่มีลิตรบันทึกไว้ (ไม่สนใจสถานะทริป — ให้เห็นครบทุกแถวในตาราง)
+function tripHasNoFuel(t) {
+  return String(t['น้ำมันที่เติม(ลิตร)'] || '').trim() === '';
 }
 
 function toYMD(v) {
@@ -626,6 +698,7 @@ function renderTrips() {
   const q = document.getElementById('fSearch').value.trim().toLowerCase();
   const from = document.getElementById('fFrom').value;
   const to = document.getElementById('fTo').value;
+  const noFuelOnly = document.getElementById('fNoFuel').checked;
   const tbody = document.getElementById('tripTbody');
 
   // ✅ FIX: เดิมเทียบ String(t['วันที่']) ตรงๆ (รูปแบบ dd/MM/yyyy) ซึ่งเรียงลำดับผิด
@@ -640,17 +713,23 @@ function renderTrips() {
     const d = toYMD(t['วันที่']);
     if (from && d && d < from) return false;
     if (to && d && d > to) return false;
+    if (noFuelOnly && !tripHasNoFuel(t)) return false;
     return true;
   });
 
   if (!rows.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="10">ไม่พบข้อมูลที่ตรงกับเงื่อนไข</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="11">ไม่พบข้อมูลที่ตรงกับเงื่อนไข</td></tr>';
     return;
   }
 
   tbody.innerHTML = rows.map(t => {
     const tripId = t['TripID'] || '';
     const note = t['หมายเหตุ'] || '';
+    const liters = t['น้ำมันที่เติม(ลิตร)'];
+    const price = t['ราคาน้ำมัน(บาท)'];
+    const fuelCell = String(liters || '').trim()
+      ? '<span style="color:var(--success); font-weight:600; font-size:12.5px;">' + escHtml(liters) + ' ล.' + (price ? ' · ' + escHtml(price) + ' บ.' : '') + '</span>'
+      : '<span style="color:var(--danger); font-weight:600; font-size:12px; background:var(--danger-soft); padding:2px 7px; border-radius:20px;">ยังไม่เติม</span>';
     return '<tr>'
       + '<td>' + escHtml(toYMD(t['วันที่'])) + '</td>'
       + '<td><span class="plate-chip">' + escHtml(t['ทะเบียน/รถ']) + '</span></td>'
@@ -660,6 +739,7 @@ function renderTrips() {
       + '<td>' + escHtml(t['เลขไมล์ปลาย']) + '</td>'
       + '<td>' + escHtml(t['ระยะทาง(กม.)']) + '</td>'
       + '<td>' + escHtml(t['สถานะ']) + '</td>'
+      + '<td>' + fuelCell + '</td>'
       + '<td class="note-cell">' + (note ? '<span title="' + escHtml(note) + '">' + escHtml(note) + '</span>' : '<span class="note-empty">—</span>') + '</td>'
       + '<td><button class="btn btn-primary" onclick="openEditModal(\'' + escHtml(tripId) + '\')">แก้ไข</button> '
       + '<button class="btn btn-reject" onclick="startDeleteFlow(\'' + escHtml(tripId) + '\')">ลบ</button></td>'
@@ -668,9 +748,46 @@ function renderTrips() {
 }
 
 // ════════════════════════════════════════════════════════════
+//  FUEL BACKLOG — ทริปที่ยังไม่ได้ลงบิลน้ำมัน (สำหรับเติมย้อนหลัง)
+// ════════════════════════════════════════════════════════════
+async function loadFuelBacklog() {
+  const listEl = document.getElementById('fuelBacklogList');
+  try {
+    const res = await fetch(GAS_URL + '?action=getFuelBacklog', { cache: 'no-store' });
+    const json = await res.json();
+    renderFuelBacklog((json && json.data) || []);
+  } catch (err) {
+    listEl.innerHTML = '<div class="loading-note">โหลดรายการไม่สำเร็จ: ' + escHtml(err.message || err) + '</div>';
+  }
+}
+
+function renderFuelBacklog(list) {
+  const badge = document.getElementById('fuelBacklogBadge');
+  const listEl = document.getElementById('fuelBacklogList');
+  badge.style.display = list.length ? 'inline-block' : 'none';
+  badge.textContent = list.length;
+
+  if (!list.length) {
+    listEl.innerHTML = '<div class="loading-note">✅ ทุกทริปมีข้อมูลน้ำมันครบแล้ว</div>';
+    return;
+  }
+
+  listEl.innerHTML = list.map(r => {
+    return '<div class="pending-row">'
+      + '<div class="pending-top">'
+      +   '<div><span class="pending-plate">' + escHtml(r.plate) + '</span> · ' + escHtml(r.date) + ' · ' + escHtml(r.driver) + ' → ' + escHtml(r.dest) + '</div>'
+      + '</div>'
+      + '<div class="pending-actions">'
+      +   '<button class="btn btn-primary" onclick="openEditModal(\'' + escHtml(r.tripId) + '\', true)">🛢️ เติมน้ำมันย้อนหลัง</button>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════
 //  EDIT MODAL
 // ════════════════════════════════════════════════════════════
-function openEditModal(tripId) {
+function openEditModal(tripId, focusFuel) {
   const t = allTrips.find(x => String(x['TripID']) === String(tripId));
   if (!t) { showToast('ไม่พบข้อมูลทริปนี้', 'err'); return; }
   editingTrip = t;
@@ -683,7 +800,9 @@ function openEditModal(tripId) {
     'เลขไมล์ปลาย'  : t['เลขไมล์ปลาย'] || '',
     'ระยะทาง(กม.)' : t['ระยะทาง(กม.)'] || '',
     'สถานะ'        : t['สถานะ'] || '',
-    'หมายเหตุ'     : t['หมายเหตุ'] || ''
+    'หมายเหตุ'     : t['หมายเหตุ'] || '',
+    'น้ำมันที่เติม(ลิตร)' : t['น้ำมันที่เติม(ลิตร)'] || '',
+    'ราคาน้ำมัน(บาท)'    : t['ราคาน้ำมัน(บาท)'] || ''
   };
 
   document.getElementById('edDate').value = editingOldValues['วันที่'];
@@ -700,6 +819,8 @@ function openEditModal(tripId) {
   document.getElementById('edStatus').value = validStatuses.includes(editingOldValues['สถานะ'])
     ? editingOldValues['สถานะ'] : 'พร้อมใช้งาน';
   document.getElementById('edNote').value = editingOldValues['หมายเหตุ'];
+  document.getElementById('edFuelLiters').value = editingOldValues['น้ำมันที่เติม(ลิตร)'];
+  document.getElementById('edFuelPrice').value = editingOldValues['ราคาน้ำมัน(บาท)'];
   document.getElementById('edReason').value = '';
   recalcEdDist();
 
@@ -711,11 +832,87 @@ function openEditModal(tripId) {
   resetPhotoSection(t);
 
   document.getElementById('editModal').classList.add('show');
+
+  if (focusFuel) {
+    setTimeout(() => {
+      const el = document.getElementById('edFuelLiters');
+      el.focus();
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 80);
+  }
 }
 
 function closeEditModal() {
   document.getElementById('editModal').classList.remove('show');
   editingTrip = null;
+}
+
+// ════════════════════════════════════════════════════════════
+//  ADD FUEL BACKLOG ENTRY — ไม่มีทริปเดิมเลย (สร้างรายการใหม่)
+// ════════════════════════════════════════════════════════════
+function openAddFuelModal() {
+  document.getElementById('afDate').value = '';
+  document.getElementById('afPlate').value = '';
+  document.getElementById('afDriver').value = '';
+  document.getElementById('afOdo').value = '';
+  document.getElementById('afFuelLiters').value = '';
+  document.getElementById('afFuelPrice').value = '';
+  document.getElementById('afNote').value = '';
+  document.getElementById('afReason').value = '';
+  document.getElementById('addFuelRoleHint').textContent = role === 'admin'
+    ? 'คุณกำลังเพิ่มรายการในฐานะแอดมิน — การกดบันทึกจะสร้างรายการจริงทันที'
+    : 'คุณกำลังส่งคำขอในฐานะ พขร. — ข้อมูลจริงจะยังไม่ถูกสร้าง จนกว่าแอดมินจะอนุมัติ';
+  document.getElementById('addFuelSubmitBtn').textContent = role === 'admin' ? 'บันทึกทันที' : 'ส่งคำขอ';
+  document.getElementById('addFuelModal').classList.add('show');
+}
+
+function closeAddFuelModal() {
+  document.getElementById('addFuelModal').classList.remove('show');
+}
+
+async function submitAddFuelBacklog() {
+  const date = document.getElementById('afDate').value;
+  const plate = document.getElementById('afPlate').value.trim();
+  const fuelLiters = document.getElementById('afFuelLiters').value.trim();
+  const reason = document.getElementById('afReason').value.trim();
+
+  if (!date) { showToast('กรุณาระบุวันที่เติมน้ำมัน', 'err'); return; }
+  if (!plate) { showToast('กรุณาระบุทะเบียน/รถ', 'err'); return; }
+  if (!fuelLiters || Number(fuelLiters) <= 0) { showToast('กรุณาระบุจำนวนน้ำมันที่เติม (ลิตร) มากกว่า 0', 'err'); return; }
+  if (!reason) { showToast('กรุณาระบุเหตุผล/ที่มาของรายการนี้', 'err'); return; }
+
+  const common = {
+    date,
+    plate,
+    driver: document.getElementById('afDriver').value.trim(),
+    odoAt: document.getElementById('afOdo').value.trim(),
+    fuelLiters,
+    fuelPrice: document.getElementById('afFuelPrice').value.trim(),
+    note: document.getElementById('afNote').value.trim(),
+    reason
+  };
+
+  const btn = document.getElementById('addFuelSubmitBtn');
+  setBtnLoading(btn, role === 'admin' ? 'กำลังบันทึก...' : 'กำลังส่งคำขอ...');
+  try {
+    const payload = role === 'admin'
+      ? Object.assign({ action: 'directAddFuelBacklogEntry', editedBy: currentUserName, adminCode }, common)
+      : Object.assign({ action: 'submitAddFuelBacklogRequest', requestedBy: currentUserName }, common);
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if (!json || json.status !== 'ok') throw new Error((json && json.message) || 'ไม่ทราบสาเหตุ');
+    showToast(json.message || 'บันทึกสำเร็จ', 'ok');
+    closeAddFuelModal();
+    if (role === 'admin') { loadTrips(); loadFuelBacklog(); }
+  } catch (err) {
+    showToast('บันทึกไม่สำเร็จ: ' + (err.message || err), 'err');
+  } finally {
+    restoreBtn(btn);
+  }
 }
 
 /** คำนวณ "ระยะทาง (กม.)" อัตโนมัติจาก เลขไมล์ต้น/ปลาย ทุกครั้งที่มีการแก้ไขค่าใดค่าหนึ่ง
@@ -770,7 +967,9 @@ async function submitEdit() {
     'เลขไมล์ปลาย'  : document.getElementById('edOdoEnd').value,
     'ระยะทาง(กม.)' : document.getElementById('edDist').value,
     'สถานะ'        : document.getElementById('edStatus').value.trim(),
-    'หมายเหตุ'     : document.getElementById('edNote').value.trim()
+    'หมายเหตุ'     : document.getElementById('edNote').value.trim(),
+    'น้ำมันที่เติม(ลิตร)' : document.getElementById('edFuelLiters').value.trim(),
+    'ราคาน้ำมัน(บาท)'    : document.getElementById('edFuelPrice').value.trim()
   };
 
   // ส่งเฉพาะฟิลด์ที่ค่าเปลี่ยนจริงเท่านั้น
@@ -801,7 +1000,7 @@ async function submitEdit() {
     if (!json || json.status !== 'ok') throw new Error((json && json.message) || 'ไม่ทราบสาเหตุ');
     showToast(json.message || 'บันทึกสำเร็จ', 'ok');
     closeEditModal();
-    if (role === 'admin') loadTrips();
+    if (role === 'admin') { loadTrips(); loadFuelBacklog(); }
   } catch (err) {
     showToast('บันทึกไม่สำเร็จ: ' + (err.message || err), 'err');
   } finally {
@@ -1021,7 +1220,7 @@ async function submitDelete() {
     if (!json || json.status !== 'ok') throw new Error((json && json.message) || 'ไม่ทราบสาเหตุ');
     showToast(json.message || 'ดำเนินการสำเร็จ', 'ok');
     closeDeleteModal();
-    if (role === 'admin') loadTrips();
+    if (role === 'admin') { loadTrips(); loadFuelBacklog(); }
   } catch (err) {
     showToast('ลบไม่สำเร็จ: ' + (err.message || err), 'err');
   } finally {
@@ -1045,7 +1244,8 @@ async function loadPendingEdits() {
 const FIELD_LABELS = {
   'วันที่': 'วันที่', 'ทะเบียน/รถ': 'ทะเบียน/รถ', 'พนักงานขับรถ': 'พนักงานขับรถ',
   'ปลายทาง': 'ปลายทาง', 'เลขไมล์ต้น': 'เลขไมล์ต้น', 'เลขไมล์ปลาย': 'เลขไมล์ปลาย',
-  'ระยะทาง(กม.)': 'ระยะทาง(กม.)', 'สถานะ': 'สถานะ', 'หมายเหตุ': 'หมายเหตุ'
+  'ระยะทาง(กม.)': 'ระยะทาง(กม.)', 'สถานะ': 'สถานะ', 'หมายเหตุ': 'หมายเหตุ',
+  'น้ำมันที่เติม(ลิตร)': 'น้ำมันที่เติม (ลิตร)', 'ราคาน้ำมัน(บาท)': 'ราคาน้ำมัน (บาท)'
 };
 
 function renderPendingEdits(list) {
@@ -1061,12 +1261,19 @@ function renderPendingEdits(list) {
 
   listEl.innerHTML = list.map(r => {
     const isDelete = r.requestType === 'ลบ';
+    const isAddFuel = r.requestType === 'เพิ่มน้ำมัน';
     let diffRows;
     if (isDelete) {
       const snap = r.oldValues || {};
       diffRows = '<div style="color:var(--danger); font-weight:700; margin-bottom:6px;">🗑️ ต้องการลบทริปนี้ทั้งหมด</div>'
         + '<div>วันที่: ' + escHtml(snap['วันที่']) + ' · ' + escHtml(snap['พนักงานขับรถ']) + ' → ' + escHtml(snap['ปลายทาง']) + '</div>'
         + '<div>ไมล์ ' + escHtml(snap['เลขไมล์ต้น']) + ' - ' + escHtml(snap['เลขไมล์ปลาย']) + ' (' + escHtml(snap['ระยะทาง(กม.)']) + ' กม.)</div>';
+    } else if (isAddFuel) {
+      const f = r.newValues || {};
+      diffRows = '<div style="color:var(--teal); font-weight:700; margin-bottom:6px;">🛢️ เพิ่มรายการน้ำมันย้อนหลังใหม่ (ไม่มีทริปเดิม)</div>'
+        + '<div>วันที่: ' + escHtml(f.date) + ' · ทะเบียน: ' + escHtml(f.plate) + (f.driver ? ' · พขร.: ' + escHtml(f.driver) : '') + '</div>'
+        + '<div>เติม ' + escHtml(f.fuelLiters) + ' ลิตร' + (f.fuelPrice ? ' · ' + escHtml(f.fuelPrice) + ' บาท' : '') + (f.odoAt ? ' · เลขไมล์ ' + escHtml(f.odoAt) : '') + '</div>'
+        + (f.note ? '<div>หมายเหตุ: ' + escHtml(f.note) + '</div>' : '');
     } else {
       diffRows = Object.keys(r.newValues || {}).map(f => {
         const label = FIELD_LABELS[f] || f;
@@ -1077,10 +1284,12 @@ function renderPendingEdits(list) {
     }
     const typeBadge = isDelete
       ? '<span style="background:var(--danger); color:#fff; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:6px;">คำขอลบ</span>'
+      : isAddFuel
+      ? '<span style="background:var(--teal); color:#fff; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:6px;">คำขอเพิ่มน้ำมันย้อนหลัง</span>'
       : '<span style="background:var(--blue); color:#fff; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:6px;">คำขอแก้ไข</span>';
     return '<div class="pending-row">'
       + '<div class="pending-top">'
-      +   '<div><span class="pending-plate">' + escHtml(r.plate) + '</span>' + typeBadge + ' · TripID: ' + escHtml(r.tripId) + '</div>'
+      +   '<div><span class="pending-plate">' + escHtml(r.plate) + '</span>' + typeBadge + (isAddFuel ? '' : ' · TripID: ' + escHtml(r.tripId)) + '</div>'
       +   '<div class="pending-meta">' + escHtml(r.timestamp) + ' · ขอโดย ' + escHtml(r.requestedBy) + '</div>'
       + '</div>'
       + '<div class="pending-diff">' + diffRows + '</div>'
@@ -1107,6 +1316,7 @@ async function approveRequest(requestId, btnEl) {
     showToast(json.message || 'อนุมัติสำเร็จ', 'ok');
     loadPendingEdits();
     loadTrips();
+    loadFuelBacklog();
   } catch (err) {
     showToast('อนุมัติไม่สำเร็จ: ' + (err.message || err), 'err');
     restoreBtn(btnEl);
