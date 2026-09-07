@@ -7174,9 +7174,13 @@ function expCellForSheet(r, col) {
   if (v === undefined || v === null) return '';
   if (Array.isArray(v)) return v.join(', ');
 
-  // คอลัมน์ที่ควรเป็นข้อความเสมอ แม้ค่าจะดูเหมือนตัวเลข (เลขทะเบียน, รหัส, เวลา ฯลฯ)
+  // คอลัมน์ที่ควรเป็นข้อความเสมอ แม้ค่าจะดูเหมือนตัวเลข (เลขทะเบียน, รหัส, เวลา, เบอร์โทร ฯลฯ)
+  // ✅ FIX: เพิ่ม senderPhone/receiverPhone — เบอร์โทรไทยขึ้นต้นด้วย 0 เสมอ (เช่น 0891234567)
+  // เดิมไม่อยู่ในลิสต์นี้ ทำให้ regex ด้านล่างตีความเป็นตัวเลขแล้วส่งให้ SheetJS เก็บเป็น Number
+  // ซึ่ง Excel จะตัดเลข 0 นำหน้าทิ้งทันที (แสดงเป็น 891234567 แทน 0891234567) เบอร์โทรผิดทั้งหมด
   const forceTextKeys = ['carType', 'ทะเบียน/รถ', 'carPlate', 'TripID', 'id',
-    'inspTime', 'เวลาออก', 'เวลากลับ', 'เวลา', 'timestamp'];
+    'inspTime', 'เวลาออก', 'เวลากลับ', 'เวลา', 'timestamp',
+    'senderPhone', 'receiverPhone'];
   if (forceTextKeys.indexOf(col.key) !== -1) return String(v);
 
   // ถ้าเป็นตัวเลขล้วนๆ (ไม่มี / หรือ - ปนแบบวันที่) ให้เก็บเป็น Number จริง
