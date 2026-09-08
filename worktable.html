@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="referrer" content="no-referrer">
 <title>SAND · ตารางเวรยานพาหนะ — โรงพยาบาลสันทราย</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -55,8 +58,8 @@ body{font-family:'Noto Sans Thai',sans-serif;background:var(--bg);color:var(--te
 /* HEADER */
 .site-header{background:linear-gradient(160deg,var(--navy-mid) 0%,#1a3f6a 55%,#173660 100%);padding:0 16px;border-bottom:2px solid rgba(255,255,255,.06);box-shadow:0 2px 16px rgba(13,33,55,.35);position:sticky;top:0;z-index:200;}
 .header-inner{max-width:960px;margin:0 auto;height:60px;display:flex;align-items:center;gap:12px;}
-.header-logo-wrap{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.header-logo-wrap svg{width:20px;height:20px;color:#fff;}
+.header-logo-wrap{width:38px;height:38px;border-radius:10px;background:#fff;border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.header-logo-wrap img{width:70%;height:70%;object-fit:contain;}
 .header-titles{flex:1;min-width:0;}
 .main-title{font-size:13px;font-weight:700;color:#fff;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .sub-title{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px;}
@@ -236,16 +239,7 @@ tbody tr.dim{opacity:.22;}
 <header class="site-header">
   <div class="header-inner">
     <div class="header-logo-wrap">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
-        <polygon points="12,3 21,18 3,18" stroke="currentColor" stroke-width="1.6" fill="none"/>
-        <circle cx="12" cy="3" r="2" fill="currentColor" stroke="none"/>
-        <circle cx="21" cy="18" r="2" fill="currentColor" stroke="none"/>
-        <circle cx="3" cy="18" r="2" fill="currentColor" stroke="none"/>
-        <circle cx="12" cy="13" r="1.4" fill="currentColor" fill-opacity="0.5" stroke="none"/>
-        <line x1="12" y1="3" x2="12" y2="13" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.4"/>
-        <line x1="21" y1="18" x2="12" y2="13" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.4"/>
-        <line x1="3" y1="18" x2="12" y2="13" stroke="currentColor" stroke-width="0.8" stroke-opacity="0.4"/>
-      </svg>
+      <img src="assets/sand-logo-icon.png" alt="SAND โลโก้ โรงพยาบาลสันทราย">
     </div>
     <div class="header-titles">
       <div class="main-title">SAND · ตารางเวรยานพาหนะ — โรงพยาบาลสันทราย</div>
