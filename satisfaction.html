@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ประเมินความพึงพอใจการใช้รถ — โรงพยาบาลสันทราย</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -58,6 +61,8 @@
     box-shadow: 0 2px 12px rgba(0,0,0,.25);
   }
   .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-logo { width: 30px; height: 30px; background: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .header-logo img { width: 70%; height: 70%; object-fit: contain; }
   .back-btn {
     display: flex; align-items: center; gap: 6px;
     color: rgba(255,255,255,.75); text-decoration: none;
@@ -474,6 +479,7 @@
 <!-- ── HEADER ── -->
 <header class="site-header">
   <div class="header-left">
+    <div class="header-logo"><img src="assets/sand-logo-icon.png" alt="SAND โลโก้ โรงพยาบาลสันทราย"></div>
     <span class="header-title">ประเมินความพึงพอใจ — โรงพยาบาลสันทราย</span>
   </div>
   <div style="display:flex;align-items:center;gap:8px;">
