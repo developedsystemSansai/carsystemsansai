@@ -232,39 +232,64 @@ tbody tr.dim{opacity:.22;}
   .content{padding:12px 10px 40px;}
 }
 
-/* ══════ ตารางงาน (Job Assignments) ══════ */
-.jobs-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;}
-.jobs-filter-chips{display:flex;gap:6px;flex:1;overflow-x:auto;padding-bottom:2px;}
-.jf-chip{padding:7px 13px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);font-size:12px;font-weight:600;color:var(--text-mid);cursor:pointer;white-space:nowrap;font-family:'Noto Sans Thai',sans-serif;flex-shrink:0;}
-.jf-chip.active{background:var(--violet);border-color:var(--violet);color:#fff;}
-
+/* ══════ ตารางงาน (Job Assignments) — มุมมองปฏิทิน วัน/สัปดาห์ ══════ */
 .session-welcome{background:var(--teal-soft);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--teal);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
 .session-welcome b{font-weight:700;}
 .session-welcome a{color:var(--danger);font-size:11px;text-decoration:none;font-weight:600;white-space:nowrap;}
 
-.job-date-group{margin-bottom:16px;}
-.job-date-head{font-size:12.5px;font-weight:700;color:var(--navy-mid);padding:2px 2px 8px;display:flex;align-items:center;gap:8px;}
-.job-date-head .jd-badge{background:var(--blue-soft);color:var(--blue);padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:700;}
-.job-date-head.today .jd-badge{background:var(--teal-soft);color:var(--teal);}
-
-.job-card{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--violet);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:12px 14px;margin-bottom:10px;}
-.job-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;}
-.job-time{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:12.5px;color:var(--navy-mid);background:var(--blue-soft);padding:3px 8px;border-radius:7px;white-space:nowrap;flex-shrink:0;}
-.job-who{flex:1;min-width:0;}
-.job-requester{font-weight:700;font-size:13.5px;color:var(--text);overflow-wrap:anywhere;}
-.job-headcount{font-size:11px;color:var(--text-light);font-weight:600;}
-.job-mission{font-size:12.5px;color:var(--text-mid);margin:5px 0 9px;line-height:1.55;overflow-wrap:anywhere;}
-.job-meta{display:flex;flex-wrap:wrap;gap:5px 16px;font-size:11.5px;color:var(--text-light);border-top:1px dashed var(--border);padding-top:8px;}
-.job-meta span b{color:var(--text-mid);font-weight:600;}
-.job-actions{display:flex;gap:8px;margin-top:10px;}
-.job-actions button{flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;font-size:11.5px;font-weight:700;color:var(--text-mid);cursor:pointer;font-family:'Noto Sans Thai',sans-serif;}
-.job-actions button.danger{color:var(--danger);border-color:#f0c4c0;background:var(--danger-soft);}
-
 .jobs-empty{text-align:center;padding:44px 20px;color:var(--text-light);font-size:12.5px;}
 .jobs-empty div:first-child{font-size:30px;margin-bottom:8px;}
 
-.fab-add{position:fixed;bottom:78px;right:16px;width:46px;height:46px;border-radius:50%;background:var(--teal);color:#fff;border:none;cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,122,110,.4);transition:transform .2s;z-index:300;line-height:0;padding-bottom:2px;}
-.fab-add:active{transform:scale(.9);}
+/* Calendar top toolbar */
+.cal-toolbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;}
+.cal-nav{display:flex;align-items:center;gap:6px;}
+.cal-nav-btn{width:30px;height:30px;border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--text-mid);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.cal-today-btn{padding:0 12px;height:30px;border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--text-mid);font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Noto Sans Thai',sans-serif;}
+.cal-label{font-size:13px;font-weight:700;color:var(--navy-mid);margin-left:4px;white-space:nowrap;}
+.cal-view-toggle{display:flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;flex-shrink:0;}
+.cal-view-toggle button{padding:6px 14px;border:none;background:var(--card);color:var(--text-mid);font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Noto Sans Thai',sans-serif;}
+.cal-view-toggle button.active{background:var(--violet);color:#fff;}
+
+/* Calendar grid */
+.cal-wrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--card);box-shadow:var(--shadow-sm);}
+.cal-head-row{display:grid;border-bottom:1px solid var(--border);}
+.cal-gutter-head{border-right:1px solid var(--border);}
+.cal-day-head{text-align:center;padding:8px 2px;border-left:1px solid var(--border);}
+.cal-day-head:first-of-type{border-left:none;}
+.cal-day-head .cal-dow{font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px;}
+.cal-day-head .cal-daynum{font-size:15px;font-weight:800;color:var(--text);margin-top:2px;}
+.cal-day-head.today .cal-daynum{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--violet);color:#fff;}
+
+.cal-untimed-band{display:grid;border-bottom:1px solid var(--border);background:#fbfbfd;}
+.cal-untimed-cell{border-left:1px solid var(--border);padding:4px 3px;display:flex;flex-direction:column;gap:3px;min-width:0;}
+.cal-untimed-cell:first-of-type{border-left:none;}
+.cal-untimed-chip{border-radius:6px;padding:3px 6px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+.cal-body-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.cal-body-grid{display:grid;position:relative;}
+.cal-gutter{position:relative;border-right:1px solid var(--border);}
+.cal-hour-label{position:absolute;left:0;right:4px;transform:translateY(-50%);font-size:9.5px;color:var(--text-light);text-align:right;font-family:'IBM Plex Mono',monospace;}
+.cal-day-col{position:relative;border-left:1px solid var(--border);background-image:repeating-linear-gradient(to bottom, var(--border) 0, var(--border) 1px, transparent 1px, transparent 56px);background-position:0 0;}
+.cal-day-col:first-of-type{border-left:none;}
+.cal-day-col.today{background-color:var(--violet-soft);}
+
+.cal-event{position:absolute;border-radius:8px;padding:4px 6px;font-size:10px;line-height:1.35;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:box-shadow .15s,transform .15s;}
+.cal-event:hover{box-shadow:0 4px 12px rgba(0,0,0,.16);transform:translateY(-1px);z-index:5;}
+.cal-event-time{font-weight:700;font-family:'IBM Plex Mono',monospace;font-size:9.5px;opacity:.85;}
+.cal-event-title{font-weight:800;font-size:11px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.cal-event-loc,.cal-event-driver{font-size:9.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+
+@media(min-width:600px){
+  .cal-event-time,.cal-event-loc,.cal-event-driver{font-size:10.5px;}
+  .cal-event-title{font-size:12px;}
+}
+
+/* Job detail modal */
+.jd-row{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--border);}
+.jd-row:last-of-type{border-bottom:none;}
+.jd-icon{width:28px;height:28px;border-radius:8px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.jd-label{font-size:10.5px;color:var(--text-light);font-weight:600;}
+.jd-value{font-size:13px;color:var(--text);font-weight:700;margin-top:1px;overflow-wrap:anywhere;}
 
 /* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(13,33,55,.55);display:flex;align-items:flex-end;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity .2s;}
@@ -353,13 +378,6 @@ tbody tr.dim{opacity:.22;}
     <div id="staff-content" style="display:none"></div>
   </div>
   <div id="tab-jobs" style="display:none">
-    <div class="jobs-toolbar">
-      <div class="jobs-filter-chips">
-        <button class="jf-chip active" id="jfchip-today" onclick="setJobsFilter('today')">วันนี้</button>
-        <button class="jf-chip" id="jfchip-upcoming" onclick="setJobsFilter('upcoming')">7 วันข้างหน้า</button>
-        <button class="jf-chip" id="jfchip-all" onclick="setJobsFilter('all')">ทั้งหมด</button>
-      </div>
-    </div>
     <div id="jobs-session-box"></div>
     <div id="jobs-loading" class="loading-wrap"><div class="spinner"></div><div class="loading-text">กำลังโหลดตารางงาน...</div></div>
     <div id="jobs-content" style="display:none"></div>
@@ -367,7 +385,6 @@ tbody tr.dim{opacity:.22;}
 </div>
 
 <button class="fab" id="fab" onclick="reload()" title="รีเฟรช">↻</button>
-<button class="fab-add" id="fab-add" onclick="openAddJobModal()" title="เพิ่มงาน" style="display:none">+</button>
 
 <div id="modal-root"></div>
 
@@ -377,7 +394,8 @@ const MONTH_TH=['','มกราคม','กุมภาพันธ์','มี
 const DOW_SHORT=['อา','จ','อ','พ','พฤ','ศ','ส'];
 const COLORS=['#163251','#007a6e','#6d3fc0','#d4580a','#c0392b','#1d6fb5','#1a8a4a','#c07a00','#0d2137','#8255d4'];
 let scheduleData=null,scheduleNextData=null,todayData=null,activeTab='today',activeFilter='all',activeSchedTab='current';
-let jobsData=null,jobsFilter='today';
+let jobsData=null,jobsViewMode='week',jobsCurrentDate=null;
+const CAL_HOUR_START=6,CAL_HOUR_END=22,CAL_HOUR_PX=56;
 const $=id=>document.getElementById(id);
 const avatarColor=i=>COLORS[i%COLORS.length];
 const avatarLetter=name=>(name||'?').replace(/^(นาย|นาง|นางสาว)\.?\s*/,'').trim().charAt(0);
@@ -389,7 +407,7 @@ function shiftName(s){if(!s)return'';const l=s.toLowerCase();if(l.includes('ems'
 async function api(action){const r=await fetch(`${GAS_URL}?action=${action}`);return r.json();}
 
 // ══════════════════════════════════════════════════════════
-//  ตารางงาน (Job Assignments) — พขร. ล็อกอินด้วยเบอร์โทร
+//  ตารางงาน (Job Assignments) — ต้องใส่รหัสผ่านก่อนเข้าดู/แก้ไข
 // ══════════════════════════════════════════════════════════
 const SESSION_KEY='sand_driver_session';
 
@@ -424,70 +442,225 @@ function renderSessionBox(){
   }
 }
 
-function setJobsFilter(f){
-  jobsFilter=f;
-  ['today','upcoming','all'].forEach(k=>$('jfchip-'+k).classList.toggle('active',k===f));
-  renderJobsList();
-}
-
 async function loadJobs(){
   try{
     const r=await api('getJobAssignments');
-    if(r.status==='ok'){ jobsData=r.data||[]; renderJobsList(); }
+    if(r.status==='ok'){ jobsData=r.data||[]; renderJobsCalendar(); }
     else { $('jobs-loading').innerHTML=errBox(r.message||'โหลดตารางงานไม่สำเร็จ'); }
   }catch(err){
     $('jobs-loading').innerHTML=errBox('โหลดตารางงานไม่สำเร็จ');
   }
 }
 
-function renderJobsList(){
+// ── ปฏิทินตารางงาน (มุมมองวัน / สัปดาห์) ──────────────────
+const CAL_EVENT_COLORS=[
+  {bg:'#ede9fe',bd:'#a78bfa',tx:'#5b21b6'},
+  {bg:'#dbeafe',bd:'#60a5fa',tx:'#1e40af'},
+  {bg:'#dcfce7',bd:'#4ade80',tx:'#166534'},
+  {bg:'#fef3c7',bd:'#fbbf24',tx:'#92400e'},
+  {bg:'#fce7f3',bd:'#f472b6',tx:'#9d174d'},
+  {bg:'#e0f2fe',bd:'#38bdf8',tx:'#075985'},
+  {bg:'#fee2e2',bd:'#f87171',tx:'#991b1b'},
+  {bg:'#ecfccb',bd:'#a3e635',tx:'#3f6212'},
+];
+function hashStrJob(s){ let h=0; s=String(s||'x'); for(let i=0;i<s.length;i++){ h=(h<<5)-h+s.charCodeAt(i); h|=0; } return Math.abs(h); }
+function eventColor(name){ return CAL_EVENT_COLORS[hashStrJob(name)%CAL_EVENT_COLORS.length]; }
+
+function ymdToDate(ymd){ const [y,m,d]=ymd.split('-').map(Number); return new Date(y,m-1,d); }
+function dateToYmd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function startOfWeekMon(ymd){
+  const d=ymdToDate(ymd); const day=d.getDay(); const diff=(day===0?-6:1-day);
+  const mon=new Date(d); mon.setDate(d.getDate()+diff); return mon;
+}
+function timeToMinutesJob(t){ if(!t) return null; const p=String(t).split(':'); if(p.length<2) return null; const h=+p[0],m=+p[1]; if(isNaN(h)||isNaN(m)) return null; return h*60+m; }
+function clampToCalGrid(mins){ const s=CAL_HOUR_START*60,e=CAL_HOUR_END*60; return Math.min(Math.max(mins,s),e); }
+
+function layoutDayEvents(dayJobs){
+  const timed=[],untimed=[];
+  dayJobs.forEach(j=>{ const sm=timeToMinutesJob(j.timeOut); if(sm==null) untimed.push(j); else timed.push(j); });
+  const evs=timed.map(j=>{
+    let sm=timeToMinutesJob(j.timeOut), em=timeToMinutesJob(j.timeBack);
+    if(em==null||em<=sm) em=sm+30;
+    return {job:j,sm,em};
+  }).sort((a,b)=>a.sm-b.sm||a.em-b.em);
+
+  // จัดกลุ่มเหตุการณ์ที่เวลาทับกันเป็น cluster แล้วแบ่งคอลัมน์
+  let clusters=[],current=[],activeEnd=-Infinity;
+  evs.forEach(e=>{
+    if(current.length && e.sm>=activeEnd){ clusters.push(current); current=[]; activeEnd=-Infinity; }
+    current.push(e); activeEnd=Math.max(activeEnd,e.em);
+  });
+  if(current.length) clusters.push(current);
+
+  clusters.forEach(cluster=>{
+    const colsEnd=[];
+    cluster.forEach(e=>{
+      let placed=false;
+      for(let c=0;c<colsEnd.length;c++){ if(colsEnd[c]<=e.sm){ e.col=c; colsEnd[c]=e.em; placed=true; break; } }
+      if(!placed){ e.col=colsEnd.length; colsEnd.push(e.em); }
+    });
+    cluster.forEach(e=>{ e.colCount=colsEnd.length; });
+  });
+
+  const gridStart=CAL_HOUR_START*60;
+  evs.forEach(e=>{
+    const s=clampToCalGrid(e.sm), en=clampToCalGrid(e.em);
+    e.top=(s-gridStart)/60*CAL_HOUR_PX;
+    e.height=Math.max((en-s)/60*CAL_HOUR_PX,34);
+  });
+
+  return {timed:evs,untimed};
+}
+
+function renderCalEvents(evs){
+  return evs.map(e=>{
+    const j=e.job,col=eventColor(j.requester);
+    const w=100/e.colCount,l=w*e.col;
+    return `<div class="cal-event" style="top:${e.top}px;height:${e.height}px;left:calc(${l}% + 2px);width:calc(${w}% - 4px);background:${col.bg};border-left:3px solid ${col.bd};color:${col.tx}"
+      onclick="openJobDetail('${j.jobId}')" title="${escapeHtmlJob(j.mission||'')}">
+      <div class="cal-event-time">${j.timeOut||''}${j.timeBack?'–'+j.timeBack:''}</div>
+      <div class="cal-event-title">${escapeHtmlJob(j.requester||'งาน')}</div>
+      ${j.destination?`<div class="cal-event-loc">📍 ${escapeHtmlJob(j.destination)}</div>`:''}
+      ${j.driver?`<div class="cal-event-driver">🚐 ${escapeHtmlJob(j.driver)}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function renderCalUntimedChips(untimed){
+  if(!untimed.length) return '';
+  return untimed.map(j=>{
+    const col=eventColor(j.requester);
+    return `<div class="cal-untimed-chip" style="background:${col.bg};border-left:3px solid ${col.bd};color:${col.tx}" onclick="openJobDetail('${j.jobId}')">${escapeHtmlJob(j.requester||'งาน')}</div>`;
+  }).join('');
+}
+
+function calNav(delta){
+  const cur=ymdToDate(jobsCurrentDate);
+  cur.setDate(cur.getDate()+(jobsViewMode==='day'?delta:delta*7));
+  jobsCurrentDate=dateToYmd(cur);
+  renderJobsCalendar();
+}
+function calToday(){ jobsCurrentDate=todayYmd(); renderJobsCalendar(); }
+function setJobsView(mode){ jobsViewMode=mode; renderJobsCalendar(); }
+
+function renderJobsCalendar(){
   if(!jobsData) return;
+  if(!jobsCurrentDate) jobsCurrentDate=todayYmd();
   $('jobs-loading').style.display='none';
   $('jobs-content').style.display='block';
 
   const t=todayYmd();
-  let list=jobsData;
-  if(jobsFilter==='today') list=jobsData.filter(j=>j.date===t);
-  else if(jobsFilter==='upcoming'){ const end=addDaysYmd(t,7); list=jobsData.filter(j=>j.date>=t && j.date<=end); }
+  let days=[];
+  if(jobsViewMode==='day'){ days=[ymdToDate(jobsCurrentDate)]; }
+  else { const mon=startOfWeekMon(jobsCurrentDate); for(let i=0;i<7;i++){ const d=new Date(mon); d.setDate(mon.getDate()+i); days.push(d); } }
 
-  if(!list.length){
-    $('jobs-content').innerHTML=`<div class="jobs-empty"><div>🗒️</div>ยังไม่มีงานในช่วงนี้<br>กดปุ่ม + เพื่อเพิ่มงานใหม่</div>`;
-    return;
+  // label ช่วงวันที่ที่แสดง
+  let label='';
+  if(jobsViewMode==='day'){ label=`${MONTH_TH[days[0].getMonth()+1]} ${days[0].getFullYear()+543}`; }
+  else{
+    const a=days[0],b=days[6];
+    label=(a.getMonth()===b.getMonth())
+      ? `${MONTH_TH[a.getMonth()+1]} ${a.getFullYear()+543}`
+      : `${MONTH_TH[a.getMonth()+1]}–${MONTH_TH[b.getMonth()+1]} ${b.getFullYear()+543}`;
   }
 
-  // จัดกลุ่มตามวันที่
-  const groups={};
-  list.forEach(j=>{ if(!groups[j.date]) groups[j.date]=[]; groups[j.date].push(j); });
-  const dates=Object.keys(groups).sort((a,b)=> jobsFilter==='today'?0:(a<b?-1:1));
+  // จัดกลุ่มงานตามวันที่
+  const byDate={};
+  (jobsData||[]).forEach(j=>{ if(!byDate[j.date]) byDate[j.date]=[]; byDate[j.date].push(j); });
 
-  let html='';
-  dates.forEach(date=>{
-    const isToday=date===t;
-    html+=`<div class="job-date-group"><div class="job-date-head${isToday?' today':''}">📅 ${fmtJobDate(date)} ${isToday?'<span class="jd-badge">วันนี้</span>':''}</div>`;
-    groups[date].sort((a,b)=>String(a.timeOut||'').localeCompare(String(b.timeOut||''))).forEach(j=>{
-      html+=`<div class="job-card">
-        <div class="job-card-top">
-          <div class="job-who">
-            <div class="job-requester">${escapeHtmlJob(j.requester)}</div>
-            ${j.headcount?`<div class="job-headcount">👥 ${escapeHtmlJob(String(j.headcount))} คน</div>`:''}
-          </div>
-          <div class="job-time">${j.timeOut||'--:--'} → ${j.timeBack||'--:--'}</div>
-        </div>
-        ${j.mission?`<div class="job-mission">📋 ${escapeHtmlJob(j.mission)}</div>`:''}
-        <div class="job-meta">
-          ${j.destination?`<span>📍 <b>${escapeHtmlJob(j.destination)}</b></span>`:''}
-          ${j.driver?`<span>🚐 ผู้ไปส่ง <b>${escapeHtmlJob(j.driver)}</b></span>`:''}
-          ${j.shiftOwner?`<span>🕐 เวรของ <b>${escapeHtmlJob(j.shiftOwner)}</b></span>`:''}
-        </div>
-        <div class="job-actions">
-          <button onclick='openEditJobModal(${JSON.stringify(j).replace(/'/g,"&apos;")})'>✏️ แก้ไข</button>
-          <button class="danger" onclick="confirmDeleteJob('${j.jobId}')">🗑️ ลบ</button>
-        </div>
-      </div>`;
-    });
-    html+='</div>';
+  const cols=days.length;
+  const totalPx=(CAL_HOUR_END-CAL_HOUR_START)*CAL_HOUR_PX;
+
+  let hourLabels='';
+  for(let h=CAL_HOUR_START;h<=CAL_HOUR_END;h++){
+    hourLabels+=`<div class="cal-hour-label" style="top:${(h-CAL_HOUR_START)*CAL_HOUR_PX}px">${String(h).padStart(2,'0')}:00</div>`;
+  }
+
+  let headHtml='';
+  let untimedHtml='';
+  let dayColsHtml='';
+  let anyUntimed=false;
+
+  days.forEach(d=>{
+    const ymd=dateToYmd(d), isToday=ymd===t;
+    const dayJobs=byDate[ymd]||[];
+    const {timed,untimed}=layoutDayEvents(dayJobs);
+    if(untimed.length) anyUntimed=true;
+
+    headHtml+=`<div class="cal-day-head${isToday?' today':''}"><div class="cal-dow">${DOW_SHORT[d.getDay()]}</div><div class="cal-daynum">${d.getDate()}</div></div>`;
+    untimedHtml+=`<div class="cal-untimed-cell">${renderCalUntimedChips(untimed)}</div>`;
+    dayColsHtml+=`<div class="cal-day-col${isToday?' today':''}" style="height:${totalPx}px">${renderCalEvents(timed)}</div>`;
   });
+
+  const gridCols=`46px repeat(${cols},1fr)`;
+  const html=`
+    <div class="cal-toolbar">
+      <div class="cal-nav">
+        <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+        <button class="cal-today-btn" onclick="calToday()">วันนี้</button>
+        <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+        <div class="cal-label">${label}</div>
+      </div>
+      <div class="cal-view-toggle">
+        <button class="${jobsViewMode==='day'?'active':''}" onclick="setJobsView('day')">วัน</button>
+        <button class="${jobsViewMode==='week'?'active':''}" onclick="setJobsView('week')">สัปดาห์</button>
+      </div>
+    </div>
+    <div class="cal-wrap">
+      <div class="cal-head-row" style="grid-template-columns:${gridCols}">
+        <div class="cal-gutter-head"></div>
+        ${headHtml}
+      </div>
+      ${anyUntimed?`<div class="cal-untimed-band" style="grid-template-columns:${gridCols}"><div class="cal-untimed-cell"></div>${untimedHtml}</div>`:''}
+      <div class="cal-body-scroll" style="max-height:520px">
+        <div class="cal-body-grid" style="grid-template-columns:${gridCols};height:${totalPx}px">
+          <div class="cal-gutter" style="height:${totalPx}px">${hourLabels}</div>
+          ${dayColsHtml}
+        </div>
+      </div>
+    </div>`;
+
   $('jobs-content').innerHTML=html;
+
+  // เลื่อนไปช่วงเวลาปัจจุบัน/ช่วงเช้าโดยประมาณ ให้เห็นงานที่กำลังจะถึงก่อน
+  const scrollWrap=document.querySelector('.cal-body-scroll');
+  if(scrollWrap){
+    const nowMin=new Date().getHours()*60+new Date().getMinutes();
+    const targetPx=Math.max(0,(clampToCalGrid(nowMin)-CAL_HOUR_START*60)/60*CAL_HOUR_PX-100);
+    scrollWrap.scrollTop=targetPx;
+  }
+}
+
+function openJobDetail(jobId){
+  const j=(jobsData||[]).find(x=>x.jobId===jobId);
+  if(!j) return;
+  const html=`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">${escapeHtmlJob(j.mission||j.requester||'รายละเอียดงาน')}</div>
+    <div class="modal-sub">${fmtJobDate(j.date)}</div>
+    <div class="jd-row">
+      <div class="jd-icon">🕐</div>
+      <div><div class="jd-label">เวลานัดหมาย</div><div class="jd-value">${j.timeOut||'--:--'} – ${j.timeBack||'--:--'}</div></div>
+    </div>
+    <div class="jd-row">
+      <div class="jd-icon">📍</div>
+      <div><div class="jd-label">สถานที่ไป</div><div class="jd-value">${escapeHtmlJob(j.destination)||'—'}</div></div>
+    </div>
+    <div class="jd-row">
+      <div class="jd-icon">🏥</div>
+      <div><div class="jd-label">กลุ่มงานที่ขอ${j.headcount?` · ${escapeHtmlJob(String(j.headcount))} คน`:''}</div><div class="jd-value">${escapeHtmlJob(j.requester)||'—'}</div></div>
+    </div>
+    <div class="jd-row">
+      <div class="jd-icon">🚐</div>
+      <div><div class="jd-label">ผู้รับผิดชอบ (คนขับ)</div><div class="jd-value">${escapeHtmlJob(j.driver)||'—'}</div></div>
+    </div>
+    ${j.shiftOwner?`<div class="jd-row"><div class="jd-icon">🗓️</div><div><div class="jd-label">เวรของ</div><div class="jd-value">${escapeHtmlJob(j.shiftOwner)}</div></div></div>`:''}
+    ${j.mission?`<div class="jd-row"><div class="jd-icon">📋</div><div><div class="jd-label">ภารกิจ / คำสั่งงาน</div><div class="jd-value">${escapeHtmlJob(j.mission)}</div></div></div>`:''}
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick='closeModal();openEditJobModal(${JSON.stringify(j).replace(/'/g,"&apos;")})'>✏️ แก้ไข</button>
+      <button class="btn-primary" style="background:var(--danger)" onclick="closeModal();confirmDeleteJob('${j.jobId}')">🗑️ ลบ</button>
+    </div>`;
+  openModal(html);
 }
 
 function escapeHtmlJob(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -507,32 +680,43 @@ function openModal(innerHtml){
   return div;
 }
 
-// ── LOGIN (verify เบอร์โทร) ──────────────────────────────
-function openLoginModal(onSuccess){
+// ── LOGIN (ใส่รหัสผ่าน) ──────────────────────────────
+function openLoginModal(onSuccess,onCancel){
   const html=`
-    <button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="login-icon-wrap">🔑</div>
-    <div class="modal-title">เข้าสู่ระบบ พขร.</div>
-    <div class="modal-sub">กรอกเบอร์โทรศัพท์ที่ลงทะเบียนไว้ในตารางเวร เพื่อเพิ่ม/แก้ไขงานได้</div>
+    <button class="modal-close" onclick="handleLoginCancel()">✕</button>
+    <div class="login-icon-wrap">🔒</div>
+    <div class="modal-title">ตารางงาน</div>
+    <div class="modal-sub">โปรดใส่รหัสผ่านเพื่อเข้าดูตารางงาน</div>
     <div class="modal-err" id="login-err"></div>
     <div class="form-group">
-      <label>เบอร์โทรศัพท์</label>
-      <input type="tel" id="login-phone" placeholder="0812345678" inputmode="numeric" maxlength="10">
+      <label>รหัสผ่าน</label>
+      <input type="password" id="login-phone" placeholder="โปรดใส่รหัสผ่าน" autocomplete="off">
     </div>
     <div class="modal-actions">
-      <button class="btn-secondary" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn-secondary" onclick="handleLoginCancel()">ยกเลิก</button>
       <button class="btn-primary" id="login-submit-btn" onclick="submitLogin()">เข้าสู่ระบบ</button>
     </div>`;
   const modal=openModal(html);
   modal._onSuccess=onSuccess;
-  setTimeout(()=>$('login-phone')?.focus(),150);
+  modal._onCancel=onCancel;
+  setTimeout(()=>{
+    const inp=$('login-phone');
+    if(inp){ inp.focus(); inp.addEventListener('keydown',e=>{ if(e.key==='Enter') submitLogin(); }); }
+  },150);
+}
+
+function handleLoginCancel(){
+  const modal=document.querySelector('.modal-overlay');
+  const cb=modal&&modal._onCancel;
+  closeModal();
+  if(cb) cb();
 }
 
 async function submitLogin(){
   const phone=$('login-phone').value.trim();
   const errBoxEl=$('login-err');
   errBoxEl.classList.remove('show');
-  if(!phone){ errBoxEl.textContent='กรุณากรอกเบอร์โทรศัพท์'; errBoxEl.classList.add('show'); return; }
+  if(!phone){ errBoxEl.textContent='โปรดใส่รหัสผ่าน'; errBoxEl.classList.add('show'); return; }
   const btn=$('login-submit-btn'); btn.disabled=true; btn.textContent='กำลังตรวจสอบ...';
   try{
     const r=await fetchGASRaw({action:'verifyDriverPhone',phone});
@@ -544,7 +728,7 @@ async function submitLogin(){
       closeModal();
       if(cb) cb();
     } else {
-      errBoxEl.textContent=r.message||'ไม่พบเบอร์นี้ในระบบ'; errBoxEl.classList.add('show');
+      errBoxEl.textContent=r.message||'รหัสผ่านไม่ถูกต้อง'; errBoxEl.classList.add('show');
       btn.disabled=false; btn.textContent='เข้าสู่ระบบ';
     }
   }catch(err){
@@ -558,8 +742,7 @@ function requireLogin(cb){
   if(s) cb(); else openLoginModal(cb);
 }
 
-// ── ADD / EDIT JOB FORM ──────────────────────────────────
-function openAddJobModal(){ requireLogin(()=>renderJobFormModal(null)); }
+// ── EDIT JOB FORM (เพิ่มงานใหม่ถูกปิดไว้ — ใช้ได้เฉพาะแก้ไขงานเดิม) ──
 function openEditJobModal(job){ requireLogin(()=>renderJobFormModal(job)); }
 
 function renderJobFormModal(job){
@@ -852,11 +1035,19 @@ function renderStaffTab(d){
 }
 
 function showTab(tab){
+  if(tab==='jobs' && !getDriverSession()){
+    // ตารางงานต้องแชร์กับหน่วยงานต่าง ๆ ในโรงพยาบาล — ต้องใส่รหัสผ่านก่อนเข้าดูทุกครั้งที่ยังไม่ได้ล็อกอิน
+    openLoginModal(()=>{ switchToTab('jobs'); renderSessionBox(); if(!jobsData) loadJobs(); });
+    return;
+  }
+  switchToTab(tab);
+  if(tab==='jobs'){ renderSessionBox(); if(!jobsData) loadJobs(); }
+}
+
+function switchToTab(tab){
   ['today','schedule','staff','jobs'].forEach(t=>{$('tab-'+t).style.display=t===tab?'':'none';$('tbtn-'+t).classList.toggle('active',t===tab);});
   activeTab=tab;window.scrollTo({top:0,behavior:'smooth'});
   if(tab==='schedule'){setTimeout(()=>{const el=$('ts-current'),th=document.querySelector('#msched-current .th-today');if(th&&el)el.scrollLeft=Math.max(0,th.offsetLeft-150);},100);}
-  $('fab-add').style.display = tab==='jobs' ? 'flex' : 'none';
-  if(tab==='jobs'){ renderSessionBox(); if(!jobsData) loadJobs(); }
 }
 
 async function reload(){
