@@ -305,6 +305,58 @@ tbody tr.dim{opacity:.22;}
   .cal-event-title{font-size:12px;}
 }
 
+/* Now-line (เวลาปัจจุบัน) */
+.cal-now-line{position:absolute;left:0;right:0;height:0;border-top:2px solid var(--danger);z-index:4;pointer-events:none;}
+.cal-now-line::before{content:'';position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--danger);}
+
+/* Calendar toolbar: search + filter */
+.cal-toolbar-row2{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;}
+.cal-search-wrap{position:relative;flex:1;min-width:150px;}
+.cal-search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--text-light);pointer-events:none;}
+.cal-search-input{width:100%;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--card);padding:0 10px 0 29px;font-size:12px;font-family:'Noto Sans Thai',sans-serif;color:var(--text);}
+.cal-search-input:focus{outline:none;border-color:var(--violet);}
+.cal-search-clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:18px;height:18px;border-radius:50%;border:none;background:var(--bg2);color:var(--text-light);font-size:11px;cursor:pointer;display:none;align-items:center;justify-content:center;}
+.cal-search-clear.show{display:flex;}
+.cal-filter-wrap{position:relative;flex-shrink:0;}
+.cal-filter-btn{height:32px;padding:0 12px;border-radius:9px;border:1px solid var(--border);background:var(--card);color:var(--text-mid);font-size:11.5px;font-weight:700;font-family:'Noto Sans Thai',sans-serif;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;}
+.cal-filter-btn svg{width:13px;height:13px;}
+.cal-filter-btn.active{border-color:var(--violet);color:var(--violet);background:var(--violet-soft);}
+.cal-filter-count{background:var(--violet);color:#fff;font-size:9.5px;font-weight:800;border-radius:9px;padding:1px 6px;min-width:15px;text-align:center;}
+.cal-filter-panel{position:absolute;top:calc(100% + 6px);right:0;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:8px;min-width:200px;max-height:260px;overflow-y:auto;z-index:60;display:none;}
+.cal-filter-panel.show{display:block;}
+.cal-filter-hdr{display:flex;align-items:center;justify-content:space-between;padding:4px 6px 8px;border-bottom:1px dashed var(--border);margin-bottom:6px;}
+.cal-filter-hdr span{font-size:10.5px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px;}
+.cal-filter-hdr a{font-size:10.5px;color:var(--violet);text-decoration:none;font-weight:700;cursor:pointer;}
+.cal-filter-opt{display:flex;align-items:center;gap:8px;padding:6px;border-radius:7px;cursor:pointer;font-size:12px;color:var(--text);}
+.cal-filter-opt:hover{background:var(--bg2);}
+.cal-filter-opt input{width:14px;height:14px;accent-color:var(--violet);flex-shrink:0;}
+.cal-filter-opt .l-dot{width:9px;height:9px;border-radius:3px;flex-shrink:0;}
+.cal-filter-empty{padding:12px;text-align:center;font-size:11.5px;color:var(--text-light);}
+.legend-item.clickable{cursor:pointer;user-select:none;transition:opacity .15s,border-color .15s;}
+.legend-item.clickable:hover{border-color:var(--violet);}
+.legend-item.inactive{opacity:.35;}
+
+/* Agenda / List view (มุมมองรายการ) */
+.agenda-wrap{display:flex;flex-direction:column;gap:14px;}
+.agenda-day{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-sm);}
+.agenda-day-hdr{display:flex;align-items:center;gap:8px;padding:9px 13px;background:#fbfbfd;border-bottom:1px solid var(--border);}
+.agenda-day-hdr.today{background:var(--violet-soft);}
+.agenda-day-dot{width:8px;height:8px;border-radius:50%;background:var(--border-strong);flex-shrink:0;}
+.agenda-day-hdr.today .agenda-day-dot{background:var(--violet);}
+.agenda-day-label{font-size:12.5px;font-weight:800;color:var(--navy-mid);}
+.agenda-day-count{margin-left:auto;font-size:10.5px;color:var(--text-light);font-weight:600;}
+.agenda-row{display:flex;align-items:flex-start;gap:11px;padding:10px 13px;border-bottom:1px dashed var(--border);cursor:pointer;transition:background .12s;}
+.agenda-row:last-child{border-bottom:none;}
+.agenda-row:hover{background:#fbfbfd;}
+.agenda-row-bar{width:4px;align-self:stretch;border-radius:3px;flex-shrink:0;min-height:38px;}
+.agenda-row-time{width:64px;flex-shrink:0;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;color:var(--text-mid);line-height:1.5;}
+.agenda-row-time span{display:block;font-size:9px;color:var(--text-light);font-weight:600;}
+.agenda-row-body{flex:1;min-width:0;}
+.agenda-row-title{font-size:12.5px;font-weight:700;color:var(--text);}
+.agenda-row-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:3px;}
+.agenda-row-meta span{font-size:10.5px;color:var(--text-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+.agenda-empty{padding:40px 20px;text-align:center;color:var(--text-light);font-size:12px;}
+
 /* Job detail modal */
 .jd-row{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--border);}
 .jd-row:last-of-type{border-bottom:none;}
@@ -419,6 +471,8 @@ const DOW_SHORT=['อา','จ','อ','พ','พฤ','ศ','ส'];
 const COLORS=['#163251','#007a6e','#6d3fc0','#d4580a','#c0392b','#1d6fb5','#1a8a4a','#c07a00','#0d2137','#8255d4'];
 let scheduleData=null,scheduleNextData=null,todayData=null,activeTab='today',activeFilter='all',activeSchedTab='current';
 let jobsData=null,jobsViewMode='week',jobsCurrentDate=null;
+let jobsSearchQuery='',jobsFilterDrivers=null; // jobsFilterDrivers=null หมายถึง "แสดงทุกคน"
+let _nowLineTimer=null;
 const CAL_HOUR_START=6,CAL_HOUR_END=22,CAL_HOUR_PX=56;
 const $=id=>document.getElementById(id);
 const avatarColor=i=>COLORS[i%COLORS.length];
@@ -547,6 +601,91 @@ function eventColor(job){
   return CAL_EVENT_COLORS[hashStrJob(job&&job.requester)%CAL_EVENT_COLORS.length];
 }
 
+// ── ค้นหา / กรองตามผู้รับผิดชอบ(ขับ) ──────────────────────
+function allJobDrivers(){
+  const set=new Set();
+  (jobsData||[]).forEach(j=>{ const d=(j.driver||'').trim(); if(d) set.add(d); });
+  return [...set].sort((a,b)=>a.localeCompare(b,'th'));
+}
+function jobMatchesSearch(j,q){
+  if(!q) return true;
+  const hay=[j.requester,j.mission,j.destination,j.driver,j.shiftOwner].map(v=>String(v||'').toLowerCase()).join(' ');
+  return hay.includes(q.toLowerCase());
+}
+function jobMatchesDriverFilter(j){
+  if(!jobsFilterDrivers) return true; // null = ไม่ได้กรอง แสดงทุกคน
+  const d=(j.driver||'').trim();
+  return jobsFilterDrivers.has(d);
+}
+function getFilteredJobs(){
+  return (jobsData||[]).filter(j=>jobMatchesSearch(j,jobsSearchQuery)&&jobMatchesDriverFilter(j));
+}
+function onJobsSearchInput(v){
+  jobsSearchQuery=v;
+  const clr=$('cal-search-clear'); if(clr) clr.classList.toggle('show',!!v);
+  renderJobsCalendar({keepScroll:true});
+}
+function clearJobsSearch(){
+  jobsSearchQuery='';
+  const inp=$('cal-search-input'); if(inp) inp.value='';
+  renderJobsCalendar({keepScroll:true});
+}
+function toggleFilterPanel(ev){
+  if(ev) ev.stopPropagation();
+  const panel=$('cal-filter-panel');
+  if(!panel) return;
+  panel.classList.toggle('show');
+}
+function toggleDriverFilter(name,ev){
+  if(ev) ev.stopPropagation();
+  const all=allJobDrivers();
+  if(jobsFilterDrivers===null) jobsFilterDrivers=new Set(all); // เริ่มกรองครั้งแรก = เลือกทุกคนไว้ก่อน
+  if(jobsFilterDrivers.has(name)) jobsFilterDrivers.delete(name); else jobsFilterDrivers.add(name);
+  // ถ้าเลือกครบทุกคนอีกครั้ง ให้กลับไปสถานะ "ไม่กรอง" เพื่อความง่าย
+  if(jobsFilterDrivers.size===all.length) jobsFilterDrivers=null;
+  renderJobsCalendar({keepScroll:true});
+}
+function resetDriverFilter(ev){
+  if(ev) ev.stopPropagation();
+  jobsFilterDrivers=null;
+  renderJobsCalendar({keepScroll:true});
+}
+document.addEventListener('click',e=>{
+  const panel=$('cal-filter-panel'),btn=$('cal-filter-btn');
+  if(panel&&panel.classList.contains('show')&&!panel.contains(e.target)&&e.target!==btn&&!(btn&&btn.contains(e.target))){
+    panel.classList.remove('show');
+  }
+});
+function renderCalToolbarExtra(){
+  const drivers=allJobDrivers();
+  const activeCount=jobsFilterDrivers?jobsFilterDrivers.size:0;
+  const filterOptsHtml=drivers.length?drivers.map(dr=>{
+    const checked=jobsFilterDrivers===null||jobsFilterDrivers.has(dr);
+    const c=staffEventColor(dr)||{tx:'#9aa7b8'};
+    return `<label class="cal-filter-opt" onclick="event.stopPropagation()">
+      <input type="checkbox" ${checked?'checked':''} onchange="toggleDriverFilter('${dr.replace(/'/g,"\\'")}',event)">
+      <span class="l-dot" style="background:${c.tx}"></span>${escapeHtmlJob(dr)}
+    </label>`;
+  }).join(''):`<div class="cal-filter-empty">ยังไม่มีข้อมูล พขร.</div>`;
+  return `
+    <div class="cal-toolbar-row2">
+      <div class="cal-search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="cal-search-input" id="cal-search-input" type="text" placeholder="ค้นหา ผู้ขอ / ภารกิจ / ปลายทาง / พขร." value="${escapeHtmlJob(jobsSearchQuery)}" oninput="onJobsSearchInput(this.value)">
+        <button class="cal-search-clear${jobsSearchQuery?' show':''}" id="cal-search-clear" onclick="clearJobsSearch()">✕</button>
+      </div>
+      <div class="cal-filter-wrap">
+        <button class="cal-filter-btn${activeCount?' active':''}" id="cal-filter-btn" onclick="toggleFilterPanel(event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          พขร.${activeCount?`<span class="cal-filter-count">${activeCount}</span>`:''}
+        </button>
+        <div class="cal-filter-panel" id="cal-filter-panel">
+          <div class="cal-filter-hdr"><span>กรองตาม พขร.</span>${activeCount?'<a onclick="resetDriverFilter(event)">ล้างตัวกรอง</a>':''}</div>
+          ${filterOptsHtml}
+        </div>
+      </div>
+    </div>`;
+}
 function ymdToDate(ymd){ const [y,m,d]=ymd.split('-').map(Number); return new Date(y,m-1,d); }
 function dateToYmd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function startOfWeekMon(ymd){
@@ -616,15 +755,45 @@ function renderCalUntimedChips(untimed){
 }
 
 function calNav(delta){
-  const cur=ymdToDate(jobsCurrentDate);
-  cur.setDate(cur.getDate()+(jobsViewMode==='day'?delta:delta*7));
-  jobsCurrentDate=dateToYmd(cur);
+  if(jobsViewMode==='list'){
+    // มุมมองรายการ: เลื่อนทีละสัปดาห์เพื่อเปลี่ยนช่วงวันที่เริ่มแสดง
+    const cur=ymdToDate(jobsCurrentDate);
+    cur.setDate(cur.getDate()+delta*7);
+    jobsCurrentDate=dateToYmd(cur);
+  } else {
+    const cur=ymdToDate(jobsCurrentDate);
+    cur.setDate(cur.getDate()+(jobsViewMode==='day'?delta:delta*7));
+    jobsCurrentDate=dateToYmd(cur);
+  }
   renderJobsCalendar();
 }
 function calToday(){ jobsCurrentDate=todayYmd(); renderJobsCalendar(); }
 function setJobsView(mode){ jobsViewMode=mode; renderJobsCalendar(); }
 
-function renderJobsCalendar(){
+function stopNowLineTimer(){ if(_nowLineTimer){ clearInterval(_nowLineTimer); _nowLineTimer=null; } }
+function startNowLineTimer(){
+  stopNowLineTimer();
+  _nowLineTimer=setInterval(()=>{
+    if(activeTab!=='jobs'||jobsViewMode==='list') return;
+    document.querySelectorAll('.cal-now-line').forEach(el=>el.remove());
+    placeNowLines();
+  },60000);
+}
+function placeNowLines(){
+  const now=new Date();
+  const nowMin=now.getHours()*60+now.getMinutes();
+  if(nowMin<CAL_HOUR_START*60||nowMin>CAL_HOUR_END*60) return;
+  const top=(nowMin-CAL_HOUR_START*60)/60*CAL_HOUR_PX;
+  document.querySelectorAll('.cal-day-col.today').forEach(col=>{
+    const line=document.createElement('div');
+    line.className='cal-now-line';
+    line.style.top=top+'px';
+    col.appendChild(line);
+  });
+}
+
+function renderJobsCalendar(opts){
+  opts=opts||{};
   if(!jobsData) return;
   if(!jobsCurrentDate) jobsCurrentDate=todayYmd();
   $('jobs-loading').style.display='none';
@@ -637,6 +806,21 @@ function renderJobsCalendar(){
       <div style="font-weight:700;color:var(--text-mid);margin-bottom:4px">ยังไม่มีงานที่บันทึกไว้</div>
       <div>กดปุ่ม <b style="color:var(--teal)">+</b> มุมล่างขวาเพื่อเพิ่มงานใหม่</div>
     </div>`;
+    return;
+  }
+
+  const filtered=getFilteredJobs();
+  const isFiltered=!!jobsSearchQuery||jobsFilterDrivers!==null;
+  const toolbarExtraHtml=renderCalToolbarExtra();
+  const viewToggleHtml=`
+    <div class="cal-view-toggle">
+      <button class="${jobsViewMode==='day'?'active':''}" onclick="setJobsView('day')">วัน</button>
+      <button class="${jobsViewMode==='week'?'active':''}" onclick="setJobsView('week')">สัปดาห์</button>
+      <button class="${jobsViewMode==='list'?'active':''}" onclick="setJobsView('list')">รายการ</button>
+    </div>`;
+
+  if(jobsViewMode==='list'){
+    renderAgendaListView(filtered,toolbarExtraHtml,viewToggleHtml,isFiltered);
     return;
   }
 
@@ -655,9 +839,9 @@ function renderJobsCalendar(){
       : `${MONTH_TH[a.getMonth()+1]}–${MONTH_TH[b.getMonth()+1]} ${b.getFullYear()+543}`;
   }
 
-  // จัดกลุ่มงานตามวันที่
+  // จัดกลุ่มงาน (ที่ผ่านการค้นหา/กรองแล้ว) ตามวันที่
   const byDate={};
-  (jobsData||[]).forEach(j=>{ if(!byDate[j.date]) byDate[j.date]=[]; byDate[j.date].push(j); });
+  filtered.forEach(j=>{ if(!byDate[j.date]) byDate[j.date]=[]; byDate[j.date].push(j); });
 
   const cols=days.length;
   const totalPx=(CAL_HOUR_END-CAL_HOUR_START)*CAL_HOUR_PX;
@@ -671,10 +855,12 @@ function renderJobsCalendar(){
   let untimedHtml='';
   let dayColsHtml='';
   let anyUntimed=false;
+  let anyJobInView=false;
 
   days.forEach(d=>{
     const ymd=dateToYmd(d), isToday=ymd===t;
     const dayJobs=byDate[ymd]||[];
+    if(dayJobs.length) anyJobInView=true;
     const {timed,untimed}=layoutDayEvents(dayJobs);
     if(untimed.length) anyUntimed=true;
 
@@ -683,11 +869,12 @@ function renderJobsCalendar(){
     dayColsHtml+=`<div class="cal-day-col${isToday?' today':''}" style="height:${totalPx}px">${renderCalEvents(timed)}</div>`;
   });
 
-  // ✅ NEW: legend สีของแต่ละ พขร. ที่มีงานอยู่ในช่วงที่แสดง — ช่วยให้แยกได้ว่าสีไหนเป็นของใคร
+  // ✅ legend สีของแต่ละ พขร. ที่มีงานอยู่ในช่วงที่แสดง — คลิกเพื่อกรองด่วนได้ด้วย
   const driversInView=[...new Set(days.flatMap(d=>(byDate[dateToYmd(d)]||[]).map(j=>(j.driver||'').trim()).filter(Boolean)))];
   const legendHtml=driversInView.length?`<div class="legend">${driversInView.map(dr=>{
     const c=staffEventColor(dr)||{bd:'#9aa7b8',tx:'#5c6b80'};
-    return `<div class="legend-item"><div class="l-dot" style="background:${c.tx};border-radius:50%"></div>${escapeHtmlJob(dr)}</div>`;
+    const isActive=jobsFilterDrivers===null||jobsFilterDrivers.has(dr);
+    return `<div class="legend-item clickable${isActive?'':' inactive'}" onclick="toggleDriverFilter('${dr.replace(/'/g,"\\'")}')" title="คลิกเพื่อกรองเฉพาะ ${escapeHtmlJob(dr)}"><div class="l-dot" style="background:${c.tx};border-radius:50%"></div>${escapeHtmlJob(dr)}</div>`;
   }).join('')}</div>`:'';
 
   const gridCols=`46px repeat(${cols},1fr)`;
@@ -700,14 +887,13 @@ function renderJobsCalendar(){
         <div class="cal-label">${label}</div>
       </div>
       <div style="display:flex;align-items:center;gap:8px">
-        <div class="cal-view-toggle">
-          <button class="${jobsViewMode==='day'?'active':''}" onclick="setJobsView('day')">วัน</button>
-          <button class="${jobsViewMode==='week'?'active':''}" onclick="setJobsView('week')">สัปดาห์</button>
-        </div>
+        ${viewToggleHtml}
         <button class="cal-today-btn" style="background:var(--teal);color:#fff;border-color:var(--teal)" onclick="openAddJobModal()">+ เพิ่มงาน</button>
       </div>
     </div>
+    ${toolbarExtraHtml}
     ${legendHtml}
+    ${(isFiltered&&!anyJobInView)?`<div class="jobs-empty" style="padding:24px 16px"><div>🔍</div><div style="font-weight:700;color:var(--text-mid);margin-bottom:4px">ไม่พบงานที่ตรงกับตัวกรอง</div><div>ลองแก้คำค้นหา หรือ<a href="javascript:void(0)" onclick="clearJobsSearch();resetDriverFilter();" style="color:var(--violet);font-weight:700"> ล้างตัวกรองทั้งหมด</a></div></div>`:`
     <div class="cal-wrap">
       <div class="cal-head-row" style="grid-template-columns:${gridCols}">
         <div class="cal-gutter-head"></div>
@@ -720,17 +906,75 @@ function renderJobsCalendar(){
           ${dayColsHtml}
         </div>
       </div>
-    </div>`;
+    </div>`}`;
 
   $('jobs-content').innerHTML=html;
+  placeNowLines();
+  startNowLineTimer();
 
-  // เลื่อนไปช่วงเวลาปัจจุบัน/ช่วงเช้าโดยประมาณ ให้เห็นงานที่กำลังจะถึงก่อน
+  // เลื่อนไปช่วงเวลาปัจจุบัน/ช่วงเช้าโดยประมาณ ให้เห็นงานที่กำลังจะถึงก่อน (ข้ามถ้าแค่พิมพ์ค้นหาอยู่)
   const scrollWrap=document.querySelector('.cal-body-scroll');
-  if(scrollWrap){
+  if(scrollWrap&&!opts.keepScroll){
     const nowMin=new Date().getHours()*60+new Date().getMinutes();
     const targetPx=Math.max(0,(clampToCalGrid(nowMin)-CAL_HOUR_START*60)/60*CAL_HOUR_PX-100);
     scrollWrap.scrollTop=targetPx;
   }
+  // คงโฟกัสที่ช่องค้นหาไว้ ถ้ากำลังพิมพ์อยู่
+  if(opts.keepScroll){
+    const inp=$('cal-search-input');
+    if(inp&&document.activeElement!==inp){ /* โฟกัสเฉพาะกรณีอินพุตเดิมถูก re-render ทับ */ }
+  }
+}
+
+// ── มุมมองรายการ (Agenda) — รายการงานเรียงตามวันที่/เวลา คล้าย "กำหนดการ" ใน Google Calendar ──
+function renderAgendaListView(filtered,toolbarExtraHtml,viewToggleHtml,isFiltered){
+  stopNowLineTimer();
+  const t=todayYmd();
+  const sorted=[...filtered].sort((a,b)=>{
+    if(a.date!==b.date) return a.date<b.date?-1:1;
+    return String(a.timeOut||'').localeCompare(String(b.timeOut||''));
+  });
+  const byDate={};
+  sorted.forEach(j=>{ if(!byDate[j.date]) byDate[j.date]=[]; byDate[j.date].push(j); });
+  const dates=Object.keys(byDate).sort();
+
+  const bodyHtml=dates.length?`<div class="agenda-wrap" id="agenda-wrap">${dates.map(ymd=>{
+    const isToday=ymd===t;
+    const rows=byDate[ymd].map(j=>{
+      const col=eventColor(j);
+      return `<div class="agenda-row" onclick="openJobDetail('${j.jobId}')">
+        <div class="agenda-row-bar" style="background:${col.bd}"></div>
+        <div class="agenda-row-time">${j.timeOut||'ไม่ระบุ'}${j.timeBack?`<span>ถึง ${j.timeBack}</span>`:''}</div>
+        <div class="agenda-row-body">
+          <div class="agenda-row-title">${escapeHtmlJob(j.mission||j.requester||'งาน')}</div>
+          <div class="agenda-row-meta">
+            <span>👤 ${escapeHtmlJob(j.requester)||'—'}</span>
+            ${j.destination?`<span>📍 ${escapeHtmlJob(j.destination)}</span>`:''}
+            ${j.driver?`<span>🚐 ${escapeHtmlJob(j.driver)}</span>`:''}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="agenda-day">
+      <div class="agenda-day-hdr${isToday?' today':''}"><div class="agenda-day-dot"></div><div class="agenda-day-label">${fmtJobDate(ymd)}${isToday?' · วันนี้':''}</div><div class="agenda-day-count">${byDate[ymd].length} งาน</div></div>
+      ${rows}
+    </div>`;
+  }).join('')}</div>`
+    : `<div class="agenda-empty">${isFiltered?'ไม่พบงานที่ตรงกับตัวกรอง':'ยังไม่มีงานที่บันทึกไว้'}</div>`;
+
+  const html=`
+    <div class="cal-toolbar">
+      <div class="cal-nav">
+        <div class="cal-label">รายการงานทั้งหมด${isFiltered?' (ตามตัวกรอง)':''}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${viewToggleHtml}
+        <button class="cal-today-btn" style="background:var(--teal);color:#fff;border-color:var(--teal)" onclick="openAddJobModal()">+ เพิ่มงาน</button>
+      </div>
+    </div>
+    ${toolbarExtraHtml}
+    ${bodyHtml}`;
+  $('jobs-content').innerHTML=html;
 }
 
 function openJobDetail(jobId){
@@ -1212,6 +1456,7 @@ function switchToTab(tab){
   ['today','schedule','staff','jobs'].forEach(t=>{$('tab-'+t).style.display=t===tab?'':'none';$('tbtn-'+t).classList.toggle('active',t===tab);});
   activeTab=tab;window.scrollTo({top:0,behavior:'smooth'});
   const fabAdd=$('fab-add-job'); if(fabAdd) fabAdd.style.display=(tab==='jobs')?'flex':'none';
+  if(tab!=='jobs') stopNowLineTimer();
   if(tab==='schedule'){setTimeout(()=>{const el=$('ts-current'),th=document.querySelector('#msched-current .th-today');if(th&&el)el.scrollLeft=Math.max(0,th.offsetLeft-150);},100);}
 }
 
