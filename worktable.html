@@ -231,6 +231,66 @@ tbody tr.dim{opacity:.22;}
   .main-title{font-size:12px;}
   .content{padding:12px 10px 40px;}
 }
+
+/* ══════ ตารางงาน (Job Assignments) ══════ */
+.jobs-toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;}
+.jobs-filter-chips{display:flex;gap:6px;flex:1;overflow-x:auto;padding-bottom:2px;}
+.jf-chip{padding:7px 13px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);font-size:12px;font-weight:600;color:var(--text-mid);cursor:pointer;white-space:nowrap;font-family:'Noto Sans Thai',sans-serif;flex-shrink:0;}
+.jf-chip.active{background:var(--violet);border-color:var(--violet);color:#fff;}
+
+.session-welcome{background:var(--teal-soft);border-radius:10px;padding:9px 12px;font-size:12px;color:var(--teal);margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.session-welcome b{font-weight:700;}
+.session-welcome a{color:var(--danger);font-size:11px;text-decoration:none;font-weight:600;white-space:nowrap;}
+
+.job-date-group{margin-bottom:16px;}
+.job-date-head{font-size:12.5px;font-weight:700;color:var(--navy-mid);padding:2px 2px 8px;display:flex;align-items:center;gap:8px;}
+.job-date-head .jd-badge{background:var(--blue-soft);color:var(--blue);padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:700;}
+.job-date-head.today .jd-badge{background:var(--teal-soft);color:var(--teal);}
+
+.job-card{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--violet);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:12px 14px;margin-bottom:10px;}
+.job-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px;}
+.job-time{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:12.5px;color:var(--navy-mid);background:var(--blue-soft);padding:3px 8px;border-radius:7px;white-space:nowrap;flex-shrink:0;}
+.job-who{flex:1;min-width:0;}
+.job-requester{font-weight:700;font-size:13.5px;color:var(--text);overflow-wrap:anywhere;}
+.job-headcount{font-size:11px;color:var(--text-light);font-weight:600;}
+.job-mission{font-size:12.5px;color:var(--text-mid);margin:5px 0 9px;line-height:1.55;overflow-wrap:anywhere;}
+.job-meta{display:flex;flex-wrap:wrap;gap:5px 16px;font-size:11.5px;color:var(--text-light);border-top:1px dashed var(--border);padding-top:8px;}
+.job-meta span b{color:var(--text-mid);font-weight:600;}
+.job-actions{display:flex;gap:8px;margin-top:10px;}
+.job-actions button{flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:#f8fafc;font-size:11.5px;font-weight:700;color:var(--text-mid);cursor:pointer;font-family:'Noto Sans Thai',sans-serif;}
+.job-actions button.danger{color:var(--danger);border-color:#f0c4c0;background:var(--danger-soft);}
+
+.jobs-empty{text-align:center;padding:44px 20px;color:var(--text-light);font-size:12.5px;}
+.jobs-empty div:first-child{font-size:30px;margin-bottom:8px;}
+
+.fab-add{position:fixed;bottom:78px;right:16px;width:46px;height:46px;border-radius:50%;background:var(--teal);color:#fff;border:none;cursor:pointer;font-size:26px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,122,110,.4);transition:transform .2s;z-index:300;line-height:0;padding-bottom:2px;}
+.fab-add:active{transform:scale(.9);}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(13,33,55,.55);display:flex;align-items:flex-end;justify-content:center;z-index:500;opacity:0;pointer-events:none;transition:opacity .2s;}
+.modal-overlay.show{opacity:1;pointer-events:auto;}
+@media(min-width:600px){.modal-overlay{align-items:center;}}
+.modal-box{position:relative;background:var(--card);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;border-radius:18px 18px 0 0;padding:22px 20px;animation:slideUp .25s ease;-webkit-overflow-scrolling:touch;}
+@media(min-width:600px){.modal-box{border-radius:18px;}}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-title{font-size:15.5px;font-weight:700;color:var(--navy-mid);margin-bottom:4px;padding-right:24px;}
+.modal-sub{font-size:11.5px;color:var(--text-light);margin-bottom:16px;}
+.form-group{margin-bottom:12px;}
+.form-group label{display:block;font-size:11.5px;font-weight:700;color:var(--text-mid);margin-bottom:5px;}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-size:13.5px;font-family:'Noto Sans Thai',sans-serif;color:var(--text);background:#fff;}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{outline:none;border-color:var(--violet);}
+.form-group textarea{resize:vertical;min-height:56px;}
+.form-row{display:flex;gap:10px;}
+.form-row .form-group{flex:1;min-width:0;}
+.modal-actions{display:flex;gap:10px;margin-top:18px;}
+.modal-actions button{flex:1;padding:12px;border-radius:10px;border:none;font-size:13.5px;font-weight:700;cursor:pointer;font-family:'Noto Sans Thai',sans-serif;}
+.btn-primary{background:var(--violet);color:#fff;}
+.btn-primary:disabled{opacity:.6;}
+.btn-secondary{background:#eef1f6;color:var(--text-mid);}
+.modal-close{position:absolute;top:14px;right:14px;background:none;border:none;font-size:20px;color:var(--text-light);cursor:pointer;line-height:1;padding:4px;}
+.modal-err{background:var(--danger-soft);color:var(--danger);border-radius:8px;padding:9px 12px;font-size:12px;margin-bottom:12px;display:none;}
+.modal-err.show{display:block;}
+.login-icon-wrap{width:50px;height:50px;border-radius:14px;background:var(--violet-soft);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:12px;}
 </style>
 <script src="secure-fetch.js"></script>
 </head>
@@ -272,6 +332,10 @@ tbody tr.dim{opacity:.22;}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       ทีมงาน
     </button>
+    <button class="tab-btn" id="tbtn-jobs" onclick="showTab('jobs')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      ตารางงาน
+    </button>
   </div>
 </div>
 
@@ -288,9 +352,24 @@ tbody tr.dim{opacity:.22;}
     <div id="staff-loading" class="loading-wrap"><div class="spinner"></div><div class="loading-text">กำลังโหลดข้อมูล...</div></div>
     <div id="staff-content" style="display:none"></div>
   </div>
+  <div id="tab-jobs" style="display:none">
+    <div class="jobs-toolbar">
+      <div class="jobs-filter-chips">
+        <button class="jf-chip active" id="jfchip-today" onclick="setJobsFilter('today')">วันนี้</button>
+        <button class="jf-chip" id="jfchip-upcoming" onclick="setJobsFilter('upcoming')">7 วันข้างหน้า</button>
+        <button class="jf-chip" id="jfchip-all" onclick="setJobsFilter('all')">ทั้งหมด</button>
+      </div>
+    </div>
+    <div id="jobs-session-box"></div>
+    <div id="jobs-loading" class="loading-wrap"><div class="spinner"></div><div class="loading-text">กำลังโหลดตารางงาน...</div></div>
+    <div id="jobs-content" style="display:none"></div>
+  </div>
 </div>
 
 <button class="fab" id="fab" onclick="reload()" title="รีเฟรช">↻</button>
+<button class="fab-add" id="fab-add" onclick="openAddJobModal()" title="เพิ่มงาน" style="display:none">+</button>
+
+<div id="modal-root"></div>
 
 <script>
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec'; // ✅ เรียก code.gs ตรง — ไม่ใช้ proxy แล้ว
@@ -298,6 +377,7 @@ const MONTH_TH=['','มกราคม','กุมภาพันธ์','มี
 const DOW_SHORT=['อา','จ','อ','พ','พฤ','ศ','ส'];
 const COLORS=['#163251','#007a6e','#6d3fc0','#d4580a','#c0392b','#1d6fb5','#1a8a4a','#c07a00','#0d2137','#8255d4'];
 let scheduleData=null,scheduleNextData=null,todayData=null,activeTab='today',activeFilter='all',activeSchedTab='current';
+let jobsData=null,jobsFilter='today';
 const $=id=>document.getElementById(id);
 const avatarColor=i=>COLORS[i%COLORS.length];
 const avatarLetter=name=>(name||'?').replace(/^(นาย|นาง|นางสาว)\.?\s*/,'').trim().charAt(0);
@@ -307,6 +387,273 @@ function shiftLabel(s){if(!s)return'';const l=s.toLowerCase();if(l.includes('ems
 function shiftName(s){if(!s)return'';const l=s.toLowerCase();if(l.includes('ems'))return'เวร EMS';if(l.startsWith('ช1'))return'เวรเช้า มือ 1';if(l.startsWith('ช2'))return'เวรเช้า มือ 2';if(l.startsWith('ช3'))return'เวรเช้า มือ 3';if(l==='ด'||l.startsWith('ด'))return'เวรดึก';return s;}
 
 async function api(action){const r=await fetch(`${GAS_URL}?action=${action}`);return r.json();}
+
+// ══════════════════════════════════════════════════════════
+//  ตารางงาน (Job Assignments) — พขร. ล็อกอินด้วยเบอร์โทร
+// ══════════════════════════════════════════════════════════
+const SESSION_KEY='sand_driver_session';
+
+async function fetchGASRaw(payloadObj){
+  const res=await fetch(GAS_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(payloadObj),cache:'no-cache'});
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return await res.json();
+}
+
+function getDriverSession(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch(_){return null;} }
+function setDriverSession(obj){ try{localStorage.setItem(SESSION_KEY,JSON.stringify(obj));}catch(_){} }
+function clearDriverSession(){ try{localStorage.removeItem(SESSION_KEY);}catch(_){} renderSessionBox(); }
+
+function fmtJobDate(ymd){
+  if(!ymd) return '-';
+  const parts=ymd.split('-'); if(parts.length!==3) return ymd;
+  const d=new Date(Number(parts[0]),Number(parts[1])-1,Number(parts[2]));
+  const dow=DOW_SHORT[d.getDay()];
+  return `${d.getDate()} ${MONTH_TH[d.getMonth()+1]} ${d.getFullYear()+543} (${dow})`;
+}
+function todayYmd(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function addDaysYmd(ymd,n){ const [y,m,d]=ymd.split('-').map(Number); const dt=new Date(y,m-1,d+n); return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
+
+function renderSessionBox(){
+  const s=getDriverSession();
+  const box=$('jobs-session-box');
+  if(!box) return;
+  if(s){
+    box.innerHTML=`<div class="session-welcome"><span>👤 เข้าสู่ระบบในชื่อ <b>${s.nick?`${s.nick} (${s.name})`:s.name}</b></span><a href="javascript:void(0)" onclick="clearDriverSession()">ออกจากระบบ</a></div>`;
+  } else {
+    box.innerHTML='';
+  }
+}
+
+function setJobsFilter(f){
+  jobsFilter=f;
+  ['today','upcoming','all'].forEach(k=>$('jfchip-'+k).classList.toggle('active',k===f));
+  renderJobsList();
+}
+
+async function loadJobs(){
+  try{
+    const r=await api('getJobAssignments');
+    if(r.status==='ok'){ jobsData=r.data||[]; renderJobsList(); }
+    else { $('jobs-loading').innerHTML=errBox(r.message||'โหลดตารางงานไม่สำเร็จ'); }
+  }catch(err){
+    $('jobs-loading').innerHTML=errBox('โหลดตารางงานไม่สำเร็จ');
+  }
+}
+
+function renderJobsList(){
+  if(!jobsData) return;
+  $('jobs-loading').style.display='none';
+  $('jobs-content').style.display='block';
+
+  const t=todayYmd();
+  let list=jobsData;
+  if(jobsFilter==='today') list=jobsData.filter(j=>j.date===t);
+  else if(jobsFilter==='upcoming'){ const end=addDaysYmd(t,7); list=jobsData.filter(j=>j.date>=t && j.date<=end); }
+
+  if(!list.length){
+    $('jobs-content').innerHTML=`<div class="jobs-empty"><div>🗒️</div>ยังไม่มีงานในช่วงนี้<br>กดปุ่ม + เพื่อเพิ่มงานใหม่</div>`;
+    return;
+  }
+
+  // จัดกลุ่มตามวันที่
+  const groups={};
+  list.forEach(j=>{ if(!groups[j.date]) groups[j.date]=[]; groups[j.date].push(j); });
+  const dates=Object.keys(groups).sort((a,b)=> jobsFilter==='today'?0:(a<b?-1:1));
+
+  let html='';
+  dates.forEach(date=>{
+    const isToday=date===t;
+    html+=`<div class="job-date-group"><div class="job-date-head${isToday?' today':''}">📅 ${fmtJobDate(date)} ${isToday?'<span class="jd-badge">วันนี้</span>':''}</div>`;
+    groups[date].sort((a,b)=>String(a.timeOut||'').localeCompare(String(b.timeOut||''))).forEach(j=>{
+      html+=`<div class="job-card">
+        <div class="job-card-top">
+          <div class="job-who">
+            <div class="job-requester">${escapeHtmlJob(j.requester)}</div>
+            ${j.headcount?`<div class="job-headcount">👥 ${escapeHtmlJob(String(j.headcount))} คน</div>`:''}
+          </div>
+          <div class="job-time">${j.timeOut||'--:--'} → ${j.timeBack||'--:--'}</div>
+        </div>
+        ${j.mission?`<div class="job-mission">📋 ${escapeHtmlJob(j.mission)}</div>`:''}
+        <div class="job-meta">
+          ${j.destination?`<span>📍 <b>${escapeHtmlJob(j.destination)}</b></span>`:''}
+          ${j.driver?`<span>🚐 ผู้ไปส่ง <b>${escapeHtmlJob(j.driver)}</b></span>`:''}
+          ${j.shiftOwner?`<span>🕐 เวรของ <b>${escapeHtmlJob(j.shiftOwner)}</b></span>`:''}
+        </div>
+        <div class="job-actions">
+          <button onclick='openEditJobModal(${JSON.stringify(j).replace(/'/g,"&apos;")})'>✏️ แก้ไข</button>
+          <button class="danger" onclick="confirmDeleteJob('${j.jobId}')">🗑️ ลบ</button>
+        </div>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  $('jobs-content').innerHTML=html;
+}
+
+function escapeHtmlJob(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ── MODAL: กรอบกลาง ──────────────────────────────────────
+function closeModal(){ const ov=document.querySelector('.modal-overlay'); if(ov){ ov.classList.remove('show'); setTimeout(()=>ov.remove(),200);} }
+
+function openModal(innerHtml){
+  closeModal();
+  const root=$('modal-root');
+  const div=document.createElement('div');
+  div.className='modal-overlay';
+  div.innerHTML=`<div class="modal-box">${innerHtml}</div>`;
+  div.addEventListener('click',e=>{ if(e.target===div) closeModal(); });
+  root.appendChild(div);
+  requestAnimationFrame(()=>div.classList.add('show'));
+  return div;
+}
+
+// ── LOGIN (verify เบอร์โทร) ──────────────────────────────
+function openLoginModal(onSuccess){
+  const html=`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="login-icon-wrap">🔑</div>
+    <div class="modal-title">เข้าสู่ระบบ พขร.</div>
+    <div class="modal-sub">กรอกเบอร์โทรศัพท์ที่ลงทะเบียนไว้ในตารางเวร เพื่อเพิ่ม/แก้ไขงานได้</div>
+    <div class="modal-err" id="login-err"></div>
+    <div class="form-group">
+      <label>เบอร์โทรศัพท์</label>
+      <input type="tel" id="login-phone" placeholder="0812345678" inputmode="numeric" maxlength="10">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn-primary" id="login-submit-btn" onclick="submitLogin()">เข้าสู่ระบบ</button>
+    </div>`;
+  const modal=openModal(html);
+  modal._onSuccess=onSuccess;
+  setTimeout(()=>$('login-phone')?.focus(),150);
+}
+
+async function submitLogin(){
+  const phone=$('login-phone').value.trim();
+  const errBoxEl=$('login-err');
+  errBoxEl.classList.remove('show');
+  if(!phone){ errBoxEl.textContent='กรุณากรอกเบอร์โทรศัพท์'; errBoxEl.classList.add('show'); return; }
+  const btn=$('login-submit-btn'); btn.disabled=true; btn.textContent='กำลังตรวจสอบ...';
+  try{
+    const r=await fetchGASRaw({action:'verifyDriverPhone',phone});
+    if(r.status==='ok'){
+      setDriverSession({name:r.name,nick:r.nick,phone:r.phone,role:r.role});
+      renderSessionBox();
+      const modal=document.querySelector('.modal-overlay');
+      const cb=modal&&modal._onSuccess;
+      closeModal();
+      if(cb) cb();
+    } else {
+      errBoxEl.textContent=r.message||'ไม่พบเบอร์นี้ในระบบ'; errBoxEl.classList.add('show');
+      btn.disabled=false; btn.textContent='เข้าสู่ระบบ';
+    }
+  }catch(err){
+    errBoxEl.textContent='เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่'; errBoxEl.classList.add('show');
+    btn.disabled=false; btn.textContent='เข้าสู่ระบบ';
+  }
+}
+
+function requireLogin(cb){
+  const s=getDriverSession();
+  if(s) cb(); else openLoginModal(cb);
+}
+
+// ── ADD / EDIT JOB FORM ──────────────────────────────────
+function openAddJobModal(){ requireLogin(()=>renderJobFormModal(null)); }
+function openEditJobModal(job){ requireLogin(()=>renderJobFormModal(job)); }
+
+function renderJobFormModal(job){
+  const isEdit=!!job;
+  const d=job?job.date:todayYmd();
+  const html=`
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title">${isEdit?'แก้ไขงาน':'เพิ่มงานใหม่'}</div>
+    <div class="modal-sub">${isEdit?'แก้ไขรายละเอียดงานนี้':'กรอกรายละเอียดงานที่ได้รับแจ้ง'}</div>
+    <div class="modal-err" id="job-form-err"></div>
+    <div class="form-row">
+      <div class="form-group"><label>วันที่ *</label><input type="date" id="jf-date" value="${d}"></div>
+      <div class="form-group"><label>จำนวนคน</label><input type="number" id="jf-headcount" min="1" value="${job?job.headcount:''}" placeholder="เช่น 3"></div>
+    </div>
+    <div class="form-group"><label>ผู้ขอรถ *</label><input type="text" id="jf-requester" value="${job?escapeHtmlJob(job.requester):''}" placeholder="ชื่อผู้ขอใช้รถ / แผนก"></div>
+    <div class="form-group"><label>ภารกิจ / คำสั่งงาน</label><textarea id="jf-mission" placeholder="รายละเอียดภารกิจ">${job?escapeHtmlJob(job.mission):''}</textarea></div>
+    <div class="form-group"><label>สถานที่ไป</label><input type="text" id="jf-destination" value="${job?escapeHtmlJob(job.destination):''}" placeholder="เช่น รพ.นครพิงค์"></div>
+    <div class="form-row">
+      <div class="form-group"><label>เวลาไป</label><input type="time" id="jf-timeOut" value="${job?job.timeOut:''}"></div>
+      <div class="form-group"><label>เวลากลับ</label><input type="time" id="jf-timeBack" value="${job?job.timeBack:''}"></div>
+    </div>
+    <div class="form-group"><label>ผู้ไปส่ง (พขร.)</label><input type="text" id="jf-driver" list="jf-staff-list" value="${job?escapeHtmlJob(job.driver):''}" placeholder="ชื่อ พขร. ผู้ไปส่ง"></div>
+    <div class="form-group"><label>ตารางเวร (เวรของใคร)</label><input type="text" id="jf-shiftOwner" list="jf-staff-list" value="${job?escapeHtmlJob(job.shiftOwner):''}" placeholder="เวรของใครวันนั้น"></div>
+    <datalist id="jf-staff-list">${(scheduleData&&scheduleData.data||[]).map(s=>`<option value="${escapeHtmlJob(s.name)}">`).join('')}</datalist>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">ยกเลิก</button>
+      <button class="btn-primary" id="job-form-submit-btn" onclick="submitJobForm(${isEdit?`'${job.jobId}'`:'null'})">${isEdit?'บันทึกการแก้ไข':'บันทึกงาน'}</button>
+    </div>`;
+  openModal(html);
+  setTimeout(()=>$('jf-requester')?.focus(),150);
+}
+
+async function submitJobForm(jobId){
+  const errBoxEl=$('job-form-err'); errBoxEl.classList.remove('show');
+  const s=getDriverSession();
+  if(!s){ closeModal(); openLoginModal(()=>renderJobFormModal(null)); return; }
+
+  const data={
+    phone: s.phone,
+    date: $('jf-date').value,
+    requester: $('jf-requester').value.trim(),
+    headcount: $('jf-headcount').value,
+    mission: $('jf-mission').value.trim(),
+    destination: $('jf-destination').value.trim(),
+    timeOut: $('jf-timeOut').value,
+    timeBack: $('jf-timeBack').value,
+    driver: $('jf-driver').value.trim(),
+    shiftOwner: $('jf-shiftOwner').value.trim(),
+  };
+  if(!data.date){ errBoxEl.textContent='กรุณาเลือกวันที่'; errBoxEl.classList.add('show'); return; }
+  if(!data.requester){ errBoxEl.textContent='กรุณากรอกชื่อผู้ขอรถ'; errBoxEl.classList.add('show'); return; }
+
+  const btn=$('job-form-submit-btn'); btn.disabled=true; btn.textContent='กำลังบันทึก...';
+  try{
+    data.action = jobId ? 'updateJobAssignment' : 'addJobAssignment';
+    if(jobId) data.jobId=jobId;
+    const r=await fetchGASRaw(data);
+    if(r.status==='ok'){ closeModal(); jobsData=null; $('jobs-loading').style.display='block'; $('jobs-content').style.display='none'; loadJobs(); }
+    else { errBoxEl.textContent=r.message||'บันทึกไม่สำเร็จ'; errBoxEl.classList.add('show'); btn.disabled=false; btn.textContent=jobId?'บันทึกการแก้ไข':'บันทึกงาน'; }
+  }catch(err){
+    errBoxEl.textContent='เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่'; errBoxEl.classList.add('show');
+    btn.disabled=false; btn.textContent=jobId?'บันทึกการแก้ไข':'บันทึกงาน';
+  }
+}
+
+function confirmDeleteJob(jobId){
+  requireLogin(()=>{
+    const html=`
+      <button class="modal-close" onclick="closeModal()">✕</button>
+      <div class="login-icon-wrap">🗑️</div>
+      <div class="modal-title">ยืนยันการลบงานนี้?</div>
+      <div class="modal-sub">รายการที่ลบแล้วจะไม่แสดงในตารางงาน แต่ยังเก็บประวัติไว้ตรวจสอบย้อนหลังได้</div>
+      <div class="modal-err" id="del-err"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal()">ยกเลิก</button>
+        <button class="btn-primary" id="del-submit-btn" style="background:var(--danger)" onclick="doDeleteJob('${jobId}')">ลบรายการ</button>
+      </div>`;
+    openModal(html);
+  });
+}
+
+async function doDeleteJob(jobId){
+  const s=getDriverSession(); if(!s) return;
+  const btn=$('del-submit-btn'); if(btn){btn.disabled=true;btn.textContent='กำลังลบ...';}
+  try{
+    const r=await fetchGASRaw({action:'deleteJobAssignment',phone:s.phone,jobId});
+    if(r.status==='ok'){ closeModal(); jobsData=null; $('jobs-loading').style.display='block'; $('jobs-content').style.display='none'; loadJobs(); }
+    else { $('del-err').textContent=r.message||'ลบไม่สำเร็จ'; $('del-err').classList.add('show'); if(btn){btn.disabled=false;btn.textContent='ลบรายการ';} }
+  }catch(err){
+    $('del-err').textContent='เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่'; $('del-err').classList.add('show');
+    if(btn){btn.disabled=false;btn.textContent='ลบรายการ';}
+  }
+}
+
 
 async function init(){
   const[td,sc,scNext]=await Promise.allSettled([api('getTodayDuty'),api('getSchedule'),api('getScheduleNext')]);
@@ -505,9 +852,11 @@ function renderStaffTab(d){
 }
 
 function showTab(tab){
-  ['today','schedule','staff'].forEach(t=>{$('tab-'+t).style.display=t===tab?'':'none';$('tbtn-'+t).classList.toggle('active',t===tab);});
+  ['today','schedule','staff','jobs'].forEach(t=>{$('tab-'+t).style.display=t===tab?'':'none';$('tbtn-'+t).classList.toggle('active',t===tab);});
   activeTab=tab;window.scrollTo({top:0,behavior:'smooth'});
   if(tab==='schedule'){setTimeout(()=>{const el=$('ts-current'),th=document.querySelector('#msched-current .th-today');if(th&&el)el.scrollLeft=Math.max(0,th.offsetLeft-150);},100);}
+  $('fab-add').style.display = tab==='jobs' ? 'flex' : 'none';
+  if(tab==='jobs'){ renderSessionBox(); if(!jobsData) loadJobs(); }
 }
 
 async function reload(){
@@ -515,6 +864,8 @@ async function reload(){
   scheduleData=null;scheduleNextData=null;todayData=null;activeSchedTab='current';
   ['today','schedule','staff'].forEach(t=>{$(`${t}-loading`).style.display='block';$(`${t}-loading`).innerHTML='<div class="spinner"></div><div class="loading-text">กำลังโหลด...</div>';$(`${t}-content`).style.display='none';});
   $('today-strip').classList.remove('show');
+  jobsData=null;
+  if(activeTab==='jobs'){ $('jobs-loading').style.display='block'; $('jobs-loading').innerHTML='<div class="spinner"></div><div class="loading-text">กำลังโหลด...</div>'; $('jobs-content').style.display='none'; loadJobs(); }
   await init();fab.classList.remove('spin');
 }
 
