@@ -109,6 +109,13 @@ body{font-family:'Noto Sans Thai',sans-serif;background:var(--bg);color:var(--te
 .duty-role-chip{display:inline-flex;align-items:center;font-size:9.5px;font-weight:700;padding:2px 6px;border-radius:20px;margin-top:4px;}
 .role-head{background:var(--amber-soft);color:var(--amber);border:1px solid #e8c96a;}
 .role-vice{background:var(--success-soft);color:var(--success);border:1px solid #8fd0b0;}
+.role-driver{background:var(--blue-soft);color:var(--blue);border:1px solid #a9cdee;}
+
+/* ══════ รูปประจำตัว + ปุ่มอัปโหลด ══════ */
+.staff-avatar,.duty-avatar,.name-avatar{position:relative;overflow:hidden;}
+.staff-avatar img,.duty-avatar img,.name-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.staff-photo-btn{position:absolute;bottom:-2px;right:-2px;width:20px;height:20px;border-radius:50%;background:var(--card);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.15);}
+.staff-avatar-wrap{position:relative;display:inline-flex;}
 .duty-shift-badge{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:20px;flex-shrink:0;}
 .duty-actions{display:flex;flex-direction:column;justify-content:center;gap:6px;padding:10px 11px;border-left:1px solid var(--border);}
 .action-btn{width:32px;height:32px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:15px;transition:transform .15s;border:1px solid var(--border);}
@@ -226,6 +233,20 @@ tbody tr.dim{opacity:.22;}
 .fab{position:fixed;bottom:22px;right:16px;width:46px;height:46px;border-radius:50%;background:var(--violet);color:#fff;border:none;cursor:pointer;font-size:19px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(109,63,192,.4);transition:transform .2s;z-index:300;}
 .fab:active{transform:scale(.9);}
 .fab.spin{animation:spin .6s linear infinite;}
+.fab-add{right:74px;background:var(--teal);box-shadow:0 4px 16px rgba(0,122,110,.4);font-size:26px;font-weight:400;line-height:1;}
+.fab-add:active{transform:scale(.9);}
+
+/* ══════ TOAST NOTIFICATION ══════ */
+.toast-wrap{position:fixed;left:50%;bottom:78px;transform:translateX(-50%) translateY(20px);z-index:900;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;max-width:90vw;}
+.toast-wrap.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast{display:flex;align-items:center;gap:8px;background:var(--navy);color:#fff;padding:11px 18px;border-radius:12px;font-size:12.5px;font-weight:600;font-family:'Noto Sans Thai',sans-serif;box-shadow:0 6px 20px rgba(13,33,55,.35);white-space:nowrap;}
+.toast.error{background:var(--red);}
+.toast.success{background:var(--teal);}
+
+/* ══════ ADMIN SESSION BADGE ══════ */
+.session-welcome.admin{background:var(--amber-soft);color:var(--amber);}
+.session-admin-tag{display:inline-block;background:var(--amber);color:#fff;font-size:9.5px;font-weight:800;padding:1px 7px;border-radius:8px;margin-left:5px;letter-spacing:.3px;vertical-align:1px;}
+.jobs-count-chip{background:var(--violet-soft);color:var(--violet);font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:9px;white-space:nowrap;}
 
 @media(max-width:400px){
   .main-title{font-size:12px;}
@@ -384,9 +405,12 @@ tbody tr.dim{opacity:.22;}
   </div>
 </div>
 
+<button class="fab fab-add" id="fab-add-job" onclick="openAddJobModal()" title="เพิ่มงานใหม่" style="display:none">+</button>
 <button class="fab" id="fab" onclick="reload()" title="รีเฟรช">↻</button>
 
 <div id="modal-root"></div>
+<div class="toast-wrap" id="toast-wrap"></div>
+<input type="file" id="staff-photo-input" accept="image/*" capture="environment" style="display:none" onchange="handleStaffPhotoSelected(this)">
 
 <script>
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec'; // ✅ เรียก code.gs ตรง — ไม่ใช้ proxy แล้ว
@@ -399,6 +423,39 @@ const CAL_HOUR_START=6,CAL_HOUR_END=22,CAL_HOUR_PX=56;
 const $=id=>document.getElementById(id);
 const avatarColor=i=>COLORS[i%COLORS.length];
 const avatarLetter=name=>(name||'?').replace(/^(นาย|นาง|นางสาว)\.?\s*/,'').trim().charAt(0);
+
+// ✅ NEW: ชุดสี (bg/border/text) จับคู่ 1:1 กับ COLORS ตามลำดับคนในตารางเวร — ให้แต่ละคนมีสีประจำตัวคงที่ทุกที่ในระบบ
+const STAFF_EVENT_COLORS=[
+  {bg:'#e7edf3',bd:'#163251',tx:'#163251'},
+  {bg:'#e0f4f1',bd:'#007a6e',tx:'#007a6e'},
+  {bg:'#f0ecfb',bd:'#6d3fc0',tx:'#6d3fc0'},
+  {bg:'#fdeee0',bd:'#d4580a',tx:'#d4580a'},
+  {bg:'#fdecea',bd:'#c0392b',tx:'#c0392b'},
+  {bg:'#e8f1fb',bd:'#1d6fb5',tx:'#1d6fb5'},
+  {bg:'#e4f5eb',bd:'#1a8a4a',tx:'#1a8a4a'},
+  {bg:'#fdf4dc',bd:'#c07a00',tx:'#c07a00'},
+  {bg:'#e3e8ee',bd:'#0d2137',tx:'#0d2137'},
+  {bg:'#efe8fc',bd:'#8255d4',tx:'#8255d4'},
+];
+function staffIndexByName(name){
+  const list=(scheduleData&&scheduleData.data)||[];
+  return list.findIndex(s=>s.name===name||s.nick===name);
+}
+function staffEventColor(name){
+  const idx=staffIndexByName(name);
+  return idx>=0 ? STAFF_EVENT_COLORS[idx%STAFF_EVENT_COLORS.length] : null;
+}
+// ✅ NEW: กำหนดคลาส badge ตามบทบาท — หัวหน้างาน/รองหัวหน้างาน ใช้สีเดิม ที่เหลือ (พขร.) ใช้สีฟ้าเป็นค่าเริ่มต้น
+function roleChipClass(role){
+  const r=String(role||'');
+  if(r.includes('รองหัวหน้า')) return 'role-vice';
+  if(r.includes('หัวหน้า')) return 'role-head';
+  return 'role-driver';
+}
+// ✅ NEW: avatar เป็นรูปจริงถ้ามี photo, ไม่งั้น fallback เป็นวงกลมสีตัวอักษรย่อเหมือนเดิม
+function avatarInner(person){
+  return person&&person.photo ? `<img src="${person.photo}" alt="${escapeHtmlJob(person.name||'')}" loading="lazy">` : avatarLetter(person&&person.name);
+}
 
 function shiftClass(s){if(!s)return'';const l=s.toLowerCase();if(l.includes('ems'))return's-ems';if(l.startsWith('ช1'))return's-ch1';if(l.startsWith('ช2'))return's-ch2';if(l.startsWith('ช3'))return's-ch3';if(l==='ด'||l.startsWith('ด'))return's-d';return's-other';}
 function shiftLabel(s){if(!s)return'';const l=s.toLowerCase();if(l.includes('ems'))return'🚑';if(l.startsWith('ช1'))return'🔵';if(l.startsWith('ช2'))return'🟢';if(l.startsWith('ช3'))return'🟣';if(l==='ด'||l.startsWith('ด'))return'🌙';return'⚪';}
@@ -431,12 +488,27 @@ function fmtJobDate(ymd){
 function todayYmd(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function addDaysYmd(ymd,n){ const [y,m,d]=ymd.split('-').map(Number); const dt=new Date(y,m-1,d+n); return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
 
+// ── TOAST: แจ้งเตือนสั้น ๆ มุมล่างจอ แทน alert() ที่ขวางการทำงาน ──
+let _toastTimer=null;
+function showToast(msg,type='success'){
+  const wrap=$('toast-wrap'); if(!wrap) return;
+  const icon=type==='error'?'⚠️':'✅';
+  wrap.innerHTML=`<div class="toast ${type}">${icon} ${escapeHtmlJob(msg)}</div>`;
+  requestAnimationFrame(()=>wrap.classList.add('show'));
+  clearTimeout(_toastTimer);
+  _toastTimer=setTimeout(()=>{ wrap.classList.remove('show'); },2600);
+}
+
 function renderSessionBox(){
   const s=getDriverSession();
   const box=$('jobs-session-box');
   if(!box) return;
   if(s){
-    box.innerHTML=`<div class="session-welcome"><span>👤 เข้าสู่ระบบในชื่อ <b>${s.nick?`${s.nick} (${s.name})`:s.name}</b></span><a href="javascript:void(0)" onclick="clearDriverSession()">ออกจากระบบ</a></div>`;
+    const countChip=jobsData?`<span class="jobs-count-chip">📋 ${jobsData.length} งาน</span>`:'';
+    box.innerHTML=`<div class="session-welcome${s.isAdmin?' admin':''}">
+      <span>${s.isAdmin?'🛡️':'👤'} เข้าสู่ระบบในชื่อ <b>${s.isAdmin?s.name:(s.nick?`${s.nick} (${s.name})`:s.name)}</b>${s.isAdmin?'<span class="session-admin-tag">ADMIN</span>':''}</span>
+      <span style="display:flex;align-items:center;gap:10px">${countChip}<a href="javascript:void(0)" onclick="clearDriverSession()">ออกจากระบบ</a></span>
+    </div>`;
   } else {
     box.innerHTML='';
   }
@@ -464,7 +536,16 @@ const CAL_EVENT_COLORS=[
   {bg:'#ecfccb',bd:'#a3e635',tx:'#3f6212'},
 ];
 function hashStrJob(s){ let h=0; s=String(s||'x'); for(let i=0;i<s.length;i++){ h=(h<<5)-h+s.charCodeAt(i); h|=0; } return Math.abs(h); }
-function eventColor(name){ return CAL_EVENT_COLORS[hashStrJob(name)%CAL_EVENT_COLORS.length]; }
+// ✅ NEW: ถ้างานนี้มี "ผู้ไปส่ง" (พขร. ผู้รับผิดชอบ) ที่ตรงกับคนในตารางเวร ให้ใช้สีประจำตัวของคนนั้น (คงที่ทุกที่ในระบบ)
+// ถ้ายังไม่ระบุ พขร. ให้ fallback เป็นสีสุ่มตามชื่อผู้ขอรถแทน เพื่อให้ยังแยกแยะงานแต่ละงานได้
+function eventColor(job){
+  const driver=(job&&job.driver||'').trim();
+  if(driver){
+    const c=staffEventColor(driver);
+    if(c) return c;
+  }
+  return CAL_EVENT_COLORS[hashStrJob(job&&job.requester)%CAL_EVENT_COLORS.length];
+}
 
 function ymdToDate(ymd){ const [y,m,d]=ymd.split('-').map(Number); return new Date(y,m-1,d); }
 function dateToYmd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
@@ -514,7 +595,7 @@ function layoutDayEvents(dayJobs){
 
 function renderCalEvents(evs){
   return evs.map(e=>{
-    const j=e.job,col=eventColor(j.requester);
+    const j=e.job,col=eventColor(j);
     const w=100/e.colCount,l=w*e.col;
     return `<div class="cal-event" style="top:${e.top}px;height:${e.height}px;left:calc(${l}% + 2px);width:calc(${w}% - 4px);background:${col.bg};border-left:3px solid ${col.bd};color:${col.tx}"
       onclick="openJobDetail('${j.jobId}')" title="${escapeHtmlJob(j.mission||'')}">
@@ -529,7 +610,7 @@ function renderCalEvents(evs){
 function renderCalUntimedChips(untimed){
   if(!untimed.length) return '';
   return untimed.map(j=>{
-    const col=eventColor(j.requester);
+    const col=eventColor(j);
     return `<div class="cal-untimed-chip" style="background:${col.bg};border-left:3px solid ${col.bd};color:${col.tx}" onclick="openJobDetail('${j.jobId}')">${escapeHtmlJob(j.requester||'งาน')}</div>`;
   }).join('');
 }
@@ -548,6 +629,16 @@ function renderJobsCalendar(){
   if(!jobsCurrentDate) jobsCurrentDate=todayYmd();
   $('jobs-loading').style.display='none';
   $('jobs-content').style.display='block';
+  renderSessionBox();
+
+  if(!jobsData.length){
+    $('jobs-content').innerHTML=`<div class="jobs-empty">
+      <div>🗒️</div>
+      <div style="font-weight:700;color:var(--text-mid);margin-bottom:4px">ยังไม่มีงานที่บันทึกไว้</div>
+      <div>กดปุ่ม <b style="color:var(--teal)">+</b> มุมล่างขวาเพื่อเพิ่มงานใหม่</div>
+    </div>`;
+    return;
+  }
 
   const t=todayYmd();
   let days=[];
@@ -592,6 +683,13 @@ function renderJobsCalendar(){
     dayColsHtml+=`<div class="cal-day-col${isToday?' today':''}" style="height:${totalPx}px">${renderCalEvents(timed)}</div>`;
   });
 
+  // ✅ NEW: legend สีของแต่ละ พขร. ที่มีงานอยู่ในช่วงที่แสดง — ช่วยให้แยกได้ว่าสีไหนเป็นของใคร
+  const driversInView=[...new Set(days.flatMap(d=>(byDate[dateToYmd(d)]||[]).map(j=>(j.driver||'').trim()).filter(Boolean)))];
+  const legendHtml=driversInView.length?`<div class="legend">${driversInView.map(dr=>{
+    const c=staffEventColor(dr)||{bd:'#9aa7b8',tx:'#5c6b80'};
+    return `<div class="legend-item"><div class="l-dot" style="background:${c.tx};border-radius:50%"></div>${escapeHtmlJob(dr)}</div>`;
+  }).join('')}</div>`:'';
+
   const gridCols=`46px repeat(${cols},1fr)`;
   const html=`
     <div class="cal-toolbar">
@@ -601,11 +699,15 @@ function renderJobsCalendar(){
         <button class="cal-nav-btn" onclick="calNav(1)">›</button>
         <div class="cal-label">${label}</div>
       </div>
-      <div class="cal-view-toggle">
-        <button class="${jobsViewMode==='day'?'active':''}" onclick="setJobsView('day')">วัน</button>
-        <button class="${jobsViewMode==='week'?'active':''}" onclick="setJobsView('week')">สัปดาห์</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="cal-view-toggle">
+          <button class="${jobsViewMode==='day'?'active':''}" onclick="setJobsView('day')">วัน</button>
+          <button class="${jobsViewMode==='week'?'active':''}" onclick="setJobsView('week')">สัปดาห์</button>
+        </div>
+        <button class="cal-today-btn" style="background:var(--teal);color:#fff;border-color:var(--teal)" onclick="openAddJobModal()">+ เพิ่มงาน</button>
       </div>
     </div>
+    ${legendHtml}
     <div class="cal-wrap">
       <div class="cal-head-row" style="grid-template-columns:${gridCols}">
         <div class="cal-gutter-head"></div>
@@ -686,11 +788,11 @@ function openLoginModal(onSuccess,onCancel){
     <button class="modal-close" onclick="handleLoginCancel()">✕</button>
     <div class="login-icon-wrap">🔒</div>
     <div class="modal-title">ตารางงาน</div>
-    <div class="modal-sub">โปรดใส่รหัสผ่านเพื่อเข้าดูตารางงาน</div>
+    <div class="modal-sub">ใส่เบอร์โทรศัพท์ พขร. (ตามตารางเวร) หรือรหัสแอดมิน เพื่อเข้าดู/จัดการตารางงาน</div>
     <div class="modal-err" id="login-err"></div>
     <div class="form-group">
-      <label>รหัสผ่าน</label>
-      <input type="password" id="login-phone" placeholder="โปรดใส่รหัสผ่าน" autocomplete="off">
+      <label>เบอร์โทรศัพท์ / รหัสแอดมิน</label>
+      <input type="password" id="login-phone" placeholder="เช่น 08xxxxxxxx หรือรหัสแอดมิน" autocomplete="off" inputmode="text">
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="handleLoginCancel()">ยกเลิก</button>
@@ -721,8 +823,9 @@ async function submitLogin(){
   try{
     const r=await fetchGASRaw({action:'verifyDriverPhone',phone});
     if(r.status==='ok'){
-      setDriverSession({name:r.name,nick:r.nick,phone:r.phone,role:r.role});
+      setDriverSession({name:r.name,nick:r.nick,phone:r.phone,role:r.role,isAdmin:!!r.isAdmin});
       renderSessionBox();
+      showToast(r.isAdmin?'เข้าสู่ระบบสิทธิ์แอดมินแล้ว':`ยินดีต้อนรับ ${r.nick||r.name}`,'success');
       const modal=document.querySelector('.modal-overlay');
       const cb=modal&&modal._onSuccess;
       closeModal();
@@ -742,7 +845,8 @@ function requireLogin(cb){
   if(s) cb(); else openLoginModal(cb);
 }
 
-// ── EDIT JOB FORM (เพิ่มงานใหม่ถูกปิดไว้ — ใช้ได้เฉพาะแก้ไขงานเดิม) ──
+// ── เพิ่ม / แก้ไข งาน (เปิดใช้งานเต็มรูปแบบ — เพิ่มใหม่ได้จากปุ่ม + มุมล่างจอ) ──
+function openAddJobModal(){ requireLogin(()=>renderJobFormModal(null)); }
 function openEditJobModal(job){ requireLogin(()=>renderJobFormModal(job)); }
 
 function renderJobFormModal(job){
@@ -750,11 +854,18 @@ function renderJobFormModal(job){
   const d=job?job.date:todayYmd();
   const html=`
     <button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">${isEdit?'แก้ไขงาน':'เพิ่มงานใหม่'}</div>
-    <div class="modal-sub">${isEdit?'แก้ไขรายละเอียดงานนี้':'กรอกรายละเอียดงานที่ได้รับแจ้ง'}</div>
+    <div class="modal-title">${isEdit?'✏️ แก้ไขงาน':'🆕 เพิ่มงานใหม่'}</div>
+    <div class="modal-sub">${isEdit?'แก้ไขรายละเอียดงานนี้':'กรอกรายละเอียดงานที่ได้รับแจ้งให้ พขร. ไปรับ-ส่ง'}</div>
     <div class="modal-err" id="job-form-err"></div>
     <div class="form-row">
-      <div class="form-group"><label>วันที่ *</label><input type="date" id="jf-date" value="${d}"></div>
+      <div class="form-group">
+        <label>วันที่ *</label>
+        <input type="date" id="jf-date" value="${d}">
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button type="button" class="cal-today-btn" style="flex:1;height:26px;font-size:10.5px" onclick="$('jf-date').value=todayYmd()">วันนี้</button>
+          <button type="button" class="cal-today-btn" style="flex:1;height:26px;font-size:10.5px" onclick="$('jf-date').value=addDaysYmd(todayYmd(),1)">พรุ่งนี้</button>
+        </div>
+      </div>
       <div class="form-group"><label>จำนวนคน</label><input type="number" id="jf-headcount" min="1" value="${job?job.headcount:''}" placeholder="เช่น 3"></div>
     </div>
     <div class="form-group"><label>ผู้ขอรถ *</label><input type="text" id="jf-requester" value="${job?escapeHtmlJob(job.requester):''}" placeholder="ชื่อผู้ขอใช้รถ / แผนก"></div>
@@ -800,7 +911,7 @@ async function submitJobForm(jobId){
     data.action = jobId ? 'updateJobAssignment' : 'addJobAssignment';
     if(jobId) data.jobId=jobId;
     const r=await fetchGASRaw(data);
-    if(r.status==='ok'){ closeModal(); jobsData=null; $('jobs-loading').style.display='block'; $('jobs-content').style.display='none'; loadJobs(); }
+    if(r.status==='ok'){ closeModal(); showToast(jobId?'แก้ไขงานเรียบร้อยแล้ว':'เพิ่มงานใหม่เรียบร้อยแล้ว','success'); jobsData=null; $('jobs-loading').style.display='block'; $('jobs-content').style.display='none'; loadJobs(); }
     else { errBoxEl.textContent=r.message||'บันทึกไม่สำเร็จ'; errBoxEl.classList.add('show'); btn.disabled=false; btn.textContent=jobId?'บันทึกการแก้ไข':'บันทึกงาน'; }
   }catch(err){
     errBoxEl.textContent='เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่'; errBoxEl.classList.add('show');
@@ -829,7 +940,7 @@ async function doDeleteJob(jobId){
   const btn=$('del-submit-btn'); if(btn){btn.disabled=true;btn.textContent='กำลังลบ...';}
   try{
     const r=await fetchGASRaw({action:'deleteJobAssignment',phone:s.phone,jobId});
-    if(r.status==='ok'){ closeModal(); jobsData=null; $('jobs-loading').style.display='block'; $('jobs-content').style.display='none'; loadJobs(); }
+    if(r.status==='ok'){ closeModal(); showToast('ลบรายการเรียบร้อยแล้ว','success'); jobsData=null; $('jobs-loading').style.display='block'; $('jobs-content').style.display='none'; loadJobs(); }
     else { $('del-err').textContent=r.message||'ลบไม่สำเร็จ'; $('del-err').classList.add('show'); if(btn){btn.disabled=false;btn.textContent='ลบรายการ';} }
   }catch(err){
     $('del-err').textContent='เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่'; $('del-err').classList.add('show');
@@ -874,7 +985,7 @@ function renderTodayTab(d){
       html+=`<div class="duty-group"><div class="duty-group-hdr"><span class="shift ${shiftClass(shift)}">${shift}</span> ${shiftName(shift)}</div>`;
       members.forEach(p=>{
         const idx=onDuty.indexOf(p),color=avatarColor(idx);
-        html+=`<div class="duty-person"><div class="duty-color-bar" style="background:${color}"></div><div class="duty-main"><div class="duty-avatar" style="background:${color}">${avatarLetter(p.name)}</div><div class="duty-info"><div class="duty-name">${p.name}</div><div class="duty-nick">(${p.nick||'—'})</div>${p.role?`<div class="duty-role-chip ${p.role.includes('รอง')?'role-vice':'role-head'}">${p.role}</div>`:''}</div><div class="duty-shift-badge shift ${shiftClass(shift)}">${shiftLabel(shift)} ${shift}</div></div><div class="duty-actions"><a href="tel:${p.phone}" class="action-btn btn-call" title="โทร">📞</a><a href="sms:${p.phone}" class="action-btn btn-sms" title="SMS">💬</a></div></div>`;
+        html+=`<div class="duty-person"><div class="duty-color-bar" style="background:${color}"></div><div class="duty-main"><div class="duty-avatar" style="background:${color}">${avatarInner(p)}</div><div class="duty-info"><div class="duty-name">${p.name}</div><div class="duty-nick">(${p.nick||'—'})</div><div class="duty-role-chip ${roleChipClass(p.role)}">${p.role||'พขร.'}</div></div><div class="duty-shift-badge shift ${shiftClass(shift)}">${shiftLabel(shift)} ${shift}</div></div><div class="duty-actions"><a href="tel:${p.phone}" class="action-btn btn-call" title="โทร">📞</a><a href="sms:${p.phone}" class="action-btn btn-sms" title="SMS">💬</a></div></div>`;
       });
       html+=`</div>`;
     });
@@ -964,7 +1075,7 @@ function buildScheduleHTML(d, isCurrentMonth){
   let bodyHtml='';
   staff.forEach((s,idx)=>{
     const color=avatarColor(idx);
-    bodyHtml+=`<tr data-name="${s.name}"><td class="td-name"><div class="name-cell"><div class="name-avatar" style="background:${color}">${avatarLetter(s.name)}</div><div class="name-text"><div class="name-full">${s.name}</div><div class="name-meta">${s.nick||''}${s.role?` · ${s.role}`:''}</div></div></div></td>`;
+    bodyHtml+=`<tr data-name="${s.name}"><td class="td-name"><div class="name-cell"><div class="name-avatar" style="background:${color}">${avatarInner(s)}</div><div class="name-text"><div class="name-full">${s.name}</div><div class="name-meta">${s.nick||''} · ${s.role||'พขร.'}</div></div></div></td>`;
     for(let d2=1;d2<=daysInMonth;d2++){
       const shift=(s.schedule&&s.schedule[String(d2)])||'';
       const isTd=isCurrentMonth&&d2===todayDay;
@@ -1028,10 +1139,63 @@ function renderStaffTab(d){
   let html='<div class="staff-grid">';
   staff.forEach((s,idx)=>{
     const color=avatarColor(idx),todayShift=(s.schedule&&s.schedule[day])||'',tel=s.phone?`tel:${s.phone}`:'#';
-    html+=`<div class="staff-card"><div class="staff-card-top"><div class="staff-avatar" style="background:${color}">${avatarLetter(s.name)}</div><div><div class="staff-name">${s.name}</div><div class="staff-nick">(${s.nick||'—'})</div>${s.role?`<div style="margin-top:4px"><span class="duty-role-chip ${s.role.includes('รอง')?'role-vice':'role-head'}">${s.role}</span></div>`:''} ${todayShift?`<div class="staff-today-shift shift ${shiftClass(todayShift)}">${shiftLabel(todayShift)} ${todayShift}</div>`:`<div style="font-size:9.5px;color:var(--text-light);margin-top:4px">ไม่มีเวรวันนี้</div>`}</div></div><div class="staff-card-foot"><a href="${tel}" class="staff-phone-link">${s.phone||'—'}</a><a href="${tel}" style="font-size:16px;text-decoration:none">📞</a></div></div>`;
+    html+=`<div class="staff-card"><div class="staff-card-top">
+      <div class="staff-avatar-wrap">
+        <div class="staff-avatar" style="background:${color}">${avatarInner(s)}</div>
+        <div class="staff-photo-btn" title="เปลี่ยนรูปประจำตัว" onclick="openStaffPhotoPicker('${escapeHtmlJob(s.phone)}','${escapeHtmlJob(s.name)}')">📷</div>
+      </div>
+      <div><div class="staff-name">${s.name}</div><div class="staff-nick">(${s.nick||'—'})</div><div style="margin-top:4px"><span class="duty-role-chip ${roleChipClass(s.role)}">${s.role||'พขร.'}</span></div> ${todayShift?`<div class="staff-today-shift shift ${shiftClass(todayShift)}">${shiftLabel(todayShift)} ${todayShift}</div>`:`<div style="font-size:9.5px;color:var(--text-light);margin-top:4px">ไม่มีเวรวันนี้</div>`}</div></div><div class="staff-card-foot"><a href="${tel}" class="staff-phone-link">${s.phone||'—'}</a><a href="${tel}" style="font-size:16px;text-decoration:none">📞</a></div></div>`;
   });
   html+='</div>';
   $('staff-content').innerHTML=html;
+}
+
+// ── อัปโหลดรูปประจำตัว: จำเป็นต้องล็อกอินก่อน (เบอร์ของตัวเอง หรือรหัสแอดมิน) ──
+let _pendingPhotoTarget=null;
+function openStaffPhotoPicker(phone,name){
+  _pendingPhotoTarget={phone,name};
+  requireLogin(()=>{
+    const s=getDriverSession();
+    if(!s.isAdmin && normalizePhoneJs(s.phone)!==normalizePhoneJs(phone)){
+      showToast('อัปโหลดได้เฉพาะรูปของตัวเอง (หรือเข้าสู่ระบบด้วยรหัสแอดมิน)','error');
+      return;
+    }
+    $('staff-photo-input').click();
+  });
+}
+function normalizePhoneJs(v){ return String(v||'').replace(/[^0-9]/g,''); }
+
+async function handleStaffPhotoSelected(input){
+  const file=input.files&&input.files[0];
+  input.value='';
+  if(!file||!_pendingPhotoTarget) return;
+  if(!file.type.startsWith('image/')){ showToast('กรุณาเลือกไฟล์รูปภาพ','error'); return; }
+  const s=getDriverSession(); if(!s) return;
+  showToast('กำลังอัปโหลดรูป...','success');
+  try{
+    const base64Data=await new Promise((res,rej)=>{
+      const r=new FileReader();
+      r.onload=()=>res(r.result);
+      r.onerror=()=>rej(new Error('read failed'));
+      r.readAsDataURL(file);
+    });
+    const r=await fetchGASRaw({
+      action:'uploadStaffPhoto', phone:s.phone,
+      targetPhone:_pendingPhotoTarget.phone, targetName:_pendingPhotoTarget.name,
+      base64Data, mimeType:file.type||'image/jpeg'
+    });
+    if(r.status==='ok'){
+      showToast('อัปเดตรูปประจำตัวเรียบร้อยแล้ว','success');
+      scheduleData=null; todayData=null;
+      const[td,sc]=await Promise.allSettled([api('getTodayDuty'),api('getSchedule')]);
+      if(td.status==='fulfilled'&&td.value.status==='ok'){todayData=td.value;renderTodayStrip(todayData);renderTodayTab(todayData);}
+      if(sc.status==='fulfilled'&&sc.value.status==='ok'){scheduleData=sc.value;renderStaffTab(scheduleData);}
+    } else {
+      showToast(r.message||'อัปโหลดไม่สำเร็จ','error');
+    }
+  }catch(err){
+    showToast('เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่','error');
+  }
 }
 
 function showTab(tab){
@@ -1047,6 +1211,7 @@ function showTab(tab){
 function switchToTab(tab){
   ['today','schedule','staff','jobs'].forEach(t=>{$('tab-'+t).style.display=t===tab?'':'none';$('tbtn-'+t).classList.toggle('active',t===tab);});
   activeTab=tab;window.scrollTo({top:0,behavior:'smooth'});
+  const fabAdd=$('fab-add-job'); if(fabAdd) fabAdd.style.display=(tab==='jobs')?'flex':'none';
   if(tab==='schedule'){setTimeout(()=>{const el=$('ts-current'),th=document.querySelector('#msched-current .th-today');if(th&&el)el.scrollLeft=Math.max(0,th.offsetLeft-150);},100);}
 }
 
