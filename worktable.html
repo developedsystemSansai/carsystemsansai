@@ -260,6 +260,8 @@ tbody tr.dim{opacity:.22;}
 
 .jobs-empty{text-align:center;padding:44px 20px;color:var(--text-light);font-size:12.5px;}
 .jobs-empty div:first-child{font-size:30px;margin-bottom:8px;}
+.cal-hint-empty{background:var(--violet-soft);border:1px dashed #c8b8ec;color:var(--violet);font-size:11.5px;font-weight:600;border-radius:10px;padding:9px 13px;margin-bottom:12px;line-height:1.6;}
+.cal-hint-empty b{font-weight:800;}
 
 /* Calendar top toolbar */
 .cal-toolbar{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;}
@@ -499,6 +501,17 @@ function staffEventColor(name){
   const idx=staffIndexByName(name);
   return idx>=0 ? STAFF_EVENT_COLORS[idx%STAFF_EVENT_COLORS.length] : null;
 }
+// ✅ NEW: แสดง "ชื่อจริง (ชื่อเล่น)" เมื่อพบข้อมูลชื่อเล่นในตารางเวร — ใช้กับชื่อ พขร. ทุกจุดในตารางงาน
+function nameWithNick(name){
+  name=(name||'').trim();
+  if(!name) return '';
+  const idx=staffIndexByName(name);
+  if(idx<0) return name;
+  const person=(scheduleData&&scheduleData.data||[])[idx];
+  const nick=person&&person.nick&&person.nick.trim();
+  if(!nick||nick===name) return name;
+  return `${name} (${nick})`;
+}
 // ✅ NEW: กำหนดคลาส badge ตามบทบาท — หัวหน้างาน/รองหัวหน้างาน ใช้สีเดิม ที่เหลือ (พขร.) ใช้สีฟ้าเป็นค่าเริ่มต้น
 function roleChipClass(role){
   const r=String(role||'');
@@ -532,6 +545,21 @@ function getDriverSession(){ try{return JSON.parse(localStorage.getItem(SESSION_
 function setDriverSession(obj){ try{localStorage.setItem(SESSION_KEY,JSON.stringify(obj));}catch(_){} }
 function clearDriverSession(){ try{localStorage.removeItem(SESSION_KEY);}catch(_){} renderSessionBox(); }
 
+// ── รูปแบบเวลา แบบไทย: "08.00–16.00 น." (จุดคั่นชั่วโมง-นาที + ต่อท้ายด้วย น.) ──
+function fmtThaiTimeDot(t){
+  if(!t) return '';
+  const p=String(t).split(':');
+  if(p.length<2) return String(t);
+  const hh=p[0].padStart(2,'0'), mm=p[1].padStart(2,'0');
+  return `${hh}.${mm}`;
+}
+function fmtThaiTimeRange(start,end){
+  const s=fmtThaiTimeDot(start), e=fmtThaiTimeDot(end);
+  if(s&&e) return `${s}–${e} น.`;
+  if(s) return `${s} น.`;
+  if(e) return `${e} น.`;
+  return '';
+}
 function fmtJobDate(ymd){
   if(!ymd) return '-';
   const parts=ymd.split('-'); if(parts.length!==3) return ymd;
@@ -609,7 +637,7 @@ function allJobDrivers(){
 }
 function jobMatchesSearch(j,q){
   if(!q) return true;
-  const hay=[j.requester,j.mission,j.destination,j.driver,j.shiftOwner].map(v=>String(v||'').toLowerCase()).join(' ');
+  const hay=[j.requester,j.mission,j.destination,j.driver].map(v=>String(v||'').toLowerCase()).join(' ');
   return hay.includes(q.toLowerCase());
 }
 function jobMatchesDriverFilter(j){
@@ -664,7 +692,7 @@ function renderCalToolbarExtra(){
     const c=staffEventColor(dr)||{tx:'#9aa7b8'};
     return `<label class="cal-filter-opt" onclick="event.stopPropagation()">
       <input type="checkbox" ${checked?'checked':''} onchange="toggleDriverFilter('${dr.replace(/'/g,"\\'")}',event)">
-      <span class="l-dot" style="background:${c.tx}"></span>${escapeHtmlJob(dr)}
+      <span class="l-dot" style="background:${c.tx}"></span>${escapeHtmlJob(nameWithNick(dr))}
     </label>`;
   }).join(''):`<div class="cal-filter-empty">ยังไม่มีข้อมูล พขร.</div>`;
   return `
@@ -738,10 +766,10 @@ function renderCalEvents(evs){
     const w=100/e.colCount,l=w*e.col;
     return `<div class="cal-event" style="top:${e.top}px;height:${e.height}px;left:calc(${l}% + 2px);width:calc(${w}% - 4px);background:${col.bg};border-left:3px solid ${col.bd};color:${col.tx}"
       onclick="openJobDetail('${j.jobId}')" title="${escapeHtmlJob(j.mission||'')}">
-      <div class="cal-event-time">${j.timeOut||''}${j.timeBack?'–'+j.timeBack:''}</div>
+      <div class="cal-event-time">${fmtThaiTimeRange(j.timeOut,j.timeBack)}</div>
       <div class="cal-event-title">${escapeHtmlJob(j.requester||'งาน')}</div>
       ${j.destination?`<div class="cal-event-loc">📍 ${escapeHtmlJob(j.destination)}</div>`:''}
-      ${j.driver?`<div class="cal-event-driver">🚐 ${escapeHtmlJob(j.driver)}</div>`:''}
+      ${j.driver?`<div class="cal-event-driver">🚐 ${escapeHtmlJob(nameWithNick(j.driver))}</div>`:''}
     </div>`;
   }).join('');
 }
@@ -800,15 +828,6 @@ function renderJobsCalendar(opts){
   $('jobs-content').style.display='block';
   renderSessionBox();
 
-  if(!jobsData.length){
-    $('jobs-content').innerHTML=`<div class="jobs-empty">
-      <div>🗒️</div>
-      <div style="font-weight:700;color:var(--text-mid);margin-bottom:4px">ยังไม่มีงานที่บันทึกไว้</div>
-      <div>กดปุ่ม <b style="color:var(--teal)">+</b> มุมล่างขวาเพื่อเพิ่มงานใหม่</div>
-    </div>`;
-    return;
-  }
-
   const filtered=getFilteredJobs();
   const isFiltered=!!jobsSearchQuery||jobsFilterDrivers!==null;
   const toolbarExtraHtml=renderCalToolbarExtra();
@@ -848,7 +867,7 @@ function renderJobsCalendar(opts){
 
   let hourLabels='';
   for(let h=CAL_HOUR_START;h<=CAL_HOUR_END;h++){
-    hourLabels+=`<div class="cal-hour-label" style="top:${(h-CAL_HOUR_START)*CAL_HOUR_PX}px">${String(h).padStart(2,'0')}:00</div>`;
+    hourLabels+=`<div class="cal-hour-label" style="top:${(h-CAL_HOUR_START)*CAL_HOUR_PX}px">${String(h).padStart(2,'0')}.00</div>`;
   }
 
   let headHtml='';
@@ -874,10 +893,11 @@ function renderJobsCalendar(opts){
   const legendHtml=driversInView.length?`<div class="legend">${driversInView.map(dr=>{
     const c=staffEventColor(dr)||{bd:'#9aa7b8',tx:'#5c6b80'};
     const isActive=jobsFilterDrivers===null||jobsFilterDrivers.has(dr);
-    return `<div class="legend-item clickable${isActive?'':' inactive'}" onclick="toggleDriverFilter('${dr.replace(/'/g,"\\'")}')" title="คลิกเพื่อกรองเฉพาะ ${escapeHtmlJob(dr)}"><div class="l-dot" style="background:${c.tx};border-radius:50%"></div>${escapeHtmlJob(dr)}</div>`;
+    return `<div class="legend-item clickable${isActive?'':' inactive'}" onclick="toggleDriverFilter('${dr.replace(/'/g,"\\'")}')" title="คลิกเพื่อกรองเฉพาะ ${escapeHtmlJob(dr)}"><div class="l-dot" style="background:${c.tx};border-radius:50%"></div>${escapeHtmlJob(nameWithNick(dr))}</div>`;
   }).join('')}</div>`:'';
 
   const gridCols=`46px repeat(${cols},1fr)`;
+  const noDataHint=(!jobsData.length&&!isFiltered)?`<div class="cal-hint-empty">🗒️ ยังไม่มีงานที่บันทึกไว้ในระบบ — กดปุ่ม <b>+ เพิ่มงาน</b> ด้านบน หรือปุ่ม <b style="color:var(--teal)">+</b> มุมล่างขวา เพื่อเริ่มบันทึกงานแรก</div>`:'';
   const html=`
     <div class="cal-toolbar">
       <div class="cal-nav">
@@ -893,6 +913,7 @@ function renderJobsCalendar(opts){
     </div>
     ${toolbarExtraHtml}
     ${legendHtml}
+    ${noDataHint}
     ${(isFiltered&&!anyJobInView)?`<div class="jobs-empty" style="padding:24px 16px"><div>🔍</div><div style="font-weight:700;color:var(--text-mid);margin-bottom:4px">ไม่พบงานที่ตรงกับตัวกรอง</div><div>ลองแก้คำค้นหา หรือ<a href="javascript:void(0)" onclick="clearJobsSearch();resetDriverFilter();" style="color:var(--violet);font-weight:700"> ล้างตัวกรองทั้งหมด</a></div></div>`:`
     <div class="cal-wrap">
       <div class="cal-head-row" style="grid-template-columns:${gridCols}">
@@ -944,13 +965,13 @@ function renderAgendaListView(filtered,toolbarExtraHtml,viewToggleHtml,isFiltere
       const col=eventColor(j);
       return `<div class="agenda-row" onclick="openJobDetail('${j.jobId}')">
         <div class="agenda-row-bar" style="background:${col.bd}"></div>
-        <div class="agenda-row-time">${j.timeOut||'ไม่ระบุ'}${j.timeBack?`<span>ถึง ${j.timeBack}</span>`:''}</div>
+        <div class="agenda-row-time">${j.timeOut?fmtThaiTimeDot(j.timeOut)+' น.':'ไม่ระบุ'}${j.timeBack?`<span>ถึง ${fmtThaiTimeDot(j.timeBack)} น.</span>`:''}</div>
         <div class="agenda-row-body">
           <div class="agenda-row-title">${escapeHtmlJob(j.mission||j.requester||'งาน')}</div>
           <div class="agenda-row-meta">
             <span>👤 ${escapeHtmlJob(j.requester)||'—'}</span>
             ${j.destination?`<span>📍 ${escapeHtmlJob(j.destination)}</span>`:''}
-            ${j.driver?`<span>🚐 ${escapeHtmlJob(j.driver)}</span>`:''}
+            ${j.driver?`<span>🚐 ${escapeHtmlJob(nameWithNick(j.driver))}</span>`:''}
           </div>
         </div>
       </div>`;
@@ -960,7 +981,7 @@ function renderAgendaListView(filtered,toolbarExtraHtml,viewToggleHtml,isFiltere
       ${rows}
     </div>`;
   }).join('')}</div>`
-    : `<div class="agenda-empty">${isFiltered?'ไม่พบงานที่ตรงกับตัวกรอง':'ยังไม่มีงานที่บันทึกไว้'}</div>`;
+    : `<div class="agenda-empty">${isFiltered?'🔍 ไม่พบงานที่ตรงกับตัวกรอง':'🗒️ ยังไม่มีงานที่บันทึกไว้ — กดปุ่ม + เพิ่มงาน ด้านบนเพื่อเริ่มบันทึกงานแรก'}</div>`;
 
   const html=`
     <div class="cal-toolbar">
@@ -986,7 +1007,7 @@ function openJobDetail(jobId){
     <div class="modal-sub">${fmtJobDate(j.date)}</div>
     <div class="jd-row">
       <div class="jd-icon">🕐</div>
-      <div><div class="jd-label">เวลานัดหมาย</div><div class="jd-value">${j.timeOut||'--:--'} – ${j.timeBack||'--:--'}</div></div>
+      <div><div class="jd-label">เวลานัดหมาย</div><div class="jd-value">${(j.timeOut||j.timeBack)?fmtThaiTimeRange(j.timeOut,j.timeBack):'ไม่ระบุเวลา'}</div></div>
     </div>
     <div class="jd-row">
       <div class="jd-icon">📍</div>
@@ -998,9 +1019,8 @@ function openJobDetail(jobId){
     </div>
     <div class="jd-row">
       <div class="jd-icon">🚐</div>
-      <div><div class="jd-label">ผู้รับผิดชอบ (คนขับ)</div><div class="jd-value">${escapeHtmlJob(j.driver)||'—'}</div></div>
+      <div><div class="jd-label">ผู้รับผิดชอบ (คนขับ)</div><div class="jd-value">${escapeHtmlJob(nameWithNick(j.driver))||'—'}</div></div>
     </div>
-    ${j.shiftOwner?`<div class="jd-row"><div class="jd-icon">🗓️</div><div><div class="jd-label">เวรของ</div><div class="jd-value">${escapeHtmlJob(j.shiftOwner)}</div></div></div>`:''}
     ${j.mission?`<div class="jd-row"><div class="jd-icon">📋</div><div><div class="jd-label">ภารกิจ / คำสั่งงาน</div><div class="jd-value">${escapeHtmlJob(j.mission)}</div></div></div>`:''}
     <div class="modal-actions">
       <button class="btn-secondary" onclick='closeModal();openEditJobModal(${JSON.stringify(j).replace(/'/g,"&apos;")})'>✏️ แก้ไข</button>
@@ -1120,7 +1140,6 @@ function renderJobFormModal(job){
       <div class="form-group"><label>เวลากลับ</label><input type="time" id="jf-timeBack" value="${job?job.timeBack:''}"></div>
     </div>
     <div class="form-group"><label>ผู้ไปส่ง (พขร.)</label><input type="text" id="jf-driver" list="jf-staff-list" value="${job?escapeHtmlJob(job.driver):''}" placeholder="ชื่อ พขร. ผู้ไปส่ง"></div>
-    <div class="form-group"><label>ตารางเวร (เวรของใคร)</label><input type="text" id="jf-shiftOwner" list="jf-staff-list" value="${job?escapeHtmlJob(job.shiftOwner):''}" placeholder="เวรของใครวันนั้น"></div>
     <datalist id="jf-staff-list">${(scheduleData&&scheduleData.data||[]).map(s=>`<option value="${escapeHtmlJob(s.name)}">`).join('')}</datalist>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">ยกเลิก</button>
@@ -1145,7 +1164,6 @@ async function submitJobForm(jobId){
     timeOut: $('jf-timeOut').value,
     timeBack: $('jf-timeBack').value,
     driver: $('jf-driver').value.trim(),
-    shiftOwner: $('jf-shiftOwner').value.trim(),
   };
   if(!data.date){ errBoxEl.textContent='กรุณาเลือกวันที่'; errBoxEl.classList.add('show'); return; }
   if(!data.requester){ errBoxEl.textContent='กรุณากรอกชื่อผู้ขอรถ'; errBoxEl.classList.add('show'); return; }
