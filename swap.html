@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>SAND · ระบบแลกเวร พขร. — โรงพยาบาลสันทราย</title>
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:         #0d2137;
+  --navy-mid:     #163251;
+  --navy-light:   #1e4a7a;
+  --blue:         #1d6fb5;
+  --blue-soft:    #e8f1fb;
+  --teal:         #007a6e;
+  --teal-soft:    #e0f4f1;
+  --amber:        #c07a00;
+  --amber-soft:   #fdf4dc;
+  --orange:       #d4580a;
+  --red:          #c0392b;
+  --red-soft:     #fdecea;
+  --bg:           #eef2f7;
+  --bg2:          #e4eaf3;
+  --card:         #ffffff;
+  --border:       #d5dce8;
+  --border-strong:#b8c4d4;
+  --text:         #182332;
+  --text-mid:     #3d5168;
+  --text-light:   #7a8ea5;
+  --success:      #1a8a4a;
+  --success-soft: #e4f5eb;
+  --danger:       #c0392b;
+  --danger-soft:  #fdecea;
+  --violet:       #6d3fc0;
+  --violet-soft:  #f0ecfb;
+  --violet-mid:   #8255d4;
+  --green:        #1a8a4a;
+  --radius:       12px;
+  --radius-sm:    8px;
+  --shadow-sm:    0 1px 6px rgba(13,33,55,.07);
+  --shadow:       0 2px 14px rgba(13,33,55,.09);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans Thai',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-tap-highlight-color:transparent;}
+
+/* HEADER */
+.site-header{background:linear-gradient(160deg,var(--navy-mid) 0%,#1a3f6a 55%,#173660 100%);padding:0 16px;border-bottom:2px solid rgba(255,255,255,.06);box-shadow:0 2px 16px rgba(13,33,55,.35);position:sticky;top:0;z-index:200;}
+.header-inner{max-width:720px;margin:0 auto;height:60px;display:flex;align-items:center;gap:12px;}
+.header-logo-wrap{width:38px;height:38px;border-radius:10px;background:#fff;border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.header-logo-wrap img{width:70%;height:70%;object-fit:contain;}
+.header-titles{flex:1;min-width:0;}
+.main-title{font-size:13px;font-weight:700;color:#fff;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sub-title{font-size:10px;color:rgba(255,255,255,.5);margin-top:2px;}
+.header-chip{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.8);font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;flex-shrink:0;white-space:nowrap;cursor:pointer;}
+.back-link{color:rgba(255,255,255,.7);font-size:18px;text-decoration:none;flex-shrink:0;}
+
+.content{max-width:720px;margin:0 auto;padding:16px 12px 60px;}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:16px;margin-bottom:14px;}
+.card h2{font-size:15px;font-weight:700;color:var(--navy-mid);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.hint{font-size:11.5px;color:var(--text-light);line-height:1.6;margin-bottom:12px;}
+
+/* LOGIN */
+.login-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 8px;text-align:center;}
+.login-icon{width:64px;height:64px;border-radius:50%;background:var(--violet-soft);display:flex;align-items:center;justify-content:center;font-size:28px;margin-bottom:14px;}
+.login-title{font-size:17px;font-weight:700;color:var(--navy-mid);margin-bottom:6px;}
+.login-sub{font-size:12px;color:var(--text-light);margin-bottom:20px;max-width:320px;line-height:1.6;}
+
+/* FORM CONTROLS */
+label{display:block;font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:5px;margin-top:12px;}
+label:first-child{margin-top:0;}
+input[type=tel],input[type=text],select,textarea{width:100%;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;font-size:14px;font-family:'Noto Sans Thai',sans-serif;background:#fff;color:var(--text);}
+input[type=tel]{font-family:'IBM Plex Mono',monospace;letter-spacing:.5px;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--violet-mid);box-shadow:0 0 0 3px rgba(109,63,192,.12);}
+textarea{resize:vertical;min-height:70px;}
+.check-row{display:flex;align-items:flex-start;gap:9px;margin-top:14px;background:var(--blue-soft);border:1px solid #b8d4f0;border-radius:var(--radius-sm);padding:11px 12px;}
+.check-row input{margin-top:2px;flex-shrink:0;width:17px;height:17px;}
+.check-row span{font-size:12px;color:var(--text-mid);line-height:1.5;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;padding:13px;border:none;border-radius:var(--radius-sm);font-size:14.5px;font-weight:700;font-family:'Noto Sans Thai',sans-serif;cursor:pointer;transition:transform .1s,opacity .15s;}
+.btn:active{transform:scale(.98);}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-primary{background:linear-gradient(135deg,var(--violet-mid),var(--violet));color:#fff;box-shadow:0 3px 10px rgba(109,63,192,.3);margin-top:16px;}
+.btn-success{background:linear-gradient(135deg,#22a55a,var(--success));color:#fff;}
+.btn-danger{background:#fff;color:var(--danger);border:1.5px solid var(--danger);}
+.btn-outline{background:#fff;color:var(--text-mid);border:1.5px solid var(--border-strong);}
+.btn-row{display:flex;gap:8px;margin-top:10px;}
+.btn-row .btn{margin-top:0;}
+.btn-sm{padding:9px;font-size:12.5px;}
+
+/* TABS (post-login) */
+.tab-bar{background:var(--card);border-bottom:1.5px solid var(--border);position:sticky;top:60px;z-index:100;overflow-x:auto;}
+.tab-bar-inner{max-width:720px;margin:0 auto;display:flex;align-items:stretch;min-width:max-content;}
+.tab-btn{flex:1;min-width:80px;padding:12px 8px;font-size:12.5px;font-weight:600;font-family:'Noto Sans Thai',sans-serif;color:var(--text-light);border:none;background:none;cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;white-space:nowrap;position:relative;}
+.tab-btn.active{color:var(--violet);border-bottom-color:var(--violet);}
+.tab-badge{position:absolute;top:6px;right:6px;background:var(--red);color:#fff;font-size:9px;font-weight:800;border-radius:20px;padding:1px 5px;min-width:15px;line-height:1.4;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* SESSION BAR */
+.session-bar{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:11px 13px;margin-bottom:14px;box-shadow:var(--shadow-sm);}
+.session-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--violet-mid),var(--violet));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0;}
+.session-info{flex:1;min-width:0;}
+.session-name{font-size:13.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.session-role{font-size:10.5px;color:var(--text-light);}
+.admin-chip{background:var(--amber-soft);color:var(--amber);border:1px solid #e8c96a;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px;margin-left:6px;}
+.logout-btn{background:none;border:1px solid var(--border-strong);color:var(--text-light);font-size:11px;padding:6px 10px;border-radius:var(--radius-sm);cursor:pointer;white-space:nowrap;}
+
+/* SHIFT PICKS */
+.day-pick-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:7px;margin-top:8px;max-height:200px;overflow-y:auto;padding:2px;}
+.day-pick{border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:7px 4px;text-align:center;cursor:pointer;background:#fff;transition:.12s;}
+.day-pick:hover{border-color:var(--violet-mid);}
+.day-pick.sel{background:var(--violet-soft);border-color:var(--violet);box-shadow:0 0 0 2px rgba(109,63,192,.15);}
+.day-pick .dnum{font-size:15px;font-weight:800;color:var(--navy-mid);}
+.day-pick .dshift{font-size:9px;color:var(--text-light);margin-top:2px;line-height:1.3;}
+.empty-note{font-size:11.5px;color:var(--text-light);text-align:center;padding:14px 6px;}
+
+/* REQUEST CARD */
+.req-card{border:1px solid var(--border);border-radius:var(--radius);padding:13px;margin-bottom:10px;background:#fff;box-shadow:var(--shadow-sm);}
+.req-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:9px;}
+.req-id{font-size:10px;font-family:'IBM Plex Mono',monospace;color:var(--text-light);}
+.status-chip{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;flex-shrink:0;}
+.status-pending{background:var(--amber-soft);color:var(--amber);}
+.status-approved{background:var(--success-soft);color:var(--success);}
+.status-rejected{background:var(--danger-soft);color:var(--danger);}
+.req-swap-line{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text);margin-bottom:5px;flex-wrap:wrap;}
+.req-swap-line b{color:var(--navy-mid);}
+.req-arrow{color:var(--violet-mid);font-weight:700;}
+.req-reason{font-size:11.5px;color:var(--text-mid);background:var(--bg);border-radius:8px;padding:8px 10px;margin-top:7px;line-height:1.5;}
+.req-meta{font-size:10.5px;color:var(--text-light);margin-top:8px;}
+.memo-links{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.memo-link{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:7px 11px;border-radius:var(--radius-sm);text-decoration:none;}
+.memo-doc{background:var(--blue-soft);color:var(--blue);border:1px solid #aac8ee;}
+.memo-pdf{background:var(--red-soft);color:var(--red);border:1px solid #f0b3ac;}
+
+.msg-box{border-radius:var(--radius-sm);padding:11px 13px;font-size:12.5px;line-height:1.6;margin-bottom:12px;display:none;}
+.msg-box.show{display:block;}
+.msg-error{background:var(--danger-soft);color:var(--danger);border:1px solid #f0b3ac;}
+.msg-success{background:var(--success-soft);color:var(--success);border:1px solid #a5d6b8;}
+
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-dots{text-align:center;padding:30px 10px;color:var(--text-light);font-size:13px;}
+
+.toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:var(--text-mid);}
+.toggle-row input{width:16px;height:16px;}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="back-link" href="worktable.html" title="กลับตารางเวร">←</a>
+    <div class="header-logo-wrap"><img src="assets/sand-logo-icon.png" alt="SAND โลโก้ โรงพยาบาลสันทราย"></div>
+    <div class="header-titles">
+      <div class="main-title">SAND · ระบบแลกเวร พขร.</div>
+      <div class="sub-title">โรงพยาบาลสันทราย</div>
+    </div>
+    <span class="header-chip" id="logout-chip" style="display:none" onclick="doLogout()">ออกจากระบบ</span>
+  </div>
+</header>
+
+<div class="tab-bar" id="tab-bar" style="display:none">
+  <div class="tab-bar-inner">
+    <button class="tab-btn active" id="tbtn-mine" onclick="showTab('mine')">เวรของฉัน</button>
+    <button class="tab-btn" id="tbtn-request" onclick="showTab('request')">ขอแลกเวร</button>
+    <button class="tab-btn" id="tbtn-pending" onclick="showTab('pending')" style="display:none">
+      รออนุมัติ<span class="tab-badge" id="pending-badge" style="display:none">0</span>
+    </button>
+    <button class="tab-btn" id="tbtn-history" onclick="showTab('history')">ประวัติ</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- LOGIN VIEW -->
+  <div id="view-login">
+    <div class="card login-wrap">
+      <div class="login-icon">🔑</div>
+      <div class="login-title">เข้าสู่ระบบแลกเวร พขร.</div>
+      <div class="login-sub">กรอกเบอร์โทรศัพท์ที่ลงทะเบียนไว้ในตารางเวรยานพาหนะ เพื่อยืนยันตัวตนก่อนใช้งาน</div>
+      <div style="width:100%;max-width:280px">
+        <label style="text-align:left">เบอร์โทรศัพท์</label>
+        <input type="tel" id="login-phone" placeholder="0812345678" maxlength="15" inputmode="numeric">
+        <div class="msg-box msg-error" id="login-msg"></div>
+        <button class="btn btn-primary" id="login-btn" onclick="doLogin()">เข้าสู่ระบบ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN APP VIEW (after login) -->
+  <div id="view-app" style="display:none">
+
+    <div class="session-bar">
+      <div class="session-avatar" id="s-avatar">?</div>
+      <div class="session-info">
+        <div class="session-name" id="s-name">-</div>
+        <div class="session-role" id="s-role">-</div>
+      </div>
+    </div>
+
+    <!-- TAB: เวรของฉัน -->
+    <div class="tab-panel active" id="panel-mine">
+      <div class="card">
+        <h2>📅 เดือนนี้</h2>
+        <div id="mine-current"></div>
+      </div>
+      <div class="card">
+        <h2>📅 เดือนถัดไป</h2>
+        <div id="mine-next"></div>
+      </div>
+    </div>
+
+    <!-- TAB: ขอแลกเวร -->
+    <div class="tab-panel" id="panel-request">
+      <div class="card">
+        <h2>🔄 ยื่นคำขอแลกเวร</h2>
+        <div class="hint">เลือกวันเวรของคุณที่ต้องการให้เพื่อน แล้วเลือกเพื่อนร่วมงาน + วันเวรของเขาที่จะรับมาแทน ระบบจะสลับวันเวรทั้งสองฝั่งให้อัตโนมัติเมื่อได้รับอนุมัติ</div>
+
+        <div class="msg-box msg-error" id="req-msg-error"></div>
+        <div class="msg-box msg-success" id="req-msg-success"></div>
+
+        <label>เดือนที่ต้องการแลก</label>
+        <select id="req-month" onchange="onReqMonthChange()">
+          <option value="current">เดือนนี้</option>
+          <option value="next">เดือนถัดไป</option>
+        </select>
+
+        <label>วันเวรของฉันที่จะให้เพื่อนแทน</label>
+        <div id="req-my-days" class="day-pick-grid"></div>
+
+        <label>แลกกับเพื่อนร่วมงาน</label>
+        <select id="req-target-name" onchange="onTargetChange()">
+          <option value="">— เลือกเพื่อนร่วมงาน —</option>
+        </select>
+
+        <label>วันเวรของเพื่อนที่ฉันจะรับมาแทน</label>
+        <div id="req-target-days" class="day-pick-grid"><div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div></div>
+
+        <label>เหตุผลการขอแลกเวร</label>
+        <textarea id="req-reason" placeholder="เช่น มีธุระส่วนตัว / ติดภารกิจครอบครัว ฯลฯ"></textarea>
+
+        <div class="check-row">
+          <input type="checkbox" id="req-consent">
+          <span>ฉันได้แจ้งและตกลงกับเพื่อนร่วมงานที่จะแลกเวรด้วยเรียบร้อยแล้ว</span>
+        </div>
+
+        <button class="btn btn-primary" id="req-submit-btn" onclick="submitRequest()">ส่งคำขอแลกเวร</button>
+      </div>
+    </div>
+
+    <!-- TAB: รออนุมัติ (admin only) -->
+    <div class="tab-panel" id="panel-pending">
+      <div class="card">
+        <h2>⏳ คำขอที่รอตรวจสอบ</h2>
+        <div class="hint">อนุมัติจะเขียนตารางเวรจริงทันที และสร้างเอกสารบันทึกข้อความให้อัตโนมัติ</div>
+        <div id="pending-list"><div class="loading-dots">กำลังโหลด…</div></div>
+      </div>
+    </div>
+
+    <!-- TAB: ประวัติ -->
+    <div class="tab-panel" id="panel-history">
+      <div class="card">
+        <h2>📜 ประวัติการแลกเวร</h2>
+        <div class="toggle-row" id="history-toggle-row" style="display:none">
+          <input type="checkbox" id="history-show-all" onchange="loadHistory()">
+          <span>แอดมิน: แสดงคำขอของทุกคน</span>
+        </div>
+        <div id="history-list"><div class="loading-dots">กำลังโหลด…</div></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="secure-fetch.js"></script>
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
+const MONTH_TH=['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const $=id=>document.getElementById(id);
+
+let session = null;     // {name,nick,phone,role,isAdmin}
+let staffList = [];      // จาก getSwapStaffList
+let myDays = null;       // จาก getMyShiftDays(session.name) -> {current:{month,year,days:[]}, next:{...}}
+let targetDays = null;   // shift days ของเพื่อนที่เลือก
+let selReqDay = null, selTgtDay = null;
+
+function shiftName(s){if(!s)return'';const l=String(s).toLowerCase();if(l.includes('ems'))return'EMS';if(l.startsWith('ช1'))return'เช้า1';if(l.startsWith('ช2'))return'เช้า2';if(l.startsWith('ช3'))return'เช้า3';if(l==='ด'||l.startsWith('ด'))return'ดึก';return s;}
+
+async function callGet(action, params){
+  const qs = new URLSearchParams({action, ...(params||{})});
+  const r = await fetch(`${GAS_URL}?${qs.toString()}`, {cache:'no-cache'});
+  return r.json();
+}
+async function callPost(body){
+  const r = await fetch(GAS_URL, {
+    method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:'payload='+encodeURIComponent(JSON.stringify(body)),
+    cache:'no-cache'
+  });
+  return r.json();
+}
+
+// ── SESSION ──────────────────────────────────────────────
+function loadSession(){
+  try{ const raw = localStorage.getItem('sand_swap_session'); if(raw) session = JSON.parse(raw); }catch(_){ session=null; }
+}
+function saveSession(){ localStorage.setItem('sand_swap_session', JSON.stringify(session)); }
+function doLogout(){ localStorage.removeItem('sand_swap_session'); session=null; location.reload(); }
+
+async function doLogin(){
+  const phone = $('login-phone').value.trim();
+  const msg = $('login-msg');
+  msg.classList.remove('show');
+  if(!phone){ msg.textContent='กรุณากรอกเบอร์โทรศัพท์'; msg.classList.add('show'); return; }
+  const btn = $('login-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> กำลังตรวจสอบ…';
+  try{
+    const res = await callPost({action:'swapLogin', phone});
+    if(res.status!=='ok'){ msg.textContent = res.message || 'เข้าสู่ระบบไม่สำเร็จ'; msg.classList.add('show'); return; }
+    session = {name:res.name, nick:res.nick, phone:res.phone, role:res.role, isAdmin:!!res.isAdmin};
+    saveSession();
+    await enterApp();
+  }catch(err){
+    msg.textContent = 'เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่'; msg.classList.add('show');
+  }finally{
+    btn.disabled = false; btn.innerHTML = 'เข้าสู่ระบบ';
+  }
+}
+
+async function enterApp(){
+  $('view-login').style.display='none';
+  $('view-app').style.display='block';
+  $('tab-bar').style.display='block';
+  $('logout-chip').style.display='inline-block';
+
+  $('s-avatar').textContent = (session.name||'?').replace(/^(นาย|นาง|นางสาว)\.?\s*/,'').trim().charAt(0);
+  $('s-name').innerHTML = (session.nick? session.nick+' · ':'') + session.name + (session.isAdmin? ' <span class="admin-chip">แอดมิน</span>':'');
+  $('s-role').textContent = session.role || 'พนักงานขับรถยนต์';
+
+  if(session.isAdmin){
+    $('tbtn-pending').style.display='block';
+    $('history-toggle-row').style.display='flex';
+  }
+
+  await Promise.all([loadStaffList(), loadMyDays()]);
+  renderMineTab();
+  if(session.isAdmin) refreshPendingBadge();
+}
+
+// ── DATA LOADERS ─────────────────────────────────────────
+async function loadStaffList(){
+  const res = await callGet('getSwapStaffList');
+  if(res.status==='ok'){
+    staffList = (res.staff||[]).filter(s=>s.name!==session.name);
+    const sel = $('req-target-name');
+    sel.innerHTML = '<option value="">— เลือกเพื่อนร่วมงาน —</option>' +
+      staffList.map(s=>`<option value="${escAttr(s.name)}">${escHtml(s.name)}${s.nick?' ('+escHtml(s.nick)+')':''}</option>`).join('');
+  }
+}
+async function loadMyDays(){
+  const res = await callGet('getMyShiftDays', {name: session.name});
+  if(res.status==='ok'){ myDays = res; }
+}
+
+function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escAttr(s){ return escHtml(s); }
+
+// ── TAB: เวรของฉัน ───────────────────────────────────────
+function renderMineTab(){
+  ['current','next'].forEach(ms=>{
+    const box = $(ms==='current'?'mine-current':'mine-next');
+    const d = myDays && myDays[ms];
+    if(!d){ box.innerHTML = '<div class="empty-note">โหลดข้อมูลไม่สำเร็จ</div>'; return; }
+    const label = d.month? `${MONTH_TH[+d.month]} ${d.year}` : '';
+    if(!d.days || !d.days.length){
+      box.innerHTML = `<div class="empty-note">ไม่พบเวรของคุณใน${label||'เดือนนี้'}</div>`;
+      return;
+    }
+    box.innerHTML = `<div class="hint" style="margin-bottom:8px">${label}</div><div class="day-pick-grid">` +
+      d.days.map(x=>`<div class="day-pick"><div class="dnum">${x.day}</div><div class="dshift">${escHtml(shiftName(x.shift))}</div></div>`).join('') +
+      `</div>`;
+  });
+}
+
+// ── TAB: ขอแลกเวร ────────────────────────────────────────
+function onReqMonthChange(){
+  selReqDay = null; selTgtDay = null;
+  $('req-target-name').value = '';
+  $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
+  renderReqMyDays();
+}
+function renderReqMyDays(){
+  const ms = $('req-month').value;
+  const d = myDays && myDays[ms];
+  const box = $('req-my-days');
+  if(!d || !d.days || !d.days.length){
+    box.innerHTML = '<div class="empty-note">คุณไม่มีเวรในเดือนนี้</div>';
+    return;
+  }
+  box.innerHTML = d.days.map(x=>`<div class="day-pick" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="pickReqDay(this)"><div class="dnum">${x.day}</div><div class="dshift">${escHtml(shiftName(x.shift))}</div></div>`).join('');
+}
+function pickReqDay(el){
+  document.querySelectorAll('#req-my-days .day-pick').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+  selReqDay = {day:+el.dataset.day, shift:el.dataset.shift};
+}
+async function onTargetChange(){
+  selTgtDay = null;
+  const name = $('req-target-name').value;
+  const box = $('req-target-days');
+  if(!name){ box.innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>'; return; }
+  box.innerHTML = '<div class="loading-dots">กำลังโหลด…</div>';
+  const res = await callGet('getMyShiftDays', {name});
+  if(res.status!=='ok'){ box.innerHTML = '<div class="empty-note">โหลดข้อมูลไม่สำเร็จ</div>'; return; }
+  targetDays = res;
+  const ms = $('req-month').value;
+  const d = res[ms];
+  if(!d || !d.days || !d.days.length){ box.innerHTML = '<div class="empty-note">เพื่อนคนนี้ไม่มีเวรในเดือนนี้</div>'; return; }
+  box.innerHTML = d.days.map(x=>`<div class="day-pick" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="pickTgtDay(this)"><div class="dnum">${x.day}</div><div class="dshift">${escHtml(shiftName(x.shift))}</div></div>`).join('');
+}
+function pickTgtDay(el){
+  document.querySelectorAll('#req-target-days .day-pick').forEach(e=>e.classList.remove('sel'));
+  el.classList.add('sel');
+  selTgtDay = {day:+el.dataset.day, shift:el.dataset.shift};
+}
+
+async function submitRequest(){
+  const errBox = $('req-msg-error'), okBox = $('req-msg-success');
+  errBox.classList.remove('show'); okBox.classList.remove('show');
+
+  const monthSheet = $('req-month').value;
+  const targetName = $('req-target-name').value;
+  const reason = $('req-reason').value.trim();
+  const consent = $('req-consent').checked;
+
+  if(!selReqDay){ errBox.textContent='กรุณาเลือกวันเวรของคุณที่จะให้เพื่อนแทน'; errBox.classList.add('show'); return; }
+  if(!targetName){ errBox.textContent='กรุณาเลือกเพื่อนร่วมงานที่จะแลกเวรด้วย'; errBox.classList.add('show'); return; }
+  if(!selTgtDay){ errBox.textContent='กรุณาเลือกวันเวรของเพื่อนที่คุณจะรับมาแทน'; errBox.classList.add('show'); return; }
+  if(!reason){ errBox.textContent='กรุณาระบุเหตุผลการขอแลกเวร'; errBox.classList.add('show'); return; }
+  if(!consent){ errBox.textContent='กรุณายืนยันว่าตกลงกับเพื่อนร่วมงานแล้ว'; errBox.classList.add('show'); return; }
+
+  const btn = $('req-submit-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> กำลังส่งคำขอ…';
+  try{
+    const res = await callPost({
+      action:'submitSwapRequest',
+      requesterPhone: session.phone,
+      monthSheet, targetName,
+      requesterDay: selReqDay.day, requesterShift: selReqDay.shift,
+      targetDay: selTgtDay.day, targetShift: selTgtDay.shift,
+      reason, consent: true
+    });
+    if(res.status!=='ok'){ errBox.textContent = res.message || 'ส่งคำขอไม่สำเร็จ'; errBox.classList.add('show'); return; }
+
+    if(res.autoApproved){
+      okBox.innerHTML = '✅ แลกเวรสำเร็จทันที (สิทธิ์แอดมิน) ตารางเวรถูกแก้ไขแล้ว' + memoLinksHtml(res.memo);
+    }else{
+      okBox.innerHTML = '✅ ส่งคำขอแลกเวรสำเร็จ — รหัสคำขอ <b>'+escHtml(res.requestId)+'</b><br>กรุณารอแอดมินตรวจสอบและอนุมัติ';
+    }
+    okBox.classList.add('show');
+
+    // reset ฟอร์ม
+    selReqDay = null; selTgtDay = null;
+    $('req-target-name').value=''; $('req-reason').value=''; $('req-consent').checked=false;
+    $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
+    await loadMyDays(); renderReqMyDays(); renderMineTab();
+    if(session.isAdmin) refreshPendingBadge();
+  }catch(err){
+    errBox.textContent = 'เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่'; errBox.classList.add('show');
+  }finally{
+    btn.disabled = false; btn.innerHTML = 'ส่งคำขอแลกเวร';
+  }
+}
+
+function memoLinksHtml(memo){
+  if(!memo || memo.status!=='ok') return '';
+  let html = '<div class="memo-links">';
+  if(memo.docUrl) html += `<a class="memo-link memo-doc" href="${memo.docUrl}" target="_blank">📄 เปิดเอกสาร Doc</a>`;
+  if(memo.pdfUrl) html += `<a class="memo-link memo-pdf" href="${memo.pdfUrl}" target="_blank">🧾 เปิด PDF</a>`;
+  html += '</div>';
+  return html;
+}
+
+// ── TAB: รออนุมัติ (admin) ───────────────────────────────
+async function refreshPendingBadge(){
+  const res = await callGet('getPendingSwapRequests');
+  if(res.status==='ok'){
+    const n = (res.requests||[]).length;
+    const badge = $('pending-badge');
+    if(n>0){ badge.textContent = n; badge.style.display='inline-block'; }
+    else{ badge.style.display='none'; }
+    renderPendingList(res.requests||[]);
+  }
+}
+function statusChip(status){
+  if(status==='รอตรวจสอบ') return `<span class="status-chip status-pending">รอตรวจสอบ</span>`;
+  if(status && status.indexOf('ปฏิเสธ')>=0) return `<span class="status-chip status-rejected">ปฏิเสธ</span>`;
+  return `<span class="status-chip status-approved">${escHtml(status)}</span>`;
+}
+function renderPendingList(list){
+  const box = $('pending-list');
+  if(!list.length){ box.innerHTML = '<div class="empty-note">ไม่มีคำขอรออนุมัติ 🎉</div>'; return; }
+  box.innerHTML = list.map(r=>`
+    <div class="req-card" id="req-${r.requestId}">
+      <div class="req-top"><span class="req-id">${r.requestId}</span>${statusChip(r.status)}</div>
+      <div class="req-swap-line"><b>${escHtml(r.requesterName)}</b> วันที่ ${r.requesterDay} (${escHtml(shiftName(r.requesterShift))}) <span class="req-arrow">⇄</span> <b>${escHtml(r.targetName)}</b> วันที่ ${r.targetDay} (${escHtml(shiftName(r.targetShift))})</div>
+      <div class="req-reason">${escHtml(r.reason)}</div>
+      <div class="req-meta">ยื่นเมื่อ ${escHtml(r.createdAt)} • เดือน${ r.monthSheet==='next' ? 'ถัดไป':'นี้' }</div>
+      <div class="btn-row">
+        <button class="btn btn-success btn-sm" onclick="approveReq('${r.requestId}')">✅ อนุมัติ</button>
+        <button class="btn btn-danger btn-sm" onclick="rejectReq('${r.requestId}')">✖ ปฏิเสธ</button>
+      </div>
+      <div id="req-result-${r.requestId}"></div>
+    </div>
+  `).join('');
+}
+async function approveReq(id){
+  if(!confirm('ยืนยันอนุมัติคำขอนี้? ระบบจะแก้ไขตารางเวรจริงทันที')) return;
+  const res = await callPost({action:'approveSwapRequest', requestId:id, approverPhone:session.phone});
+  const out = $('req-result-'+id);
+  if(res.status!=='ok'){ out.innerHTML = `<div class="msg-box msg-error show">${escHtml(res.message||'อนุมัติไม่สำเร็จ')}</div>`; return; }
+  out.innerHTML = `<div class="msg-box msg-success show">อนุมัติสำเร็จ ตารางเวรถูกแก้ไขแล้ว${memoLinksHtml(res.memo)}</div>`;
+  setTimeout(refreshPendingBadge, 1200);
+}
+async function rejectReq(id){
+  const reason = prompt('เหตุผลที่ปฏิเสธคำขอนี้ (ถ้ามี):') || '';
+  const res = await callPost({action:'rejectSwapRequest', requestId:id, approverPhone:session.phone, reason});
+  const out = $('req-result-'+id);
+  if(res.status!=='ok'){ out.innerHTML = `<div class="msg-box msg-error show">${escHtml(res.message||'ปฏิเสธไม่สำเร็จ')}</div>`; return; }
+  out.innerHTML = `<div class="msg-box msg-success show">ปฏิเสธคำขอเรียบร้อยแล้ว</div>`;
+  setTimeout(refreshPendingBadge, 1200);
+}
+
+// ── TAB: ประวัติ ─────────────────────────────────────────
+async function loadHistory(){
+  const box = $('history-list');
+  box.innerHTML = '<div class="loading-dots">กำลังโหลด…</div>';
+  const showAll = session.isAdmin && $('history-show-all') && $('history-show-all').checked;
+  const res = await callGet('getSwapHistory', showAll? {} : {phone: session.phone});
+  if(res.status!=='ok'){ box.innerHTML = '<div class="empty-note">โหลดประวัติไม่สำเร็จ</div>'; return; }
+  const list = res.requests||[];
+  if(!list.length){ box.innerHTML = '<div class="empty-note">ยังไม่มีประวัติการแลกเวร</div>'; return; }
+  box.innerHTML = list.map(r=>`
+    <div class="req-card">
+      <div class="req-top"><span class="req-id">${r.requestId}</span>${statusChip(r.status)}</div>
+      <div class="req-swap-line"><b>${escHtml(r.requesterName)}</b> วันที่ ${r.requesterDay} (${escHtml(shiftName(r.requesterShift))}) <span class="req-arrow">⇄</span> <b>${escHtml(r.targetName)}</b> วันที่ ${r.targetDay} (${escHtml(shiftName(r.targetShift))})</div>
+      <div class="req-reason">${escHtml(r.reason)}</div>
+      <div class="req-meta">ยื่นเมื่อ ${escHtml(r.createdAt)}${r.decidedBy? ' • ดำเนินการโดย '+escHtml(r.decidedBy)+' เมื่อ '+escHtml(r.decidedAt):''}${r.rejectReason? ' • เหตุผล: '+escHtml(r.rejectReason):''}</div>
+      ${memoLinksHtml({status: r.docUrl||r.pdfUrl ? 'ok':'', docUrl:r.docUrl, pdfUrl:r.pdfUrl})}
+    </div>
+  `).join('');
+}
+
+// ── TAB SWITCH ───────────────────────────────────────────
+function showTab(name){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  $('tbtn-'+name).classList.add('active');
+  $('panel-'+name).classList.add('active');
+  if(name==='request') renderReqMyDays();
+  if(name==='pending') refreshPendingBadge();
+  if(name==='history') loadHistory();
+}
+
+// ── INIT ─────────────────────────────────────────────────
+(async function init(){
+  loadSession();
+  if(session && session.phone){ await enterApp(); }
+})();
+</script>
+</body>
+</html>
