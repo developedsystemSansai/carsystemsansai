@@ -479,11 +479,20 @@ async function submitRequest(){
   }
 }
 
+function driveIdFromUrl_(url){
+  if(!url) return '';
+  const m = String(url).match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : '';
+}
 function memoLinksHtml(memo){
   if(!memo || memo.status!=='ok') return '';
+  const pdfId = driveIdFromUrl_(memo.pdfUrl);
+  const docId = driveIdFromUrl_(memo.docUrl);
+  const pdfDownload = memo.pdfDownloadUrl || (pdfId ? `https://drive.google.com/uc?export=download&id=${pdfId}` : memo.pdfUrl);
+  const docDownload = memo.docDownloadUrl || (docId ? `https://docs.google.com/document/d/${docId}/export?format=docx` : memo.docUrl);
   let html = '<div class="memo-links">';
-  if(memo.docUrl) html += `<a class="memo-link memo-doc" href="${memo.docUrl}" target="_blank">📄 เปิดเอกสาร Doc</a>`;
-  if(memo.pdfUrl) html += `<a class="memo-link memo-pdf" href="${memo.pdfUrl}" target="_blank">🧾 เปิด PDF</a>`;
+  if(docDownload) html += `<a class="memo-link memo-doc" href="${docDownload}" target="_blank" rel="noopener">📄 ดาวน์โหลด Word</a>`;
+  if(pdfDownload) html += `<a class="memo-link memo-pdf" href="${pdfDownload}" download target="_blank" rel="noopener">🧾 ดาวน์โหลด PDF</a>`;
   html += '</div>';
   return html;
 }
