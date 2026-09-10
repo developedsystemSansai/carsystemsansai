@@ -139,6 +139,7 @@ textarea{resize:vertical;min-height:70px;}
 .memo-link{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:7px 11px;border-radius:var(--radius-sm);text-decoration:none;}
 .memo-doc{background:var(--blue-soft);color:var(--blue);border:1px solid #aac8ee;}
 .memo-pdf{background:var(--red-soft);color:var(--red);border:1px solid #f0b3ac;}
+.memo-view{background:var(--success-soft);color:var(--success);border:1px solid #a9dcc0;}
 
 .msg-box{border-radius:var(--radius-sm);padding:11px 13px;font-size:12.5px;line-height:1.6;margin-bottom:12px;display:none;}
 .msg-box.show{display:block;}
@@ -222,7 +223,7 @@ textarea{resize:vertical;min-height:70px;}
     <div class="tab-panel" id="panel-request">
       <div class="card">
         <h2>🔄 ยื่นคำขอแลกเวร</h2>
-        <div class="hint">เลือกวันเวรของคุณที่ต้องการให้เพื่อน แล้วเลือกเพื่อนร่วมงาน + วันเวรของเขาที่จะรับมาแทน ระบบจะสลับวันเวรทั้งสองฝั่งให้อัตโนมัติเมื่อได้รับอนุมัติ</div>
+        <div class="hint" id="req-hint-swap">เลือกวันเวรของคุณที่ต้องการให้เพื่อน แล้วเลือกเพื่อนร่วมงาน + วันเวรของเขาที่จะรับมาแทน ระบบจะสลับวันเวรทั้งสองฝั่งให้อัตโนมัติเมื่อได้รับอนุมัติ</div>
 
         <div class="msg-box msg-error" id="req-msg-error"></div>
         <div class="msg-box msg-success" id="req-msg-success"></div>
@@ -233,15 +234,22 @@ textarea{resize:vertical;min-height:70px;}
           <option value="next">เดือนถัดไป</option>
         </select>
 
-        <label>วันเวรของฉันที่จะให้เพื่อนแทน</label>
+        <div id="req-admin-picker" style="display:none">
+          <label>พนักงานคนที่ 1 (ผู้ให้เวร)</label>
+          <select id="req-requester-name" onchange="onRequesterChange()">
+            <option value="">— เลือกพนักงาน —</option>
+          </select>
+        </div>
+
+        <label id="req-my-days-label">วันเวรของฉันที่จะให้เพื่อนแทน</label>
         <div id="req-my-days" class="day-pick-grid"></div>
 
-        <label>แลกกับเพื่อนร่วมงาน</label>
+        <label id="req-target-label">แลกกับเพื่อนร่วมงาน</label>
         <select id="req-target-name" onchange="onTargetChange()">
           <option value="">— เลือกเพื่อนร่วมงาน —</option>
         </select>
 
-        <label>วันเวรของเพื่อนที่ฉันจะรับมาแทน</label>
+        <label id="req-target-days-label">วันเวรของเพื่อนที่ฉันจะรับมาแทน</label>
         <div id="req-target-days" class="day-pick-grid"><div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div></div>
 
         <label>เหตุผลการขอแลกเวร</label>
@@ -249,7 +257,7 @@ textarea{resize:vertical;min-height:70px;}
 
         <div class="check-row">
           <input type="checkbox" id="req-consent">
-          <span>ฉันได้แจ้งและตกลงกับเพื่อนร่วมงานที่จะแลกเวรด้วยเรียบร้อยแล้ว</span>
+          <span id="req-consent-label">ฉันได้แจ้งและตกลงกับเพื่อนร่วมงานที่จะแลกเวรด้วยเรียบร้อยแล้ว</span>
         </div>
 
         <button class="btn btn-primary" id="req-submit-btn" onclick="submitRequest()">ส่งคำขอแลกเวร</button>
@@ -349,6 +357,13 @@ async function enterApp(){
   if(session.isAdmin){
     $('tbtn-pending').style.display='block';
     $('history-toggle-row').style.display='flex';
+    // ✅ สิทธิ์แอดมิน: แลกเวรแทนพนักงานคนใดก็ได้ทั้ง 2 ฝั่ง โดยไม่ต้องเข้าไอดีของแต่ละคน
+    $('req-admin-picker').style.display='block';
+    $('req-hint-swap').textContent = 'เลือกพนักงาน 2 คน แล้วเลือกวันเวรของแต่ละคนที่จะสลับกัน ระบบจะแก้ไขตารางเวรจริงทันทีเมื่อกดส่ง (สิทธิ์แอดมิน ไม่ต้องรออนุมัติ)';
+    $('req-my-days-label').textContent = 'วันเวรของพนักงานคนที่ 1 ที่จะให้พนักงานคนที่ 2 แทน';
+    $('req-target-label').textContent = 'พนักงานคนที่ 2 (ผู้รับเวรแทน)';
+    $('req-target-days-label').textContent = 'วันเวรของพนักงานคนที่ 2 ที่จะให้พนักงานคนที่ 1 แทน';
+    $('req-consent-label').textContent = 'ตรวจสอบแล้วว่าพนักงานทั้งสองฝ่ายยินยอมให้แลกเวรนี้';
   }
 
   await Promise.all([loadStaffList(), loadMyDays()]);
@@ -357,18 +372,51 @@ async function enterApp(){
 }
 
 // ── DATA LOADERS ─────────────────────────────────────────
+let fullStaffList = [];      // รายชื่อพนักงานทั้งหมด (ไม่กรอง) — ใช้สำหรับตัวเลือกฝั่งแอดมิน
+let reqRequesterName = null; // ชื่อ "พนักงานคนที่ 1" ที่แอดมินเลือก (เฉพาะโหมดแอดมิน)
+let requesterDaysData = null;// วันเวรของ "พนักงานคนที่ 1" ที่โหลดมา (เฉพาะโหมดแอดมิน)
+
 async function loadStaffList(){
   const res = await callGet('getSwapStaffList');
   if(res.status==='ok'){
-    staffList = (res.staff||[]).filter(s=>s.name!==session.name);
-    const sel = $('req-target-name');
-    sel.innerHTML = '<option value="">— เลือกเพื่อนร่วมงาน —</option>' +
-      staffList.map(s=>`<option value="${escAttr(s.name)}">${escHtml(s.name)}${s.nick?' ('+escHtml(s.nick)+')':''}</option>`).join('');
+    fullStaffList = res.staff||[];
+    staffList = fullStaffList.filter(s=>s.name!==session.name);
+    if(session.isAdmin){
+      const rsel = $('req-requester-name');
+      if(rsel) rsel.innerHTML = '<option value="">— เลือกพนักงาน —</option>' +
+        fullStaffList.map(s=>`<option value="${escAttr(s.name)}">${escHtml(s.name)}${s.nick?' ('+escHtml(s.nick)+')':''}</option>`).join('');
+    }
+    rebuildTargetOptions();
   }
+}
+function rebuildTargetOptions(){
+  const sel = $('req-target-name');
+  const excludeName = session.isAdmin ? reqRequesterName : session.name;
+  const list = (session.isAdmin ? fullStaffList : staffList).filter(s=>s.name!==excludeName);
+  sel.innerHTML = '<option value="">— เลือกเพื่อนร่วมงาน —</option>' +
+    list.map(s=>`<option value="${escAttr(s.name)}">${escHtml(s.name)}${s.nick?' ('+escHtml(s.nick)+')':''}</option>`).join('');
 }
 async function loadMyDays(){
   const res = await callGet('getMyShiftDays', {name: session.name});
   if(res.status==='ok'){ myDays = res; }
+}
+async function onRequesterChange(){
+  selReqDay = null;
+  reqRequesterName = $('req-requester-name').value;
+  const box = $('req-my-days');
+  if(!reqRequesterName){
+    requesterDaysData = null;
+    box.innerHTML = '<div class="empty-note">กรุณาเลือกพนักงานคนที่ 1 (ผู้ให้เวร) ก่อน</div>';
+  }else{
+    box.innerHTML = '<div class="loading-dots">กำลังโหลด…</div>';
+    const res = await callGet('getMyShiftDays', {name: reqRequesterName});
+    requesterDaysData = (res.status==='ok') ? res : null;
+    renderReqMyDays();
+  }
+  $('req-target-name').value='';
+  selTgtDay = null;
+  $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
+  rebuildTargetOptions();
 }
 
 function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -400,8 +448,21 @@ function onReqMonthChange(){
 }
 function renderReqMyDays(){
   const ms = $('req-month').value;
-  const d = myDays && myDays[ms];
   const box = $('req-my-days');
+  if(session.isAdmin){
+    if(!reqRequesterName){
+      box.innerHTML = '<div class="empty-note">กรุณาเลือกพนักงานคนที่ 1 (ผู้ให้เวร) ก่อน</div>';
+      return;
+    }
+    const d = requesterDaysData && requesterDaysData[ms];
+    if(!d || !d.days || !d.days.length){
+      box.innerHTML = '<div class="empty-note">พนักงานคนนี้ไม่มีเวรในเดือนนี้</div>';
+      return;
+    }
+    box.innerHTML = d.days.map(x=>`<div class="day-pick" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="pickReqDay(this)"><div class="dnum">${x.day}</div><div class="dshift">${escHtml(shiftName(x.shift))}</div></div>`).join('');
+    return;
+  }
+  const d = myDays && myDays[ms];
   if(!d || !d.days || !d.days.length){
     box.innerHTML = '<div class="empty-note">คุณไม่มีเวรในเดือนนี้</div>';
     return;
@@ -442,11 +503,12 @@ async function submitRequest(){
   const reason = $('req-reason').value.trim();
   const consent = $('req-consent').checked;
 
-  if(!selReqDay){ errBox.textContent='กรุณาเลือกวันเวรของคุณที่จะให้เพื่อนแทน'; errBox.classList.add('show'); return; }
-  if(!targetName){ errBox.textContent='กรุณาเลือกเพื่อนร่วมงานที่จะแลกเวรด้วย'; errBox.classList.add('show'); return; }
-  if(!selTgtDay){ errBox.textContent='กรุณาเลือกวันเวรของเพื่อนที่คุณจะรับมาแทน'; errBox.classList.add('show'); return; }
+  if(session.isAdmin && !reqRequesterName){ errBox.textContent='กรุณาเลือกพนักงานคนที่ 1 (ผู้ให้เวร)'; errBox.classList.add('show'); return; }
+  if(!selReqDay){ errBox.textContent=(session.isAdmin?'กรุณาเลือกวันเวรของพนักงานคนที่ 1':'กรุณาเลือกวันเวรของคุณที่จะให้เพื่อนแทน'); errBox.classList.add('show'); return; }
+  if(!targetName){ errBox.textContent=(session.isAdmin?'กรุณาเลือกพนักงานคนที่ 2':'กรุณาเลือกเพื่อนร่วมงานที่จะแลกเวรด้วย'); errBox.classList.add('show'); return; }
+  if(!selTgtDay){ errBox.textContent=(session.isAdmin?'กรุณาเลือกวันเวรของพนักงานคนที่ 2':'กรุณาเลือกวันเวรของเพื่อนที่คุณจะรับมาแทน'); errBox.classList.add('show'); return; }
   if(!reason){ errBox.textContent='กรุณาระบุเหตุผลการขอแลกเวร'; errBox.classList.add('show'); return; }
-  if(!consent){ errBox.textContent='กรุณายืนยันว่าตกลงกับเพื่อนร่วมงานแล้ว'; errBox.classList.add('show'); return; }
+  if(!consent){ errBox.textContent=(session.isAdmin?'กรุณายืนยันว่าตรวจสอบและได้รับความยินยอมจากทั้งสองฝ่ายแล้ว':'กรุณายืนยันว่าตกลงกับเพื่อนร่วมงานแล้ว'); errBox.classList.add('show'); return; }
 
   const btn = $('req-submit-btn');
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> กำลังส่งคำขอ…';
@@ -454,6 +516,7 @@ async function submitRequest(){
     const res = await callPost({
       action:'submitSwapRequest',
       requesterPhone: session.phone,
+      requesterName: session.isAdmin ? reqRequesterName : undefined,
       monthSheet, targetName,
       requesterDay: selReqDay.day, requesterShift: selReqDay.shift,
       targetDay: selTgtDay.day, targetShift: selTgtDay.shift,
@@ -462,7 +525,7 @@ async function submitRequest(){
     if(res.status!=='ok'){ errBox.textContent = res.message || 'ส่งคำขอไม่สำเร็จ'; errBox.classList.add('show'); return; }
 
     if(res.autoApproved){
-      okBox.innerHTML = '✅ แลกเวรสำเร็จทันที (สิทธิ์แอดมิน) ตารางเวรถูกแก้ไขแล้ว' + memoLinksHtml(res.memo);
+      okBox.innerHTML = '✅ แลกเวรสำเร็จทันที (สิทธิ์แอดมิน) ตารางเวรถูกแก้ไขแล้ว' + memoBlockHtml(res.requestId, res.memo, true);
     }else{
       okBox.innerHTML = '✅ ส่งคำขอแลกเวรสำเร็จ — รหัสคำขอ <b>'+escHtml(res.requestId)+'</b><br>กรุณารอแอดมินตรวจสอบและอนุมัติ';
     }
@@ -472,6 +535,12 @@ async function submitRequest(){
     selReqDay = null; selTgtDay = null;
     $('req-target-name').value=''; $('req-reason').value=''; $('req-consent').checked=false;
     $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
+    if(session.isAdmin){
+      reqRequesterName = null; requesterDaysData = null;
+      $('req-requester-name').value = '';
+      $('req-my-days').innerHTML = '<div class="empty-note">กรุณาเลือกพนักงานคนที่ 1 (ผู้ให้เวร) ก่อน</div>';
+      rebuildTargetOptions();
+    }
     await loadMyDays(); renderReqMyDays(); renderMineTab();
     if(session.isAdmin) refreshPendingBadge();
   }catch(err){
@@ -490,25 +559,69 @@ function memoLinksHtml(memo){
   if(!memo || memo.status!=='ok') return '';
   const pdfId = driveIdFromUrl_(memo.pdfUrl);
   const docId = driveIdFromUrl_(memo.docUrl);
+  const docView = memo.docUrl || (docId ? `https://docs.google.com/document/d/${docId}/edit` : '');
   const pdfDownload = memo.pdfDownloadUrl || (pdfId ? `https://drive.google.com/uc?export=download&id=${pdfId}` : memo.pdfUrl);
   const docDownload = memo.docDownloadUrl || (docId ? `https://docs.google.com/document/d/${docId}/export?format=docx` : memo.docUrl);
   let html = '<div class="memo-links">';
+  if(docView) html += `<a class="memo-link memo-view" href="${docView}" target="_blank" rel="noopener">👁️ ดูเอกสาร</a>`;
   if(docDownload) html += `<a class="memo-link memo-doc" href="${docDownload}" target="_blank" rel="noopener">📄 ดาวน์โหลด Word</a>`;
   if(pdfDownload) html += `<a class="memo-link memo-pdf" href="${pdfDownload}" download target="_blank" rel="noopener">🧾 ดาวน์โหลด PDF</a>`;
   html += '</div>';
   return html;
+}
+// ✅ NEW: บล็อกเอกสาร (ลิงก์ + ปุ่มสร้าง/สร้างใหม่เอกสาร) ใช้ร่วมกันทั้งหน้ารออนุมัติและหน้าประวัติ
+//    ลดขั้นตอน — สร้าง/ดูเอกสารได้ทันทีตรงจุดที่อนุมัติ ไม่ต้องสลับไปหน้าประวัติอีกครั้ง
+function memoBlockHtml(requestId, memo, canCreate){
+  const memoId = 'memo-'+requestId;
+  const ok = memo && memo.status==='ok';
+  const linksHtml = ok ? memoLinksHtml(memo) : '';
+  if(!canCreate) return `<div id="${memoId}">${linksHtml}</div>`;
+  const btnLabel = ok ? '🖨️ สร้างเอกสารใหม่' : '🖨️ สร้างเอกสาร';
+  return `<div id="${memoId}">${linksHtml}</div>` +
+    `<button type="button" class="btn btn-outline btn-sm" style="margin-top:8px" onclick="createMemoForRequest('${requestId}','${memoId}')">${btnLabel}</button>`;
+}
+async function createMemoForRequest(requestId, memoId){
+  const out = $(memoId);
+  if(!out) return;
+  const btn = out.nextElementSibling;
+  if(btn && btn.tagName==='BUTTON'){ btn.disabled = true; btn.textContent = 'กำลังสร้าง…'; }
+  try{
+    const res = await callPost({action:'regenerateSwapMemo', requestId, approverPhone: session.phone});
+    const ok = res.status==='ok' && res.memo && res.memo.status==='ok';
+    if(ok){
+      out.innerHTML = memoLinksHtml(res.memo);
+      if(btn){ btn.textContent = '🖨️ สร้างเอกสารใหม่'; }
+    }else{
+      out.innerHTML = `<div class="msg-box msg-error show">${escHtml((res.memo&&res.memo.message)||res.message||'สร้างเอกสารไม่สำเร็จ')}</div>`;
+      if(btn){ btn.textContent = '🖨️ สร้างเอกสาร'; }
+    }
+  }catch(err){
+    out.innerHTML = `<div class="msg-box msg-error show">เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่</div>`;
+    if(btn){ btn.textContent = '🖨️ สร้างเอกสาร'; }
+  }finally{
+    if(btn){ btn.disabled = false; }
+  }
 }
 
 // ── TAB: รออนุมัติ (admin) ───────────────────────────────
 async function refreshPendingBadge(){
   const res = await callGet('getPendingSwapRequests');
   if(res.status==='ok'){
-    const n = (res.requests||[]).length;
-    const badge = $('pending-badge');
-    if(n>0){ badge.textContent = n; badge.style.display='inline-block'; }
-    else{ badge.style.display='none'; }
+    updatePendingBadgeCount_(res.requests||[]);
     renderPendingList(res.requests||[]);
   }
+}
+// ✅ NEW: อัปเดตแค่ตัวเลขแจ้งเตือนบนแท็บ ไม่ล้างการ์ดที่เพิ่งอนุมัติ/ปฏิเสธ
+//    (เดิม re-render ทั้งลิสต์ทันทีหลังอนุมัติ ทำให้ปุ่ม "สร้างเอกสาร"/ลิงก์เอกสารหายไปเร็วเกินไป)
+async function updatePendingCountOnly_(){
+  const res = await callGet('getPendingSwapRequests');
+  if(res.status==='ok') updatePendingBadgeCount_(res.requests||[]);
+}
+function updatePendingBadgeCount_(list){
+  const n = (list||[]).length;
+  const badge = $('pending-badge');
+  if(n>0){ badge.textContent = n; badge.style.display='inline-block'; }
+  else{ badge.style.display='none'; }
 }
 function statusChip(status){
   if(status==='รอตรวจสอบ') return `<span class="status-chip status-pending">รอตรวจสอบ</span>`;
@@ -537,8 +650,9 @@ async function approveReq(id){
   const res = await callPost({action:'approveSwapRequest', requestId:id, approverPhone:session.phone});
   const out = $('req-result-'+id);
   if(res.status!=='ok'){ out.innerHTML = `<div class="msg-box msg-error show">${escHtml(res.message||'อนุมัติไม่สำเร็จ')}</div>`; return; }
-  out.innerHTML = `<div class="msg-box msg-success show">อนุมัติสำเร็จ ตารางเวรถูกแก้ไขแล้ว${memoLinksHtml(res.memo)}</div>`;
-  setTimeout(refreshPendingBadge, 1200);
+  out.innerHTML = `<div class="msg-box msg-success show">อนุมัติสำเร็จ ตารางเวรถูกแก้ไขแล้ว${memoBlockHtml(id, res.memo, true)}</div>`;
+  // ✅ อัปเดตแค่ตัวเลขแจ้งเตือน ไม่ล้างการ์ดนี้ทิ้ง — เพื่อให้เห็นปุ่ม/ลิงก์เอกสารต่อได้โดยไม่ต้องไปหน้าประวัติ
+  updatePendingCountOnly_();
 }
 async function rejectReq(id){
   const reason = prompt('เหตุผลที่ปฏิเสธคำขอนี้ (ถ้ามี):') || '';
@@ -546,7 +660,7 @@ async function rejectReq(id){
   const out = $('req-result-'+id);
   if(res.status!=='ok'){ out.innerHTML = `<div class="msg-box msg-error show">${escHtml(res.message||'ปฏิเสธไม่สำเร็จ')}</div>`; return; }
   out.innerHTML = `<div class="msg-box msg-success show">ปฏิเสธคำขอเรียบร้อยแล้ว</div>`;
-  setTimeout(refreshPendingBadge, 1200);
+  updatePendingCountOnly_();
 }
 
 // ── TAB: ประวัติ ─────────────────────────────────────────
@@ -558,15 +672,23 @@ async function loadHistory(){
   if(res.status!=='ok'){ box.innerHTML = '<div class="empty-note">โหลดประวัติไม่สำเร็จ</div>'; return; }
   const list = res.requests||[];
   if(!list.length){ box.innerHTML = '<div class="empty-note">ยังไม่มีประวัติการแลกเวร</div>'; return; }
-  box.innerHTML = list.map(r=>`
+  // ✅ สร้าง/สร้างใหม่เอกสารได้จากหน้าประวัติเลย — เฉพาะแอดมิน/หัวหน้างาน และเฉพาะคำขอที่อนุมัติแล้ว
+  const canApprove = !!(session.isAdmin || String(session.role||'').indexOf('หัวหน้างาน')>=0);
+  box.innerHTML = list.map(r=>{
+    const isApproved = String(r.status||'').indexOf('อนุมัติ')>=0;
+    const memoHtml = (isApproved && canApprove)
+      ? memoBlockHtml(r.requestId, {status: (r.docUrl||r.pdfUrl) ? 'ok':'error', docUrl:r.docUrl, pdfUrl:r.pdfUrl}, true)
+      : memoLinksHtml({status: r.docUrl||r.pdfUrl ? 'ok':'', docUrl:r.docUrl, pdfUrl:r.pdfUrl});
+    return `
     <div class="req-card">
       <div class="req-top"><span class="req-id">${r.requestId}</span>${statusChip(r.status)}</div>
       <div class="req-swap-line"><b>${escHtml(r.requesterName)}</b> วันที่ ${r.requesterDay} (${escHtml(shiftName(r.requesterShift))}) <span class="req-arrow">⇄</span> <b>${escHtml(r.targetName)}</b> วันที่ ${r.targetDay} (${escHtml(shiftName(r.targetShift))})</div>
       <div class="req-reason">${escHtml(r.reason)}</div>
       <div class="req-meta">ยื่นเมื่อ ${escHtml(r.createdAt)}${r.decidedBy? ' • ดำเนินการโดย '+escHtml(r.decidedBy)+' เมื่อ '+escHtml(r.decidedAt):''}${r.rejectReason? ' • เหตุผล: '+escHtml(r.rejectReason):''}</div>
-      ${memoLinksHtml({status: r.docUrl||r.pdfUrl ? 'ok':'', docUrl:r.docUrl, pdfUrl:r.pdfUrl})}
+      ${memoHtml}
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // ── TAB SWITCH ───────────────────────────────────────────
