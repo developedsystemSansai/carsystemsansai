@@ -273,43 +273,29 @@ tbody tr.dim{opacity:.22;}
 .cal-view-toggle button{padding:6px 14px;border:none;background:var(--card);color:var(--text-mid);font-size:11.5px;font-weight:700;cursor:pointer;font-family:'Noto Sans Thai',sans-serif;}
 .cal-view-toggle button.active{background:var(--violet);color:#fff;}
 
-/* Calendar grid */
-.cal-wrap{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--card);box-shadow:var(--shadow-sm);}
-.cal-head-row{display:grid;border-bottom:1px solid var(--border);}
-.cal-gutter-head{border-right:1px solid var(--border);}
-.cal-day-head{text-align:center;padding:8px 2px;border-left:1px solid var(--border);}
-.cal-day-head:first-of-type{border-left:none;}
-.cal-day-head .cal-dow{font-size:10px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.4px;}
-.cal-day-head .cal-daynum{font-size:15px;font-weight:800;color:var(--text);margin-top:2px;}
-.cal-day-head.today .cal-daynum{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--violet);color:#fff;}
-
-.cal-untimed-band{display:grid;border-bottom:1px solid var(--border);background:#fbfbfd;}
-.cal-untimed-cell{border-left:1px solid var(--border);padding:4px 3px;display:flex;flex-direction:column;gap:3px;min-width:0;}
-.cal-untimed-cell:first-of-type{border-left:none;}
-.cal-untimed-chip{border-radius:6px;padding:3px 6px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
-.cal-body-scroll{overflow-y:auto;-webkit-overflow-scrolling:touch;}
-.cal-body-grid{display:grid;position:relative;}
-.cal-gutter{position:relative;border-right:1px solid var(--border);}
-.cal-hour-label{position:absolute;left:0;right:4px;transform:translateY(-50%);font-size:9.5px;color:var(--text-light);text-align:right;font-family:'IBM Plex Mono',monospace;}
-.cal-day-col{position:relative;border-left:1px solid var(--border);background-image:repeating-linear-gradient(to bottom, var(--border) 0, var(--border) 1px, transparent 1px, transparent 56px);background-position:0 0;}
-.cal-day-col:first-of-type{border-left:none;}
-.cal-day-col.today{background-color:var(--violet-soft);}
-
-.cal-event{position:absolute;border-radius:8px;padding:4px 6px;font-size:10px;line-height:1.35;overflow:hidden;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.08);transition:box-shadow .15s,transform .15s;}
-.cal-event:hover{box-shadow:0 4px 12px rgba(0,0,0,.16);transform:translateY(-1px);z-index:5;}
-.cal-event-time{font-weight:700;font-family:'IBM Plex Mono',monospace;font-size:9.5px;opacity:.85;}
-.cal-event-title{font-weight:800;font-size:11px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.cal-event-loc,.cal-event-driver{font-size:9.5px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
-
-@media(min-width:600px){
-  .cal-event-time,.cal-event-loc,.cal-event-driver{font-size:10.5px;}
-  .cal-event-title{font-size:12px;}
-}
-
-/* Now-line (เวลาปัจจุบัน) */
-.cal-now-line{position:absolute;left:0;right:0;height:0;border-top:2px solid var(--danger);z-index:4;pointer-events:none;}
-.cal-now-line::before{content:'';position:absolute;left:-4px;top:-4px;width:8px;height:8px;border-radius:50%;background:var(--danger);}
+/* ── ตารางงานแบบ Timeline (Gantt-style): วันเป็นแถว, เวลาเป็นคอลัมน์แนวนอน 00.00–24.00 ── */
+.tl-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-sm);}
+.tl-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;}
+.tl-grid{position:relative;}
+.tl-head-row{display:flex;position:sticky;top:0;z-index:5;background:#fbfbfd;border-bottom:1px solid var(--border);}
+.tl-corner{flex-shrink:0;position:sticky;left:0;z-index:6;background:#fbfbfd;border-right:1px solid var(--border);}
+.tl-hour-cell{flex-shrink:0;box-sizing:border-box;padding:8px 0 8px 5px;font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--text-light);border-right:1px dashed var(--border);}
+.tl-body{position:relative;}
+.tl-row{display:flex;border-bottom:1px solid var(--border);}
+.tl-row:last-child{border-bottom:none;}
+.tl-row.today{background:var(--violet-soft);}
+.tl-row-label{flex-shrink:0;position:sticky;left:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;background:var(--card);border-right:1px solid var(--border);}
+.tl-row.today .tl-row-label{background:#f2ecfc;}
+.tl-row-label .dow{font-size:11px;font-weight:700;color:var(--text-mid);}
+.tl-row-label .daynum{font-size:12.5px;font-weight:800;color:var(--navy-mid);font-family:'IBM Plex Mono',monospace;}
+.tl-row.today .tl-row-label .daynum{color:var(--violet);}
+.tl-row-track{position:relative;flex-shrink:0;background-image:repeating-linear-gradient(to right,var(--border) 0,var(--border) 1px,transparent 1px,transparent var(--tl-hour-w));}
+.tl-bar{position:absolute;border-radius:7px;overflow:hidden;cursor:pointer;display:flex;align-items:center;gap:5px;padding:0 7px;font-size:10.5px;font-weight:700;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.08);transition:filter .1s;}
+.tl-bar:hover{filter:brightness(0.97);}
+.tl-bar-time{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:9px;opacity:.8;flex-shrink:0;}
+.tl-bar-title{overflow:hidden;text-overflow:ellipsis;}
+.tl-now-line{position:absolute;top:0;bottom:0;width:2px;background:var(--danger);z-index:7;pointer-events:none;}
+.tl-now-line::after{content:'';position:absolute;top:-3px;left:50%;transform:translateX(-50%);width:8px;height:8px;border-radius:50%;background:var(--danger);}
 
 /* Calendar toolbar: search + filter */
 .cal-toolbar-row2{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:10px;}
@@ -475,7 +461,9 @@ let scheduleData=null,scheduleNextData=null,todayData=null,activeTab='today',act
 let jobsData=null,jobsViewMode='week',jobsCurrentDate=null;
 let jobsSearchQuery='',jobsFilterDrivers=null; // jobsFilterDrivers=null หมายถึง "แสดงทุกคน"
 let _nowLineTimer=null;
-const CAL_HOUR_START=6,CAL_HOUR_END=22,CAL_HOUR_PX=56;
+const CAL_HOUR_START=0,CAL_HOUR_END=24;
+function tlHourWidth(){ return window.innerWidth<640?38:56; }
+function tlLabelWidth(){ return window.innerWidth<640?58:96; }
 const $=id=>document.getElementById(id);
 const avatarColor=i=>COLORS[i%COLORS.length];
 const avatarLetter=name=>(name||'?').replace(/^(นาย|นาง|นางสาว)\.?\s*/,'').trim().charAt(0);
@@ -721,65 +709,73 @@ function startOfWeekMon(ymd){
   const mon=new Date(d); mon.setDate(d.getDate()+diff); return mon;
 }
 function timeToMinutesJob(t){ if(!t) return null; const p=String(t).split(':'); if(p.length<2) return null; const h=+p[0],m=+p[1]; if(isNaN(h)||isNaN(m)) return null; return h*60+m; }
-function clampToCalGrid(mins){ const s=CAL_HOUR_START*60,e=CAL_HOUR_END*60; return Math.min(Math.max(mins,s),e); }
+function clampToCalGrid(mins){ return Math.min(Math.max(mins,0),1440); }
 
-function layoutDayEvents(dayJobs){
-  const timed=[],untimed=[];
-  dayJobs.forEach(j=>{ const sm=timeToMinutesJob(j.timeOut); if(sm==null) untimed.push(j); else timed.push(j); });
-  const evs=timed.map(j=>{
+// ── จัดวางแท่งงาน (bar) แนวนอนภายในแถวของแต่ละวัน คล้าย Gantt: ทับซ้อนกันจึงค่อยเรียงเป็นเลน ──
+function layoutDayBarsHorizontal(dayJobs,hourWidth){
+  const evs=dayJobs.map(j=>{
     let sm=timeToMinutesJob(j.timeOut), em=timeToMinutesJob(j.timeBack);
-    if(em==null||em<=sm) em=sm+30;
+    if(sm==null){ sm=0; em=(em==null?60:em); } // ไม่ระบุเวลานัด -> ปักไว้ต้นวัน (00.00)
+    if(em==null||em<=sm) em=sm+45;
+    sm=Math.max(0,Math.min(sm,1440)); em=Math.max(sm+20,Math.min(em,1440));
     return {job:j,sm,em};
   }).sort((a,b)=>a.sm-b.sm||a.em-b.em);
 
-  // จัดกลุ่มเหตุการณ์ที่เวลาทับกันเป็น cluster แล้วแบ่งคอลัมน์
+  // จัดกลุ่มเหตุการณ์ที่เวลาทับกันเป็น cluster แล้วแบ่งเลน (แนวตั้งภายในแถว)
   let clusters=[],current=[],activeEnd=-Infinity;
   evs.forEach(e=>{
-    if(current.length && e.sm>=activeEnd){ clusters.push(current); current=[]; activeEnd=-Infinity; }
+    if(current.length&&e.sm>=activeEnd){ clusters.push(current); current=[]; activeEnd=-Infinity; }
     current.push(e); activeEnd=Math.max(activeEnd,e.em);
   });
   if(current.length) clusters.push(current);
 
   clusters.forEach(cluster=>{
-    const colsEnd=[];
+    const lanesEnd=[];
     cluster.forEach(e=>{
       let placed=false;
-      for(let c=0;c<colsEnd.length;c++){ if(colsEnd[c]<=e.sm){ e.col=c; colsEnd[c]=e.em; placed=true; break; } }
-      if(!placed){ e.col=colsEnd.length; colsEnd.push(e.em); }
+      for(let l=0;l<lanesEnd.length;l++){ if(lanesEnd[l]<=e.sm){ e.lane=l; lanesEnd[l]=e.em; placed=true; break; } }
+      if(!placed){ e.lane=lanesEnd.length; lanesEnd.push(e.em); }
     });
-    cluster.forEach(e=>{ e.colCount=colsEnd.length; });
   });
 
-  const gridStart=CAL_HOUR_START*60;
+  const laneCount=evs.length?Math.max(...evs.map(e=>e.lane))+1:0;
   evs.forEach(e=>{
-    const s=clampToCalGrid(e.sm), en=clampToCalGrid(e.em);
-    e.top=(s-gridStart)/60*CAL_HOUR_PX;
-    e.height=Math.max((en-s)/60*CAL_HOUR_PX,34);
+    e.left=e.sm/60*hourWidth;
+    e.width=Math.max((e.em-e.sm)/60*hourWidth,34);
   });
-
-  return {timed:evs,untimed};
+  return {bars:evs,laneCount};
 }
 
-function renderCalEvents(evs){
-  return evs.map(e=>{
-    const j=e.job,col=eventColor(j);
-    const w=100/e.colCount,l=w*e.col;
-    return `<div class="cal-event" style="top:${e.top}px;height:${e.height}px;left:calc(${l}% + 2px);width:calc(${w}% - 4px);background:${col.bg};border-left:3px solid ${col.bd};color:${col.tx}"
-      onclick="openJobDetail('${j.jobId}')" title="${escapeHtmlJob(j.mission||'')}">
-      <div class="cal-event-time">${fmtThaiTimeRange(j.timeOut,j.timeBack)}</div>
-      <div class="cal-event-title">${escapeHtmlJob(j.requester||'งาน')}</div>
-      ${j.destination?`<div class="cal-event-loc">📍 ${escapeHtmlJob(j.destination)}</div>`:''}
-      ${j.driver?`<div class="cal-event-driver">🚐 ${escapeHtmlJob(nameWithNick(j.driver))}</div>`:''}
+const TL_BAR_H=27,TL_BAR_GAP=4,TL_ROW_PAD=7,TL_ROW_MIN=48;
+
+function renderTimelineHead(hourWidth,labelWidth){
+  let cells='';
+  for(let h=0;h<24;h++){
+    cells+=`<div class="tl-hour-cell" style="width:${hourWidth}px">${String(h).padStart(2,'0')}.00</div>`;
+  }
+  return `<div class="tl-head-row"><div class="tl-corner" style="width:${labelWidth}px"></div>${cells}</div>`;
+}
+
+function renderTimelineRow(dateObj,dayJobs,hourWidth,labelWidth,isToday){
+  const {bars,laneCount}=layoutDayBarsHorizontal(dayJobs,hourWidth);
+  const rowH=Math.max(TL_ROW_MIN,TL_ROW_PAD*2+laneCount*TL_BAR_H+Math.max(0,laneCount-1)*TL_BAR_GAP);
+  const trackW=24*hourWidth;
+  const barsHtml=bars.length?bars.map(e=>{
+    const j=e.job,col=eventColor(j),top=TL_ROW_PAD+e.lane*(TL_BAR_H+TL_BAR_GAP);
+    const timeLabel=timeToMinutesJob(j.timeOut)==null?'ไม่ระบุเวลา':fmtThaiTimeRange(j.timeOut,j.timeBack);
+    return `<div class="tl-bar" style="left:${e.left}px;width:${e.width}px;top:${top}px;height:${TL_BAR_H}px;background:${col.bg};border-left:3px solid ${col.bd};color:${col.tx}"
+      onclick="openJobDetail('${j.jobId}')" title="${escapeHtmlJob(timeLabel)} · ${escapeHtmlJob(j.mission||j.requester||'')}${j.destination?' · '+escapeHtmlJob(j.destination):''}">
+      <span class="tl-bar-time">${escapeHtmlJob(timeLabel)}</span>
+      <span class="tl-bar-title">${escapeHtmlJob(j.requester||j.mission||'งาน')}</span>
     </div>`;
-  }).join('');
-}
-
-function renderCalUntimedChips(untimed){
-  if(!untimed.length) return '';
-  return untimed.map(j=>{
-    const col=eventColor(j);
-    return `<div class="cal-untimed-chip" style="background:${col.bg};border-left:3px solid ${col.bd};color:${col.tx}" onclick="openJobDetail('${j.jobId}')">${escapeHtmlJob(j.requester||'งาน')}</div>`;
-  }).join('');
+  }).join(''):'';
+  const dow=DOW_SHORT[dateObj.getDay()];
+  return `<div class="tl-row${isToday?' today':''}" style="height:${rowH}px">
+    <div class="tl-row-label" style="width:${labelWidth}px">
+      <div class="dow">${dow}</div><div class="daynum">${dateObj.getDate()}/${dateObj.getMonth()+1}</div>
+    </div>
+    <div class="tl-row-track" style="width:${trackW}px;--tl-hour-w:${hourWidth}px">${barsHtml}</div>
+  </div>`;
 }
 
 function calNav(delta){
@@ -803,21 +799,20 @@ function startNowLineTimer(){
   stopNowLineTimer();
   _nowLineTimer=setInterval(()=>{
     if(activeTab!=='jobs'||jobsViewMode==='list') return;
-    document.querySelectorAll('.cal-now-line').forEach(el=>el.remove());
     placeNowLines();
   },60000);
 }
 function placeNowLines(){
+  document.querySelectorAll('.tl-now-line').forEach(el=>el.remove());
+  const grid=$('tl-grid');
+  if(!grid) return;
+  const hourWidth=tlHourWidth(),labelWidth=tlLabelWidth();
   const now=new Date();
   const nowMin=now.getHours()*60+now.getMinutes();
-  if(nowMin<CAL_HOUR_START*60||nowMin>CAL_HOUR_END*60) return;
-  const top=(nowMin-CAL_HOUR_START*60)/60*CAL_HOUR_PX;
-  document.querySelectorAll('.cal-day-col.today').forEach(col=>{
-    const line=document.createElement('div');
-    line.className='cal-now-line';
-    line.style.top=top+'px';
-    col.appendChild(line);
-  });
+  const line=document.createElement('div');
+  line.className='tl-now-line';
+  line.style.left=(labelWidth+nowMin/60*hourWidth)+'px';
+  grid.appendChild(line);
 }
 
 function renderJobsCalendar(opts){
@@ -846,13 +841,13 @@ function renderJobsCalendar(opts){
   const t=todayYmd();
   let days=[];
   if(jobsViewMode==='day'){ days=[ymdToDate(jobsCurrentDate)]; }
-  else { const mon=startOfWeekMon(jobsCurrentDate); for(let i=0;i<7;i++){ const d=new Date(mon); d.setDate(mon.getDate()+i); days.push(d); } }
+  else { const mon=startOfWeekMon(jobsCurrentDate); for(let i=0;i<5;i++){ const d=new Date(mon); d.setDate(mon.getDate()+i); days.push(d); } } // สัปดาห์ = จันทร์–ศุกร์ (วันทำการ)
 
   // label ช่วงวันที่ที่แสดง
   let label='';
-  if(jobsViewMode==='day'){ label=`${MONTH_TH[days[0].getMonth()+1]} ${days[0].getFullYear()+543}`; }
+  if(jobsViewMode==='day'){ label=`${days[0].getDate()}/${days[0].getMonth()+1}/${days[0].getFullYear()+543}`; }
   else{
-    const a=days[0],b=days[6];
+    const a=days[0],b=days[days.length-1];
     label=(a.getMonth()===b.getMonth())
       ? `${MONTH_TH[a.getMonth()+1]} ${a.getFullYear()+543}`
       : `${MONTH_TH[a.getMonth()+1]}–${MONTH_TH[b.getMonth()+1]} ${b.getFullYear()+543}`;
@@ -862,30 +857,15 @@ function renderJobsCalendar(opts){
   const byDate={};
   filtered.forEach(j=>{ if(!byDate[j.date]) byDate[j.date]=[]; byDate[j.date].push(j); });
 
-  const cols=days.length;
-  const totalPx=(CAL_HOUR_END-CAL_HOUR_START)*CAL_HOUR_PX;
-
-  let hourLabels='';
-  for(let h=CAL_HOUR_START;h<=CAL_HOUR_END;h++){
-    hourLabels+=`<div class="cal-hour-label" style="top:${(h-CAL_HOUR_START)*CAL_HOUR_PX}px">${String(h).padStart(2,'0')}.00</div>`;
-  }
-
-  let headHtml='';
-  let untimedHtml='';
-  let dayColsHtml='';
-  let anyUntimed=false;
+  const hourWidth=tlHourWidth(),labelWidth=tlLabelWidth();
+  const trackW=24*hourWidth;
   let anyJobInView=false;
-
+  let rowsHtml='';
   days.forEach(d=>{
     const ymd=dateToYmd(d), isToday=ymd===t;
     const dayJobs=byDate[ymd]||[];
     if(dayJobs.length) anyJobInView=true;
-    const {timed,untimed}=layoutDayEvents(dayJobs);
-    if(untimed.length) anyUntimed=true;
-
-    headHtml+=`<div class="cal-day-head${isToday?' today':''}"><div class="cal-dow">${DOW_SHORT[d.getDay()]}</div><div class="cal-daynum">${d.getDate()}</div></div>`;
-    untimedHtml+=`<div class="cal-untimed-cell">${renderCalUntimedChips(untimed)}</div>`;
-    dayColsHtml+=`<div class="cal-day-col${isToday?' today':''}" style="height:${totalPx}px">${renderCalEvents(timed)}</div>`;
+    rowsHtml+=renderTimelineRow(d,dayJobs,hourWidth,labelWidth,isToday);
   });
 
   // ✅ legend สีของแต่ละ พขร. ที่มีงานอยู่ในช่วงที่แสดง — คลิกเพื่อกรองด่วนได้ด้วย
@@ -896,7 +876,6 @@ function renderJobsCalendar(opts){
     return `<div class="legend-item clickable${isActive?'':' inactive'}" onclick="toggleDriverFilter('${dr.replace(/'/g,"\\'")}')" title="คลิกเพื่อกรองเฉพาะ ${escapeHtmlJob(dr)}"><div class="l-dot" style="background:${c.tx};border-radius:50%"></div>${escapeHtmlJob(nameWithNick(dr))}</div>`;
   }).join('')}</div>`:'';
 
-  const gridCols=`46px repeat(${cols},1fr)`;
   const noDataHint=(!jobsData.length&&!isFiltered)?`<div class="cal-hint-empty">🗒️ ยังไม่มีงานที่บันทึกไว้ในระบบ — กดปุ่ม <b>+ เพิ่มงาน</b> ด้านบน หรือปุ่ม <b style="color:var(--teal)">+</b> มุมล่างขวา เพื่อเริ่มบันทึกงานแรก</div>`:'';
   const html=`
     <div class="cal-toolbar">
@@ -915,16 +894,11 @@ function renderJobsCalendar(opts){
     ${legendHtml}
     ${noDataHint}
     ${(isFiltered&&!anyJobInView)?`<div class="jobs-empty" style="padding:24px 16px"><div>🔍</div><div style="font-weight:700;color:var(--text-mid);margin-bottom:4px">ไม่พบงานที่ตรงกับตัวกรอง</div><div>ลองแก้คำค้นหา หรือ<a href="javascript:void(0)" onclick="clearJobsSearch();resetDriverFilter();" style="color:var(--violet);font-weight:700"> ล้างตัวกรองทั้งหมด</a></div></div>`:`
-    <div class="cal-wrap">
-      <div class="cal-head-row" style="grid-template-columns:${gridCols}">
-        <div class="cal-gutter-head"></div>
-        ${headHtml}
-      </div>
-      ${anyUntimed?`<div class="cal-untimed-band" style="grid-template-columns:${gridCols}"><div class="cal-untimed-cell"></div>${untimedHtml}</div>`:''}
-      <div class="cal-body-scroll" style="max-height:520px">
-        <div class="cal-body-grid" style="grid-template-columns:${gridCols};height:${totalPx}px">
-          <div class="cal-gutter" style="height:${totalPx}px">${hourLabels}</div>
-          ${dayColsHtml}
+    <div class="tl-card">
+      <div class="tl-scroll" id="tl-scroll">
+        <div class="tl-grid" id="tl-grid" style="width:${labelWidth+trackW}px">
+          ${renderTimelineHead(hourWidth,labelWidth)}
+          <div class="tl-body">${rowsHtml}</div>
         </div>
       </div>
     </div>`}`;
@@ -933,17 +907,11 @@ function renderJobsCalendar(opts){
   placeNowLines();
   startNowLineTimer();
 
-  // เลื่อนไปช่วงเวลาปัจจุบัน/ช่วงเช้าโดยประมาณ ให้เห็นงานที่กำลังจะถึงก่อน (ข้ามถ้าแค่พิมพ์ค้นหาอยู่)
-  const scrollWrap=document.querySelector('.cal-body-scroll');
+  // เลื่อนแนวนอนไปช่วงเวลาปัจจุบันโดยประมาณ ให้เห็นงานที่กำลังจะถึงก่อน (ข้ามถ้าแค่พิมพ์ค้นหาอยู่)
+  const scrollWrap=$('tl-scroll');
   if(scrollWrap&&!opts.keepScroll){
     const nowMin=new Date().getHours()*60+new Date().getMinutes();
-    const targetPx=Math.max(0,(clampToCalGrid(nowMin)-CAL_HOUR_START*60)/60*CAL_HOUR_PX-100);
-    scrollWrap.scrollTop=targetPx;
-  }
-  // คงโฟกัสที่ช่องค้นหาไว้ ถ้ากำลังพิมพ์อยู่
-  if(opts.keepScroll){
-    const inp=$('cal-search-input');
-    if(inp&&document.activeElement!==inp){ /* โฟกัสเฉพาะกรณีอินพุตเดิมถูก re-render ทับ */ }
+    scrollWrap.scrollLeft=Math.max(0,nowMin/60*hourWidth-120);
   }
 }
 
@@ -1124,7 +1092,7 @@ function renderJobFormModal(job){
     <div class="form-row">
       <div class="form-group">
         <label>วันที่ *</label>
-        <input type="date" id="jf-date" value="${d}">
+        <input type="date" id="jf-date" lang="en-GB" value="${d}">
         <div style="display:flex;gap:6px;margin-top:6px">
           <button type="button" class="cal-today-btn" style="flex:1;height:26px;font-size:10.5px" onclick="$('jf-date').value=todayYmd()">วันนี้</button>
           <button type="button" class="cal-today-btn" style="flex:1;height:26px;font-size:10.5px" onclick="$('jf-date').value=addDaysYmd(todayYmd(),1)">พรุ่งนี้</button>
@@ -1136,8 +1104,8 @@ function renderJobFormModal(job){
     <div class="form-group"><label>ภารกิจ / คำสั่งงาน</label><textarea id="jf-mission" placeholder="รายละเอียดภารกิจ">${job?escapeHtmlJob(job.mission):''}</textarea></div>
     <div class="form-group"><label>สถานที่ไป</label><input type="text" id="jf-destination" value="${job?escapeHtmlJob(job.destination):''}" placeholder="เช่น รพ.นครพิงค์"></div>
     <div class="form-row">
-      <div class="form-group"><label>เวลาไป</label><input type="time" id="jf-timeOut" value="${job?job.timeOut:''}"></div>
-      <div class="form-group"><label>เวลากลับ</label><input type="time" id="jf-timeBack" value="${job?job.timeBack:''}"></div>
+      <div class="form-group"><label>เวลาไป (24 ชม.)</label><input type="time" id="jf-timeOut" lang="en-GB" step="60" value="${job?job.timeOut:''}"></div>
+      <div class="form-group"><label>เวลากลับ (24 ชม.)</label><input type="time" id="jf-timeBack" lang="en-GB" step="60" value="${job?job.timeBack:''}"></div>
     </div>
     <div class="form-group"><label>ผู้ไปส่ง (พขร.)</label><input type="text" id="jf-driver" list="jf-staff-list" value="${job?escapeHtmlJob(job.driver):''}" placeholder="ชื่อ พขร. ผู้ไปส่ง"></div>
     <datalist id="jf-staff-list">${(scheduleData&&scheduleData.data||[]).map(s=>`<option value="${escapeHtmlJob(s.name)}">`).join('')}</datalist>
