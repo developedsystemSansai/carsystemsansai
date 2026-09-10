@@ -1576,7 +1576,7 @@ function renderTodayTab(d){
       html+=`<div class="duty-group"><div class="duty-group-hdr"><span class="shift ${shiftClass(shift)}">${shift}</span> ${shiftName(shift)}</div>`;
       members.forEach(p=>{
         const idx=onDuty.indexOf(p),color=avatarColor(idx);
-        html+=`<div class="duty-person"><div class="duty-color-bar" style="background:${color}"></div><div class="duty-main"><div class="duty-avatar" style="background:${color}">${avatarInner(p)}</div><div class="duty-info"><div class="duty-name">${p.name}</div><div class="duty-nick">(${p.nick||'—'})</div><div class="duty-role-chip ${roleChipClass(p.role)}">${p.role||'พขร.'}</div></div><div class="duty-shift-badge shift ${shiftClass(shift)}">${shiftLabel(shift)} ${shift}</div></div><div class="duty-actions"><a href="tel:${p.phone}" class="action-btn btn-call" title="โทร">📞</a><a href="sms:${p.phone}" class="action-btn btn-sms" title="SMS">💬</a></div></div>`;
+        html+=`<div class="duty-person"><div class="duty-color-bar" style="background:${color}"></div><div class="duty-main"><div class="duty-avatar" style="background:${color}">${avatarInner(p)}</div><div class="duty-info"><div class="duty-name">${p.name}</div><div class="duty-nick">(${p.nick||'—'})</div><div class="duty-role-chip ${roleChipClass(p.role)}">${p.role||'พขร.'}</div></div></div><div class="duty-actions"><a href="tel:${p.phone}" class="action-btn btn-call" title="โทร">📞</a><a href="sms:${p.phone}" class="action-btn btn-sms" title="SMS">💬</a></div></div>`;
       });
       html+=`</div>`;
     });
