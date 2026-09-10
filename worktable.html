@@ -1564,8 +1564,8 @@ function renderTodayStrip(d){
 function renderTodayTab(d){
   $('today-loading').style.display='none';$('today-content').style.display='block';
   const ext=d.extension||'207';
-  // ✅ ไม่แสดงคนที่อยู่เวร ช (ช1บ2, ช2บ1, ช3(Ems) ฯลฯ) ในหน้า "วันนี้"
-  const onDuty=(d.onDuty||[]).filter(p=>!String(p.shift||'').toLowerCase().startsWith('ช'));
+  // ✅ ไม่แสดงคนที่อยู่เวร "ช" เฉย ๆ (ส่วน ช1บ2, ช2บ1, ช3(Ems) ให้แสดงตามปกติ)
+  const onDuty=(d.onDuty||[]).filter(p=>String(p.shift||'').trim().toLowerCase()!=='ช');
   const groups={};
   onDuty.forEach(p=>{const k=p.shift||'อื่นๆ';if(!groups[k])groups[k]=[];groups[k].push(p);});
   let html=`<div class="ext-notice"><div class="ext-icon">📞</div><div><div class="ext-label">เบอร์ภายในงานยานพาหนะ</div><div class="ext-num">ต่อ ${ext}</div><div class="ext-desc">ติดต่อขอใช้รถ ส่งต่อผู้ป่วย หรืองานอื่น ๆ ได้ตลอด 24 ชั่วโมง</div></div></div>`;
