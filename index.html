@@ -1025,11 +1025,9 @@
     #tjList{display:flex;flex-direction:column;gap:10px;}
     .tj-card{display:flex;gap:12px;border:1px solid var(--border);border-radius:10px;padding:11px 13px;background:#fafcff;}
     .tj-card.soon{border-color:#f0b429;background:#fffaf0;box-shadow:0 0 0 1px rgba(240,180,41,.3);}
-    .tj-card.ongoing{border-color:#1a8a4a;background:#f2faf6;}
     .tj-time-col{flex-shrink:0;min-width:82px;text-align:center;}
     .tj-time{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:var(--text);}
     .tj-badge-soon{margin-top:5px;font-size:9.5px;font-weight:800;color:#c07a00;background:var(--amber-soft);border-radius:20px;padding:2px 6px;display:inline-block;}
-    .tj-badge-ongoing{margin-top:5px;font-size:9.5px;font-weight:800;color:#1a8a4a;background:#e4f5eb;border-radius:20px;padding:2px 6px;display:inline-block;}
     .tj-body{flex:1;min-width:0;}
     .tj-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;}
     .tj-row{display:flex;gap:6px;font-size:12px;color:var(--text-mid);line-height:1.5;margin-top:2px;}
@@ -1505,20 +1503,17 @@ function renderTodayJobs(jobs){
   let soonCount = 0;
   const cardsHtml = jobs.map(j => {
     const tOut = tjParseTimeMin_(j.timeOut);
-    const tBack = tjParseTimeMin_(j.timeBack);
-    let isSoon = false, isOngoing = false;
+    let isSoon = false;
     if(tOut != null){
       if(tOut - nowM >= 0 && tOut - nowM <= SOON_WINDOW) isSoon = true;
-      else if(tBack != null && nowM >= tOut && nowM <= tBack) isOngoing = true;
     }
     if(isSoon) soonCount++;
     const timeLabel = j.timeOut ? (j.timeOut + (j.timeBack ? ' – ' + j.timeBack : '')) : 'ไม่ระบุเวลา';
     return `
-      <div class="tj-card${isSoon?' soon':''}${isOngoing?' ongoing':''}">
+      <div class="tj-card${isSoon?' soon':''}">
         <div class="tj-time-col">
           <div class="tj-time">${tjEsc_(timeLabel)}</div>
           ${isSoon?'<div class="tj-badge-soon">⏰ ใกล้ถึงเวลานัด</div>':''}
-          ${isOngoing?'<div class="tj-badge-ongoing">🚗 กำลังปฏิบัติงาน</div>':''}
         </div>
         <div class="tj-body">
           <div class="tj-title">${tjEsc_(j.requester)||'—'}</div>
