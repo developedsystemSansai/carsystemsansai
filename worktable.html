@@ -362,7 +362,7 @@ tbody tr.dim{opacity:.22;}
 /* Job detail modal */
 .jd-row{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px dashed var(--border);}
 .jd-row:last-of-type{border-bottom:none;}
-.jd-icon{width:28px;height:28px;border-radius:8px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.jd-icon{width:28px;height:28px;border-radius:8px;background:var(--blue-soft);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;color:var(--blue);}
 .jd-label{font-size:10.5px;color:var(--text-light);font-weight:600;}
 .jd-value{font-size:13px;color:var(--text);font-weight:700;margin-top:1px;overflow-wrap:anywhere;}
 
@@ -542,6 +542,15 @@ function roleChipClass(role){
 function avatarInner(person){
   return person&&person.photo ? `<img src="${person.photo}" alt="${escapeHtmlJob(person.name||'')}" loading="lazy">` : avatarLetter(person&&person.name);
 }
+// ── ไอคอนเส้น (แทนอีโมจิ) ใช้ currentColor ให้รับสีจากตัวห่อ ──
+function _ico(path){return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;}
+function icoClock(){return _ico('<circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3.5 2"></path>');}
+function icoPin(){return _ico('<path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"></path><circle cx="12" cy="9.5" r="2.3"></circle>');}
+function icoBuilding(){return _ico('<rect x="4" y="3" width="16" height="18" rx="1"></rect><path d="M9 8h1M14 8h1M9 12h1M14 12h1M9 16h1M14 16h1"></path>');}
+function icoVan(){return _ico('<path d="M3 13V8a1 1 0 0 1 1-1h9l4 4v2"></path><path d="M3 13h14v3H3z"></path><circle cx="7" cy="17" r="1.6"></circle><circle cx="16" cy="17" r="1.6"></circle>');}
+function icoClipboard(){return _ico('<rect x="6" y="4" width="12" height="17" rx="1.5"></rect><path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1"></path><path d="M9 11h6M9 15h6"></path>');}
+function icoCar(){return _ico('<path d="M4 16V11l2-4h12l2 4v5"></path><path d="M4 16h16v2H4z"></path><circle cx="7.5" cy="18" r="1.4"></circle><circle cx="16.5" cy="18" r="1.4"></circle>');
+}
 
 function shiftClass(s){if(!s)return'';const l=s.toLowerCase();if(l.includes('ems'))return's-ems';if(l.startsWith('ช1'))return's-ch1';if(l.startsWith('ช2'))return's-ch2';if(l.startsWith('ช3'))return's-ch3';if(l==='ด'||l.startsWith('ด'))return's-d';return's-other';}
 function shiftLabel(s){if(!s)return'';const l=s.toLowerCase();if(l.includes('ems'))return'🚑';if(l.startsWith('ช1'))return'🔵';if(l.startsWith('ช2'))return'🟢';if(l.startsWith('ช3'))return'🟣';if(l==='ด'||l.startsWith('ด'))return'🌙';return'⚪';}
@@ -641,9 +650,9 @@ function renderSessionBox(){
   const box=$('jobs-session-box');
   if(!box) return;
   if(s){
-    const countChip=jobsData?`<span class="jobs-count-chip">📋 ${jobsData.length} งาน</span>`:'';
+    const countChip=jobsData?`<span class="jobs-count-chip">${jobsData.length} งาน</span>`:'';
     box.innerHTML=`<div class="session-welcome${s.isAdmin?' admin':''}">
-      <span>${s.isAdmin?'🛡️':'👤'} เข้าสู่ระบบในชื่อ <b>${s.isAdmin?s.name:(s.nick?`${s.nick} (${s.name})`:s.name)}</b>${s.isAdmin?'<span class="session-admin-tag">ADMIN</span>':''}</span>
+      <span>เข้าสู่ระบบในชื่อ <b>${s.isAdmin?s.name:(s.nick?`${s.nick} (${s.name})`:s.name)}</b>${s.isAdmin?'<span class="session-admin-tag">ADMIN</span>':''}</span>
       <span style="display:flex;align-items:center;gap:10px">${countChip}<a href="javascript:void(0)" onclick="clearDriverSession()">ออกจากระบบ</a></span>
     </div>`;
   } else {
@@ -864,8 +873,8 @@ function renderTimelineRow(dateObj,dayJobs,hourWidth,labelWidth,unschedWidth,isT
     const contMark=e.overnight?' <span class="tl-bar-cont" title="งานต่อเนื่องข้ามเที่ยงคืนถึงเช้าวันถัดไป">↷</span>':'';
     const driverName=j.driver?nameWithNick(j.driver):'';
     const metaRows=[];
-    if(j.destination) metaRows.push(`<div class="tl-bar-meta-row"><span class="ico">📍</span><span class="txt">${escapeHtmlJob(j.destination)}</span></div>`);
-    if(j.mission) metaRows.push(`<div class="tl-bar-meta-row"><span class="ico">📋</span><span class="txt">${escapeHtmlJob(j.mission)}</span></div>`);
+    if(j.destination) metaRows.push(`<div class="tl-bar-meta-row"><span class="ico">${icoPin()}</span><span class="txt">${escapeHtmlJob(j.destination)}</span></div>`);
+    if(j.mission) metaRows.push(`<div class="tl-bar-meta-row"><span class="ico">${icoClipboard()}</span><span class="txt">${escapeHtmlJob(j.mission)}</span></div>`);
     const tipBits=[`นัดหมาย ${timeLabel}`];
     if(j.requester) tipBits.push(j.requester);
     if(j.destination) tipBits.push('สถานที่ไป: '+j.destination);
@@ -873,10 +882,10 @@ function renderTimelineRow(dateObj,dayJobs,hourWidth,labelWidth,unschedWidth,isT
     tipBits.push('พขร.: '+(driverName||'ยังไม่ระบุ'));
     return `<div class="tl-bar${pinCls}" style="left:${e.left}px;width:${e.width}px;top:${top}px;height:${TL_BAR_H}px;background:${col.bg};border-left:3px ${e.returnOnly?'dashed':'solid'} ${col.bd};color:${col.tx}"
       onclick="openJobDetail('${j.jobId}')" title="${escapeHtmlJob(tipBits.join(' · '))}">
-      <div class="tl-bar-badge" style="background:${col.bd}">🕐 นัดหมาย ${escapeHtmlJob(timeLabel)}${contMark}</div>
+      <div class="tl-bar-badge" style="background:${col.bd}">นัดหมาย ${escapeHtmlJob(timeLabel)}${contMark}</div>
       <div class="tl-bar-title">${escapeHtmlJob(j.requester||j.mission||'งาน')}</div>
       ${metaRows.join('')}
-      <div class="tl-bar-driver">🚐 พขร. ${driverName?escapeHtmlJob(driverName):'ยังไม่ระบุ'}</div>
+      <div class="tl-bar-driver">พขร. ${driverName?escapeHtmlJob(driverName):'ยังไม่ระบุ'}</div>
     </div>`;
   }).join(''):'';
   const unschedHtml=noTimeJobs.length?noTimeJobs.map(j=>{
@@ -993,7 +1002,7 @@ function renderJobsCalendar(opts){
     return `<div class="legend-item clickable${isActive?'':' inactive'}" onclick="toggleDriverFilter('${dr.replace(/'/g,"\\'")}')" title="คลิกเพื่อกรองเฉพาะ ${escapeHtmlJob(dr)}"><div class="l-dot" style="background:${c.tx};border-radius:50%"></div>${escapeHtmlJob(nameWithNick(dr))}</div>`;
   }).join('')}</div>`:'';
 
-  const noDataHint=(!jobsData.length&&!isFiltered)?`<div class="cal-hint-empty">🗒️ ยังไม่มีงานที่บันทึกไว้ในระบบ — กดปุ่ม <b>+ เพิ่มงาน</b> ด้านบน หรือปุ่ม <b style="color:var(--teal)">+</b> มุมล่างขวา เพื่อเริ่มบันทึกงานแรก</div>`:'';
+  const noDataHint=(!jobsData.length&&!isFiltered)?`<div class="cal-hint-empty">ยังไม่มีงานที่บันทึกไว้ในระบบ — กดปุ่ม <b>+ เพิ่มงาน</b> ด้านบน หรือปุ่ม <b style="color:var(--teal)">+</b> มุมล่างขวา เพื่อเริ่มบันทึกงานแรก</div>`:'';
   const html=`
     <div class="cal-toolbar">
       <div class="cal-nav">
@@ -1010,7 +1019,7 @@ function renderJobsCalendar(opts){
     ${toolbarExtraHtml}
     ${legendHtml}
     ${noDataHint}
-    ${(isFiltered&&!anyJobInView)?`<div class="jobs-empty" style="padding:24px 16px"><div>🔍</div><div style="font-weight:700;color:var(--text-mid);margin-bottom:4px">ไม่พบงานที่ตรงกับตัวกรอง</div><div>ลองแก้คำค้นหา หรือ<a href="javascript:void(0)" onclick="clearJobsSearch();resetDriverFilter();" style="color:var(--violet);font-weight:700"> ล้างตัวกรองทั้งหมด</a></div></div>`:`
+    ${(isFiltered&&!anyJobInView)?`<div class="jobs-empty" style="padding:24px 16px"><div style="font-weight:700;color:var(--text-mid);margin-bottom:4px">ไม่พบงานที่ตรงกับตัวกรอง</div><div>ลองแก้คำค้นหา หรือ<a href="javascript:void(0)" onclick="clearJobsSearch();resetDriverFilter();" style="color:var(--violet);font-weight:700"> ล้างตัวกรองทั้งหมด</a></div></div>`:`
     <div class="tl-card">
       <div class="tl-scroll" id="tl-scroll">
         <div class="tl-grid" id="tl-grid" style="width:${labelWidth+unschedWidth+trackW}px">
@@ -1054,9 +1063,9 @@ function renderAgendaListView(filtered,toolbarExtraHtml,viewToggleHtml,isFiltere
         <div class="agenda-row-body">
           <div class="agenda-row-title">${escapeHtmlJob(j.mission||j.requester||'งาน')}</div>
           <div class="agenda-row-meta">
-            <span>👤 ${escapeHtmlJob(j.requester)||'—'}</span>
-            ${j.destination?`<span>📍 ${escapeHtmlJob(j.destination)}</span>`:''}
-            ${j.driver?`<span>🚐 ${escapeHtmlJob(nameWithNick(j.driver))}</span>`:''}
+            <span>${escapeHtmlJob(j.requester)||'—'}</span>
+            ${j.destination?`<span>${escapeHtmlJob(j.destination)}</span>`:''}
+            ${j.driver?`<span>${escapeHtmlJob(nameWithNick(j.driver))}</span>`:''}
           </div>
         </div>
       </div>`;
@@ -1066,7 +1075,7 @@ function renderAgendaListView(filtered,toolbarExtraHtml,viewToggleHtml,isFiltere
       ${rows}
     </div>`;
   }).join('')}</div>`
-    : `<div class="agenda-empty">${isFiltered?'🔍 ไม่พบงานที่ตรงกับตัวกรอง':'🗒️ ยังไม่มีงานที่บันทึกไว้ — กดปุ่ม + เพิ่มงาน ด้านบนเพื่อเริ่มบันทึกงานแรก'}</div>`;
+    : `<div class="agenda-empty">${isFiltered?'ไม่พบงานที่ตรงกับตัวกรอง':'ยังไม่มีงานที่บันทึกไว้ — กดปุ่ม + เพิ่มงาน ด้านบนเพื่อเริ่มบันทึกงานแรก'}</div>`;
 
   const html=`
     <div class="cal-toolbar">
@@ -1091,26 +1100,26 @@ function openJobDetail(jobId){
     <div class="modal-title">${escapeHtmlJob(j.mission||j.requester||'รายละเอียดงาน')}</div>
     <div class="modal-sub">${fmtJobDate(j.date)}</div>
     <div class="jd-row">
-      <div class="jd-icon">🕐</div>
+      <div class="jd-icon">${icoClock()}</div>
       <div><div class="jd-label">เวลานัดหมาย</div><div class="jd-value">${fmtThaiFullDateTimeRange(j.date,j.timeOut,j.timeBack)}</div></div>
     </div>
     <div class="jd-row">
-      <div class="jd-icon">📍</div>
+      <div class="jd-icon">${icoPin()}</div>
       <div><div class="jd-label">สถานที่ไป</div><div class="jd-value">${escapeHtmlJob(j.destination)||'—'}</div></div>
     </div>
     <div class="jd-row">
-      <div class="jd-icon">🏥</div>
+      <div class="jd-icon">${icoBuilding()}</div>
       <div><div class="jd-label">กลุ่มงานที่ขอ${j.headcount?` · ${escapeHtmlJob(String(j.headcount))} คน`:''}</div><div class="jd-value">${escapeHtmlJob(j.requester)||'—'}</div></div>
     </div>
     <div class="jd-row">
-      <div class="jd-icon">🚐</div>
+      <div class="jd-icon">${icoVan()}</div>
       <div><div class="jd-label">ผู้รับผิดชอบ (คนขับ)</div><div class="jd-value">${escapeHtmlJob(nameWithNick(j.driver))||'—'}</div></div>
     </div>
-    ${j.mission?`<div class="jd-row"><div class="jd-icon">📋</div><div><div class="jd-label">ภารกิจ / คำสั่งงาน</div><div class="jd-value">${escapeHtmlJob(j.mission)}</div></div></div>`:''}
-    ${j.car?`<div class="jd-row"><div class="jd-icon">🚗</div><div><div class="jd-label">รถที่ใช้</div><div class="jd-value">${escapeHtmlJob(j.car)}</div></div></div>`:''}
+    ${j.mission?`<div class="jd-row"><div class="jd-icon">${icoClipboard()}</div><div><div class="jd-label">ภารกิจ / คำสั่งงาน</div><div class="jd-value">${escapeHtmlJob(j.mission)}</div></div></div>`:''}
+    ${j.car?`<div class="jd-row"><div class="jd-icon">${icoCar()}</div><div><div class="jd-label">รถที่ใช้</div><div class="jd-value">${escapeHtmlJob(j.car)}</div></div></div>`:''}
     <div class="modal-actions">
-      <button class="btn-secondary" onclick='closeModal();openEditJobModal(${JSON.stringify(j).replace(/'/g,"&apos;")})'>✏️ แก้ไข</button>
-      <button class="btn-primary" style="background:var(--danger)" onclick="closeModal();confirmDeleteJob('${j.jobId}')">🗑️ ลบ</button>
+      <button class="btn-secondary" onclick='closeModal();openEditJobModal(${JSON.stringify(j).replace(/'/g,"&apos;")})'>แก้ไข</button>
+      <button class="btn-primary" style="background:var(--danger)" onclick="closeModal();confirmDeleteJob('${j.jobId}')">ลบ</button>
     </div>`;
   openModal(html);
 }
@@ -1136,13 +1145,13 @@ function openModal(innerHtml){
 function openLoginModal(onSuccess,onCancel){
   const html=`
     <button class="modal-close" onclick="handleLoginCancel()">✕</button>
-    <div class="login-icon-wrap">🔒</div>
+    <div class="login-icon-wrap"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--violet)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg></div>
     <div class="modal-title">ตารางงาน</div>
-    <div class="modal-sub">ใส่เบอร์โทรศัพท์ พขร. (ตามตารางเวร) หรือรหัสแอดมิน เพื่อเข้าดู/จัดการตารางงาน</div>
+    <div class="modal-sub">กรุณาใส่รหัสของท่านเพื่อเข้าดู/จัดการตารางงาน</div>
     <div class="modal-err" id="login-err"></div>
     <div class="form-group">
-      <label>เบอร์โทรศัพท์ / รหัสแอดมิน</label>
-      <input type="password" id="login-phone" placeholder="เช่น 08xxxxxxxx หรือรหัสแอดมิน" autocomplete="off" inputmode="text">
+      <label>รหัสของท่าน</label>
+      <input type="password" id="login-phone" placeholder="กรอกรหัสของท่าน" autocomplete="off" inputmode="text">
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="handleLoginCancel()">ยกเลิก</button>
@@ -1264,7 +1273,7 @@ function renderJobFormModal(job){
   const d=job?job.date:todayYmd();
   const html=`
     <button class="modal-close" onclick="closeModal()">✕</button>
-    <div class="modal-title">${isEdit?'✏️ แก้ไขงาน':'🆕 เพิ่มงานใหม่'}</div>
+    <div class="modal-title">${isEdit?'แก้ไขงาน':'เพิ่มงานใหม่'}</div>
     <div class="modal-sub">${isEdit?'แก้ไขรายละเอียดงานนี้':'กรอกรายละเอียดงานที่ได้รับแจ้งให้ พขร. ไปรับ-ส่ง'}</div>
     <div class="modal-err" id="job-form-err"></div>
     <div class="form-row">
@@ -1346,8 +1355,8 @@ function confirmDeleteJob(jobId){
   requireLogin(()=>{
     const html=`
       <button class="modal-close" onclick="closeModal()">✕</button>
-      <div class="login-icon-wrap">🗑️</div>
-      <div class="modal-title">ยืนยันการลบงานนี้?</div>
+      <div class="login-icon-wrap" style="background:var(--danger-soft)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="M6 7l1 13h10l1-13"></path></svg></div>
+      <div class="modal-title">ยืนยันการลบงานนี้</div>
       <div class="modal-sub">รายการที่ลบแล้วจะไม่แสดงในตารางงาน แต่ยังเก็บประวัติไว้ตรวจสอบย้อนหลังได้</div>
       <div class="modal-err" id="del-err"></div>
       <div class="modal-actions">
@@ -1407,7 +1416,7 @@ function requesterDatalistOptionsHtml(){
 // มาช่วยให้เลือกได้สะดวก แทนที่จะต้องพิมพ์เองทั้งหมดทุกครั้ง (ยังพิมพ์ปลายทางใหม่เองได้อิสระ)
 const WORKTABLE_DEST_GROUPS = [
   {
-    label: '⭐ ใช้บ่อย',
+    label: 'ใช้บ่อย',
     items: [
       'รพ.นครพิงค์', 'ปั๊ม PT หน้า รพ.', 'กาชาด', 'รับ-ส่ง อ.สมชัย',
       'ธนาคาร', 'รพ.มหาราชนครเชียงใหม่ (สวนดอก)',
@@ -1417,7 +1426,7 @@ const WORKTABLE_DEST_GROUPS = [
     ]
   },
   {
-    label: '🏥 ภารกิจ รพ.สันทราย (งานประจำ)',
+    label: 'ภารกิจ รพ.สันทราย (งานประจำ)',
     items: [
       'ปั๊ม PT หน้า รพ.', 'ส่งเลือด', 'เยี่ยมบ้าน', 'เยี่ยมบ้านในเขต',
       'ส่งแฟ้มศาลากลาง', 'ส่งแฟ้ม สสจ.', 'ส่งแฟ้ม (ที่อื่น โปรดระบุ)',
@@ -1429,7 +1438,7 @@ const WORKTABLE_DEST_GROUPS = [
     ]
   },
   {
-    label: '🚑 EMS — จุดเกิดเหตุที่พบบ่อย',
+    label: 'EMS — จุดเกิดเหตุที่พบบ่อย',
     items: [
       'EMS แม่แฝก', 'EMS หนองจ๊อม', 'EMS ป่าไผ่', 'EMS หนองหาร',
       'EMS หนองแหย่ง', 'EMS แม่โจ้', 'EMS เจดี', 'EMS ในพื้นที่',
@@ -1440,7 +1449,7 @@ const WORKTABLE_DEST_GROUPS = [
     ]
   },
   {
-    label: '🧪 ส่งแลป / ชันสูตร',
+    label: 'ส่งแลป / ชันสูตร',
     items: [
       'ส่งแลป', 'ส่งแลป ในเมือง', 'ส่งแลป อ.เมือง', 'ส่งแลป/ชันสูตร (นอกพื้นที่)',
       'ชันสูตร', 'ชันสูตรในพื้นที่', 'ชันสูตร เขต อ.สันทราย', 'ชันสูตร ป่าไผ่',
@@ -1448,14 +1457,14 @@ const WORKTABLE_DEST_GROUPS = [
     ]
   },
   {
-    label: '🏦 การเงิน / ธนาคาร',
+    label: 'การเงิน / ธนาคาร',
     items: [
       'ธนาคาร', 'ธนาคารแม่โจ้', 'ธนาคาร สภ.แม่โจ้', 'กรุงไทยแม่โจ้',
       'สหกรณ์', 'จ่ายเช็ค', 'จ่ายเช็ค พรบ.', 'จ่ายเช็คไปรษณีย์/ไฟฟ้าสันทราย',
     ]
   },
   {
-    label: '🏥 โรงพยาบาลชุมชน (รพช.) — เชียงใหม่',
+    label: 'โรงพยาบาลชุมชน (รพช.) — เชียงใหม่',
     items: [
       'รพช.แม่แตง', 'รพช.สะเมิง', 'รพช.แม่ริม', 'รพช.ดอยสะเก็ด',
       'รพช.แม่วาง', 'รพช.สันกำแพง', 'รพช.สารภี', 'รพช.หางดง',
@@ -1466,11 +1475,11 @@ const WORKTABLE_DEST_GROUPS = [
     ]
   },
   {
-    label: '🏨 โรงพยาบาลทั่วไป / ศูนย์ (รพท./รพศ.)',
+    label: 'โรงพยาบาลทั่วไป / ศูนย์ (รพท./รพศ.)',
     items: ['รพศ.นครพิงค์', 'รพท.จอมทอง', 'รพท.ฝาง']
   },
   {
-    label: '🏥 โรงพยาบาลอื่น / เอกชน / ต่างจังหวัด',
+    label: 'โรงพยาบาลอื่น / เอกชน / ต่างจังหวัด',
     items: [
       'รพ.มหาราชนครเชียงใหม่ (สวนดอก)', 'รพ.ประสาทเชียงใหม่',
       'ศูนย์มะเร็งขอนตาล โรงพยาบาลนครพิงค์',
@@ -1481,7 +1490,7 @@ const WORKTABLE_DEST_GROUPS = [
     ]
   },
   {
-    label: '🏛️ สาธารณสุขจังหวัด / อำเภอ',
+    label: 'สาธารณสุขจังหวัด / อำเภอ',
     items: [
       'สสจ.เชียงใหม่', 'กาชาด', 'ศาลากลางจังหวัดเชียงใหม่',
       'สำนักงานเขตสุขภาพที่ 1',
@@ -1493,7 +1502,7 @@ const WORKTABLE_DEST_GROUPS = [
     ]
   },
   {
-    label: '🎓 มหาวิทยาลัย / โรงเรียน',
+    label: 'มหาวิทยาลัย / โรงเรียน',
     items: [
       'มหาวิทยาลัยเชียงใหม่ (มช.)', 'มหาวิทยาลัยแม่โจ้',
       'มหาวิทยาลัยราชภัฏเชียงใหม่', 'มหาวิทยาลัยเทคโนโลยีราชมงคลล้านนา',
@@ -1503,7 +1512,7 @@ const WORKTABLE_DEST_GROUPS = [
     ]
   },
   {
-    label: '🏢 หน่วยงานราชการ / เทศบาล',
+    label: 'หน่วยงานราชการ / เทศบาล',
     items: [
       'ที่ว่าการอำเภอสันทราย',
       'สำนักงานหลักประกันสุขภาพแห่งชาติ เขต 1',
@@ -1515,7 +1524,7 @@ const WORKTABLE_DEST_GROUPS = [
     ]
   },
   {
-    label: '📍 อื่นๆ',
+    label: 'อื่นๆ',
     items: [
       'สนามบินเชียงใหม่', 'ประปาแม่ริม', 'วัดขอนตาล', 'วัดวิเวก',
       'พงษ์โชตนา แม่โจ้', 'หมู่บ้านเวียงทองแม่โจ้', 'อู่ไดม่อน',
@@ -1735,9 +1744,9 @@ function renderStaffTab(d){
     html+=`<div class="staff-card"><div class="staff-card-top">
       <div class="staff-avatar-wrap">
         <div class="staff-avatar" style="background:${color}">${avatarInner(s)}</div>
-        <div class="staff-photo-btn" title="เปลี่ยนรูปประจำตัว" onclick="openStaffPhotoPicker('${escapeHtmlJob(s.phone)}','${escapeHtmlJob(s.name)}')">📷</div>
+        <div class="staff-photo-btn" title="เปลี่ยนรูปประจำตัว" onclick="openStaffPhotoPicker('${escapeHtmlJob(s.phone)}','${escapeHtmlJob(s.name)}')"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--text-mid)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8z"></path><circle cx="12" cy="13" r="3.3"></circle></svg></div>
       </div>
-      <div><div class="staff-name">${s.name}</div><div class="staff-nick">(${s.nick||'—'})</div><div style="margin-top:4px"><span class="duty-role-chip ${roleChipClass(s.role)}">${s.role||'พขร.'}</span></div> ${todayShift?`<div class="staff-today-shift shift ${shiftClass(todayShift)}">${shiftLabel(todayShift)} ${todayShift}</div>`:`<div style="font-size:9.5px;color:var(--text-light);margin-top:4px">ไม่มีเวรวันนี้</div>`}</div></div><div class="staff-card-foot"><a href="${tel}" class="staff-phone-link">${s.phone||'—'}</a><a href="${tel}" style="font-size:16px;text-decoration:none">📞</a></div></div>`;
+      <div><div class="staff-name">${s.name}</div><div class="staff-nick">(${s.nick||'—'})</div><div style="margin-top:4px"><span class="duty-role-chip ${roleChipClass(s.role)}">${s.role||'พขร.'}</span></div> ${todayShift?`<div class="staff-today-shift shift ${shiftClass(todayShift)}">${shiftLabel(todayShift)} ${todayShift}</div>`:`<div style="font-size:9.5px;color:var(--text-light);margin-top:4px">ไม่มีเวรวันนี้</div>`}</div></div><div class="staff-card-foot"><a href="${tel}" class="staff-phone-link">${s.phone||'—'}</a><a href="${tel}" style="display:flex;align-items:center;text-decoration:none;color:var(--text-mid)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></a></div></div>`;
   });
   html+='</div>';
   $('staff-content').innerHTML=html;
@@ -1750,7 +1759,7 @@ function openStaffPhotoPicker(phone,name){
   requireLogin(()=>{
     const s=getDriverSession();
     if(!s.isAdmin && normalizePhoneJs(s.phone)!==normalizePhoneJs(phone)){
-      showToast('อัปโหลดได้เฉพาะรูปของตัวเอง (หรือเข้าสู่ระบบด้วยรหัสแอดมิน)','error');
+      showToast('อัปโหลดได้เฉพาะรูปของตัวเองเท่านั้น','error');
       return;
     }
     $('staff-photo-input').click();
