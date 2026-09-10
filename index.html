@@ -1011,6 +1011,44 @@
     </div>
   </div>
 
+  <!-- ── ตารางงานวันนี้ (ฝังจากหน้า worktable.html เพื่อไม่ต้องกดไปมา) ── -->
+  <style>
+    .tj-wrap{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:0 1px 6px rgba(13,33,55,.06);}
+    .tj-alert{display:none;align-items:center;gap:10px;background:var(--amber-soft);border:1.5px solid #f0b429;color:#7a4f00;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13px;font-weight:700;animation:tjPulse 2s ease-in-out infinite;}
+    .tj-alert-icon{font-size:18px;flex-shrink:0;}
+    @keyframes tjPulse{0%,100%{box-shadow:0 0 0 0 rgba(240,180,41,.35);}50%{box-shadow:0 0 0 7px rgba(240,180,41,0);}}
+    .tj-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+    .tj-date{font-size:12.5px;font-weight:700;color:var(--text-mid);}
+    .tj-link{font-size:12px;font-weight:700;color:var(--blue);text-decoration:none;white-space:nowrap;}
+    .tj-link:hover{text-decoration:underline;}
+    .tj-loading,.tj-empty{text-align:center;padding:26px 10px;color:var(--text-light);font-size:12.5px;}
+    #tjList{display:flex;flex-direction:column;gap:10px;}
+    .tj-card{display:flex;gap:12px;border:1px solid var(--border);border-radius:10px;padding:11px 13px;background:#fafcff;}
+    .tj-card.soon{border-color:#f0b429;background:#fffaf0;box-shadow:0 0 0 1px rgba(240,180,41,.3);}
+    .tj-card.ongoing{border-color:#1a8a4a;background:#f2faf6;}
+    .tj-time-col{flex-shrink:0;min-width:82px;text-align:center;}
+    .tj-time{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:var(--text);}
+    .tj-badge-soon{margin-top:5px;font-size:9.5px;font-weight:800;color:#c07a00;background:var(--amber-soft);border-radius:20px;padding:2px 6px;display:inline-block;}
+    .tj-badge-ongoing{margin-top:5px;font-size:9.5px;font-weight:800;color:#1a8a4a;background:#e4f5eb;border-radius:20px;padding:2px 6px;display:inline-block;}
+    .tj-body{flex:1;min-width:0;}
+    .tj-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;}
+    .tj-row{display:flex;gap:6px;font-size:12px;color:var(--text-mid);line-height:1.5;margin-top:2px;}
+    .tj-icon{flex-shrink:0;}
+  </style>
+  <div class="section-head" style="margin-top:24px;">
+    <span class="sh-label">ตารางงานวันนี้</span>
+    <span class="sh-line"></span>
+    <span class="sh-en">Today's Jobs</span>
+  </div>
+  <div class="tj-wrap" id="tjWrap">
+    <div class="tj-alert" id="tjAlert"><span class="tj-alert-icon">⏰</span><span id="tjAlertText"></span></div>
+    <div class="tj-toolbar">
+      <span class="tj-date" id="tjDateLabel">—</span>
+      <a class="tj-link" href="worktable.html" target="_blank" rel="noopener noreferrer">เปิดตารางงานทั้งหมด →</a>
+    </div>
+    <div id="tjList"><div class="tj-loading">กำลังโหลดตารางงาน...</div></div>
+  </div>
+
   <!-- Notice -->
   <div class="notice" style="margin-top:24px;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1404,6 +1442,101 @@ async function initIndex() {
   // renderVehicleCards() จะ merge sheetMeta จาก getStatusSummary แทน
   // เพื่อรักษา category/isEms ที่ hardcoded ไว้ถูกต้องแล้ว
   loadStatus();
+  loadTodayJobs();
+}
+
+// ─── ตารางงานวันนี้ (ดึงข้อมูลเดียวกับหน้า worktable.html) ──────────────────
+function tjPad2_(n){ return String(n).padStart(2,'0'); }
+function tjTodayYmd_(){
+  const d = new Date();
+  return d.getFullYear() + '-' + tjPad2_(d.getMonth()+1) + '-' + tjPad2_(d.getDate());
+}
+function tjParseTimeMin_(t){
+  if(!t) return null;
+  const m = String(t).trim().match(/^(\d{1,2}):(\d{2})/);
+  if(!m) return null;
+  return (+m[1])*60 + (+m[2]);
+}
+function tjNowMin_(){
+  const d = new Date();
+  return d.getHours()*60 + d.getMinutes();
+}
+function tjEsc_(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function loadTodayJobs(){
+  const listEl = document.getElementById('tjList');
+  const dateLabelEl = document.getElementById('tjDateLabel');
+  if(!listEl) return;
+  const now = new Date();
+  const THAI_DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+  const THAI_MONTHS = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+  if(dateLabelEl) dateLabelEl.textContent = `วัน${THAI_DAYS[now.getDay()]}ที่ ${now.getDate()} ${THAI_MONTHS[now.getMonth()+1]} ${now.getFullYear()+543}`;
+  try{
+    const res  = await fetch(GAS_URL + '?action=getJobAssignments');
+    const json = await res.json();
+    if(json.status !== 'ok') throw new Error('load fail');
+    const today = tjTodayYmd_();
+    const jobs = (json.data || []).filter(j => j.date === today);
+    jobs.sort((a,b) => {
+      const ta = tjParseTimeMin_(a.timeOut), tb = tjParseTimeMin_(b.timeOut);
+      if(ta == null && tb == null) return 0;
+      if(ta == null) return 1;
+      if(tb == null) return -1;
+      return ta - tb;
+    });
+    renderTodayJobs(jobs);
+  }catch(err){
+    listEl.innerHTML = '<div class="tj-empty">โหลดตารางงานไม่สำเร็จ กรุณาลองใหม่</div>';
+  }
+}
+
+function renderTodayJobs(jobs){
+  const listEl  = document.getElementById('tjList');
+  const alertEl = document.getElementById('tjAlert');
+  const alertTx = document.getElementById('tjAlertText');
+  if(!listEl) return;
+  if(!jobs.length){
+    listEl.innerHTML = '<div class="tj-empty">🗒️ ยังไม่มีงานที่บันทึกไว้สำหรับวันนี้</div>';
+    if(alertEl) alertEl.style.display = 'none';
+    return;
+  }
+  const nowM = tjNowMin_();
+  const SOON_WINDOW = 60; // นาที — ถือว่า "ใกล้ถึงเวลานัด" ถ้าเหลือเวลาไม่เกินนี้
+  let soonCount = 0;
+  const cardsHtml = jobs.map(j => {
+    const tOut = tjParseTimeMin_(j.timeOut);
+    const tBack = tjParseTimeMin_(j.timeBack);
+    let isSoon = false, isOngoing = false;
+    if(tOut != null){
+      if(tOut - nowM >= 0 && tOut - nowM <= SOON_WINDOW) isSoon = true;
+      else if(tBack != null && nowM >= tOut && nowM <= tBack) isOngoing = true;
+    }
+    if(isSoon) soonCount++;
+    const timeLabel = j.timeOut ? (j.timeOut + (j.timeBack ? ' – ' + j.timeBack : '')) : 'ไม่ระบุเวลา';
+    return `
+      <div class="tj-card${isSoon?' soon':''}${isOngoing?' ongoing':''}">
+        <div class="tj-time-col">
+          <div class="tj-time">${tjEsc_(timeLabel)}</div>
+          ${isSoon?'<div class="tj-badge-soon">⏰ ใกล้ถึงเวลานัด</div>':''}
+          ${isOngoing?'<div class="tj-badge-ongoing">🚗 กำลังปฏิบัติงาน</div>':''}
+        </div>
+        <div class="tj-body">
+          <div class="tj-title">${tjEsc_(j.requester)||'—'}</div>
+          ${j.destination?`<div class="tj-row"><span class="tj-icon">📍</span><span>${tjEsc_(j.destination)}</span></div>`:''}
+          ${j.mission?`<div class="tj-row"><span class="tj-icon">📋</span><span>${tjEsc_(j.mission)}</span></div>`:''}
+          ${j.driver?`<div class="tj-row"><span class="tj-icon">🚐</span><span>${tjEsc_(j.driver)}</span></div>`:''}
+        </div>
+      </div>`;
+  }).join('');
+  listEl.innerHTML = cardsHtml;
+  if(alertEl && alertTx){
+    if(soonCount > 0){
+      alertEl.style.display = 'flex';
+      alertTx.innerHTML = `มีงาน <b>${soonCount}</b> รายการที่ใกล้ถึงเวลานัดหมายภายใน 1 ชั่วโมงนี้`;
+    } else {
+      alertEl.style.display = 'none';
+    }
+  }
 }
 
 async function loadStatus() {
@@ -1855,6 +1988,7 @@ document.addEventListener('DOMContentLoaded', () => {
     } catch(_) { await loadStatus(); } // fallback
   }
   setInterval(smartIndexRefresh, 30000); // ทุก 30 วินาที (ลดจาก 2 นาที)
+  setInterval(loadTodayJobs, 60000); // รีเฟรชตารางงานวันนี้ทุก 1 นาที (เพื่ออัปเดตป้าย "ใกล้ถึงเวลานัด")
 });
 </script>
 
