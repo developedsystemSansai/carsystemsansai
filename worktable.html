@@ -1563,7 +1563,9 @@ function renderTodayStrip(d){
 
 function renderTodayTab(d){
   $('today-loading').style.display='none';$('today-content').style.display='block';
-  const ext=d.extension||'207',onDuty=d.onDuty||[];
+  const ext=d.extension||'207';
+  // ✅ ไม่แสดงคนที่อยู่เวร ช (ช1บ2, ช2บ1, ช3(Ems) ฯลฯ) ในหน้า "วันนี้"
+  const onDuty=(d.onDuty||[]).filter(p=>!String(p.shift||'').toLowerCase().startsWith('ช'));
   const groups={};
   onDuty.forEach(p=>{const k=p.shift||'อื่นๆ';if(!groups[k])groups[k]=[];groups[k].push(p);});
   let html=`<div class="ext-notice"><div class="ext-icon">📞</div><div><div class="ext-label">เบอร์ภายในงานยานพาหนะ</div><div class="ext-num">ต่อ ${ext}</div><div class="ext-desc">ติดต่อขอใช้รถ ส่งต่อผู้ป่วย หรืองานอื่น ๆ ได้ตลอด 24 ชั่วโมง</div></div></div>`;
@@ -1576,7 +1578,7 @@ function renderTodayTab(d){
       html+=`<div class="duty-group"><div class="duty-group-hdr"><span class="shift ${shiftClass(shift)}">${shift}</span> ${shiftName(shift)}</div>`;
       members.forEach(p=>{
         const idx=onDuty.indexOf(p),color=avatarColor(idx);
-        html+=`<div class="duty-person"><div class="duty-color-bar" style="background:${color}"></div><div class="duty-main"><div class="duty-avatar" style="background:${color}">${avatarInner(p)}</div><div class="duty-info"><div class="duty-name">${p.name}</div><div class="duty-nick">(${p.nick||'—'})</div><div class="duty-role-chip ${roleChipClass(p.role)}">${p.role||'พขร.'}</div></div></div><div class="duty-actions"><a href="tel:${p.phone}" class="action-btn btn-call" title="โทร">📞</a><a href="sms:${p.phone}" class="action-btn btn-sms" title="SMS">💬</a></div></div>`;
+        html+=`<div class="duty-person"><div class="duty-color-bar" style="background:${color}"></div><div class="duty-main"><div class="duty-avatar" style="background:${color}">${avatarInner(p)}</div><div class="duty-info"><div class="duty-name">${p.name}</div><div class="duty-nick">(${p.nick||'—'})</div><div class="duty-role-chip ${roleChipClass(p.role)}">${p.role||'พขร.'}</div></div><div class="duty-shift-badge shift ${shiftClass(shift)}">${shiftLabel(shift)} ${shift}</div></div><div class="duty-actions"><a href="tel:${p.phone}" class="action-btn btn-call" title="โทร">📞</a><a href="sms:${p.phone}" class="action-btn btn-sms" title="SMS">💬</a></div></div>`;
       });
       html+=`</div>`;
     });
