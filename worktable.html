@@ -295,17 +295,19 @@ tbody tr.dim{opacity:.22;}
 .tl-unsched-chip{background:#fff;border:1px solid;border-radius:6px;padding:3px 4px;font-size:9px;font-weight:700;line-height:1.25;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;opacity:.85;transition:opacity .1s;}
 .tl-unsched-chip:hover{opacity:1;}
 .tl-row-track{position:relative;flex-shrink:0;background-image:repeating-linear-gradient(to right,var(--border) 0,var(--border) 1px,transparent 1px,transparent var(--tl-hour-w));}
-/* ── การ์ดงาน (tl-bar): เดิมเป็นแท่งบรรทัดเดียว ปรับเป็นการ์ดแนวตั้งแสดงรายละเอียดหลายบรรทัด ── */
-.tl-bar{position:absolute;border-radius:9px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:2px;padding:5px 8px 4px;box-shadow:0 1px 3px rgba(0,0,0,.10);transition:filter .1s;}
-.tl-bar-pin{box-shadow:0 1px 3px rgba(0,0,0,.10),inset 0 0 0 1px rgba(255,255,255,.4);}
+.tl-bar{position:absolute;border-radius:9px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:4px;padding:8px 10px 7px;font-size:10.5px;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.1);transition:filter .1s,box-shadow .1s;}
+.tl-bar-pin{box-shadow:0 1px 3px rgba(0,0,0,.1),inset 0 0 0 1px rgba(255,255,255,.4);}
 .tl-bar-overnight{border-radius:9px 3px 3px 9px;background-image:repeating-linear-gradient(115deg,rgba(255,255,255,.5) 0 5px,transparent 5px 11px);}
-.tl-bar-cont{position:absolute;top:4px;right:6px;font-weight:800;font-size:11px;opacity:.8;}
-.tl-bar:hover{filter:brightness(0.97);}
-/* บรรทัดนัดหมาย(เวลา) — ทำเป็น chip สีเข้มเด่นๆ แยกจากพื้นการ์ด */
-.tl-bar-appt{align-self:flex-start;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:800;letter-spacing:.2px;padding:1.5px 7px;border-radius:6px;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;}
-.tl-bar-title{font-size:10.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;margin-top:1px;}
-.tl-bar-line{font-size:9.5px;font-weight:600;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;}
-.tl-bar-driver{margin-top:auto;padding-top:3px;border-top:1px dashed rgba(0,0,0,.14);font-size:9.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;}
+.tl-bar-cont{font-weight:800;font-size:12px;opacity:.9;}
+.tl-bar:hover{filter:brightness(0.97);box-shadow:0 2px 6px rgba(0,0,0,.14);}
+/* ✅ NEW: badge "นัดหมาย + เวลา" ให้เด่นด้วยพื้นสีเข้ม/ตัวหนังสือขาว แยกจากรายละเอียดอื่นชัดเจน ให้พื้นที่หายใจพอดี ไม่อัดแน่น */
+.tl-bar-badge{display:inline-flex;align-items:center;color:#fff !important;font-family:'IBM Plex Mono',monospace;font-weight:800;font-size:10.5px;line-height:1.6;padding:3px 9px;border-radius:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;box-sizing:border-box;letter-spacing:.2px;}
+.tl-bar-title{width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:800;line-height:1.4;margin-top:1px;}
+.tl-bar-meta-row{width:100%;display:flex;align-items:center;gap:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:600;opacity:.92;line-height:1.5;}
+.tl-bar-meta-row .ico{flex-shrink:0;}
+.tl-bar-meta-row .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* ✅ NEW: บรรทัดล่างสุด พขร. — คั่นเส้นบางด้านบน เว้นระยะให้แยกจากรายละเอียดงานชัดเจน */
+.tl-bar-driver{width:100%;margin-top:auto;padding-top:6px;border-top:1px dashed rgba(0,0,0,.15);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;font-weight:700;opacity:.95;line-height:1.5;}
 .tl-now-line{position:absolute;top:0;bottom:0;width:2px;background:var(--danger);z-index:7;pointer-events:none;}
 .tl-now-line::after{content:'';position:absolute;top:-3px;left:50%;transform:translateX(-50%);width:8px;height:8px;border-radius:50%;background:var(--danger);}
 
@@ -486,9 +488,10 @@ const DOW_SHORT=['อา','จ','อ','พ','พฤ','ศ','ส'];
 const COLORS=['#163251','#007a6e','#6d3fc0','#d4580a','#c0392b','#1d6fb5','#1a8a4a','#c07a00','#0d2137','#8255d4'];
 let scheduleData=null,scheduleNextData=null,todayData=null,activeTab='today',activeFilter='all',activeSchedTab='current';
 let jobsData=null,jobsViewMode='week',jobsCurrentDate=null;
+let vehiclesData=null; // ✅ NEW: รายชื่อรถ (ทะเบียน/ประเภท/ประเภทระบบ) — ใช้ทำ dropdown เลือกรถในฟอร์มเพิ่ม/แก้ไขงาน
 let jobsSearchQuery='',jobsFilterDrivers=null; // jobsFilterDrivers=null หมายถึง "แสดงทุกคน"
 let _nowLineTimer=null;
-const CAL_HOUR_START=7,CAL_HOUR_END=18; // ✅ แสดงเฉพาะช่วงเวลาทำการ 07.00–18.00 น. บนตารางงาน (Gantt)
+const CAL_HOUR_START=7,CAL_HOUR_END=18; // ✅ ตารางงานแสดงเฉพาะช่วงเวลาทำการ 07.00–18.00 น.
 function tlHourWidth(){ return window.innerWidth<640?38:56; }
 function tlLabelWidth(){ return window.innerWidth<640?58:96; }
 function tlUnschedWidth(){ return window.innerWidth<640?52:70; }
@@ -691,7 +694,7 @@ function allJobDrivers(){
 }
 function jobMatchesSearch(j,q){
   if(!q) return true;
-  const hay=[j.requester,j.mission,j.destination,j.driver,j.car].map(v=>String(v||'').toLowerCase()).join(' ');
+  const hay=[j.requester,j.mission,j.destination,j.driver].map(v=>String(v||'').toLowerCase()).join(' ');
   return hay.includes(q.toLowerCase());
 }
 function jobMatchesDriverFilter(j){
@@ -775,37 +778,35 @@ function startOfWeekMon(ymd){
   const mon=new Date(d); mon.setDate(d.getDate()+diff); return mon;
 }
 function timeToMinutesJob(t){ const v=normTimeVal_(t); if(!v) return null; const p=v.split(':'); if(p.length<2) return null; const h=+p[0],m=+p[1]; if(isNaN(h)||isNaN(m)) return null; return h*60+m; }
-function clampToCalGrid(mins){ return Math.min(Math.max(mins,CAL_HOUR_START*60),CAL_HOUR_END*60); }
+function clampToCalGrid(mins){ return Math.min(Math.max(mins,0),1440); }
 
 // ── จัดวางแท่งงาน (bar) แนวนอนภายในแถวของแต่ละวัน คล้าย Gantt: ทับซ้อนกันจึงค่อยเรียงเป็นเลน ──
 // หมายเหตุ: ฟังก์ชันนี้รับเฉพาะงานที่มี "เวลาไป" และ/หรือ "เวลากลับ" อย่างน้อยหนึ่งค่า
 // งานที่ไม่มีเวลาเลยทั้งสองช่องจะถูกกรองออกไปแสดงในคอลัมน์ "ไม่ระบุเวลา" ต่างหาก (ดู renderTimelineRow)
 function layoutDayBarsHorizontal(dayJobs,hourWidth){
+  const WIN_START=CAL_HOUR_START*60, WIN_END=CAL_HOUR_END*60; // ✅ กรอบเวลาที่แสดงบนตาราง (07.00–18.00 น.)
   const evs=dayJobs.map(j=>{
     let sm=timeToMinutesJob(j.timeOut), em=timeToMinutesJob(j.timeBack);
     let returnOnly=false, overnight=false;
     if(sm==null&&em!=null){
       // มีแค่ "เวลากลับ" -> ปักหมุดไว้ที่เวลากลับจริง (ไม่ใช่ลากยาวจากเที่ยงคืน) เพื่อให้ตำแหน่งตรงกับเวลาที่กรอก
-      returnOnly=true; sm=Math.max(0,em-30);
+      returnOnly=true; sm=Math.max(WIN_START,em-30);
     } else if(sm==null){
-      sm=0; em=60; // กรณีนี้ไม่ควรเกิดแล้ว เพราะกรองไปที่คอลัมน์ไม่ระบุเวลาก่อนแล้ว แต่กันไว้เผื่อข้อมูลผิดปกติ
+      sm=WIN_START; em=WIN_START+60; // กรณีนี้ไม่ควรเกิดแล้ว เพราะกรองไปที่คอลัมน์ไม่ระบุเวลาก่อนแล้ว แต่กันไว้เผื่อข้อมูลผิดปกติ
     }
     if(em==null){
       em=sm+45;
     } else if(em<sm){
       // งานข้ามเที่ยงคืน (เช่น ไป 22:00 กลับ 06:00 เช้าวันถัดไป) — เดิมโค้ดจะตัดเวลาให้สั้นลงเหลือ 45 นาที
-      // ซึ่งทำให้ตำแหน่ง/ความยาวแท่งงานไม่ตรงกับเวลาที่กรอกจริงเลย แก้เป็นลากแท่งไปจนสุดวันนี้ (24.00)
+      // ซึ่งทำให้ตำแหน่ง/ความยาวแท่งงานไม่ตรงกับเวลาที่กรอกจริงเลย แก้เป็นลากแท่งไปจนสุดกรอบเวลาที่แสดง (18.00)
       // แล้วติดสัญลักษณ์ "ต่อเนื่องข้ามคืน" แทน เพื่อให้เห็นเวลาไปที่ถูกต้องอย่างน้อยฝั่งเริ่มต้น
-      overnight=true; em=1440;
+      overnight=true; em=WIN_END;
     } else if(em===sm){
       em=sm+45; // เวลาไป-กลับ ตรงกันเป๊ะ ถือว่าเป็นงานสั้น ๆ ประมาณ 45 นาที
     }
-    sm=Math.max(0,Math.min(sm,1440)); em=Math.max(sm+20,Math.min(em,1440));
-    // ตำแหน่ง/ความกว้างที่แสดงจริงบนกริด ถูกตัดให้อยู่ในช่วง 07.00–18.00 เท่านั้น
-    // (ป้ายเวลา "นัดหมาย" ที่แสดงในการ์ดยังคงใช้เวลาไป/กลับจริงจาก sm,em ไม่ถูกตัด)
-    const gridStart=CAL_HOUR_START*60, gridEnd=CAL_HOUR_END*60;
-    const vsm=Math.max(sm,gridStart), vem=Math.max(vsm+20,Math.min(em,gridEnd));
-    return {job:j,sm,em,vsm,vem,returnOnly,overnight};
+    // จำกัดให้อยู่ในกรอบเวลาที่ตารางแสดง (07.00–18.00 น.) — งานที่อยู่นอกช่วงนี้จะถูกดันไปชิดขอบที่ใกล้ที่สุด
+    sm=Math.max(WIN_START,Math.min(sm,WIN_END)); em=Math.max(sm+20,Math.min(em,WIN_END));
+    return {job:j,sm,em,returnOnly,overnight};
   }).sort((a,b)=>a.sm-b.sm||a.em-b.em);
 
   // จัดกลุ่มเหตุการณ์ที่เวลาทับกันเป็น cluster แล้วแบ่งเลน (แนวตั้งภายในแถว)
@@ -826,15 +827,14 @@ function layoutDayBarsHorizontal(dayJobs,hourWidth){
   });
 
   const laneCount=evs.length?Math.max(...evs.map(e=>e.lane))+1:0;
-  const gridStart=CAL_HOUR_START*60;
   evs.forEach(e=>{
-    e.left=(e.vsm-gridStart)/60*hourWidth;
-    e.width=Math.max((e.vem-e.vsm)/60*hourWidth,TL_CARD_MIN_W);
+    e.left=(e.sm-WIN_START)/60*hourWidth;
+    e.width=Math.max((e.em-e.sm)/60*hourWidth,96); // ✅ ความกว้างขั้นต่ำเพิ่มขึ้น ให้พอดีกับเนื้อหาในการ์ดที่อ่านง่ายขึ้น
   });
   return {bars:evs,laneCount};
 }
 
-const TL_BAR_H=74,TL_BAR_GAP=6,TL_ROW_PAD=8,TL_ROW_MIN=56,TL_CARD_MIN_W=108;
+const TL_BAR_H=118,TL_BAR_GAP=8,TL_ROW_PAD=8,TL_ROW_MIN=48; // ✅ เพิ่มความสูง+ระยะห่าง ให้การ์ดงานอ่านง่าย ไม่อัดแน่น
 
 function renderTimelineHead(hourWidth,labelWidth,unschedWidth){
   let cells='';
@@ -861,19 +861,22 @@ function renderTimelineRow(dateObj,dayJobs,hourWidth,labelWidth,unschedWidth,isT
       :e.overnight?`${fmtThaiTimeDot(j.timeOut)} น. ข้ามคืนถึง ${fmtThaiTimeDot(j.timeBack)} น.`
       :fmtThaiTimeRange(j.timeOut,j.timeBack);
     const pinCls=e.returnOnly?' tl-bar-pin':(e.overnight?' tl-bar-overnight':'');
-    const contMark=e.overnight?'<span class="tl-bar-cont" title="งานต่อเนื่องข้ามเที่ยงคืนถึงเช้าวันถัดไป">↷</span>':'';
-    // ✅ NEW: การ์ดงานแสดงรายละเอียดเพิ่ม — นัดหมาย(เวลา) เด่นด้วยสี, สถานที่ไป, ภารกิจ, และบรรทัดล่างสุดเป็น พขร.
-    const destLine=j.destination?`<div class="tl-bar-line" title="สถานที่ไป: ${escapeHtmlJob(j.destination)}">📍 ${escapeHtmlJob(j.destination)}</div>`:'';
-    const missionLine=j.mission?`<div class="tl-bar-line" title="ภารกิจ: ${escapeHtmlJob(j.mission)}">📋 ${escapeHtmlJob(j.mission)}</div>`:'';
-    const driverLine=j.driver?`<div class="tl-bar-driver" title="พขร. ${escapeHtmlJob(nameWithNick(j.driver))}">🚐 พขร. ${escapeHtmlJob(nameWithNick(j.driver))}</div>`:'';
+    const contMark=e.overnight?' <span class="tl-bar-cont" title="งานต่อเนื่องข้ามเที่ยงคืนถึงเช้าวันถัดไป">↷</span>':'';
+    const driverName=j.driver?nameWithNick(j.driver):'';
+    const metaRows=[];
+    if(j.destination) metaRows.push(`<div class="tl-bar-meta-row"><span class="ico">📍</span><span class="txt">${escapeHtmlJob(j.destination)}</span></div>`);
+    if(j.mission) metaRows.push(`<div class="tl-bar-meta-row"><span class="ico">📋</span><span class="txt">${escapeHtmlJob(j.mission)}</span></div>`);
+    const tipBits=[`นัดหมาย ${timeLabel}`];
+    if(j.requester) tipBits.push(j.requester);
+    if(j.destination) tipBits.push('สถานที่ไป: '+j.destination);
+    if(j.mission) tipBits.push('ภารกิจ: '+j.mission);
+    tipBits.push('พขร.: '+(driverName||'ยังไม่ระบุ'));
     return `<div class="tl-bar${pinCls}" style="left:${e.left}px;width:${e.width}px;top:${top}px;height:${TL_BAR_H}px;background:${col.bg};border-left:3px ${e.returnOnly?'dashed':'solid'} ${col.bd};color:${col.tx}"
-      onclick="openJobDetail('${j.jobId}')" title="${escapeHtmlJob(timeLabel)} · ${escapeHtmlJob(j.mission||j.requester||'')}${j.destination?' · '+escapeHtmlJob(j.destination):''}">
-      <span class="tl-bar-appt" style="background:${col.bd}">นัดหมาย ${escapeHtmlJob(timeLabel)}</span>
+      onclick="openJobDetail('${j.jobId}')" title="${escapeHtmlJob(tipBits.join(' · '))}">
+      <div class="tl-bar-badge" style="background:${col.bd}">🕐 นัดหมาย ${escapeHtmlJob(timeLabel)}${contMark}</div>
       <div class="tl-bar-title">${escapeHtmlJob(j.requester||j.mission||'งาน')}</div>
-      ${destLine}
-      ${missionLine}
-      ${contMark}
-      ${driverLine}
+      ${metaRows.join('')}
+      <div class="tl-bar-driver">🚐 พขร. ${driverName?escapeHtmlJob(driverName):'ยังไม่ระบุ'}</div>
     </div>`;
   }).join(''):'';
   const unschedHtml=noTimeJobs.length?noTimeJobs.map(j=>{
@@ -921,11 +924,11 @@ function placeNowLines(){
   const hourWidth=tlHourWidth(),labelWidth=tlLabelWidth(),unschedWidth=tlUnschedWidth();
   const now=new Date();
   const nowMin=now.getHours()*60+now.getMinutes();
-  const gridStart=CAL_HOUR_START*60,gridEnd=CAL_HOUR_END*60;
-  if(nowMin<gridStart||nowMin>gridEnd) return; // นอกช่วง 07.00–18.00 ที่แสดง — ไม่ต้องวาดเส้นเวลาปัจจุบัน
+  const WIN_START=CAL_HOUR_START*60, WIN_END=CAL_HOUR_END*60;
+  if(nowMin<WIN_START||nowMin>WIN_END) return; // ✅ นอกช่วง 07.00–18.00 น. ที่แสดง — ไม่ต้องวาดเส้นเวลาปัจจุบัน
   const line=document.createElement('div');
   line.className='tl-now-line';
-  line.style.left=(labelWidth+unschedWidth+(nowMin-gridStart)/60*hourWidth)+'px';
+  line.style.left=(labelWidth+unschedWidth+(nowMin-WIN_START)/60*hourWidth)+'px';
   grid.appendChild(line);
 }
 
@@ -1025,8 +1028,7 @@ function renderJobsCalendar(opts){
   const scrollWrap=$('tl-scroll');
   if(scrollWrap&&!opts.keepScroll){
     const nowMin=new Date().getHours()*60+new Date().getMinutes();
-    const gridStart=CAL_HOUR_START*60;
-    scrollWrap.scrollLeft=Math.max(0,(nowMin-gridStart)/60*hourWidth-120);
+    scrollWrap.scrollLeft=Math.max(0,nowMin/60*hourWidth-120);
   }
 }
 
@@ -1105,6 +1107,7 @@ function openJobDetail(jobId){
       <div><div class="jd-label">ผู้รับผิดชอบ (คนขับ)</div><div class="jd-value">${escapeHtmlJob(nameWithNick(j.driver))||'—'}</div></div>
     </div>
     ${j.mission?`<div class="jd-row"><div class="jd-icon">📋</div><div><div class="jd-label">ภารกิจ / คำสั่งงาน</div><div class="jd-value">${escapeHtmlJob(j.mission)}</div></div></div>`:''}
+    ${j.car?`<div class="jd-row"><div class="jd-icon">🚗</div><div><div class="jd-label">รถที่ใช้</div><div class="jd-value">${escapeHtmlJob(j.car)}</div></div></div>`:''}
     <div class="modal-actions">
       <button class="btn-secondary" onclick='closeModal();openEditJobModal(${JSON.stringify(j).replace(/'/g,"&apos;")})'>✏️ แก้ไข</button>
       <button class="btn-primary" style="background:var(--danger)" onclick="closeModal();confirmDeleteJob('${j.jobId}')">🗑️ ลบ</button>
@@ -1292,6 +1295,8 @@ function renderJobFormModal(job){
     </div>
     <div class="form-group"><label>ผู้ไปส่ง (พขร.)</label><input type="text" id="jf-driver" list="jf-staff-list" value="${job?escapeHtmlJob(job.driver):''}" placeholder="ชื่อ พขร. ผู้ไปส่ง"></div>
     <datalist id="jf-staff-list">${(scheduleData&&scheduleData.data||[]).map(s=>`<option value="${escapeHtmlJob(s.name)}">`).join('')}</datalist>
+    <div class="form-group"><label>รถที่ใช้ (ไม่บังคับ)</label><input type="text" id="jf-car" list="jf-car-list" value="${job?escapeHtmlJob(job.car||''):''}" placeholder="เช่น นง.8781 ชม. · รถตู้ฮุนได"></div>
+    <datalist id="jf-car-list">${carDatalistOptionsHtml()}</datalist>
     <div class="modal-actions">
       <button class="btn-secondary" onclick="closeModal()">ยกเลิก</button>
       <button class="btn-primary" id="job-form-submit-btn" onclick="submitJobForm(${isEdit?`'${job.jobId}'`:'null'})">${isEdit?'บันทึกการแก้ไข':'บันทึกงาน'}</button>
@@ -1315,6 +1320,7 @@ async function submitJobForm(jobId){
     timeOut: $('jf-timeOut').value,
     timeBack: $('jf-timeBack').value,
     driver: $('jf-driver').value.trim(),
+    car: $('jf-car').value.trim(),
   };
   if(!data.date){ errBoxEl.textContent='กรุณาเลือกวันที่'; errBoxEl.classList.add('show'); return; }
   if(!data.requester){ errBoxEl.textContent='กรุณากรอกชื่อผู้ขอรถ'; errBoxEl.classList.add('show'); return; }
@@ -1365,14 +1371,33 @@ async function doDeleteJob(jobId){
 
 
 async function init(){
-  const[td,sc,scNext]=await Promise.allSettled([api('getTodayDuty'),api('getSchedule'),api('getScheduleNext')]);
+  const[td,sc,scNext,veh]=await Promise.allSettled([api('getTodayDuty'),api('getSchedule'),api('getScheduleNext'),api('getVehicles')]);
   if(td.status==='fulfilled'&&td.value.status==='ok'){todayData=td.value;renderTodayStrip(todayData);renderTodayTab(todayData);}
   else{$('today-loading').innerHTML=errBox('โหลดข้อมูลวันนี้ไม่สำเร็จ');}
   if(sc.status==='fulfilled'&&sc.value.status==='ok'){scheduleData=sc.value;renderStaffTab(scheduleData);}
   else{$('staff-loading').innerHTML=errBox('โหลดข้อมูลไม่สำเร็จ');}
   if(scNext.status==='fulfilled'&&scNext.value.status==='ok'){scheduleNextData=scNext.value;}
+  // ✅ NEW: รายชื่อรถ — ไม่บังคับต้องโหลดสำเร็จ เพราะเป็นแค่ตัวช่วยกรอกฟอร์ม (ไม่กระทบการทำงานหลักถ้าโหลดไม่ได้)
+  if(veh.status==='fulfilled'&&veh.value.status==='ok'){vehiclesData=veh.value.data||[];}
   // render schedule tab (needs both data objects ready)
   renderScheduleTabWrapper();
+}
+
+// ✅ NEW: ตัวเลือกรถสำหรับ dropdown ในฟอร์มงาน — เรียง "หมวดรถทั่วไป" (ประเภทระบบ = ทั่วไป) ไว้ก่อน
+// (ยังไม่บังคับเลือก เพราะหมวดรถอาจเปลี่ยนแปลงในอนาคต และผู้ใช้ยังพิมพ์ชื่อรถเองได้อิสระผ่าน datalist)
+function carOptionLabel(v){
+  const plate=String(v['ทะเบียน']||'').trim(), type=String(v['ประเภท']||'').trim();
+  return [plate,type].filter(Boolean).join(' · ');
+}
+function carDatalistOptionsHtml(){
+  const list=vehiclesData||[];
+  if(!list.length) return '';
+  const general=list.filter(v=>String(v['ประเภทระบบ']||'').trim()==='ทั่วไป');
+  const rest=list.filter(v=>String(v['ประเภทระบบ']||'').trim()!=='ทั่วไป');
+  return [...general,...rest].map(v=>{
+    const label=carOptionLabel(v);
+    return label?`<option value="${escapeHtmlJob(label)}">`:'';
+  }).join('');
 }
 function errBox(msg){return`<div class="error-box">⚠ ${msg}</div>`;}
 
