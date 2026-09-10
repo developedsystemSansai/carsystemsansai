@@ -1294,7 +1294,7 @@ function renderJobFormModal(job){
       <div class="jf-preview-hint">เว้น "เวลาไป" ไว้ → ปักหมุดที่ "เวลากลับ" · เว้นทั้งสองช่อง → ไปอยู่ที่ช่อง "ไม่ระบุเวลา"</div>
     </div>
     <div class="form-group"><label>ผู้ไปส่ง (พขร.)</label><input type="text" id="jf-driver" list="jf-staff-list" value="${job?escapeHtmlJob(job.driver):''}" placeholder="ชื่อ พขร. ผู้ไปส่ง"></div>
-    <datalist id="jf-staff-list">${(scheduleData&&scheduleData.data||[]).map(s=>`<option value="${escapeHtmlJob(s.name)}">`).join('')}</datalist>
+    <datalist id="jf-staff-list">${(scheduleData&&scheduleData.data||[]).map(s=>`<option value="${escapeHtmlJob(s.nick||s.name)}">${escapeHtmlJob(s.name)}${s.nick?' ('+escapeHtmlJob(s.nick)+')':''}</option>`).join('')}</datalist>
     <div class="form-group"><label>รถที่ใช้ (ไม่บังคับ)</label><input type="text" id="jf-car" list="jf-car-list" value="${job?escapeHtmlJob(job.car||''):''}" placeholder="เช่น นง.8781 ชม. · รถตู้ฮุนได"></div>
     <datalist id="jf-car-list">${carDatalistOptionsHtml()}</datalist>
     <div class="modal-actions">
