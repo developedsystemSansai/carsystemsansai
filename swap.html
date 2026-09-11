@@ -149,6 +149,7 @@ textarea{resize:vertical;min-height:70px;}
 .day-pick.sel{background:var(--violet-soft);border-color:var(--violet);box-shadow:0 0 0 2px rgba(109,63,192,.15);}
 .day-pick .dnum{font-size:15px;font-weight:800;color:var(--navy-mid);}
 .day-pick .dshift{font-size:9px;color:var(--text-light);margin-top:2px;line-height:1.3;}
+.day-pick .dshift.leave{color:#d32f2f;font-weight:800;}
 .empty-note{font-size:11.5px;color:var(--text-light);text-align:center;padding:14px 6px;}
 
 /* REQUEST CARD */
@@ -362,7 +363,18 @@ let myDays = null;       // จาก getMyShiftDays(session.name) -> {current:{
 let targetDays = null;   // shift days ของเพื่อนที่เลือก
 let selReqDay = null, selTgtDay = null;
 
-function shiftName(s){if(!s)return'';const l=String(s).toLowerCase();if(l.includes('ems'))return'EMS';if(l.startsWith('ช1'))return'เช้า1';if(l.startsWith('ช2'))return'เช้า2';if(l.startsWith('ช3'))return'เช้า3';if(l==='ด'||l.startsWith('ด'))return'ดึก';return s;}
+function shiftName(s){if(!s)return'';const raw=String(s);const l=raw.toLowerCase();if(l.startsWith('ช1บ2'))return'ช1บ2';if(l.startsWith('ช2บ1'))return'ช2บ1';if(l.includes('ems'))return'EMS';if(l.startsWith('ช1'))return'เช้า1';if(l.startsWith('ช2'))return'เช้า2';if(l.startsWith('ช3'))return'เช้า3';if(l==='ด'||l.startsWith('ด'))return'ดึก';return raw;}
+// ✅ วันที่ "ลา" (ไม่ได้เข้าเวรจริง) ไม่ควรให้เลือกมาแลกเวร แต่ยังให้เห็นในตาราง (ขึ้นสีแดงเตือน)
+function isLeaveShift_(s){ return String(s||'').trim()==='ลา'; }
+// ✅ วันที่ไม่มีเวร (ค่าว่าง หรือ "0") ไม่ต้องแสดงในตัวเลือกแลกเวรเลย
+function isEmptyShift_(s){ const t=String(s==null?'':s).trim(); return t===''||t==='0'; }
+// ✅ สร้าง HTML ตัวเลือกวัน/เวรในตารางแลกเวร — ข้ามวันที่ไม่มีเวร (ว่าง/"0"), ทำวัน "ลา" ให้ขึ้นสีแดง
+function dayPickHtml_(days, onclickName){
+  return (days||[]).filter(x=>!isEmptyShift_(x.shift)).map(x=>{
+    const leave = isLeaveShift_(x.shift);
+    return `<div class="day-pick" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="${onclickName}(this)"><div class="dnum">${x.day}</div><div class="dshift${leave?' leave':''}">${escHtml(shiftName(x.shift))}</div></div>`;
+  }).join('');
+}
 
 async function callGet(action, params){
   const qs = new URLSearchParams({action, ...(params||{})});
@@ -546,7 +558,7 @@ function renderReqMyDays(){
       box.innerHTML = '<div class="empty-note">พนักงานคนนี้ไม่มีเวรในเดือนนี้</div>';
       return;
     }
-    box.innerHTML = d.days.map(x=>`<div class="day-pick" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="pickReqDay(this)"><div class="dnum">${x.day}</div><div class="dshift">${escHtml(shiftName(x.shift))}</div></div>`).join('');
+    box.innerHTML = dayPickHtml_(d.days, 'pickReqDay');
     return;
   }
   const d = myDays && myDays[ms];
@@ -554,7 +566,7 @@ function renderReqMyDays(){
     box.innerHTML = '<div class="empty-note">คุณไม่มีเวรในเดือนนี้</div>';
     return;
   }
-  box.innerHTML = d.days.map(x=>`<div class="day-pick" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="pickReqDay(this)"><div class="dnum">${x.day}</div><div class="dshift">${escHtml(shiftName(x.shift))}</div></div>`).join('');
+  box.innerHTML = dayPickHtml_(d.days, 'pickReqDay');
 }
 function pickReqDay(el){
   document.querySelectorAll('#req-my-days .day-pick').forEach(e=>e.classList.remove('sel'));
@@ -573,7 +585,7 @@ async function onTargetChange(){
   const ms = $('req-month').value;
   const d = res[ms];
   if(!d || !d.days || !d.days.length){ box.innerHTML = '<div class="empty-note">เพื่อนคนนี้ไม่มีเวรในเดือนนี้</div>'; return; }
-  box.innerHTML = d.days.map(x=>`<div class="day-pick" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="pickTgtDay(this)"><div class="dnum">${x.day}</div><div class="dshift">${escHtml(shiftName(x.shift))}</div></div>`).join('');
+  box.innerHTML = dayPickHtml_(d.days, 'pickTgtDay');
 }
 function pickTgtDay(el){
   document.querySelectorAll('#req-target-days .day-pick').forEach(e=>e.classList.remove('sel'));
