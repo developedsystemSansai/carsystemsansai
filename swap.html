@@ -95,6 +95,33 @@ textarea{resize:vertical;min-height:70px;}
 .btn-row .btn{margin-top:0;}
 .btn-sm{padding:9px;font-size:12.5px;}
 
+/* ✅ ปุ่ม PDF แบบเด่นชัด — ให้ พขร. สังเกตเห็นและกดง่ายที่สุด */
+.btn-pdf-highlight{background:linear-gradient(135deg,#e04b3a,var(--danger));color:#fff;border:none;box-shadow:0 4px 14px rgba(192,57,43,.5);position:relative;animation:pdfHighlightPulse 1.8s ease-in-out infinite;}
+.btn-pdf-highlight:disabled{animation:none;}
+@keyframes pdfHighlightPulse{0%,100%{box-shadow:0 4px 14px rgba(192,57,43,.45);}50%{box-shadow:0 4px 22px rgba(192,57,43,.85);}}
+.report-pdf-hint{font-size:11.5px;color:var(--danger);font-weight:700;margin-top:8px;text-align:center;line-height:1.5;}
+
+/* ✅ PDF Preview Modal */
+.pdf-preview-overlay{position:fixed;inset:0;z-index:9999;background:rgba(20,20,25,.55);display:none;align-items:flex-end;justify-content:center;}
+.pdf-preview-overlay.show{display:flex;}
+.pdf-preview-modal{background:#fff;width:100%;max-width:720px;max-height:88vh;border-radius:18px 18px 0 0;display:flex;flex-direction:column;overflow:hidden;animation:pdfModalUp .25s ease;}
+@media(min-width:760px){.pdf-preview-modal{border-radius:16px;max-height:82vh;margin-bottom:6vh;}}
+@keyframes pdfModalUp{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.pdf-preview-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1.5px solid var(--border);flex-shrink:0;}
+.pdf-preview-header h3{font-size:15px;margin:0;color:var(--navy-mid);}
+.pdf-preview-close{background:var(--bg2);border:none;width:30px;height:30px;border-radius:50%;font-size:15px;color:var(--text-mid);cursor:pointer;flex-shrink:0;}
+.pdf-preview-body{overflow:auto;padding:14px 16px;flex:1;}
+.pdf-preview-note{font-size:12px;color:var(--text-light);margin-bottom:10px;line-height:1.6;}
+.pdf-preview-table{width:100%;border-collapse:collapse;font-size:11.5px;min-width:640px;}
+.pdf-preview-table th,.pdf-preview-table td{border:1px solid var(--border-strong);padding:6px 5px;text-align:center;vertical-align:middle;}
+.pdf-preview-table th{background:var(--bg2);color:var(--navy-mid);font-weight:700;}
+.pdf-preview-table td.pv-name{text-align:left;font-weight:600;}
+.pdf-preview-footer{display:flex;gap:8px;padding:12px 16px;border-top:1.5px solid var(--border);flex-shrink:0;}
+.pdf-preview-footer .btn{margin-top:0;}
+.pdf-preview-result{margin-top:12px;padding:12px;border-radius:10px;background:var(--danger-soft);border:1px solid #f0b3ac;}
+.pdf-preview-result a.btn{text-decoration:none;}
+.pdf-preview-result .pv-url{word-break:break-all;font-size:11px;color:var(--text-mid);margin-top:8px;}
+
 /* TABS (post-login) */
 .tab-bar{background:var(--card);border-bottom:1.5px solid var(--border);position:sticky;top:60px;z-index:100;overflow-x:auto;}
 .tab-bar-inner{max-width:720px;margin:0 auto;display:flex;align-items:stretch;min-width:max-content;}
@@ -282,8 +309,9 @@ textarea{resize:vertical;min-height:70px;}
         <select id="report-month-select"><option value="">— กำลังโหลดรายชื่อเดือน… —</option></select>
         <div class="btn-row">
           <button class="btn btn-success btn-sm" id="report-export-btn" onclick="exportSwapMonthlyXlsx()" disabled>⬇️ Excel (.xlsx)</button>
-          <button class="btn btn-outline btn-sm" id="report-pdf-btn" onclick="exportSwapMonthlyPdf()" disabled>🖨️ PDF</button>
+          <button class="btn btn-pdf-highlight btn-sm" id="report-pdf-btn" onclick="previewSwapMonthlyPdf()" disabled>🖨️ PDF</button>
         </div>
+        <div class="report-pdf-hint">👆 พขร. กดปุ่มสีแดง "PDF" นี้ — เปิด/พิมพ์ได้ง่ายที่สุด ไม่ต้องมีโปรแกรม Excel</div>
         <div id="report-export-msg"></div>
       </div>
       <div class="card">
@@ -296,6 +324,23 @@ textarea{resize:vertical;min-height:70px;}
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ✅ Modal พรีวิวใบแลกเวรก่อนสร้าง PDF จริง -->
+<div class="pdf-preview-overlay" id="pdf-preview-overlay">
+  <div class="pdf-preview-modal">
+    <div class="pdf-preview-header">
+      <h3>👀 พรีวิวใบแลกเวร — <span id="pdf-preview-month">-</span></h3>
+      <button type="button" class="pdf-preview-close" onclick="closePdfPreview()">✕</button>
+    </div>
+    <div class="pdf-preview-body" id="pdf-preview-body">
+      <div class="loading-dots">กำลังโหลด…</div>
+    </div>
+    <div class="pdf-preview-footer" id="pdf-preview-footer">
+      <button type="button" class="btn btn-outline" onclick="closePdfPreview()">ปิด แก้ไขก่อน</button>
+      <button type="button" class="btn btn-pdf-highlight" id="pdf-preview-confirm-btn" onclick="confirmGeneratePdf()">🖨️ ยืนยัน สร้าง PDF</button>
+    </div>
   </div>
 </div>
 
@@ -840,26 +885,113 @@ async function exportSwapMonthlyXlsx(){
 }
 
 /** สร้าง PDF ฝั่งเซิร์ฟเวอร์ (GAS สร้าง Google Sheet ชั่วคราวจัดหน้าให้ แล้ว export เป็น PDF จริง)
- *  ใช้เมื่อ Excel ไม่สะดวก หรือให้ฝ่ายการเงินเปิดดู/พิมพ์ตรงได้ทันทีโดยไม่ต้องมี Excel */
-async function exportSwapMonthlyPdf(){
-  const sel = $('report-month-select');
-  const pdfBtn = $('report-pdf-btn');
-  const msg = $('report-export-msg');
-  const monthKey = sel.value;
-  msg.textContent = '';
-  if(!monthKey) return;
+ *  ใช้เมื่อ Excel ไม่สะดวก หรือให้ฝ่ายการเงินเปิดดู/พิมพ์ตรงได้ทันทีโดยไม่ต้องมี Excel
+ *  ✅ ก่อนสร้างจริง ให้เปิดพรีวิวข้อมูลให้ตรวจสอบก่อน (บางเครื่อง/มือถือมีข้อจำกัดเรื่องสร้าง-ดาวน์โหลดไฟล์) */
+let pdfPreviewMonthKey = null;
+let pdfPreviewMonthLabel = '';
 
-  pdfBtn.disabled = true; const oldLabel = pdfBtn.innerHTML; pdfBtn.innerHTML = '<span class="spinner"></span> กำลังสร้าง PDF…';
+function pvEsc(s){ return escHtml(s==null? '' : String(s)); }
+
+function renderPdfPreviewTable(monthLabel, rows){
+  pdfPreviewMonthLabel = monthLabel;
+  $('pdf-preview-month').textContent = monthLabel;
+  if(!rows || !rows.length){
+    $('pdf-preview-body').innerHTML = '<div class="empty-note">เดือนนี้ยังไม่มีรายการแลกเวรที่อนุมัติแล้ว</div>';
+    $('pdf-preview-confirm-btn').disabled = true;
+    return;
+  }
+  $('pdf-preview-confirm-btn').disabled = false;
+  const rowsHtml = rows.map(r=>`
+    <tr>
+      <td>${pvEsc(r.no)}</td>
+      <td>${pvEsc(r.recordDate)}</td>
+      <td class="pv-name">${pvEsc(r.requesterName)}</td>
+      <td>${pvEsc(r.reqOldDate)}<br>${pvEsc(r.reqOldShift)}</td>
+      <td>${pvEsc(r.reqNewDate)}<br>${pvEsc(r.reqNewShift)}</td>
+      <td class="pv-name">${pvEsc(r.targetName)}</td>
+      <td>${pvEsc(r.tgtOldDate)}<br>${pvEsc(r.tgtOldShift)}</td>
+      <td>${pvEsc(r.tgtNewDate)}<br>${pvEsc(r.tgtNewShift)}</td>
+      <td>${pvEsc(r.remark)}</td>
+    </tr>`).join('');
+  $('pdf-preview-body').innerHTML = `
+    <div class="pdf-preview-note">ตรวจสอบรายการด้านล่างก่อนกด "ยืนยัน สร้าง PDF" — หากข้อมูลผิด ให้ปิดหน้านี้แล้วไปแก้ที่ประวัติการแลกเวรก่อน</div>
+    <div style="overflow-x:auto">
+      <table class="pdf-preview-table">
+        <thead><tr>
+          <th>ลำดับ</th><th>ว/ด/ป<br>บันทึก</th><th>ผู้ขอแลก</th>
+          <th>เวรเดิม</th><th>แลกเป็น</th>
+          <th>ผู้รับแลก</th><th>เวรเดิม</th><th>แลกเป็น</th>
+          <th>หมายเหตุ</th>
+        </tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    </div>
+    <div id="pdf-preview-result"></div>
+  `;
+}
+
+async function previewSwapMonthlyPdf(){
+  const sel = $('report-month-select');
+  const monthKey = sel.value;
+  if(!monthKey) return;
+  const selectedLabel = sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : '';
+
+  pdfPreviewMonthKey = monthKey;
+  $('pdf-preview-month').textContent = selectedLabel;
+  $('pdf-preview-body').innerHTML = '<div class="loading-dots">กำลังโหลด…</div>';
+  const confirmBtn = $('pdf-preview-confirm-btn');
+  confirmBtn.disabled = true;
+  confirmBtn.style.display = '';
+  confirmBtn.innerHTML = '🖨️ ยืนยัน สร้าง PDF';
+  $('pdf-preview-overlay').classList.add('show');
+
   try{
-    const res = await callPost({action:'generateSwapMonthlyReportPdf', monthKey});
-    if(res.status!=='ok'){ msg.textContent = res.message || 'สร้าง PDF ไม่สำเร็จ'; return; }
-    window.open(res.pdfDownloadUrl || res.pdfUrl, '_blank');
+    const res = await callGet('getSwapMonthlyReport', {monthKey});
+    if(res.status!=='ok'){
+      $('pdf-preview-body').innerHTML = `<div class="empty-note">${pvEsc(res.message||'ดึงข้อมูลไม่สำเร็จ')}</div>`;
+      return;
+    }
+    renderPdfPreviewTable(res.monthLabel || selectedLabel, res.rows || []);
   }catch(err){
-    msg.textContent = 'เกิดข้อผิดพลาด: ' + (err.message||err);
-  }finally{
-    pdfBtn.disabled = false; pdfBtn.innerHTML = oldLabel;
+    $('pdf-preview-body').innerHTML = '<div class="empty-note">เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่</div>';
   }
 }
+
+function closePdfPreview(){
+  $('pdf-preview-overlay').classList.remove('show');
+}
+
+async function confirmGeneratePdf(){
+  if(!pdfPreviewMonthKey) return;
+  const btn = $('pdf-preview-confirm-btn');
+  const oldLabel = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> กำลังสร้าง PDF…';
+  const resultBox = $('pdf-preview-result');
+  if(resultBox) resultBox.innerHTML = '';
+  try{
+    const res = await callPost({action:'generateSwapMonthlyReportPdf', monthKey: pdfPreviewMonthKey});
+    if(res.status!=='ok'){
+      if(resultBox) resultBox.innerHTML = `<div class="msg-error show" style="display:block">${pvEsc(res.message||'สร้าง PDF ไม่สำเร็จ')}</div>`;
+      return;
+    }
+    const url = res.pdfDownloadUrl || res.pdfUrl;
+    // ✅ แสดงลิงก์ให้กดเปิดเองแทนการเปิดหน้าต่างใหม่อัตโนมัติ — บางมือถือ/เบราว์เซอร์บล็อกป๊อปอัปหรือดาวน์โหลดอัตโนมัติ
+    if(resultBox){
+      resultBox.innerHTML = `
+        <div class="pdf-preview-result">
+          ✅ สร้าง PDF เรียบร้อยแล้ว — กดปุ่มด้านล่างเพื่อเปิด/ดาวน์โหลด<br>
+          <a class="btn btn-pdf-highlight" style="margin-top:10px" href="${url}" target="_blank" rel="noopener">📄 เปิด PDF</a>
+          <div class="pv-url">หากกดแล้วไม่เปิด ให้คัดลอกลิงก์นี้ไปเปิดในเบราว์เซอร์: ${pvEsc(url)}</div>
+        </div>`;
+    }
+    btn.style.display = 'none';
+  }catch(err){
+    if(resultBox) resultBox.innerHTML = `<div class="msg-error show" style="display:block">เกิดข้อผิดพลาด: ${pvEsc(err.message||err)}</div>`;
+  }finally{
+    if(btn.style.display !== 'none'){ btn.disabled = false; btn.innerHTML = oldLabel; }
+  }
+}
+
 
 // ── TAB SWITCH ───────────────────────────────────────────
 function showTab(name){
