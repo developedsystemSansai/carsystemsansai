@@ -124,6 +124,21 @@ textarea{resize:vertical;min-height:70px;}
 .pdf-preview-result a.btn{text-decoration:none;}
 .pdf-preview-result .pv-url{word-break:break-all;font-size:11px;color:var(--text-mid);margin-top:8px;}
 
+/* ✅ Full-screen แจ้งเตือนส่งคำขอ/แลกเวรสำเร็จ */
+.success-overlay{position:fixed;inset:0;z-index:10000;background:linear-gradient(160deg,var(--navy-mid) 0%,#1a3f6a 60%,#173660 100%);display:none;align-items:center;justify-content:center;padding:24px;}
+.success-overlay.show{display:flex;}
+.success-modal{max-width:420px;width:100%;text-align:center;color:#fff;animation:successPop .3s ease;}
+@keyframes successPop{from{transform:scale(.92);opacity:0;}to{transform:scale(1);opacity:1;}}
+.success-icon-wrap{width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:44px;margin:0 auto 18px;animation:successPulse 1.4s ease-in-out infinite;}
+@keyframes successPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,255,255,.15);}50%{transform:scale(1.05);box-shadow:0 0 0 10px rgba(255,255,255,0);}}
+.success-title{font-size:22px;font-weight:800;margin-bottom:10px;}
+.success-sub{font-size:13.5px;color:rgba(255,255,255,.82);line-height:1.7;margin-bottom:6px;}
+.success-reqid{font-family:'IBM Plex Mono',monospace;background:rgba(255,255,255,.12);border-radius:6px;padding:2px 8px;font-size:12.5px;}
+.success-memo-block{margin:16px 0 4px;}
+.success-memo-block .memo-links{justify-content:center;}
+.success-overlay .btn-primary{background:#fff;color:var(--navy-mid);box-shadow:0 3px 14px rgba(0,0,0,.25);}
+.success-close-btn{margin-top:22px;width:100%;max-width:260px;margin-left:auto;margin-right:auto;}
+
 /* TABS (post-login) */
 .tab-bar{background:var(--card);border-bottom:1.5px solid var(--border);position:sticky;top:60px;z-index:100;overflow-x:auto;}
 .tab-bar-inner{max-width:720px;margin:0 auto;display:flex;align-items:stretch;min-width:max-content;}
@@ -175,6 +190,8 @@ textarea{resize:vertical;min-height:70px;}
 .msg-box.show{display:block;}
 .msg-error{background:var(--danger-soft);color:var(--danger);border:1px solid #f0b3ac;}
 .msg-success{background:var(--success-soft);color:var(--success);border:1px solid #a5d6b8;}
+.msg-warning{background:var(--amber-soft);color:#8a5a00;border:1px solid #e8c96a;}
+.msg-warning b{color:var(--amber);}
 
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -273,6 +290,7 @@ textarea{resize:vertical;min-height:70px;}
 
         <label id="req-my-days-label">วันเวรของฉันที่จะให้เพื่อนแทน</label>
         <div id="req-my-days" class="day-pick-grid"></div>
+        <div class="msg-box msg-warning" id="req-my-day-conflict"></div>
 
         <label id="req-target-label">แลกกับเพื่อนร่วมงาน</label>
         <select id="req-target-name" onchange="onTargetChange()" disabled>
@@ -282,6 +300,7 @@ textarea{resize:vertical;min-height:70px;}
 
         <label id="req-target-days-label">วันเวรของเพื่อนที่ฉันจะรับมาแทน</label>
         <div id="req-target-days" class="day-pick-grid"><div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div></div>
+        <div class="msg-box msg-warning" id="req-target-day-conflict"></div>
 
         <label>เหตุผลการขอแลกเวร</label>
         <select id="req-reason-select" onchange="onReasonSelectChange()">
@@ -357,6 +376,17 @@ textarea{resize:vertical;min-height:70px;}
       <button type="button" class="btn btn-outline" onclick="closePdfPreview()">ปิด แก้ไขก่อน</button>
       <button type="button" class="btn btn-pdf-highlight" id="pdf-preview-confirm-btn" onclick="confirmGeneratePdf()">🖨️ ยืนยัน สร้าง PDF</button>
     </div>
+  </div>
+</div>
+
+<!-- ✅ แจ้งเตือนแบบเต็มหน้าจอ เมื่อส่งคำขอ/แลกเวรสำเร็จ -->
+<div class="success-overlay" id="swap-success-overlay">
+  <div class="success-modal">
+    <div class="success-icon-wrap" id="success-icon-wrap">✅</div>
+    <div class="success-title" id="success-title">ส่งคำขอสำเร็จ</div>
+    <div class="success-sub" id="success-sub"></div>
+    <div class="success-memo-block" id="success-memo-block"></div>
+    <button type="button" class="btn btn-primary success-close-btn" id="success-close-btn" onclick="closeSuccessOverlay()">ตกลง</button>
   </div>
 </div>
 
@@ -522,6 +552,44 @@ function lockTargetStep(){
   if(box) box.innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
   const hint = $('req-target-locked-hint');
   if(hint) hint.style.display = '';
+  clearConflictBox_('req-my-day-conflict');
+  clearConflictBox_('req-target-day-conflict');
+}
+
+// ✅ ตรวจสอบรายการแลกเวรทับซ้อน/ผิดปกติ — เตือนบนหน้าจอทันทีที่เลือกวันเวรของแต่ละฝ่าย
+//    (ด่านบล็อกจริงยังอยู่ที่เซิร์ฟเวอร์ตอนกดส่งคำขอ กันกรณีข้อมูลเปลี่ยนไประหว่างนั้น)
+function clearConflictBox_(boxId){
+  const box = $(boxId);
+  if(!box) return;
+  box.classList.remove('show');
+  box.innerHTML = '';
+}
+function renderConflictLines_(conflicts){
+  return conflicts.map(c=>{
+    const isPending = c.status === 'รอตรวจสอบ';
+    const statusLabel = isPending ? '⏳ รอตรวจสอบ' : (String(c.status).indexOf('อนุมัติ')===0 ? '✅ '+c.status : c.status);
+    const whenText = c.decidedAt ? ('เมื่อ '+escHtml(c.decidedAt)) : (c.createdAt ? ('ยื่นเมื่อ '+escHtml(c.createdAt)) : '');
+    return `• เคยมีคำขอแลกเวรวันนี้กับ <b>${escHtml(c.withName)}</b> (${statusLabel}${whenText?' '+whenText:''})`;
+  }).join('<br>');
+}
+async function checkSwapConflict_(boxId, personName, day, isTargetSide){
+  const box = $(boxId);
+  if(!box || !personName || !day) return;
+  try{
+    const monthSheet = $('req-month').value;
+    const params = isTargetSide
+      ? {monthSheet, targetName: personName, targetDay: day}
+      : {monthSheet, requesterName: personName, requesterDay: day};
+    const res = await callGet('checkSwapConflicts', params);
+    if(res.status!=='ok') return;
+    const conflicts = isTargetSide ? (res.targetConflicts||[]) : (res.requesterConflicts||[]);
+    if(!conflicts.length){ clearConflictBox_(boxId); return; }
+    const hasPending = conflicts.some(c=>c.status==='รอตรวจสอบ');
+    box.innerHTML = `⚠️ <b>พบรายการแลกเวรของวันนี้มาก่อนหน้า</b>` +
+      (hasPending? '<br><span style="color:var(--danger)">มีคำขอรอตรวจสอบอยู่แล้ว — ระบบจะไม่ให้ส่งคำขอซ้ำจนกว่าจะดำเนินการคำขอเดิมก่อน</span>' : '') +
+      '<br>' + renderConflictLines_(conflicts);
+    box.classList.add('show');
+  }catch(e){ /* เช็คไม่สำเร็จ ไม่ให้กระทบการใช้งานหลัก — เซิร์ฟเวอร์จะเช็คซ้ำอีกชั้นตอนส่งจริง */ }
 }
 
 function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -568,7 +636,7 @@ function renderMineTab(){
 function onReqMonthChange(){
   selReqDay = null; selTgtDay = null;
   renderReqMyDays();
-  lockTargetStep(); // ✅ เปลี่ยนเดือน ต้องเลือกวันเวรใหม่ก่อนถึงจะเลือกพนักงานคนที่ 2 ได้
+  lockTargetStep(); // ✅ เปลี่ยนเดือน ต้องเลือกวันเวรใหม่ก่อนถึงจะเลือกพนักงานคนที่ 2 ได้ (จะเคลียร์กล่องเตือนให้ด้วย)
 }
 function renderReqMyDays(){
   const ms = $('req-month').value;
@@ -598,9 +666,12 @@ function pickReqDay(el){
   el.classList.add('sel');
   selReqDay = {day:+el.dataset.day, shift:el.dataset.shift};
   unlockTargetStep(); // ✅ เลือกวันเวรของพนักงานคนที่ 1 แล้ว จึงปลดล็อกให้เลือกพนักงานคนที่ 2 ได้
+  const name = session.isAdmin ? reqRequesterName : session.name;
+  checkSwapConflict_('req-my-day-conflict', name, selReqDay.day, false);
 }
 async function onTargetChange(){
   selTgtDay = null;
+  clearConflictBox_('req-target-day-conflict');
   const name = $('req-target-name').value;
   const box = $('req-target-days');
   if(!name){ box.innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>'; return; }
@@ -617,6 +688,8 @@ function pickTgtDay(el){
   document.querySelectorAll('#req-target-days .day-pick').forEach(e=>e.classList.remove('sel'));
   el.classList.add('sel');
   selTgtDay = {day:+el.dataset.day, shift:el.dataset.shift};
+  const name = $('req-target-name').value;
+  checkSwapConflict_('req-target-day-conflict', name, selTgtDay.day, true);
 }
 
 // ✅ เลือกเหตุผลจากรายการสำเร็จรูป — ลดเวลาการพิมพ์และการพิมพ์ผิด
@@ -656,7 +729,29 @@ async function submitRequest(){
 
   const btn = $('req-submit-btn');
   let refreshing = false;
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> กำลังส่งคำขอ…';
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> กำลังตรวจสอบรายการซ้ำซ้อน…';
+
+  // ✅ เช็คซ้ำอีกครั้งทันทีก่อนส่งจริง (กันกรณีมีคนอื่นยื่น/อนุมัติคำขอทับวันเดียวกันระหว่างที่กรอกฟอร์มอยู่)
+  //    ด่านบล็อกจริงยังอยู่ที่เซิร์ฟเวอร์ (submitSwapRequest) เสมอ — ที่นี่แค่เตือนก่อนเพื่อ UX ที่ดีกว่า
+  try{
+    const reqCheckName = session.isAdmin ? reqRequesterName : session.name;
+    const conflictRes = await callGet('checkSwapConflicts', {
+      monthSheet, requesterName: reqCheckName, requesterDay: selReqDay.day,
+      targetName, targetDay: selTgtDay.day
+    });
+    if(conflictRes.status==='ok'){
+      const reqPending = (conflictRes.requesterConflicts||[]).some(c=>c.status==='รอตรวจสอบ');
+      const tgtPending = (conflictRes.targetConflicts||[]).some(c=>c.status==='รอตรวจสอบ');
+      if(reqPending || tgtPending){
+        errBox.textContent = 'วันเวรที่เลือกมีคำขอแลกเวรอื่นรอตรวจสอบอยู่แล้ว กรุณารอผลคำขอเดิมก่อน หรือแจ้งแอดมินให้ปฏิเสธคำขอเดิมก่อนยื่นใหม่';
+        errBox.classList.add('show');
+        btn.disabled = false; btn.innerHTML = 'ส่งคำขอแลกเวร';
+        return;
+      }
+    }
+  }catch(e){ /* เช็คไม่สำเร็จ ปล่อยให้เซิร์ฟเวอร์ยืนยันอีกชั้นตอนส่งจริง */ }
+
+  btn.innerHTML = '<span class="spinner"></span> กำลังส่งคำขอ…';
   try{
     const res = await callPost({
       action:'submitSwapRequest',
@@ -670,24 +765,45 @@ async function submitRequest(){
     if(res.status!=='ok'){ errBox.textContent = res.message || 'ส่งคำขอไม่สำเร็จ'; errBox.classList.add('show'); return; }
 
     if(res.autoApproved){
-      okBox.innerHTML = '✅ แลกเวรสำเร็จทันที (สิทธิ์แอดมิน) ตารางเวรถูกแก้ไขแล้ว' + memoBlockHtml(res.requestId, res.memo, true);
+      showSuccessOverlay({
+        title: 'แลกเวรสำเร็จ',
+        sub: 'ระบบแก้ไขตารางเวรให้เรียบร้อยแล้ว (สิทธิ์แอดมิน ไม่ต้องรออนุมัติ)',
+        requestId: res.requestId,
+        memo: res.memo
+      });
     }else{
-      okBox.innerHTML = '✅ ส่งคำขอแลกเวรสำเร็จ — รหัสคำขอ <b>'+escHtml(res.requestId)+'</b><br>กรุณารอแอดมินตรวจสอบและอนุมัติ';
+      showSuccessOverlay({
+        title: 'ส่งคำขอสำเร็จ',
+        sub: 'กรุณารอแอดมินตรวจสอบและอนุมัติคำขอนี้',
+        requestId: res.requestId,
+        memo: null
+      });
     }
-    okBox.innerHTML += '<br><span style="opacity:.75">🔄 บันทึกสำเร็จแล้ว กำลังรีเฟรชหน้าอัตโนมัติ…</span>';
-    okBox.classList.add('show');
 
-    // ✅ บันทึกสำเร็จแล้ว — รีเฟรชหน้าทั้งหมดหลังโชว์ข้อความสักครู่ แทนการ reset ฟอร์มเอง
+    // ✅ บันทึกสำเร็จแล้ว — เมื่อผู้ใช้ปิดแจ้งเตือนเต็มหน้าจอ (closeSuccessOverlay) จะรีเฟรชหน้าทั้งหมด
     //    ป้องกันรายการ/ตัวเลือกที่เลือกไว้ค้างอยู่จากรอบก่อนหน้า (state ไม่ตรงกับข้อมูลจริงหลังบันทึก)
-    btn.innerHTML = 'บันทึกสำเร็จแล้ว ✅';
     refreshing = true;
-    setTimeout(function(){ location.reload(); }, 1800);
     return;
   }catch(err){
     errBox.textContent = 'เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่'; errBox.classList.add('show');
   }finally{
     if(!refreshing){ btn.disabled = false; btn.innerHTML = 'ส่งคำขอแลกเวร'; }
   }
+}
+
+// ✅ แจ้งเตือนแบบเต็มหน้าจอเมื่อส่งคำขอ/แลกเวรสำเร็จ — ผู้ใช้กด "ตกลง" เพื่อปิดแล้วรีเฟรชหน้า
+//    (ไม่ auto-close เอง เผื่อกรณีแลกเวรสำเร็จทันที ผู้ใช้อาจต้องการกดลิงก์เปิด/ดาวน์โหลดเอกสารก่อน)
+function showSuccessOverlay({title, sub, requestId, memo}){
+  $('success-title').textContent = title;
+  let subHtml = escHtml(sub);
+  if(requestId) subHtml += `<br>รหัสคำขอ <span class="success-reqid">${escHtml(requestId)}</span>`;
+  $('success-sub').innerHTML = subHtml;
+  $('success-memo-block').innerHTML = memo ? memoBlockHtml(requestId, memo, true) : '';
+  $('swap-success-overlay').classList.add('show');
+}
+function closeSuccessOverlay(){
+  $('swap-success-overlay').classList.remove('show');
+  location.reload();
 }
 
 function driveIdFromUrl_(url){
