@@ -1273,13 +1273,22 @@ async function confirmGeneratePdf(){
       return;
     }
     const url = res.pdfDownloadUrl || res.pdfUrl;
-    // ✅ แสดงลิงก์ให้กดเปิดเองแทนการเปิดหน้าต่างใหม่อัตโนมัติ — บางมือถือ/เบราว์เซอร์บล็อกป๊อปอัปหรือดาวน์โหลดอัตโนมัติ
+    // ✅ เริ่มดาวน์โหลดให้ทันทีหลังกดยืนยัน ไม่ต้องให้กดซ้ำอีกครั้ง — จำลองคลิกลิงก์ดาวน์โหลดด้วยโค้ด
+    //    (ยังอยู่ในจังหวะเดียวกับที่ผู้ใช้กดปุ่ม จึงไม่ถูกเบราว์เซอร์บล็อกป๊อปอัป)
+    //    เก็บลิงก์สำรองไว้ด้วย เผื่อบางมือถือ/เบราว์เซอร์บล็อกการดาวน์โหลดอัตโนมัติ ผู้ใช้กดเปิดเองได้
+    try{
+      const a = document.createElement('a');
+      a.href = url; a.target = '_blank'; a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }catch(autoErr){ /* เบราว์เซอร์บล็อก — ผู้ใช้ยังกดลิงก์สำรองด้านล่างได้ */ }
     if(resultBox){
       resultBox.innerHTML = `
         <div class="pdf-preview-result">
-          ✅ สร้าง PDF เรียบร้อยแล้ว — กดปุ่มด้านล่างเพื่อเปิด/ดาวน์โหลด<br>
-          <a class="btn btn-pdf-highlight" style="margin-top:10px" href="${url}" target="_blank" rel="noopener">📄 เปิด PDF</a>
-          <div class="pv-url">หากกดแล้วไม่เปิด ให้คัดลอกลิงก์นี้ไปเปิดในเบราว์เซอร์: ${pvEsc(url)}</div>
+          ✅ สร้าง PDF เรียบร้อยแล้ว — เริ่มดาวน์โหลดให้อัตโนมัติ<br>
+          <a class="btn btn-pdf-highlight" style="margin-top:10px" href="${url}" target="_blank" rel="noopener">📄 เปิด PDF อีกครั้ง</a>
+          <div class="pv-url">หากดาวน์โหลดไม่เริ่มเอง ให้กดปุ่มด้านบน หรือคัดลอกลิงก์นี้ไปเปิดในเบราว์เซอร์: ${pvEsc(url)}</div>
         </div>`;
     }
     btn.style.display = 'none';
