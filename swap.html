@@ -275,15 +275,26 @@ textarea{resize:vertical;min-height:70px;}
         <div id="req-my-days" class="day-pick-grid"></div>
 
         <label id="req-target-label">แลกกับเพื่อนร่วมงาน</label>
-        <select id="req-target-name" onchange="onTargetChange()">
+        <select id="req-target-name" onchange="onTargetChange()" disabled>
           <option value="">— เลือกเพื่อนร่วมงาน —</option>
         </select>
+        <div class="hint" id="req-target-locked-hint" style="margin:4px 0 0;color:var(--amber)">🔒 กรุณาเลือกวันเวรของพนักงานคนที่ 1 ก่อน จึงจะเลือกพนักงานคนที่ 2 ได้</div>
 
         <label id="req-target-days-label">วันเวรของเพื่อนที่ฉันจะรับมาแทน</label>
         <div id="req-target-days" class="day-pick-grid"><div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div></div>
 
         <label>เหตุผลการขอแลกเวร</label>
-        <textarea id="req-reason" placeholder="เช่น มีธุระส่วนตัว / ติดภารกิจครอบครัว ฯลฯ"></textarea>
+        <select id="req-reason-select" onchange="onReasonSelectChange()">
+          <option value="">— เลือกเหตุผล —</option>
+          <option value="มีธุระส่วนตัว">มีธุระส่วนตัว</option>
+          <option value="ติดภารกิจครอบครัว">ติดภารกิจครอบครัว</option>
+          <option value="เจ็บป่วย/ไม่สบาย">เจ็บป่วย/ไม่สบาย</option>
+          <option value="ติดราชการ/ประชุม/อบรม">ติดราชการ/ประชุม/อบรม</option>
+          <option value="ปัญหาการเดินทาง">ปัญหาการเดินทาง</option>
+          <option value="ขอสลับวันหยุด">ขอสลับวันหยุด</option>
+          <option value="__other__">อื่นๆ (โปรดระบุ)</option>
+        </select>
+        <textarea id="req-reason" placeholder="เช่น มีธุระส่วนตัว / ติดภารกิจครอบครัว ฯลฯ" style="display:none;margin-top:7px"></textarea>
 
         <div class="check-row">
           <input type="checkbox" id="req-consent">
@@ -492,10 +503,25 @@ async function onRequesterChange(){
     requesterDaysData = (res.status==='ok') ? res : null;
     renderReqMyDays();
   }
-  $('req-target-name').value='';
-  selTgtDay = null;
-  $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
   rebuildTargetOptions();
+  lockTargetStep(); // ✅ เปลี่ยนพนักงานคนที่ 1 ใหม่ ต้องเลือกวันเวรใหม่ก่อนถึงจะเลือกพนักงานคนที่ 2 ได้
+}
+
+// ✅ ล็อก/ปลดล็อกขั้นตอน "พนักงานคนที่ 2" — บังคับให้เลือกพนักงานคนที่ 1 + วันที่ก่อนเสมอ ลดการลัดขั้นตอน
+function unlockTargetStep(){
+  const sel = $('req-target-name');
+  if(sel) sel.disabled = false;
+  const hint = $('req-target-locked-hint');
+  if(hint) hint.style.display = 'none';
+}
+function lockTargetStep(){
+  const sel = $('req-target-name');
+  if(sel){ sel.disabled = true; sel.value=''; }
+  selTgtDay = null;
+  const box = $('req-target-days');
+  if(box) box.innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
+  const hint = $('req-target-locked-hint');
+  if(hint) hint.style.display = '';
 }
 
 function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -541,9 +567,8 @@ function renderMineTab(){
 // ── TAB: ขอแลกเวร ────────────────────────────────────────
 function onReqMonthChange(){
   selReqDay = null; selTgtDay = null;
-  $('req-target-name').value = '';
-  $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
   renderReqMyDays();
+  lockTargetStep(); // ✅ เปลี่ยนเดือน ต้องเลือกวันเวรใหม่ก่อนถึงจะเลือกพนักงานคนที่ 2 ได้
 }
 function renderReqMyDays(){
   const ms = $('req-month').value;
@@ -572,6 +597,7 @@ function pickReqDay(el){
   document.querySelectorAll('#req-my-days .day-pick').forEach(e=>e.classList.remove('sel'));
   el.classList.add('sel');
   selReqDay = {day:+el.dataset.day, shift:el.dataset.shift};
+  unlockTargetStep(); // ✅ เลือกวันเวรของพนักงานคนที่ 1 แล้ว จึงปลดล็อกให้เลือกพนักงานคนที่ 2 ได้
 }
 async function onTargetChange(){
   selTgtDay = null;
@@ -593,12 +619,29 @@ function pickTgtDay(el){
   selTgtDay = {day:+el.dataset.day, shift:el.dataset.shift};
 }
 
+// ✅ เลือกเหตุผลจากรายการสำเร็จรูป — ลดเวลาการพิมพ์และการพิมพ์ผิด
+// เลือก "อื่นๆ" จึงจะเปิดช่องให้พิมพ์เหตุผลเอง
+function onReasonSelectChange(){
+  const sel = $('req-reason-select');
+  const ta = $('req-reason');
+  if(sel.value === '__other__'){
+    ta.style.display = '';
+    ta.value = '';
+    ta.placeholder = 'โปรดระบุเหตุผล...';
+    ta.focus();
+  }else{
+    ta.style.display = 'none';
+    ta.value = sel.value;
+  }
+}
+
 async function submitRequest(){
   const errBox = $('req-msg-error'), okBox = $('req-msg-success');
   errBox.classList.remove('show'); okBox.classList.remove('show');
 
   const monthSheet = $('req-month').value;
   const targetName = $('req-target-name').value;
+  const reasonSelect = $('req-reason-select').value;
   const reason = $('req-reason').value.trim();
   const consent = $('req-consent').checked;
 
@@ -606,6 +649,8 @@ async function submitRequest(){
   if(!selReqDay){ errBox.textContent=(session.isAdmin?'กรุณาเลือกวันเวรของพนักงานคนที่ 1':'กรุณาเลือกวันเวรของคุณที่จะให้เพื่อนแทน'); errBox.classList.add('show'); return; }
   if(!targetName){ errBox.textContent=(session.isAdmin?'กรุณาเลือกพนักงานคนที่ 2':'กรุณาเลือกเพื่อนร่วมงานที่จะแลกเวรด้วย'); errBox.classList.add('show'); return; }
   if(!selTgtDay){ errBox.textContent=(session.isAdmin?'กรุณาเลือกวันเวรของพนักงานคนที่ 2':'กรุณาเลือกวันเวรของเพื่อนที่คุณจะรับมาแทน'); errBox.classList.add('show'); return; }
+  if(!reasonSelect){ errBox.textContent='กรุณาเลือกเหตุผลการขอแลกเวร'; errBox.classList.add('show'); return; }
+  if(reasonSelect==='__other__' && !reason){ errBox.textContent='กรุณาระบุเหตุผล (อื่นๆ)'; errBox.classList.add('show'); return; }
   if(!reason){ errBox.textContent='กรุณาระบุเหตุผลการขอแลกเวร'; errBox.classList.add('show'); return; }
   if(!consent){ errBox.textContent=(session.isAdmin?'กรุณายืนยันว่าตรวจสอบและได้รับความยินยอมจากทั้งสองฝ่ายแล้ว':'กรุณายืนยันว่าตกลงกับเพื่อนร่วมงานแล้ว'); errBox.classList.add('show'); return; }
 
