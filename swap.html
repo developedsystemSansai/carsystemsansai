@@ -190,6 +190,14 @@ textarea{resize:vertical;min-height:70px;}
 .day-pick.off{background:var(--teal-soft);border-color:#bfe4df;}
 .day-pick.off:hover{border-color:var(--teal);}
 .day-pick .dshift.off-text{color:var(--teal);font-weight:700;}
+/* ✅ สีประจำเวร: EMS แดง, ช2บ1 เขียว, ด(ดึก) เหลือง, ช ไม่เติมสี */
+.dshift.sh-ems,.shift-tag.sh-ems{color:var(--danger);font-weight:800;}
+.dshift.sh-ch2b1,.shift-tag.sh-ch2b1{color:var(--success);font-weight:800;}
+.dshift.sh-night,.shift-tag.sh-night{color:#9a7d00;font-weight:800;}
+.shift-tag{display:inline-block;padding:1px 7px;border-radius:6px;font-size:12px;font-weight:700;background:#eef1f6;color:var(--text-mid);}
+.shift-tag.sh-ems{background:var(--danger-soft);}
+.shift-tag.sh-ch2b1{background:var(--success-soft);}
+.shift-tag.sh-night{background:#fff6d6;}
 .empty-note{font-size:11.5px;color:var(--text-light);text-align:center;padding:14px 6px;}
 
 /* REQUEST CARD */
@@ -502,6 +510,21 @@ function shiftName(s){
   if(l==='ด'||l.startsWith('ด'))return'ดึก';
   return raw;
 }
+// ✅ สีประจำแต่ละประเภทเวร — ให้แยกแยะง่ายด้วยตาเปล่า: EMS สีแดง, ช2บ1 สีเขียว, ด (ดึก) สีเหลือง, ช (เช้าทั่วไป) ไม่เติมสี
+function shiftColorClass_(s){
+  const raw = String(s==null?'':s).trim();
+  if(!raw || raw==='0') return '';
+  const l = raw.toLowerCase();
+  if(l.includes('ems')) return 'sh-ems';
+  if(l.startsWith('ช2บ1')) return 'sh-ch2b1';
+  if(l==='ด'||l.startsWith('ด')) return 'sh-night';
+  return '';
+}
+// ✅ ใช้ครอบข้อความเวรเป็น badge สี — สำหรับจุดที่แสดงชื่อเวรแบบ inline (รายการรออนุมัติ/ประวัติ)
+function shiftTagHtml_(rawShift){
+  const cls = shiftColorClass_(rawShift);
+  return `<span class="shift-tag${cls?' '+cls:''}">${escHtml(shiftName(rawShift))}</span>`;
+}
 // ✅ วันที่ "ลา" (ไม่ได้เข้าเวรจริง) ไม่ควรให้เลือกมาแลกเวร แต่ยังให้เห็นในตาราง (ขึ้นสีแดงเตือน)
 function isLeaveShift_(s){ return String(s||'').trim()==='ลา'; }
 // ✅ วันที่ไม่มีข้อมูลเวรเลย (ค่าว่างจริงๆ) ไม่ต้องแสดง — ต่างจาก "0" ที่หมายถึง "ว่าง" (วันหยุด/ไม่มีเวร)
@@ -515,7 +538,8 @@ function dayPickHtml_(days, onclickName){
   return (days||[]).filter(x=>!isBlankShift_(x.shift)).map(x=>{
     const off = isOffShift_(x.shift);
     const leave = isLeaveShift_(x.shift);
-    return `<div class="day-pick${off?' off':''}" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="${onclickName}(this)"><div class="dnum">${x.day}</div><div class="dshift${leave?' leave':''}${off?' off-text':''}">${escHtml(shiftName(x.shift))}</div></div>`;
+    const colorCls = (!leave && !off) ? shiftColorClass_(x.shift) : '';
+    return `<div class="day-pick${off?' off':''}" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="${onclickName}(this)"><div class="dnum">${x.day}</div><div class="dshift${leave?' leave':''}${off?' off-text':''}${colorCls?' '+colorCls:''}">${escHtml(shiftName(x.shift))}</div></div>`;
   }).join('');
 }
 
