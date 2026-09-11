@@ -598,6 +598,7 @@ async function submitRequest(){
   if(!consent){ errBox.textContent=(session.isAdmin?'กรุณายืนยันว่าตรวจสอบและได้รับความยินยอมจากทั้งสองฝ่ายแล้ว':'กรุณายืนยันว่าตกลงกับเพื่อนร่วมงานแล้ว'); errBox.classList.add('show'); return; }
 
   const btn = $('req-submit-btn');
+  let refreshing = false;
   btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> กำลังส่งคำขอ…';
   try{
     const res = await callPost({
@@ -616,24 +617,19 @@ async function submitRequest(){
     }else{
       okBox.innerHTML = '✅ ส่งคำขอแลกเวรสำเร็จ — รหัสคำขอ <b>'+escHtml(res.requestId)+'</b><br>กรุณารอแอดมินตรวจสอบและอนุมัติ';
     }
+    okBox.innerHTML += '<br><span style="opacity:.75">🔄 บันทึกสำเร็จแล้ว กำลังรีเฟรชหน้าอัตโนมัติ…</span>';
     okBox.classList.add('show');
 
-    // reset ฟอร์ม
-    selReqDay = null; selTgtDay = null;
-    $('req-target-name').value=''; $('req-reason').value=''; $('req-consent').checked=false;
-    $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
-    if(session.isAdmin){
-      reqRequesterName = null; requesterDaysData = null;
-      $('req-requester-name').value = '';
-      $('req-my-days').innerHTML = '<div class="empty-note">กรุณาเลือกพนักงานคนที่ 1 (ผู้ให้เวร) ก่อน</div>';
-      rebuildTargetOptions();
-    }
-    await loadMyDays(); renderReqMyDays(); renderMineTab();
-    if(session.isAdmin) refreshPendingBadge();
+    // ✅ บันทึกสำเร็จแล้ว — รีเฟรชหน้าทั้งหมดหลังโชว์ข้อความสักครู่ แทนการ reset ฟอร์มเอง
+    //    ป้องกันรายการ/ตัวเลือกที่เลือกไว้ค้างอยู่จากรอบก่อนหน้า (state ไม่ตรงกับข้อมูลจริงหลังบันทึก)
+    btn.innerHTML = 'บันทึกสำเร็จแล้ว ✅';
+    refreshing = true;
+    setTimeout(function(){ location.reload(); }, 1800);
+    return;
   }catch(err){
     errBox.textContent = 'เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่'; errBox.classList.add('show');
   }finally{
-    btn.disabled = false; btn.innerHTML = 'ส่งคำขอแลกเวร';
+    if(!refreshing){ btn.disabled = false; btn.innerHTML = 'ส่งคำขอแลกเวร'; }
   }
 }
 
