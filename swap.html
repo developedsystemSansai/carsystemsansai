@@ -370,6 +370,8 @@ async function enterApp(){
   if(session.isAdmin){
     $('tbtn-pending').style.display='block';
     $('history-toggle-row').style.display='flex';
+    // ✅ แอดมิน: ให้เห็นประวัติของทุกคนทันทีโดยไม่ต้องติ๊กช่องเอง (ยังกดปิดดูเฉพาะของตัวเองภายหลังได้)
+    if($('history-show-all')) $('history-show-all').checked = true;
     // ✅ สิทธิ์แอดมิน: แลกเวรแทนพนักงานคนใดก็ได้ทั้ง 2 ฝั่ง โดยไม่ต้องเข้าไอดีของแต่ละคน
     $('req-admin-picker').style.display='block';
     $('req-hint-swap').textContent = 'เลือกพนักงาน 2 คน แล้วเลือกวันเวรของแต่ละคนที่จะสลับกัน ระบบจะแก้ไขตารางเวรจริงทันทีเมื่อกดส่ง (สิทธิ์แอดมิน ไม่ต้องรออนุมัติ)';
