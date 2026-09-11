@@ -217,7 +217,13 @@ textarea{resize:vertical;min-height:70px;}
 
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.loading-dots{text-align:center;padding:30px 10px;color:var(--text-light);font-size:13px;}
+.loading-dots{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:34px 10px;color:var(--text-light);font-size:13px;}
+.loading-dots .ld-spinner{width:30px;height:30px;border-radius:50%;border:3px solid var(--violet-soft);border-top-color:var(--violet);animation:ldSpin .75s linear infinite;}
+@keyframes ldSpin{to{transform:rotate(360deg);}}
+.loading-dots .ld-bar{width:130px;height:4px;border-radius:99px;background:var(--violet-soft);overflow:hidden;position:relative;}
+.loading-dots .ld-bar i{position:absolute;top:0;left:0;width:40%;height:100%;border-radius:99px;background:var(--violet);animation:ldBarMove 1.1s ease-in-out infinite;}
+@keyframes ldBarMove{0%{left:-40%;}50%{left:60%;}100%{left:100%;}}
+.loading-dots .ld-text{font-weight:600;color:var(--text-mid);}
 
 .toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:var(--text-mid);}
 .toggle-row input{width:16px;height:16px;}
@@ -351,7 +357,7 @@ textarea{resize:vertical;min-height:70px;}
       <div class="card">
         <h2>⏳ คำขอที่รอตรวจสอบ</h2>
         <div class="hint">อนุมัติจะเขียนตารางเวรจริงทันที และสร้างเอกสารบันทึกข้อความให้อัตโนมัติ</div>
-        <div id="pending-list"><div class="loading-dots">กำลังโหลด…</div></div>
+        <div id="pending-list"><div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div></div>
       </div>
     </div>
 
@@ -377,7 +383,7 @@ textarea{resize:vertical;min-height:70px;}
           <input type="checkbox" id="history-show-all" onchange="loadHistory()">
           <span>แอดมิน: แสดงคำขอของทุกคน</span>
         </div>
-        <div id="history-list"><div class="loading-dots">กำลังโหลด…</div></div>
+        <div id="history-list"><div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div></div>
       </div>
     </div>
 
@@ -392,7 +398,7 @@ textarea{resize:vertical;min-height:70px;}
       <button type="button" class="pdf-preview-close" onclick="closePdfPreview()">✕</button>
     </div>
     <div class="pdf-preview-body" id="pdf-preview-body">
-      <div class="loading-dots">กำลังโหลด…</div>
+      <div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div>
     </div>
     <div class="pdf-preview-footer" id="pdf-preview-footer">
       <button type="button" class="btn btn-outline" onclick="closePdfPreview()">ปิด แก้ไขก่อน</button>
@@ -564,7 +570,7 @@ async function onRequesterChange(){
     requesterDaysData = null;
     box.innerHTML = '<div class="empty-note">กรุณาเลือกพนักงานคนที่ 1 (ผู้ให้เวร) ก่อน</div>';
   }else{
-    box.innerHTML = '<div class="loading-dots">กำลังโหลด…</div>';
+    box.innerHTML = '<div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div>';
     const res = await callGet('getMyShiftDays', {name: reqRequesterName});
     requesterDaysData = (res.status==='ok') ? res : null;
     renderReqMyDays();
@@ -711,7 +717,7 @@ async function onTargetChange(){
   const name = $('req-target-name').value;
   const box = $('req-target-days');
   if(!name){ box.innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>'; return; }
-  box.innerHTML = '<div class="loading-dots">กำลังโหลด…</div>';
+  box.innerHTML = '<div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div>';
   const res = await callGet('getMyShiftDays', {name});
   if(res.status!=='ok'){ box.innerHTML = '<div class="empty-note">โหลดข้อมูลไม่สำเร็จ</div>'; return; }
   targetDays = res;
@@ -937,7 +943,7 @@ async function rejectReq(id){
 // ── TAB: ประวัติ ─────────────────────────────────────────
 async function loadHistory(){
   const box = $('history-list');
-  box.innerHTML = '<div class="loading-dots">กำลังโหลด…</div>';
+  box.innerHTML = '<div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div>';
   const showAll = session.isAdmin && $('history-show-all') && $('history-show-all').checked;
   const res = await callGet('getSwapHistory', showAll? {} : {phone: session.phone});
   if(res.status!=='ok'){ box.innerHTML = '<div class="empty-note">โหลดประวัติไม่สำเร็จ</div>'; return; }
@@ -1146,7 +1152,7 @@ async function previewSwapMonthlyPdf(){
 
   pdfPreviewMonthKey = monthKey;
   $('pdf-preview-month').textContent = selectedLabel;
-  $('pdf-preview-body').innerHTML = '<div class="loading-dots">กำลังโหลด…</div>';
+  $('pdf-preview-body').innerHTML = '<div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div>';
   const confirmBtn = $('pdf-preview-confirm-btn');
   confirmBtn.disabled = true;
   confirmBtn.style.display = '';
