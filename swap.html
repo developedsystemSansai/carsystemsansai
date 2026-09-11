@@ -275,6 +275,17 @@ textarea{resize:vertical;min-height:70px;}
 
     <!-- TAB: ประวัติ -->
     <div class="tab-panel" id="panel-history">
+      <div class="card" id="swap-report-card" style="display:none">
+        <h2>📄 ใบแลกเวร (ยื่นฝ่ายการเงิน)</h2>
+        <div class="hint">เลือกเดือนที่ต้องการ ระบบจะดึงเฉพาะคำขอที่ "อนุมัติแล้ว" ของเดือนนั้นมาลงในแบบฟอร์มให้ครบทุกรายการ แล้วดาวน์โหลดเป็นไฟล์ Excel (.xlsx) พร้อมยื่น</div>
+        <label>เดือนที่ต้องการ</label>
+        <select id="report-month-select"><option value="">— กำลังโหลดรายชื่อเดือน… —</option></select>
+        <div class="btn-row">
+          <button class="btn btn-success btn-sm" id="report-export-btn" onclick="exportSwapMonthlyXlsx()" disabled>⬇️ Excel (.xlsx)</button>
+          <button class="btn btn-outline btn-sm" id="report-pdf-btn" onclick="exportSwapMonthlyPdf()" disabled>🖨️ PDF</button>
+        </div>
+        <div id="report-export-msg"></div>
+      </div>
       <div class="card">
         <h2>📜 ประวัติการแลกเวร</h2>
         <div class="toggle-row" id="history-toggle-row" style="display:none">
@@ -289,6 +300,8 @@ textarea{resize:vertical;min-height:70px;}
 </div>
 
 <script src="secure-fetch.js"></script>
+<!-- SheetJS: ใช้สร้างไฟล์ .xlsx ของใบแลกเวร (แนวทางเดียวกับ dashboard.html) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec';
 const MONTH_TH=['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
@@ -365,6 +378,9 @@ async function enterApp(){
     $('req-target-days-label').textContent = 'วันเวรของพนักงานคนที่ 2 ที่จะให้พนักงานคนที่ 1 แทน';
     $('req-consent-label').textContent = 'ตรวจสอบแล้วว่าพนักงานทั้งสองฝ่ายยินยอมให้แลกเวรนี้';
   }
+
+  const canApproveReports = !!(session.isAdmin || String(session.role||'').indexOf('หัวหน้างาน')>=0);
+  if(canApproveReports){ $('swap-report-card').style.display='block'; loadReportMonths(); }
 
   await Promise.all([loadStaffList(), loadMyDays()]);
   renderMineTab();
@@ -689,6 +705,158 @@ async function loadHistory(){
     </div>
   `;
   }).join('');
+}
+
+// ── TAB: ใบแลกเวร (Excel รายเดือน สำหรับยื่นฝ่ายการเงิน) ──
+async function loadReportMonths(){
+  const sel = $('report-month-select');
+  const btn = $('report-export-btn');
+  const pdfBtn = $('report-pdf-btn');
+  sel.innerHTML = '<option value="">— กำลังโหลดรายชื่อเดือน… —</option>';
+  btn.disabled = true; pdfBtn.disabled = true;
+  try{
+    const res = await callGet('getSwapReportAvailableMonths', {});
+    if(res.status!=='ok' || !res.months || !res.months.length){
+      sel.innerHTML = '<option value="">ยังไม่มีคำขอที่อนุมัติแล้ว</option>';
+      return;
+    }
+    sel.innerHTML = res.months.map(m=>`<option value="${m.key}">${escHtml(m.label)} (${m.count} รายการ)</option>`).join('');
+    btn.disabled = false; pdfBtn.disabled = false;
+  }catch(err){
+    sel.innerHTML = '<option value="">โหลดรายชื่อเดือนไม่สำเร็จ</option>';
+  }
+}
+
+/** สร้างชีต "ใบแลกเวร" ตามแบบฟอร์มต้นฉบับ (แบบแลกเวร งาน บริหารทั่วไป (บริหารยานพาหานะ))
+ *  หัวตาราง 2 แถว + merge เหมือนต้นฉบับ, จำนวนแถวข้อมูลปรับตามจำนวนรายการจริงของเดือนนั้น */
+function buildSwapReportWorksheet(monthLabel, rows){
+  const THIN = { style:'thin', color:{ rgb:'000000' } };
+  const BORDER_ALL = { top:THIN, bottom:THIN, left:THIN, right:THIN };
+  const headerStyle = { font:{ name:'Sarabun', sz:14, bold:true }, alignment:{ horizontal:'center', vertical:'center', wrapText:true }, border:BORDER_ALL };
+  const titleStyle  = { font:{ name:'Sarabun', sz:16, bold:true }, alignment:{ horizontal:'center', vertical:'center' } };
+  const dataStyle   = { font:{ name:'Sarabun', sz:13 }, alignment:{ horizontal:'center', vertical:'center', wrapText:true }, border:BORDER_ALL };
+  const dataStyleL  = { font:{ name:'Sarabun', sz:13 }, alignment:{ horizontal:'left', vertical:'center', wrapText:true }, border:BORDER_ALL };
+
+  const aoa = [];
+  aoa.push(['','','',`แบบแลกเวร งาน บริหารทั่วไป (บริหารยานพาหานะ) เดือน ${monthLabel}`]);
+  aoa.push(['','','','','','','','','','','','','','','','','']);
+  aoa.push(['ลำดับ','ว/ด/ป','ชื่อ-สกุล ผู้ขอแลก','เวรเดิม','','แลกเป็น','','ชื่อ-สกุล ผู้รับแลกเวร','','เวรเดิม','','แลกเป็น','','ลายมือชื่อ\nผู้ขอแลก','ลายมือชื่อ\nผู้รับแลก','ลายมือชื่อ\nหัวหน้างาน','หมายเหตุ']);
+  aoa.push(['','','','ว/ด/ป','เวร','ว/ด/ป','เวร','','','ว/ด/ป','เวร','ว/ด/ป','เวร','','','','']);
+
+  rows.forEach(r=>{
+    aoa.push([
+      r.no, r.recordDate||'', r.requesterName||'',
+      r.reqOldDate||'', r.reqOldShift||'', r.reqNewDate||'', r.reqNewShift||'',
+      r.targetName||'', '',
+      r.tgtOldDate||'', r.tgtOldShift||'', r.tgtNewDate||'', r.tgtNewShift||'',
+      '', '', '', r.remark||''
+    ]);
+  });
+
+  const dataStart = 4;              // 0-based row index ของแถวข้อมูลแรก (แถวที่ 5 ใน Excel)
+  const dataEnd = dataStart + rows.length - 1;
+  const sigRow = dataEnd + 2;       // เว้น 1 แถว แล้วเริ่มบล็อกลงนาม
+
+  while (aoa.length <= sigRow + 2) aoa.push(new Array(17).fill(''));
+  aoa[sigRow][11]   = 'ตรวจสอบแล้ว';
+  aoa[sigRow][13]   = '.................................................หัวหน้าฝ่าย';
+  aoa[sigRow+1][13] = '(นายชัยพร มอญแสง)';
+  aoa[sigRow+2][11] = 'ตำแหน่ง';
+  aoa[sigRow+2][13] = 'พนักงานขับรถยนต์';
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  ws['!merges'] = [
+    { s:{r:0,c:3}, e:{r:1,c:13} },                 // หัวเรื่อง
+    { s:{r:2,c:0}, e:{r:3,c:0} },                   // ลำดับ
+    { s:{r:2,c:1}, e:{r:3,c:1} },                   // ว/ด/ป
+    { s:{r:2,c:2}, e:{r:3,c:2} },                   // ชื่อผู้ขอแลก
+    { s:{r:2,c:3}, e:{r:2,c:4} },                   // เวรเดิม (ผู้ขอแลก)
+    { s:{r:2,c:5}, e:{r:2,c:6} },                   // แลกเป็น (ผู้ขอแลก)
+    { s:{r:2,c:7}, e:{r:3,c:8} },                   // ชื่อผู้รับแลกเวร
+    { s:{r:2,c:9}, e:{r:2,c:10} },                  // เวรเดิม (ผู้รับแลก)
+    { s:{r:2,c:11}, e:{r:2,c:12} },                 // แลกเป็น (ผู้รับแลก)
+    { s:{r:2,c:13}, e:{r:3,c:13} },                 // ลายมือชื่อผู้ขอแลก
+    { s:{r:2,c:14}, e:{r:3,c:14} },                 // ลายมือชื่อผู้รับแลก
+    { s:{r:2,c:15}, e:{r:3,c:15} },                 // ลายมือชื่อหัวหน้างาน
+    { s:{r:2,c:16}, e:{r:3,c:16} },                 // หมายเหตุ
+    { s:{r:sigRow,c:11}, e:{r:sigRow,c:12} },       // ตรวจสอบแล้ว
+    { s:{r:sigRow,c:13}, e:{r:sigRow,c:15} },       // เส้นลงชื่อ
+    { s:{r:sigRow+1,c:13}, e:{r:sigRow+1,c:14} },   // (นายชัยพร มอญแสง)
+    { s:{r:sigRow+2,c:11}, e:{r:sigRow+2,c:12} },   // ตำแหน่ง
+    { s:{r:sigRow+2,c:13}, e:{r:sigRow+2,c:14} }    // พนักงานขับรถยนต์
+  ];
+
+  ws['!cols'] = [
+    {wch:6},{wch:12},{wch:22},{wch:11},{wch:9},{wch:11},{wch:9},
+    {wch:22},{wch:1},{wch:11},{wch:9},{wch:11},{wch:9},
+    {wch:16},{wch:16},{wch:16},{wch:20}
+  ];
+  ws['!rows'] = aoa.map((_,i)=> i===0 ? {hpt:22} : (i>=2 && i<=3 ? {hpt:30} : (i>=dataStart && i<=dataEnd ? {hpt:26} : {hpt:18})));
+
+  function setStyle(r,c,style){
+    const ref = XLSX.utils.encode_cell({r,c});
+    if(ws[ref]) ws[ref].s = style;
+  }
+  setStyle(0,3,titleStyle);
+  for(let c=0;c<17;c++){ setStyle(2,c,headerStyle); setStyle(3,c,headerStyle); }
+  for(let r=dataStart;r<=dataEnd;r++){
+    for(let c=0;c<17;c++){ setStyle(r,c, (c===2||c===7||c===16) ? dataStyleL : dataStyle); }
+  }
+
+  ws['!printHeader'] = true;
+  ws['!margins'] = { left:0.3, right:0.3, top:0.4, bottom:0.4, header:0.2, footer:0.2 };
+  return ws;
+}
+
+async function exportSwapMonthlyXlsx(){
+  const sel = $('report-month-select');
+  const btn = $('report-export-btn');
+  const msg = $('report-export-msg');
+  const monthKey = sel.value;
+  msg.textContent = '';
+  if(!monthKey) return;
+  if(typeof XLSX === 'undefined'){ msg.textContent = 'ไลบรารีสร้างไฟล์ Excel โหลดไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'; return; }
+
+  btn.disabled = true; const oldLabel = btn.innerHTML; btn.innerHTML = '<span class="spinner"></span> กำลังสร้างไฟล์…';
+  try{
+    const res = await callGet('getSwapMonthlyReport', {monthKey});
+    if(res.status!=='ok'){ msg.textContent = res.message || 'ดึงข้อมูลไม่สำเร็จ'; return; }
+    if(!res.rows || !res.rows.length){ msg.textContent = 'เดือนนี้ยังไม่มีรายการแลกเวรที่อนุมัติแล้ว'; return; }
+
+    const ws = buildSwapReportWorksheet(res.monthLabel, res.rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'ใบแลกเวร');
+    const filename = `ใบแลกเวร_${res.monthLabel.replace(/\s+/g,'_')}.xlsx`;
+    if(typeof XLSX.writeFileXLSX === 'function') XLSX.writeFileXLSX(wb, filename);
+    else XLSX.writeFile(wb, filename, {bookType:'xlsx'});
+  }catch(err){
+    msg.textContent = 'เกิดข้อผิดพลาด: ' + (err.message||err);
+  }finally{
+    btn.disabled = false; btn.innerHTML = oldLabel;
+  }
+}
+
+/** สร้าง PDF ฝั่งเซิร์ฟเวอร์ (GAS สร้าง Google Sheet ชั่วคราวจัดหน้าให้ แล้ว export เป็น PDF จริง)
+ *  ใช้เมื่อ Excel ไม่สะดวก หรือให้ฝ่ายการเงินเปิดดู/พิมพ์ตรงได้ทันทีโดยไม่ต้องมี Excel */
+async function exportSwapMonthlyPdf(){
+  const sel = $('report-month-select');
+  const pdfBtn = $('report-pdf-btn');
+  const msg = $('report-export-msg');
+  const monthKey = sel.value;
+  msg.textContent = '';
+  if(!monthKey) return;
+
+  pdfBtn.disabled = true; const oldLabel = pdfBtn.innerHTML; pdfBtn.innerHTML = '<span class="spinner"></span> กำลังสร้าง PDF…';
+  try{
+    const res = await callPost({action:'generateSwapMonthlyReportPdf', monthKey});
+    if(res.status!=='ok'){ msg.textContent = res.message || 'สร้าง PDF ไม่สำเร็จ'; return; }
+    window.open(res.pdfDownloadUrl || res.pdfUrl, '_blank');
+  }catch(err){
+    msg.textContent = 'เกิดข้อผิดพลาด: ' + (err.message||err);
+  }finally{
+    pdfBtn.disabled = false; pdfBtn.innerHTML = oldLabel;
+  }
 }
 
 // ── TAB SWITCH ───────────────────────────────────────────
