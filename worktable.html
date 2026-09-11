@@ -563,8 +563,14 @@ function roleChipClass(role){
   return 'role-driver';
 }
 // ✅ NEW: avatar เป็นรูปจริงถ้ามี photo, ไม่งั้น fallback เป็นวงกลมสีตัวอักษรย่อเหมือนเดิม
+//    ✅ FIX: ใส่ตัวอักษรย่อ "ไว้ข้างล่างเสมอ" แล้วซ้อนรูปทับไว้ด้านบน (ตาม CSS .staff-avatar img{position:absolute;inset:0})
+//       ถ้ารูปโหลดไม่ขึ้น (ลิงก์เสีย/ไม่มีสิทธิ์ดู) ให้ลบ <img> ทิ้งด้วย onerror เพื่อเผยตัวอักษรย่อที่ซ่อนอยู่แทนไอคอนรูปพัง
 function avatarInner(person){
-  return person&&person.photo ? `<img src="${person.photo}" alt="${escapeHtmlJob(person.name||'')}" loading="lazy">` : avatarLetter(person&&person.name);
+  const letter = avatarLetter(person&&person.name);
+  if(person&&person.photo){
+    return `${letter}<img src="${person.photo}" alt="${escapeHtmlJob(person.name||'')}" loading="lazy" onerror="this.remove()">`;
+  }
+  return letter;
 }
 // ── ไอคอนเส้น (แทนอีโมจิ) ใช้ currentColor ให้รับสีจากตัวห่อ ──
 function _ico(path){return `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>`;}
