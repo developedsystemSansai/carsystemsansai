@@ -227,6 +227,21 @@ textarea{resize:vertical;min-height:70px;}
 
 .toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:var(--text-mid);}
 .toggle-row input{width:16px;height:16px;}
+
+/* ✅ Skeleton screen — โชว์ระหว่างโหลดข้อมูลรอบแรก/หลังรีเฟรชหน้า จนกว่าข้อมูลจริงจะพร้อม */
+#page-skeleton{padding-bottom:40px;}
+.sk-tabbar{display:flex;gap:8px;padding:10px 12px;max-width:720px;margin:0 auto;}
+.sk-wrap{padding:14px 12px 20px;max-width:720px;margin:0 auto;}
+.sk-card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow-sm);}
+.sk{position:relative;overflow:hidden;background:#e3e9f2;border-radius:8px;}
+.sk::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);animation:skShimmer 1.3s infinite;}
+@keyframes skShimmer{100%{transform:translateX(100%);}}
+.sk-tab{height:36px;flex:1;border-radius:8px;}
+.sk-avatar{width:44px;height:44px;border-radius:50%;flex-shrink:0;}
+.sk-row{display:flex;align-items:center;gap:12px;margin-bottom:4px;}
+.sk-col{flex:1;display:flex;flex-direction:column;gap:8px;}
+.sk-title{height:15px;border-radius:6px;}
+.sk-line{height:11px;border-radius:6px;}
 </style>
 </head>
 <body>
@@ -243,6 +258,42 @@ textarea{resize:vertical;min-height:70px;}
   </div>
 </header>
 
+<!-- ✅ Skeleton screen — แสดงระหว่างตรวจสอบเซสชัน/โหลดข้อมูล ป้องกันหน้าจอกระพริบหรือเห็นข้อมูลเก่าค้าง -->
+<div id="page-skeleton">
+  <div class="sk-tabbar">
+    <div class="sk sk-tab"></div>
+    <div class="sk sk-tab"></div>
+    <div class="sk sk-tab"></div>
+  </div>
+  <div class="sk-wrap">
+    <div class="sk-card">
+      <div class="sk-row">
+        <div class="sk sk-avatar"></div>
+        <div class="sk-col">
+          <div class="sk sk-title" style="width:45%"></div>
+          <div class="sk sk-line" style="width:30%"></div>
+        </div>
+      </div>
+    </div>
+    <div class="sk-card">
+      <div class="sk sk-title" style="width:50%;margin-bottom:14px"></div>
+      <div class="sk-col">
+        <div class="sk sk-line"></div>
+        <div class="sk sk-line" style="width:85%"></div>
+        <div class="sk sk-line" style="width:60%"></div>
+      </div>
+    </div>
+    <div class="sk-card">
+      <div class="sk sk-title" style="width:40%;margin-bottom:14px"></div>
+      <div class="sk-col">
+        <div class="sk sk-line"></div>
+        <div class="sk sk-line" style="width:70%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="app-shell" style="display:none">
 <div class="tab-bar" id="tab-bar" style="display:none">
   <div class="tab-bar-inner">
     <button class="tab-btn active" id="tbtn-mine" onclick="showTab('mine')">เวรของฉัน</button>
@@ -389,6 +440,7 @@ textarea{resize:vertical;min-height:70px;}
 
   </div>
 </div>
+</div><!-- /#app-shell -->
 
 <!-- ✅ Modal พรีวิวใบแลกเวรก่อนสร้าง PDF จริง -->
 <div class="pdf-preview-overlay" id="pdf-preview-overlay">
@@ -1219,9 +1271,20 @@ function showTab(name){
 }
 
 // ── INIT ─────────────────────────────────────────────────
+// ✅ ซ่อน skeleton แล้วค่อยโชว์เนื้อหาจริง — เรียกเมื่อข้อมูลพร้อมครบแล้วเท่านั้น (กันหน้าจอกระพริบ/เห็นข้อมูลเก่าค้างตอนรีเฟรช)
+function revealApp(){
+  $('page-skeleton').style.display = 'none';
+  $('app-shell').style.display = 'block';
+}
 (async function init(){
   loadSession();
-  if(session && session.phone){ await enterApp(); }
+  try{
+    if(session && session.phone){ await enterApp(); }
+  }catch(e){
+    // โหลดข้อมูลผิดพลาด — ไม่ปล่อยให้หน้าจอค้างที่ skeleton ตลอดไป
+  }finally{
+    revealApp();
+  }
 })();
 </script>
 </body>
