@@ -91,15 +91,17 @@ textarea{resize:vertical;min-height:70px;}
 .btn-success{background:linear-gradient(135deg,#22a55a,var(--success));color:#fff;}
 .btn-danger{background:#fff;color:var(--danger);border:1.5px solid var(--danger);}
 .btn-outline{background:#fff;color:var(--text-mid);border:1.5px solid var(--border-strong);}
-.btn-row{display:flex;gap:8px;margin-top:10px;}
-.btn-row .btn{margin-top:0;}
+.btn-row{display:flex;gap:8px;margin-top:10px;align-items:flex-start;}
+.btn-row>.btn{margin-top:0;flex:1 1 0;min-width:0;}
 .btn-sm{padding:9px;font-size:12.5px;}
+.btn-pdf-wrap{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:6px;}
+.btn-pdf-wrap .btn{margin-top:0;width:100%;}
 
 /* ✅ ปุ่ม PDF แบบเด่นชัด — ให้ พขร. สังเกตเห็นและกดง่ายที่สุด */
 .btn-pdf-highlight{background:linear-gradient(135deg,#e04b3a,var(--danger));color:#fff;border:none;box-shadow:0 4px 14px rgba(192,57,43,.5);position:relative;animation:pdfHighlightPulse 1.8s ease-in-out infinite;}
 .btn-pdf-highlight:disabled{animation:none;}
 @keyframes pdfHighlightPulse{0%,100%{box-shadow:0 4px 14px rgba(192,57,43,.45);}50%{box-shadow:0 4px 22px rgba(192,57,43,.85);}}
-.report-pdf-hint{font-size:11.5px;color:var(--danger);font-weight:700;margin-top:8px;text-align:center;line-height:1.5;}
+.report-pdf-hint{font-size:11px;color:var(--danger);font-weight:700;text-align:center;line-height:1.4;}
 
 /* ✅ PDF Preview Modal */
 .pdf-preview-overlay{position:fixed;inset:0;z-index:9999;background:rgba(20,20,25,.55);display:none;align-items:flex-end;justify-content:center;}
@@ -309,9 +311,11 @@ textarea{resize:vertical;min-height:70px;}
         <select id="report-month-select"><option value="">— กำลังโหลดรายชื่อเดือน… —</option></select>
         <div class="btn-row">
           <button class="btn btn-success btn-sm" id="report-export-btn" onclick="exportSwapMonthlyXlsx()" disabled>⬇️ Excel (.xlsx)</button>
-          <button class="btn btn-pdf-highlight btn-sm" id="report-pdf-btn" onclick="previewSwapMonthlyPdf()" disabled>🖨️ PDF</button>
+          <div class="btn-pdf-wrap">
+            <button class="btn btn-pdf-highlight btn-sm" id="report-pdf-btn" onclick="previewSwapMonthlyPdf()" disabled>🖨️ PDF</button>
+            <div class="report-pdf-hint">👆 กดปุ่มนี้<br>ง่ายสุด ไม่ต้องมี Excel</div>
+          </div>
         </div>
-        <div class="report-pdf-hint">👆 พขร. กดปุ่มสีแดง "PDF" นี้ — เปิด/พิมพ์ได้ง่ายที่สุด ไม่ต้องมีโปรแกรม Excel</div>
         <div id="report-export-msg"></div>
       </div>
       <div class="card">
@@ -483,6 +487,26 @@ async function onRequesterChange(){
 }
 
 function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/** ✅ แทรกจุดตัดคำที่ถูกต้องสำหรับข้อความภาษาไทย (เช่น ช่องหมายเหตุ) ก่อนใส่ในเซลล์ Excel/PDF
+ *  ปัญหาเดิม: Excel/Google Sheets ไม่รู้จักการตัดคำภาษาไทย (ไม่มีเว้นวรรคระหว่างคำ) จึงตัดขึ้นบรรทัดใหม่
+ *  แบบผิดตำแหน่ง (กลางคำ) เมื่อข้อความยาวเกินความกว้างเซลล์
+ *  วิธีแก้: ใช้ Intl.Segmenter (มาตรฐาน ECMA-402, ใช้พจนานุกรมตัดคำแบบเดียวกับที่เบราว์เซอร์ใช้)
+ *  แบ่งคำให้ถูกต้องตามหลักการตัดคำภาษาไทย แล้วแทรกอักขระ Zero-Width Space (มองไม่เห็น)
+ *  คั่นระหว่างคำ เพื่อบอกโปรแกรมว่า "ขึ้นบรรทัดใหม่ตรงนี้ได้เท่านั้น" — ตัวอักขระที่มองเห็นจะไม่เปลี่ยนแปลง */
+function thaiWordBreak(text){
+  text = String(text||'');
+  if(!text) return text;
+  try{
+    if(typeof Intl!=='undefined' && typeof Intl.Segmenter==='function'){
+      const seg = new Intl.Segmenter('th', {granularity:'word'});
+      let out = '';
+      for(const {segment} of seg.segment(text)){ out += segment + '\u200B'; }
+      return out.replace(/\u200B$/, '');
+    }
+  }catch(e){ /* เบราว์เซอร์ไม่รองรับ — ใช้ข้อความเดิม ไม่กระทบการทำงาน */ }
+  return text;
+}
 function escAttr(s){ return escHtml(s); }
 
 // ── TAB: เวรของฉัน ───────────────────────────────────────
@@ -774,7 +798,7 @@ async function loadReportMonths(){
   }
 }
 
-/** สร้างชีต "ใบแลกเวร" ตามแบบฟอร์มต้นฉบับ (แบบแลกเวร งาน บริหารทั่วไป (บริหารยานพาหานะ))
+/** สร้างชีต "ใบแลกเวร" ตามแบบฟอร์มต้นฉบับ (แบบแลกเวร งานยานพาหนะ(บริหารทั่วไป) โรงพยาบาลสันทราย จังหวัดเชียงใหม่)
  *  หัวตาราง 2 แถว + merge เหมือนต้นฉบับ, จำนวนแถวข้อมูลปรับตามจำนวนรายการจริงของเดือนนั้น */
 function buildSwapReportWorksheet(monthLabel, rows){
   const THIN = { style:'thin', color:{ rgb:'000000' } };
@@ -785,7 +809,7 @@ function buildSwapReportWorksheet(monthLabel, rows){
   const dataStyleL  = { font:{ name:'Sarabun', sz:13 }, alignment:{ horizontal:'left', vertical:'center', wrapText:true }, border:BORDER_ALL };
 
   const aoa = [];
-  aoa.push(['','','',`แบบแลกเวร งาน บริหารทั่วไป (บริหารยานพาหานะ) เดือน ${monthLabel}`]);
+  aoa.push(['','','',`แบบแลกเวร งานยานพาหนะ(บริหารทั่วไป) โรงพยาบาลสันทราย จังหวัดเชียงใหม่ เดือน ${monthLabel}`]);
   aoa.push(['','','','','','','','','','','','','','','','','']);
   aoa.push(['ลำดับ','ว/ด/ป','ชื่อ-สกุล ผู้ขอแลก','เวรเดิม','','แลกเป็น','','ชื่อ-สกุล ผู้รับแลกเวร','','เวรเดิม','','แลกเป็น','','ลายมือชื่อ\nผู้ขอแลก','ลายมือชื่อ\nผู้รับแลก','ลายมือชื่อ\nหัวหน้างาน','หมายเหตุ']);
   aoa.push(['','','','ว/ด/ป','เวร','ว/ด/ป','เวร','','','ว/ด/ป','เวร','ว/ด/ป','เวร','','','','']);
@@ -796,7 +820,7 @@ function buildSwapReportWorksheet(monthLabel, rows){
       r.reqOldDate||'', r.reqOldShift||'', r.reqNewDate||'', r.reqNewShift||'',
       r.targetName||'', '',
       r.tgtOldDate||'', r.tgtOldShift||'', r.tgtNewDate||'', r.tgtNewShift||'',
-      '', '', '', r.remark||''
+      '', '', '', thaiWordBreak(r.remark||'')
     ]);
   });
 
@@ -911,7 +935,7 @@ function renderPdfPreviewTable(monthLabel, rows){
       <td class="pv-name">${pvEsc(r.targetName)}</td>
       <td>${pvEsc(r.tgtOldDate)}<br>${pvEsc(r.tgtOldShift)}</td>
       <td>${pvEsc(r.tgtNewDate)}<br>${pvEsc(r.tgtNewShift)}</td>
-      <td>${pvEsc(r.remark)}</td>
+      <td>${pvEsc(thaiWordBreak(r.remark))}</td>
     </tr>`).join('');
   $('pdf-preview-body').innerHTML = `
     <div class="pdf-preview-note">ตรวจสอบรายการด้านล่างก่อนกด "ยืนยัน สร้าง PDF" — หากข้อมูลผิด ให้ปิดหน้านี้แล้วไปแก้ที่ประวัติการแลกเวรก่อน</div>
