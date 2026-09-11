@@ -404,7 +404,21 @@ let myDays = null;       // จาก getMyShiftDays(session.name) -> {current:{
 let targetDays = null;   // shift days ของเพื่อนที่เลือก
 let selReqDay = null, selTgtDay = null;
 
-function shiftName(s){if(!s)return'';const raw=String(s);const l=raw.toLowerCase();if(l.startsWith('ช1บ2'))return'ช1บ2';if(l.startsWith('ช2บ1'))return'ช2บ1';if(l.includes('ems'))return'EMS';if(l.startsWith('ช1'))return'เช้า1';if(l.startsWith('ช2'))return'เช้า2';if(l.startsWith('ช3'))return'เช้า3';if(l==='ด'||l.startsWith('ด'))return'ดึก';return raw;}
+// ✅ แปลงรหัสเวรเป็นข้อความอ่านง่ายสำหรับแสดงผล — ถ้าช่องนั้นเป็นค่าว่าง หรือ "0" (ไม่มีเวรกำหนดไว้)
+//    ให้ขึ้นข้อความ "ว่าง(ไม่มีเวร)" แทนที่จะแสดง "0" ตรงๆ หรือปล่อยว่างเปล่าจนดูเหมือน UI ผิดพลาด
+function shiftName(s){
+  const raw = String(s==null ? '' : s).trim();
+  if(!raw || raw==='0') return 'ว่าง(ไม่มีเวร)';
+  const l = raw.toLowerCase();
+  if(l.startsWith('ช1บ2'))return'ช1บ2';
+  if(l.startsWith('ช2บ1'))return'ช2บ1';
+  if(l.includes('ems'))return'EMS';
+  if(l.startsWith('ช1'))return'เช้า1';
+  if(l.startsWith('ช2'))return'เช้า2';
+  if(l.startsWith('ช3'))return'เช้า3';
+  if(l==='ด'||l.startsWith('ด'))return'ดึก';
+  return raw;
+}
 // ✅ วันที่ "ลา" (ไม่ได้เข้าเวรจริง) ไม่ควรให้เลือกมาแลกเวร แต่ยังให้เห็นในตาราง (ขึ้นสีแดงเตือน)
 function isLeaveShift_(s){ return String(s||'').trim()==='ลา'; }
 // ✅ วันที่ไม่มีเวร (ค่าว่าง หรือ "0") ไม่ต้องแสดงในตัวเลือกแลกเวรเลย
