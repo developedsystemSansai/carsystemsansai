@@ -124,20 +124,42 @@ textarea{resize:vertical;min-height:70px;}
 .pdf-preview-result a.btn{text-decoration:none;}
 .pdf-preview-result .pv-url{word-break:break-all;font-size:11px;color:var(--text-mid);margin-top:8px;}
 
-/* ✅ Full-screen แจ้งเตือนส่งคำขอ/แลกเวรสำเร็จ */
-.success-overlay{position:fixed;inset:0;z-index:10000;background:linear-gradient(160deg,var(--navy-mid) 0%,#1a3f6a 60%,#173660 100%);display:none;align-items:center;justify-content:center;padding:24px;}
-.success-overlay.show{display:flex;}
-.success-modal{max-width:420px;width:100%;text-align:center;color:#fff;animation:successPop .3s ease;}
-@keyframes successPop{from{transform:scale(.92);opacity:0;}to{transform:scale(1);opacity:1;}}
-.success-icon-wrap{width:88px;height:88px;border-radius:50%;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.25);display:flex;align-items:center;justify-content:center;font-size:44px;margin:0 auto 18px;animation:successPulse 1.4s ease-in-out infinite;}
-@keyframes successPulse{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(255,255,255,.15);}50%{transform:scale(1.05);box-shadow:0 0 0 10px rgba(255,255,255,0);}}
-.success-title{font-size:22px;font-weight:800;margin-bottom:10px;}
-.success-sub{font-size:13.5px;color:rgba(255,255,255,.82);line-height:1.7;margin-bottom:6px;}
-.success-reqid{font-family:'IBM Plex Mono',monospace;background:rgba(255,255,255,.12);border-radius:6px;padding:2px 8px;font-size:12.5px;}
-.success-memo-block{margin:16px 0 4px;}
-.success-memo-block .memo-links{justify-content:center;}
-.success-overlay .btn-primary{background:#fff;color:var(--navy-mid);box-shadow:0 3px 14px rgba(0,0,0,.25);}
-.success-close-btn{margin-top:22px;width:100%;max-width:260px;margin-left:auto;margin-right:auto;}
+/* ✅ Toast แจ้งเตือนบันทึกสำเร็จ (แบบมืออาชีพ ขึ้นมุมบนแค่ 4 วิ ไม่ต้องกดปิด) */
+.toast-success{
+  position:fixed; top:20px; left:50%; z-index:10000;
+  transform:translate(-50%,-24px) scale(.96);
+  opacity:0;
+  display:flex; align-items:center; gap:12px;
+  background:#fff; color:var(--navy-mid);
+  border-radius:14px;
+  padding:14px 22px 14px 16px;
+  min-width:220px; max-width:calc(100vw - 32px);
+  box-shadow:0 12px 32px rgba(15,40,80,.22), 0 3px 10px rgba(15,40,80,.10);
+  border-left:4px solid var(--success);
+  pointer-events:none;
+  transition:transform .45s cubic-bezier(.34,1.56,.64,1), opacity .35s ease;
+  overflow:hidden;
+}
+.toast-success.show{ transform:translate(-50%,0) scale(1); opacity:1; }
+.toast-success .toast-icon{
+  flex-shrink:0; width:30px; height:30px; border-radius:50%;
+  background:var(--success-soft); color:var(--success);
+  display:flex; align-items:center; justify-content:center;
+}
+.toast-success .toast-icon svg{ width:16px; height:16px; }
+.toast-success .toast-icon svg path{
+  stroke-dasharray:20; stroke-dashoffset:20;
+  animation:toastCheck .35s .18s ease forwards;
+}
+@keyframes toastCheck{ to{ stroke-dashoffset:0; } }
+.toast-success .toast-text{ font-size:14.5px; font-weight:700; letter-spacing:.1px; }
+.toast-success .toast-bar{
+  position:absolute; left:0; bottom:0; height:3px; width:100%;
+  background:var(--success); transform-origin:left; transform:scaleX(1);
+}
+.toast-success.show .toast-bar{ animation:toastShrink 4s linear forwards; }
+@keyframes toastShrink{ to{ transform:scaleX(0); } }
+@media (max-width:480px){ .toast-success{ top:14px; padding:12px 18px 12px 14px; } }
 
 /* TABS (post-login) */
 .tab-bar{background:var(--card);border-bottom:1.5px solid var(--border);position:sticky;top:60px;z-index:100;overflow-x:auto;}
@@ -379,15 +401,15 @@ textarea{resize:vertical;min-height:70px;}
   </div>
 </div>
 
-<!-- ✅ แจ้งเตือนแบบเต็มหน้าจอ เมื่อส่งคำขอ/แลกเวรสำเร็จ -->
-<div class="success-overlay" id="swap-success-overlay">
-  <div class="success-modal">
-    <div class="success-icon-wrap" id="success-icon-wrap">✅</div>
-    <div class="success-title" id="success-title">ส่งคำขอสำเร็จ</div>
-    <div class="success-sub" id="success-sub"></div>
-    <div class="success-memo-block" id="success-memo-block"></div>
-    <button type="button" class="btn btn-primary success-close-btn" id="success-close-btn" onclick="closeSuccessOverlay()">ตกลง</button>
+<!-- ✅ Toast แจ้งเตือนบันทึกสำเร็จ — ขึ้นมุมบน 4 วินาทีแล้วหายเอง ไม่ต้องกดปิด -->
+<div class="toast-success" id="swap-toast-success" role="status" aria-live="polite">
+  <div class="toast-icon">
+    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M4 12.5L9.2 18L20 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
   </div>
+  <div class="toast-text">บันทึกสำเร็จ</div>
+  <div class="toast-bar"></div>
 </div>
 
 <script src="secure-fetch.js"></script>
@@ -778,23 +800,9 @@ async function submitRequest(){
     });
     if(res.status!=='ok'){ errBox.textContent = res.message || 'ส่งคำขอไม่สำเร็จ'; errBox.classList.add('show'); return; }
 
-    if(res.autoApproved){
-      showSuccessOverlay({
-        title: 'แลกเวรสำเร็จ',
-        sub: 'ระบบแก้ไขตารางเวรให้เรียบร้อยแล้ว (สิทธิ์แอดมิน ไม่ต้องรออนุมัติ)',
-        requestId: res.requestId,
-        memo: res.memo
-      });
-    }else{
-      showSuccessOverlay({
-        title: 'ส่งคำขอสำเร็จ',
-        sub: 'กรุณารอแอดมินตรวจสอบและอนุมัติคำขอนี้',
-        requestId: res.requestId,
-        memo: null
-      });
-    }
+    showSuccessOverlay();
 
-    // ✅ บันทึกสำเร็จแล้ว — เมื่อผู้ใช้ปิดแจ้งเตือนเต็มหน้าจอ (closeSuccessOverlay) จะรีเฟรชหน้าทั้งหมด
+    // ✅ บันทึกสำเร็จแล้ว — toast จะแสดง 4 วินาทีแล้วรีเฟรชหน้าทั้งหมดให้อัตโนมัติ
     //    ป้องกันรายการ/ตัวเลือกที่เลือกไว้ค้างอยู่จากรอบก่อนหน้า (state ไม่ตรงกับข้อมูลจริงหลังบันทึก)
     refreshing = true;
     return;
@@ -805,19 +813,12 @@ async function submitRequest(){
   }
 }
 
-// ✅ แจ้งเตือนแบบเต็มหน้าจอเมื่อส่งคำขอ/แลกเวรสำเร็จ — ผู้ใช้กด "ตกลง" เพื่อปิดแล้วรีเฟรชหน้า
-//    (ไม่ auto-close เอง เผื่อกรณีแลกเวรสำเร็จทันที ผู้ใช้อาจต้องการกดลิงก์เปิด/ดาวน์โหลดเอกสารก่อน)
-function showSuccessOverlay({title, sub, requestId, memo}){
-  $('success-title').textContent = title;
-  let subHtml = escHtml(sub);
-  if(requestId) subHtml += `<br>รหัสคำขอ <span class="success-reqid">${escHtml(requestId)}</span>`;
-  $('success-sub').innerHTML = subHtml;
-  $('success-memo-block').innerHTML = memo ? memoBlockHtml(requestId, memo, true) : '';
-  $('swap-success-overlay').classList.add('show');
-}
-function closeSuccessOverlay(){
-  $('swap-success-overlay').classList.remove('show');
-  location.reload();
+// ✅ แจ้งเตือน "บันทึกสำเร็จ" แบบ toast มุมบน — ไม่บังหน้าจอ ไม่ต้องกดปิด
+//    โชว์ 4 วินาทีแล้วรีเฟรชหน้าอัตโนมัติ (กันรายการ/ตัวเลือกค้างจากรอบก่อนหน้า)
+function showSuccessOverlay(){
+  const toast = $('swap-toast-success');
+  toast.classList.add('show');
+  setTimeout(()=>{ location.reload(); }, 4000);
 }
 
 function driveIdFromUrl_(url){
