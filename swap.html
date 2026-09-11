@@ -187,6 +187,9 @@ textarea{resize:vertical;min-height:70px;}
 .day-pick .dnum{font-size:15px;font-weight:800;color:var(--navy-mid);}
 .day-pick .dshift{font-size:9px;color:var(--text-light);margin-top:2px;line-height:1.3;}
 .day-pick .dshift.leave{color:#d32f2f;font-weight:800;}
+.day-pick.off{background:var(--teal-soft);border-color:#bfe4df;}
+.day-pick.off:hover{border-color:var(--teal);}
+.day-pick .dshift.off-text{color:var(--teal);font-weight:700;}
 .empty-note{font-size:11.5px;color:var(--text-light);text-align:center;padding:14px 6px;}
 
 /* REQUEST CARD */
@@ -501,13 +504,18 @@ function shiftName(s){
 }
 // ✅ วันที่ "ลา" (ไม่ได้เข้าเวรจริง) ไม่ควรให้เลือกมาแลกเวร แต่ยังให้เห็นในตาราง (ขึ้นสีแดงเตือน)
 function isLeaveShift_(s){ return String(s||'').trim()==='ลา'; }
-// ✅ วันที่ไม่มีเวร (ค่าว่าง หรือ "0") ไม่ต้องแสดงในตัวเลือกแลกเวรเลย
-function isEmptyShift_(s){ const t=String(s==null?'':s).trim(); return t===''||t==='0'; }
-// ✅ สร้าง HTML ตัวเลือกวัน/เวรในตารางแลกเวร — ข้ามวันที่ไม่มีเวร (ว่าง/"0"), ทำวัน "ลา" ให้ขึ้นสีแดง
+// ✅ วันที่ไม่มีข้อมูลเวรเลย (ค่าว่างจริงๆ) ไม่ต้องแสดง — ต่างจาก "0" ที่หมายถึง "ว่าง" (วันหยุด/ไม่มีเวร)
+//    วันว่างนี้ต้อง "เลือกมาแลกได้" ด้วย เพราะเป็นกรณีที่พบบ่อย: คนหนึ่งว่าง อีกคนมีเวร แลกกันแล้วสลับฝั่งกัน
+//    (คนที่เคยว่างไปเข้าเวรแทน ส่วนคนที่เคยมีเวรก็ว่างแทน)
+function isBlankShift_(s){ return String(s==null?'':s).trim()===''; }
+function isOffShift_(s){ return String(s==null?'':s).trim()==='0'; }
+// ✅ สร้าง HTML ตัวเลือกวัน/เวรในตารางแลกเวร — วัน "0" ให้ขึ้นเป็น "ว่าง" และยังกดเลือกมาแลกได้ตามปกติ,
+//    วัน "ลา" ให้ขึ้นสีแดง, ข้ามเฉพาะวันที่ไม่มีข้อมูลเลย
 function dayPickHtml_(days, onclickName){
-  return (days||[]).filter(x=>!isEmptyShift_(x.shift)).map(x=>{
+  return (days||[]).filter(x=>!isBlankShift_(x.shift)).map(x=>{
+    const off = isOffShift_(x.shift);
     const leave = isLeaveShift_(x.shift);
-    return `<div class="day-pick" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="${onclickName}(this)"><div class="dnum">${x.day}</div><div class="dshift${leave?' leave':''}">${escHtml(shiftName(x.shift))}</div></div>`;
+    return `<div class="day-pick${off?' off':''}" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="${onclickName}(this)"><div class="dnum">${x.day}</div><div class="dshift${leave?' leave':''}${off?' off-text':''}">${escHtml(shiftName(x.shift))}</div></div>`;
   }).join('');
 }
 
