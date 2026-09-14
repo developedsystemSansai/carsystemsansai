@@ -3161,18 +3161,19 @@ async function doConfirm() {
     if (respOk) {
       if (type === 'start') {
         // ✅ FIX: link รูปที่ pre-upload ไว้แล้ว → เขียนลง MileLog ด้วย tripId ที่เพิ่งได้
+        // ✅ PERF FIX: เดิมส่งทีละรูป เรียงคิว (await ทีละใบ) ทำให้ยิ่งมีรูปเยอะยิ่งช้าเป็นเส้นตรง
+        //    เปลี่ยนเป็นยิงพร้อมกันทุกใบด้วย Promise.allSettled — เร็วขึ้นมาก (โดยเฉพาะมี 2-3+ รูป)
+        //    ยังคงพฤติกรรมเดิม: รูปไหน link ไม่สำเร็จแค่ warn ไม่หยุดรูปอื่น
         if (gasJson.tripId) {
           const preUploaded = tripPhotos.filter(p => p.driveUrl && p.status === 'ok');
-          for (const p of preUploaded) {
-            try {
-              await fetchGASRaw({
-                action  : 'linkTripPhoto',
-                tripId  : gasJson.tripId,
-                carType : data.carType || '',
-                driveUrl: p.driveUrl
-              });
-            } catch(le) { console.warn('linkTripPhoto error:', le); }
-          }
+          await Promise.allSettled(preUploaded.map(p =>
+            fetchGASRaw({
+              action  : 'linkTripPhoto',
+              tripId  : gasJson.tripId,
+              carType : data.carType || '',
+              driveUrl: p.driveUrl
+            }).catch(le => console.warn('linkTripPhoto error:', le.message))
+          ));
         }
         // ✅ FIX: reset ทั้ง array + counters + progress UI ให้ครบ
         // ป้องกัน driveUrl เก่าติดไปกับทริปถัดไปเมื่อหน้ายัง reload ไม่ทัน
