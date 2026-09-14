@@ -124,43 +124,6 @@ textarea{resize:vertical;min-height:70px;}
 .pdf-preview-result a.btn{text-decoration:none;}
 .pdf-preview-result .pv-url{word-break:break-all;font-size:11px;color:var(--text-mid);margin-top:8px;}
 
-/* ✅ Toast แจ้งเตือนบันทึกสำเร็จ (แบบมืออาชีพ ขึ้นมุมบนแค่ 4 วิ ไม่ต้องกดปิด) */
-.toast-success{
-  position:fixed; top:20px; left:50%; z-index:10000;
-  transform:translate(-50%,-24px) scale(.96);
-  opacity:0;
-  display:flex; align-items:center; gap:12px;
-  background:#fff; color:var(--navy-mid);
-  border-radius:14px;
-  padding:14px 22px 14px 16px;
-  min-width:220px; max-width:calc(100vw - 32px);
-  box-shadow:0 12px 32px rgba(15,40,80,.22), 0 3px 10px rgba(15,40,80,.10);
-  border-left:4px solid var(--success);
-  pointer-events:none;
-  transition:transform .45s cubic-bezier(.34,1.56,.64,1), opacity .35s ease;
-  overflow:hidden;
-}
-.toast-success.show{ transform:translate(-50%,0) scale(1); opacity:1; }
-.toast-success .toast-icon{
-  flex-shrink:0; width:30px; height:30px; border-radius:50%;
-  background:var(--success-soft); color:var(--success);
-  display:flex; align-items:center; justify-content:center;
-}
-.toast-success .toast-icon svg{ width:16px; height:16px; }
-.toast-success .toast-icon svg path{
-  stroke-dasharray:20; stroke-dashoffset:20;
-  animation:toastCheck .35s .18s ease forwards;
-}
-@keyframes toastCheck{ to{ stroke-dashoffset:0; } }
-.toast-success .toast-text{ font-size:14.5px; font-weight:700; letter-spacing:.1px; }
-.toast-success .toast-bar{
-  position:absolute; left:0; bottom:0; height:3px; width:100%;
-  background:var(--success); transform-origin:left; transform:scaleX(1);
-}
-.toast-success.show .toast-bar{ animation:toastShrink 4s linear forwards; }
-@keyframes toastShrink{ to{ transform:scaleX(0); } }
-@media (max-width:480px){ .toast-success{ top:14px; padding:12px 18px 12px 14px; } }
-
 /* TABS (post-login) */
 .tab-bar{background:var(--card);border-bottom:1.5px solid var(--border);position:sticky;top:60px;z-index:100;overflow-x:auto;}
 .tab-bar-inner{max-width:720px;margin:0 auto;display:flex;align-items:stretch;min-width:max-content;}
@@ -186,18 +149,6 @@ textarea{resize:vertical;min-height:70px;}
 .day-pick.sel{background:var(--violet-soft);border-color:var(--violet);box-shadow:0 0 0 2px rgba(109,63,192,.15);}
 .day-pick .dnum{font-size:15px;font-weight:800;color:var(--navy-mid);}
 .day-pick .dshift{font-size:9px;color:var(--text-light);margin-top:2px;line-height:1.3;}
-.day-pick .dshift.leave{color:#d32f2f;font-weight:800;}
-.day-pick.off{background:var(--teal-soft);border-color:#bfe4df;}
-.day-pick.off:hover{border-color:var(--teal);}
-.day-pick .dshift.off-text{color:var(--teal);font-weight:700;}
-/* ✅ สีประจำเวร: EMS แดง, ช2บ1 เขียว, ด(ดึก) เหลือง, ช ไม่เติมสี */
-.dshift.sh-ems,.shift-tag.sh-ems{color:var(--danger);font-weight:800;}
-.dshift.sh-ch2b1,.shift-tag.sh-ch2b1{color:var(--success);font-weight:800;}
-.dshift.sh-night,.shift-tag.sh-night{color:#9a7d00;font-weight:800;}
-.shift-tag{display:inline-block;padding:1px 7px;border-radius:6px;font-size:12px;font-weight:700;background:#eef1f6;color:var(--text-mid);}
-.shift-tag.sh-ems{background:var(--danger-soft);}
-.shift-tag.sh-ch2b1{background:var(--success-soft);}
-.shift-tag.sh-night{background:#fff6d6;}
 .empty-note{font-size:11.5px;color:var(--text-light);text-align:center;padding:14px 6px;}
 
 /* REQUEST CARD */
@@ -223,36 +174,13 @@ textarea{resize:vertical;min-height:70px;}
 .msg-box.show{display:block;}
 .msg-error{background:var(--danger-soft);color:var(--danger);border:1px solid #f0b3ac;}
 .msg-success{background:var(--success-soft);color:var(--success);border:1px solid #a5d6b8;}
-.msg-warning{background:var(--amber-soft);color:#8a5a00;border:1px solid #e8c96a;}
-.msg-warning b{color:var(--amber);}
 
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg);}}
-.loading-dots{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:34px 10px;color:var(--text-light);font-size:13px;}
-.loading-dots .ld-spinner{width:30px;height:30px;border-radius:50%;border:3px solid var(--violet-soft);border-top-color:var(--violet);animation:ldSpin .75s linear infinite;}
-@keyframes ldSpin{to{transform:rotate(360deg);}}
-.loading-dots .ld-bar{width:130px;height:4px;border-radius:99px;background:var(--violet-soft);overflow:hidden;position:relative;}
-.loading-dots .ld-bar i{position:absolute;top:0;left:0;width:40%;height:100%;border-radius:99px;background:var(--violet);animation:ldBarMove 1.1s ease-in-out infinite;}
-@keyframes ldBarMove{0%{left:-40%;}50%{left:60%;}100%{left:100%;}}
-.loading-dots .ld-text{font-weight:600;color:var(--text-mid);}
+.loading-dots{text-align:center;padding:30px 10px;color:var(--text-light);font-size:13px;}
 
 .toggle-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:var(--text-mid);}
 .toggle-row input{width:16px;height:16px;}
-
-/* ✅ Skeleton screen — โชว์ระหว่างโหลดข้อมูลรอบแรก/หลังรีเฟรชหน้า จนกว่าข้อมูลจริงจะพร้อม */
-#page-skeleton{padding-bottom:40px;}
-.sk-tabbar{display:flex;gap:8px;padding:10px 12px;max-width:720px;margin:0 auto;}
-.sk-wrap{padding:14px 12px 20px;max-width:720px;margin:0 auto;}
-.sk-card{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow-sm);}
-.sk{position:relative;overflow:hidden;background:#e3e9f2;border-radius:8px;}
-.sk::after{content:'';position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.7),transparent);animation:skShimmer 1.3s infinite;}
-@keyframes skShimmer{100%{transform:translateX(100%);}}
-.sk-tab{height:36px;flex:1;border-radius:8px;}
-.sk-avatar{width:44px;height:44px;border-radius:50%;flex-shrink:0;}
-.sk-row{display:flex;align-items:center;gap:12px;margin-bottom:4px;}
-.sk-col{flex:1;display:flex;flex-direction:column;gap:8px;}
-.sk-title{height:15px;border-radius:6px;}
-.sk-line{height:11px;border-radius:6px;}
 </style>
 </head>
 <body>
@@ -269,42 +197,6 @@ textarea{resize:vertical;min-height:70px;}
   </div>
 </header>
 
-<!-- ✅ Skeleton screen — แสดงระหว่างตรวจสอบเซสชัน/โหลดข้อมูล ป้องกันหน้าจอกระพริบหรือเห็นข้อมูลเก่าค้าง -->
-<div id="page-skeleton">
-  <div class="sk-tabbar">
-    <div class="sk sk-tab"></div>
-    <div class="sk sk-tab"></div>
-    <div class="sk sk-tab"></div>
-  </div>
-  <div class="sk-wrap">
-    <div class="sk-card">
-      <div class="sk-row">
-        <div class="sk sk-avatar"></div>
-        <div class="sk-col">
-          <div class="sk sk-title" style="width:45%"></div>
-          <div class="sk sk-line" style="width:30%"></div>
-        </div>
-      </div>
-    </div>
-    <div class="sk-card">
-      <div class="sk sk-title" style="width:50%;margin-bottom:14px"></div>
-      <div class="sk-col">
-        <div class="sk sk-line"></div>
-        <div class="sk sk-line" style="width:85%"></div>
-        <div class="sk sk-line" style="width:60%"></div>
-      </div>
-    </div>
-    <div class="sk-card">
-      <div class="sk sk-title" style="width:40%;margin-bottom:14px"></div>
-      <div class="sk-col">
-        <div class="sk sk-line"></div>
-        <div class="sk sk-line" style="width:70%"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div id="app-shell" style="display:none">
 <div class="tab-bar" id="tab-bar" style="display:none">
   <div class="tab-bar-inner">
     <button class="tab-btn active" id="tbtn-mine" onclick="showTab('mine')">เวรของฉัน</button>
@@ -380,30 +272,17 @@ textarea{resize:vertical;min-height:70px;}
 
         <label id="req-my-days-label">วันเวรของฉันที่จะให้เพื่อนแทน</label>
         <div id="req-my-days" class="day-pick-grid"></div>
-        <div class="msg-box msg-warning" id="req-my-day-conflict"></div>
 
         <label id="req-target-label">แลกกับเพื่อนร่วมงาน</label>
-        <select id="req-target-name" onchange="onTargetChange()" disabled>
+        <select id="req-target-name" onchange="onTargetChange()">
           <option value="">— เลือกเพื่อนร่วมงาน —</option>
         </select>
-        <div class="hint" id="req-target-locked-hint" style="margin:4px 0 0;color:var(--amber)">🔒 กรุณาเลือกวันเวรของพนักงานคนที่ 1 ก่อน จึงจะเลือกพนักงานคนที่ 2 ได้</div>
 
         <label id="req-target-days-label">วันเวรของเพื่อนที่ฉันจะรับมาแทน</label>
         <div id="req-target-days" class="day-pick-grid"><div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div></div>
-        <div class="msg-box msg-warning" id="req-target-day-conflict"></div>
 
         <label>เหตุผลการขอแลกเวร</label>
-        <select id="req-reason-select" onchange="onReasonSelectChange()">
-          <option value="">— เลือกเหตุผล —</option>
-          <option value="มีธุระส่วนตัว">มีธุระส่วนตัว</option>
-          <option value="ติดภารกิจครอบครัว">ติดภารกิจครอบครัว</option>
-          <option value="เจ็บป่วย/ไม่สบาย">เจ็บป่วย/ไม่สบาย</option>
-          <option value="ติดราชการ/ประชุม/อบรม">ติดราชการ/ประชุม/อบรม</option>
-          <option value="ปัญหาการเดินทาง">ปัญหาการเดินทาง</option>
-          <option value="ขอสลับวันหยุด">ขอสลับวันหยุด</option>
-          <option value="__other__">อื่นๆ (โปรดระบุ)</option>
-        </select>
-        <textarea id="req-reason" placeholder="เช่น มีธุระส่วนตัว / ติดภารกิจครอบครัว ฯลฯ" style="display:none;margin-top:7px"></textarea>
+        <textarea id="req-reason" placeholder="เช่น มีธุระส่วนตัว / ติดภารกิจครอบครัว ฯลฯ"></textarea>
 
         <div class="check-row">
           <input type="checkbox" id="req-consent">
@@ -419,7 +298,7 @@ textarea{resize:vertical;min-height:70px;}
       <div class="card">
         <h2>⏳ คำขอที่รอตรวจสอบ</h2>
         <div class="hint">อนุมัติจะเขียนตารางเวรจริงทันที และสร้างเอกสารบันทึกข้อความให้อัตโนมัติ</div>
-        <div id="pending-list"><div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div></div>
+        <div id="pending-list"><div class="loading-dots">กำลังโหลด…</div></div>
       </div>
     </div>
 
@@ -445,13 +324,12 @@ textarea{resize:vertical;min-height:70px;}
           <input type="checkbox" id="history-show-all" onchange="loadHistory()">
           <span>แอดมิน: แสดงคำขอของทุกคน</span>
         </div>
-        <div id="history-list"><div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div></div>
+        <div id="history-list"><div class="loading-dots">กำลังโหลด…</div></div>
       </div>
     </div>
 
   </div>
 </div>
-</div><!-- /#app-shell -->
 
 <!-- ✅ Modal พรีวิวใบแลกเวรก่อนสร้าง PDF จริง -->
 <div class="pdf-preview-overlay" id="pdf-preview-overlay">
@@ -461,24 +339,13 @@ textarea{resize:vertical;min-height:70px;}
       <button type="button" class="pdf-preview-close" onclick="closePdfPreview()">✕</button>
     </div>
     <div class="pdf-preview-body" id="pdf-preview-body">
-      <div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div>
+      <div class="loading-dots">กำลังโหลด…</div>
     </div>
     <div class="pdf-preview-footer" id="pdf-preview-footer">
       <button type="button" class="btn btn-outline" onclick="closePdfPreview()">ปิด แก้ไขก่อน</button>
       <button type="button" class="btn btn-pdf-highlight" id="pdf-preview-confirm-btn" onclick="confirmGeneratePdf()">🖨️ ยืนยัน สร้าง PDF</button>
     </div>
   </div>
-</div>
-
-<!-- ✅ Toast แจ้งเตือนบันทึกสำเร็จ — ขึ้นมุมบน 4 วินาทีแล้วหายเอง ไม่ต้องกดปิด -->
-<div class="toast-success" id="swap-toast-success" role="status" aria-live="polite">
-  <div class="toast-icon">
-    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M4 12.5L9.2 18L20 6" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </div>
-  <div class="toast-text">บันทึกสำเร็จ</div>
-  <div class="toast-bar"></div>
 </div>
 
 <script src="secure-fetch.js"></script>
@@ -495,53 +362,7 @@ let myDays = null;       // จาก getMyShiftDays(session.name) -> {current:{
 let targetDays = null;   // shift days ของเพื่อนที่เลือก
 let selReqDay = null, selTgtDay = null;
 
-// ✅ แปลงรหัสเวรเป็นข้อความอ่านง่ายสำหรับแสดงผล — ถ้าช่องนั้นเป็นค่าว่าง หรือ "0" (ไม่มีเวรกำหนดไว้)
-//    ให้ขึ้นข้อความ "ว่าง(ไม่มีเวร)" แทนที่จะแสดง "0" ตรงๆ หรือปล่อยว่างเปล่าจนดูเหมือน UI ผิดพลาด
-function shiftName(s){
-  const raw = String(s==null ? '' : s).trim();
-  if(!raw || raw==='0') return 'ว่าง(ไม่มีเวร)';
-  const l = raw.toLowerCase();
-  if(l.startsWith('ช1บ2'))return'ช1บ2';
-  if(l.startsWith('ช2บ1'))return'ช2บ1';
-  if(l.includes('ems'))return'EMS';
-  if(l.startsWith('ช1'))return'เช้า1';
-  if(l.startsWith('ช2'))return'เช้า2';
-  if(l.startsWith('ช3'))return'เช้า3';
-  if(l==='ด'||l.startsWith('ด'))return'ดึก';
-  return raw;
-}
-// ✅ สีประจำแต่ละประเภทเวร — ให้แยกแยะง่ายด้วยตาเปล่า: EMS สีแดง, ช2บ1 สีเขียว, ด (ดึก) สีเหลือง, ช (เช้าทั่วไป) ไม่เติมสี
-function shiftColorClass_(s){
-  const raw = String(s==null?'':s).trim();
-  if(!raw || raw==='0') return '';
-  const l = raw.toLowerCase();
-  if(l.includes('ems')) return 'sh-ems';
-  if(l.startsWith('ช2บ1')) return 'sh-ch2b1';
-  if(l==='ด'||l.startsWith('ด')) return 'sh-night';
-  return '';
-}
-// ✅ ใช้ครอบข้อความเวรเป็น badge สี — สำหรับจุดที่แสดงชื่อเวรแบบ inline (รายการรออนุมัติ/ประวัติ)
-function shiftTagHtml_(rawShift){
-  const cls = shiftColorClass_(rawShift);
-  return `<span class="shift-tag${cls?' '+cls:''}">${escHtml(shiftName(rawShift))}</span>`;
-}
-// ✅ วันที่ "ลา" (ไม่ได้เข้าเวรจริง) ไม่ควรให้เลือกมาแลกเวร แต่ยังให้เห็นในตาราง (ขึ้นสีแดงเตือน)
-function isLeaveShift_(s){ return String(s||'').trim()==='ลา'; }
-// ✅ วันที่ไม่มีข้อมูลเวรเลย (ค่าว่างจริงๆ) ไม่ต้องแสดง — ต่างจาก "0" ที่หมายถึง "ว่าง" (วันหยุด/ไม่มีเวร)
-//    วันว่างนี้ต้อง "เลือกมาแลกได้" ด้วย เพราะเป็นกรณีที่พบบ่อย: คนหนึ่งว่าง อีกคนมีเวร แลกกันแล้วสลับฝั่งกัน
-//    (คนที่เคยว่างไปเข้าเวรแทน ส่วนคนที่เคยมีเวรก็ว่างแทน)
-function isBlankShift_(s){ return String(s==null?'':s).trim()===''; }
-function isOffShift_(s){ return String(s==null?'':s).trim()==='0'; }
-// ✅ สร้าง HTML ตัวเลือกวัน/เวรในตารางแลกเวร — วัน "0" ให้ขึ้นเป็น "ว่าง" และยังกดเลือกมาแลกได้ตามปกติ,
-//    วัน "ลา" ให้ขึ้นสีแดง, ข้ามเฉพาะวันที่ไม่มีข้อมูลเลย
-function dayPickHtml_(days, onclickName){
-  return (days||[]).filter(x=>!isBlankShift_(x.shift)).map(x=>{
-    const off = isOffShift_(x.shift);
-    const leave = isLeaveShift_(x.shift);
-    const colorCls = (!leave && !off) ? shiftColorClass_(x.shift) : '';
-    return `<div class="day-pick${off?' off':''}" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="${onclickName}(this)"><div class="dnum">${x.day}</div><div class="dshift${leave?' leave':''}${off?' off-text':''}${colorCls?' '+colorCls:''}">${escHtml(shiftName(x.shift))}</div></div>`;
-  }).join('');
-}
+function shiftName(s){if(!s)return'';const l=String(s).toLowerCase();if(l.includes('ems'))return'EMS';if(l.startsWith('ช1'))return'เช้า1';if(l.startsWith('ช2'))return'เช้า2';if(l.startsWith('ช3'))return'เช้า3';if(l==='ด'||l.startsWith('ด'))return'ดึก';return s;}
 
 async function callGet(action, params){
   const qs = new URLSearchParams({action, ...(params||{})});
@@ -654,68 +475,15 @@ async function onRequesterChange(){
     requesterDaysData = null;
     box.innerHTML = '<div class="empty-note">กรุณาเลือกพนักงานคนที่ 1 (ผู้ให้เวร) ก่อน</div>';
   }else{
-    box.innerHTML = '<div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div>';
+    box.innerHTML = '<div class="loading-dots">กำลังโหลด…</div>';
     const res = await callGet('getMyShiftDays', {name: reqRequesterName});
     requesterDaysData = (res.status==='ok') ? res : null;
     renderReqMyDays();
   }
-  rebuildTargetOptions();
-  lockTargetStep(); // ✅ เปลี่ยนพนักงานคนที่ 1 ใหม่ ต้องเลือกวันเวรใหม่ก่อนถึงจะเลือกพนักงานคนที่ 2 ได้
-}
-
-// ✅ ล็อก/ปลดล็อกขั้นตอน "พนักงานคนที่ 2" — บังคับให้เลือกพนักงานคนที่ 1 + วันที่ก่อนเสมอ ลดการลัดขั้นตอน
-function unlockTargetStep(){
-  const sel = $('req-target-name');
-  if(sel) sel.disabled = false;
-  const hint = $('req-target-locked-hint');
-  if(hint) hint.style.display = 'none';
-}
-function lockTargetStep(){
-  const sel = $('req-target-name');
-  if(sel){ sel.disabled = true; sel.value=''; }
+  $('req-target-name').value='';
   selTgtDay = null;
-  const box = $('req-target-days');
-  if(box) box.innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
-  const hint = $('req-target-locked-hint');
-  if(hint) hint.style.display = '';
-  clearConflictBox_('req-my-day-conflict');
-  clearConflictBox_('req-target-day-conflict');
-}
-
-// ✅ ตรวจสอบรายการแลกเวรทับซ้อน/ผิดปกติ — เตือนบนหน้าจอทันทีที่เลือกวันเวรของแต่ละฝ่าย
-//    (ด่านบล็อกจริงยังอยู่ที่เซิร์ฟเวอร์ตอนกดส่งคำขอ กันกรณีข้อมูลเปลี่ยนไประหว่างนั้น)
-function clearConflictBox_(boxId){
-  const box = $(boxId);
-  if(!box) return;
-  box.classList.remove('show');
-  box.innerHTML = '';
-}
-function renderConflictLines_(conflicts){
-  return conflicts.map(c=>{
-    const isPending = c.status === 'รอตรวจสอบ';
-    const statusLabel = isPending ? '⏳ รอตรวจสอบ' : (String(c.status).indexOf('อนุมัติ')===0 ? '✅ '+c.status : c.status);
-    const whenText = c.decidedAt ? ('เมื่อ '+escHtml(c.decidedAt)) : (c.createdAt ? ('ยื่นเมื่อ '+escHtml(c.createdAt)) : '');
-    return `• เคยมีคำขอแลกเวรวันนี้กับ <b>${escHtml(c.withName)}</b> (${statusLabel}${whenText?' '+whenText:''})`;
-  }).join('<br>');
-}
-async function checkSwapConflict_(boxId, personName, day, isTargetSide){
-  const box = $(boxId);
-  if(!box || !personName || !day) return;
-  try{
-    const monthSheet = $('req-month').value;
-    const params = isTargetSide
-      ? {monthSheet, targetName: personName, targetDay: day}
-      : {monthSheet, requesterName: personName, requesterDay: day};
-    const res = await callGet('checkSwapConflicts', params);
-    if(res.status!=='ok') return;
-    const conflicts = isTargetSide ? (res.targetConflicts||[]) : (res.requesterConflicts||[]);
-    if(!conflicts.length){ clearConflictBox_(boxId); return; }
-    const hasPending = conflicts.some(c=>c.status==='รอตรวจสอบ');
-    box.innerHTML = `⚠️ <b>พบรายการแลกเวรของวันนี้มาก่อนหน้า</b>` +
-      (hasPending? '<br><span style="color:var(--danger)">มีคำขอรอตรวจสอบอยู่แล้ว — ระบบจะไม่ให้ส่งคำขอซ้ำจนกว่าจะดำเนินการคำขอเดิมก่อน</span>' : '') +
-      '<br>' + renderConflictLines_(conflicts);
-    box.classList.add('show');
-  }catch(e){ /* เช็คไม่สำเร็จ ไม่ให้กระทบการใช้งานหลัก — เซิร์ฟเวอร์จะเช็คซ้ำอีกชั้นตอนส่งจริง */ }
+  $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
+  rebuildTargetOptions();
 }
 
 function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -761,8 +529,9 @@ function renderMineTab(){
 // ── TAB: ขอแลกเวร ────────────────────────────────────────
 function onReqMonthChange(){
   selReqDay = null; selTgtDay = null;
+  $('req-target-name').value = '';
+  $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
   renderReqMyDays();
-  lockTargetStep(); // ✅ เปลี่ยนเดือน ต้องเลือกวันเวรใหม่ก่อนถึงจะเลือกพนักงานคนที่ 2 ได้ (จะเคลียร์กล่องเตือนให้ด้วย)
 }
 function renderReqMyDays(){
   const ms = $('req-month').value;
@@ -777,7 +546,7 @@ function renderReqMyDays(){
       box.innerHTML = '<div class="empty-note">พนักงานคนนี้ไม่มีเวรในเดือนนี้</div>';
       return;
     }
-    box.innerHTML = dayPickHtml_(d.days, 'pickReqDay');
+    box.innerHTML = d.days.map(x=>`<div class="day-pick" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="pickReqDay(this)"><div class="dnum">${x.day}</div><div class="dshift">${escHtml(shiftName(x.shift))}</div></div>`).join('');
     return;
   }
   const d = myDays && myDays[ms];
@@ -785,53 +554,31 @@ function renderReqMyDays(){
     box.innerHTML = '<div class="empty-note">คุณไม่มีเวรในเดือนนี้</div>';
     return;
   }
-  box.innerHTML = dayPickHtml_(d.days, 'pickReqDay');
+  box.innerHTML = d.days.map(x=>`<div class="day-pick" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="pickReqDay(this)"><div class="dnum">${x.day}</div><div class="dshift">${escHtml(shiftName(x.shift))}</div></div>`).join('');
 }
 function pickReqDay(el){
   document.querySelectorAll('#req-my-days .day-pick').forEach(e=>e.classList.remove('sel'));
   el.classList.add('sel');
   selReqDay = {day:+el.dataset.day, shift:el.dataset.shift};
-  unlockTargetStep(); // ✅ เลือกวันเวรของพนักงานคนที่ 1 แล้ว จึงปลดล็อกให้เลือกพนักงานคนที่ 2 ได้
-  const name = session.isAdmin ? reqRequesterName : session.name;
-  checkSwapConflict_('req-my-day-conflict', name, selReqDay.day, false);
 }
 async function onTargetChange(){
   selTgtDay = null;
-  clearConflictBox_('req-target-day-conflict');
   const name = $('req-target-name').value;
   const box = $('req-target-days');
   if(!name){ box.innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>'; return; }
-  box.innerHTML = '<div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div>';
+  box.innerHTML = '<div class="loading-dots">กำลังโหลด…</div>';
   const res = await callGet('getMyShiftDays', {name});
   if(res.status!=='ok'){ box.innerHTML = '<div class="empty-note">โหลดข้อมูลไม่สำเร็จ</div>'; return; }
   targetDays = res;
   const ms = $('req-month').value;
   const d = res[ms];
   if(!d || !d.days || !d.days.length){ box.innerHTML = '<div class="empty-note">เพื่อนคนนี้ไม่มีเวรในเดือนนี้</div>'; return; }
-  box.innerHTML = dayPickHtml_(d.days, 'pickTgtDay');
+  box.innerHTML = d.days.map(x=>`<div class="day-pick" data-day="${x.day}" data-shift="${escAttr(x.shift)}" onclick="pickTgtDay(this)"><div class="dnum">${x.day}</div><div class="dshift">${escHtml(shiftName(x.shift))}</div></div>`).join('');
 }
 function pickTgtDay(el){
   document.querySelectorAll('#req-target-days .day-pick').forEach(e=>e.classList.remove('sel'));
   el.classList.add('sel');
   selTgtDay = {day:+el.dataset.day, shift:el.dataset.shift};
-  const name = $('req-target-name').value;
-  checkSwapConflict_('req-target-day-conflict', name, selTgtDay.day, true);
-}
-
-// ✅ เลือกเหตุผลจากรายการสำเร็จรูป — ลดเวลาการพิมพ์และการพิมพ์ผิด
-// เลือก "อื่นๆ" จึงจะเปิดช่องให้พิมพ์เหตุผลเอง
-function onReasonSelectChange(){
-  const sel = $('req-reason-select');
-  const ta = $('req-reason');
-  if(sel.value === '__other__'){
-    ta.style.display = '';
-    ta.value = '';
-    ta.placeholder = 'โปรดระบุเหตุผล...';
-    ta.focus();
-  }else{
-    ta.style.display = 'none';
-    ta.value = sel.value;
-  }
 }
 
 async function submitRequest(){
@@ -840,7 +587,6 @@ async function submitRequest(){
 
   const monthSheet = $('req-month').value;
   const targetName = $('req-target-name').value;
-  const reasonSelect = $('req-reason-select').value;
   const reason = $('req-reason').value.trim();
   const consent = $('req-consent').checked;
 
@@ -848,36 +594,11 @@ async function submitRequest(){
   if(!selReqDay){ errBox.textContent=(session.isAdmin?'กรุณาเลือกวันเวรของพนักงานคนที่ 1':'กรุณาเลือกวันเวรของคุณที่จะให้เพื่อนแทน'); errBox.classList.add('show'); return; }
   if(!targetName){ errBox.textContent=(session.isAdmin?'กรุณาเลือกพนักงานคนที่ 2':'กรุณาเลือกเพื่อนร่วมงานที่จะแลกเวรด้วย'); errBox.classList.add('show'); return; }
   if(!selTgtDay){ errBox.textContent=(session.isAdmin?'กรุณาเลือกวันเวรของพนักงานคนที่ 2':'กรุณาเลือกวันเวรของเพื่อนที่คุณจะรับมาแทน'); errBox.classList.add('show'); return; }
-  if(!reasonSelect){ errBox.textContent='กรุณาเลือกเหตุผลการขอแลกเวร'; errBox.classList.add('show'); return; }
-  if(reasonSelect==='__other__' && !reason){ errBox.textContent='กรุณาระบุเหตุผล (อื่นๆ)'; errBox.classList.add('show'); return; }
   if(!reason){ errBox.textContent='กรุณาระบุเหตุผลการขอแลกเวร'; errBox.classList.add('show'); return; }
   if(!consent){ errBox.textContent=(session.isAdmin?'กรุณายืนยันว่าตรวจสอบและได้รับความยินยอมจากทั้งสองฝ่ายแล้ว':'กรุณายืนยันว่าตกลงกับเพื่อนร่วมงานแล้ว'); errBox.classList.add('show'); return; }
 
   const btn = $('req-submit-btn');
-  let refreshing = false;
-  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> กำลังตรวจสอบรายการซ้ำซ้อน…';
-
-  // ✅ เช็คซ้ำอีกครั้งทันทีก่อนส่งจริง (กันกรณีมีคนอื่นยื่น/อนุมัติคำขอทับวันเดียวกันระหว่างที่กรอกฟอร์มอยู่)
-  //    ด่านบล็อกจริงยังอยู่ที่เซิร์ฟเวอร์ (submitSwapRequest) เสมอ — ที่นี่แค่เตือนก่อนเพื่อ UX ที่ดีกว่า
-  try{
-    const reqCheckName = session.isAdmin ? reqRequesterName : session.name;
-    const conflictRes = await callGet('checkSwapConflicts', {
-      monthSheet, requesterName: reqCheckName, requesterDay: selReqDay.day,
-      targetName, targetDay: selTgtDay.day
-    });
-    if(conflictRes.status==='ok'){
-      const reqPending = (conflictRes.requesterConflicts||[]).some(c=>c.status==='รอตรวจสอบ');
-      const tgtPending = (conflictRes.targetConflicts||[]).some(c=>c.status==='รอตรวจสอบ');
-      if(reqPending || tgtPending){
-        errBox.textContent = 'วันเวรที่เลือกมีคำขอแลกเวรอื่นรอตรวจสอบอยู่แล้ว กรุณารอผลคำขอเดิมก่อน หรือแจ้งแอดมินให้ปฏิเสธคำขอเดิมก่อนยื่นใหม่';
-        errBox.classList.add('show');
-        btn.disabled = false; btn.innerHTML = 'ส่งคำขอแลกเวร';
-        return;
-      }
-    }
-  }catch(e){ /* เช็คไม่สำเร็จ ปล่อยให้เซิร์ฟเวอร์ยืนยันอีกชั้นตอนส่งจริง */ }
-
-  btn.innerHTML = '<span class="spinner"></span> กำลังส่งคำขอ…';
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> กำลังส่งคำขอ…';
   try{
     const res = await callPost({
       action:'submitSwapRequest',
@@ -890,25 +611,30 @@ async function submitRequest(){
     });
     if(res.status!=='ok'){ errBox.textContent = res.message || 'ส่งคำขอไม่สำเร็จ'; errBox.classList.add('show'); return; }
 
-    showSuccessOverlay();
+    if(res.autoApproved){
+      okBox.innerHTML = '✅ แลกเวรสำเร็จทันที (สิทธิ์แอดมิน) ตารางเวรถูกแก้ไขแล้ว' + memoBlockHtml(res.requestId, res.memo, true);
+    }else{
+      okBox.innerHTML = '✅ ส่งคำขอแลกเวรสำเร็จ — รหัสคำขอ <b>'+escHtml(res.requestId)+'</b><br>กรุณารอแอดมินตรวจสอบและอนุมัติ';
+    }
+    okBox.classList.add('show');
 
-    // ✅ บันทึกสำเร็จแล้ว — toast จะแสดง 4 วินาทีแล้วรีเฟรชหน้าทั้งหมดให้อัตโนมัติ
-    //    ป้องกันรายการ/ตัวเลือกที่เลือกไว้ค้างอยู่จากรอบก่อนหน้า (state ไม่ตรงกับข้อมูลจริงหลังบันทึก)
-    refreshing = true;
-    return;
+    // reset ฟอร์ม
+    selReqDay = null; selTgtDay = null;
+    $('req-target-name').value=''; $('req-reason').value=''; $('req-consent').checked=false;
+    $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
+    if(session.isAdmin){
+      reqRequesterName = null; requesterDaysData = null;
+      $('req-requester-name').value = '';
+      $('req-my-days').innerHTML = '<div class="empty-note">กรุณาเลือกพนักงานคนที่ 1 (ผู้ให้เวร) ก่อน</div>';
+      rebuildTargetOptions();
+    }
+    await loadMyDays(); renderReqMyDays(); renderMineTab();
+    if(session.isAdmin) refreshPendingBadge();
   }catch(err){
     errBox.textContent = 'เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่'; errBox.classList.add('show');
   }finally{
-    if(!refreshing){ btn.disabled = false; btn.innerHTML = 'ส่งคำขอแลกเวร'; }
+    btn.disabled = false; btn.innerHTML = 'ส่งคำขอแลกเวร';
   }
-}
-
-// ✅ แจ้งเตือน "บันทึกสำเร็จ" แบบ toast มุมบน — ไม่บังหน้าจอ ไม่ต้องกดปิด
-//    โชว์ 4 วินาทีแล้วรีเฟรชหน้าอัตโนมัติ (กันรายการ/ตัวเลือกค้างจากรอบก่อนหน้า)
-function showSuccessOverlay(){
-  const toast = $('swap-toast-success');
-  toast.classList.add('show');
-  setTimeout(()=>{ location.reload(); }, 4000);
 }
 
 function driveIdFromUrl_(url){
@@ -1027,7 +753,7 @@ async function rejectReq(id){
 // ── TAB: ประวัติ ─────────────────────────────────────────
 async function loadHistory(){
   const box = $('history-list');
-  box.innerHTML = '<div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div>';
+  box.innerHTML = '<div class="loading-dots">กำลังโหลด…</div>';
   const showAll = session.isAdmin && $('history-show-all') && $('history-show-all').checked;
   const res = await callGet('getSwapHistory', showAll? {} : {phone: session.phone});
   if(res.status!=='ok'){ box.innerHTML = '<div class="empty-note">โหลดประวัติไม่สำเร็จ</div>'; return; }
@@ -1103,11 +829,24 @@ function buildSwapReportWorksheet(monthLabel, rows){
   const sigRow = dataEnd + 2;       // เว้น 1 แถว แล้วเริ่มบล็อกลงนาม
 
   while (aoa.length <= sigRow + 2) aoa.push(new Array(17).fill(''));
-  aoa[sigRow][11]   = 'ตรวจสอบแล้ว';
-  aoa[sigRow][13]   = '.................................................หัวหน้าฝ่าย';
-  aoa[sigRow+1][13] = '(นายชัยพร มอญแสง)';
-  aoa[sigRow+2][11] = 'ตำแหน่ง';
-  aoa[sigRow+2][13] = 'พนักงานขับรถยนต์';
+  // ── ท้ายฟอร์ม: ลงนาม 3 คน ตามเทมเพลตจริง (พขร. / นักวิเคราะห์ฯ ผู้ตรวจสอบ / ผู้อำนวยการ ผู้อนุมัติ) ──
+  // บล็อก 1: คอลัมน์ 0(label) , 2-4(เส้น/ชื่อ/ตำแหน่ง)
+  aoa[sigRow][0]     = 'ตรวจสอบแล้ว';
+  aoa[sigRow][2]     = '.......................................';
+  aoa[sigRow+1][2]   = '(นายชัยพร มอญแสง)';
+  aoa[sigRow+2][0]   = 'ตำแหน่ง';
+  aoa[sigRow+2][2]   = 'พนักงานขับรถยนต์';
+  // บล็อก 2: คอลัมน์ 5(label) , 7-10(เส้น/ชื่อ/ตำแหน่ง)
+  aoa[sigRow][5]     = 'ตรวจสอบแล้ว';
+  aoa[sigRow][7]     = '.......................................';
+  aoa[sigRow+1][7]   = '(นายนพดล ริยะสาร)';
+  aoa[sigRow+2][5]   = 'ตำแหน่ง';
+  aoa[sigRow+2][7]   = 'นักวิเคราะห์นโยบายและแผนชำนาญการ';
+  // บล็อก 3: คอลัมน์ 11(label เฉพาะแถวตำแหน่ง) , 12-16(เส้น/ชื่อ/ตำแหน่ง) — ผู้อำนวยการไม่มีคำว่า "ตรวจสอบแล้ว" ตามเทมเพลตต้นฉบับ
+  aoa[sigRow][12]    = '.......................................';
+  aoa[sigRow+1][12]  = '(นายวรวุฒิ โฆวัชรกุล)';
+  aoa[sigRow+2][11]  = 'ตำแหน่ง';
+  aoa[sigRow+2][12]  = 'ผู้อำนวยการโรงพยาบาลสันทราย';
 
   const ws = XLSX.utils.aoa_to_sheet(aoa);
 
@@ -1125,11 +864,15 @@ function buildSwapReportWorksheet(monthLabel, rows){
     { s:{r:2,c:14}, e:{r:3,c:14} },                 // ลายมือชื่อผู้รับแลก
     { s:{r:2,c:15}, e:{r:3,c:15} },                 // ลายมือชื่อหัวหน้างาน
     { s:{r:2,c:16}, e:{r:3,c:16} },                 // หมายเหตุ
-    { s:{r:sigRow,c:11}, e:{r:sigRow,c:12} },       // ตรวจสอบแล้ว
-    { s:{r:sigRow,c:13}, e:{r:sigRow,c:15} },       // เส้นลงชื่อ
-    { s:{r:sigRow+1,c:13}, e:{r:sigRow+1,c:14} },   // (นายชัยพร มอญแสง)
-    { s:{r:sigRow+2,c:11}, e:{r:sigRow+2,c:12} },   // ตำแหน่ง
-    { s:{r:sigRow+2,c:13}, e:{r:sigRow+2,c:14} }    // พนักงานขับรถยนต์
+    { s:{r:sigRow,c:2}, e:{r:sigRow,c:4} },         // บล็อก1 เส้นลงชื่อ
+    { s:{r:sigRow+1,c:2}, e:{r:sigRow+1,c:4} },     // บล็อก1 (นายชัยพร มอญแสง)
+    { s:{r:sigRow+2,c:2}, e:{r:sigRow+2,c:4} },     // บล็อก1 พนักงานขับรถยนต์
+    { s:{r:sigRow,c:7}, e:{r:sigRow,c:10} },        // บล็อก2 เส้นลงชื่อ
+    { s:{r:sigRow+1,c:7}, e:{r:sigRow+1,c:10} },    // บล็อก2 (นายนพดล ริยะสาร)
+    { s:{r:sigRow+2,c:7}, e:{r:sigRow+2,c:10} },    // บล็อก2 นักวิเคราะห์นโยบายและแผนชำนาญการ
+    { s:{r:sigRow,c:12}, e:{r:sigRow,c:16} },       // บล็อก3 เส้นลงชื่อ
+    { s:{r:sigRow+1,c:12}, e:{r:sigRow+1,c:16} },   // บล็อก3 (นายวรวุฒิ โฆวัชรกุล)
+    { s:{r:sigRow+2,c:12}, e:{r:sigRow+2,c:16} }    // บล็อก3 ผู้อำนวยการโรงพยาบาลสันทราย
   ];
 
   ws['!cols'] = [
@@ -1236,7 +979,7 @@ async function previewSwapMonthlyPdf(){
 
   pdfPreviewMonthKey = monthKey;
   $('pdf-preview-month').textContent = selectedLabel;
-  $('pdf-preview-body').innerHTML = '<div class="loading-dots"><span class="ld-spinner"></span><span class="ld-bar"><i></i></span><span class="ld-text">กำลังโหลด…</span></div>';
+  $('pdf-preview-body').innerHTML = '<div class="loading-dots">กำลังโหลด…</div>';
   const confirmBtn = $('pdf-preview-confirm-btn');
   confirmBtn.disabled = true;
   confirmBtn.style.display = '';
@@ -1273,22 +1016,13 @@ async function confirmGeneratePdf(){
       return;
     }
     const url = res.pdfDownloadUrl || res.pdfUrl;
-    // ✅ เริ่มดาวน์โหลดให้ทันทีหลังกดยืนยัน ไม่ต้องให้กดซ้ำอีกครั้ง — จำลองคลิกลิงก์ดาวน์โหลดด้วยโค้ด
-    //    (ยังอยู่ในจังหวะเดียวกับที่ผู้ใช้กดปุ่ม จึงไม่ถูกเบราว์เซอร์บล็อกป๊อปอัป)
-    //    เก็บลิงก์สำรองไว้ด้วย เผื่อบางมือถือ/เบราว์เซอร์บล็อกการดาวน์โหลดอัตโนมัติ ผู้ใช้กดเปิดเองได้
-    try{
-      const a = document.createElement('a');
-      a.href = url; a.target = '_blank'; a.rel = 'noopener';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }catch(autoErr){ /* เบราว์เซอร์บล็อก — ผู้ใช้ยังกดลิงก์สำรองด้านล่างได้ */ }
+    // ✅ แสดงลิงก์ให้กดเปิดเองแทนการเปิดหน้าต่างใหม่อัตโนมัติ — บางมือถือ/เบราว์เซอร์บล็อกป๊อปอัปหรือดาวน์โหลดอัตโนมัติ
     if(resultBox){
       resultBox.innerHTML = `
         <div class="pdf-preview-result">
-          ✅ สร้าง PDF เรียบร้อยแล้ว — เริ่มดาวน์โหลดให้อัตโนมัติ<br>
-          <a class="btn btn-pdf-highlight" style="margin-top:10px" href="${url}" target="_blank" rel="noopener">📄 เปิด PDF อีกครั้ง</a>
-          <div class="pv-url">หากดาวน์โหลดไม่เริ่มเอง ให้กดปุ่มด้านบน หรือคัดลอกลิงก์นี้ไปเปิดในเบราว์เซอร์: ${pvEsc(url)}</div>
+          ✅ สร้าง PDF เรียบร้อยแล้ว — กดปุ่มด้านล่างเพื่อเปิด/ดาวน์โหลด<br>
+          <a class="btn btn-pdf-highlight" style="margin-top:10px" href="${url}" target="_blank" rel="noopener">📄 เปิด PDF</a>
+          <div class="pv-url">หากกดแล้วไม่เปิด ให้คัดลอกลิงก์นี้ไปเปิดในเบราว์เซอร์: ${pvEsc(url)}</div>
         </div>`;
     }
     btn.style.display = 'none';
@@ -1312,20 +1046,9 @@ function showTab(name){
 }
 
 // ── INIT ─────────────────────────────────────────────────
-// ✅ ซ่อน skeleton แล้วค่อยโชว์เนื้อหาจริง — เรียกเมื่อข้อมูลพร้อมครบแล้วเท่านั้น (กันหน้าจอกระพริบ/เห็นข้อมูลเก่าค้างตอนรีเฟรช)
-function revealApp(){
-  $('page-skeleton').style.display = 'none';
-  $('app-shell').style.display = 'block';
-}
 (async function init(){
   loadSession();
-  try{
-    if(session && session.phone){ await enterApp(); }
-  }catch(e){
-    // โหลดข้อมูลผิดพลาด — ไม่ปล่อยให้หน้าจอค้างที่ skeleton ตลอดไป
-  }finally{
-    revealApp();
-  }
+  if(session && session.phone){ await enterApp(); }
 })();
 </script>
 </body>
