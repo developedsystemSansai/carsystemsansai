@@ -3247,7 +3247,10 @@ function renderHistory() {
 
   // ── parse Timestamp/วันที่ → milliseconds (รองรับทุก format ที่ GAS ส่งมา) ──
   function parseRowMs(r) {
-    const raw = String(r['Timestamp'] || r['วันที่'] || '').trim();
+    // ✅ FIX: เพิ่ม r['timestamp'] (alias ที่ GAS ส่งมาจากคอลัมน์จริง 'timestamps') เข้าไปด้วย
+    // เดิมเช็คแค่ r['Timestamp'] (ตัว T ใหญ่) ซึ่งไม่มีอยู่จริงในข้อมูลที่ส่งมาเลย จึง fallback
+    // ไปใช้ r['วันที่'] (มีแค่วันที่ ไม่มีเวลา) เสมอ ทำให้เรียงลำดับภายในวันเดียวกันไม่แม่นยำ
+    const raw = String(r['timestamp'] || r['Timestamp'] || r['วันที่'] || '').trim();
     if (!raw) return 0;
     // รูปแบบ dd/MM/yyyy HH:mm:ss  หรือ  dd/MM/yyyy HH:mm  หรือ  dd/MM/yyyy
     const m1 = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[T\s](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
@@ -3493,8 +3496,20 @@ function openTripDetail(r) {
 
   const fuelOutUrl    = exUrl(r['รูปบิลน้ำมันออกรถ'])   || exUrl(r['รูปบิลน้ำมัน'])      || exUrl(r['fuelPhotoUrl'])       || '';
   const fuelBackUrl   = exUrl(r['รูปบิลน้ำมันขากลับ'])  || exUrl(r['returnFuelPhotoUrl']) || '';
-  const carOutUrls    = exUrls(r['รูปสภาพรถขาออก'])     || exUrls(r['รูปสภาพรถก่อนออก']) || exUrls(r['รูปสภาพรถ']) || [];
-  const carBackUrls   = exUrls(r['รูปสภาพรถขากลับ'])    || [];
+  // ✅ FIX (บั๊กรูปสภาพรถก่อนออกไม่ขึ้นในรายละเอียด): exUrls() คืนค่าเป็น "array" เสมอ
+  // (แม้ไม่มีรูปเลยก็คืน [] ไม่ใช่ null/undefined) — ใน JavaScript array ว่าง [] ถือว่าเป็น truthy
+  // ดังนั้นเดิมที่ใช้ `exUrls(a) || exUrls(b) || exUrls(c)` จะได้ผลลัพธ์จาก exUrls(a) เสมอ
+  // (แม้จะเป็น [] ว่างเปล่า) และไม่เคย fallback ไปเช็ค exUrls(b)/exUrls(c) เลยแม้จะมีรูปจริงอยู่
+  // ก็ตาม — ทำให้รูปสภาพรถก่อนออกที่บันทึกไว้ถูกต้องในคอลัมน์ 'รูปสภาพรถก่อนออก' (หรือคอลัมน์เก่า
+  // 'รูปสภาพรถ') ไม่ถูกแสดงในรายละเอียดทริป ใหม่: เช็คความยาว (.length) ก่อน fallback ไปแหล่งถัดไป
+  const carOutUrls = (function() {
+    const a = exUrls(r['รูปสภาพรถขาออก']);
+    if (a.length) return a;
+    const b = exUrls(r['รูปสภาพรถก่อนออก']);
+    if (b.length) return b;
+    return exUrls(r['รูปสภาพรถ']);
+  })();
+  const carBackUrls   = exUrls(r['รูปสภาพรถขากลับ']);
 
   // ── build photo card ──
   function photoCard(label, icon, color, url) {
