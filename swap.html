@@ -880,8 +880,8 @@ function buildSwapReportWorksheet(monthLabel, rows){
   ];
 
   ws['!cols'] = [
-    {wch:6},{wch:12},{wch:22},{wch:11},{wch:9},{wch:11},{wch:9},
-    {wch:22},{wch:1},{wch:11},{wch:9},{wch:11},{wch:9},
+    {wch:6},{wch:16},{wch:22},{wch:14},{wch:9},{wch:14},{wch:9},
+    {wch:22},{wch:1},{wch:14},{wch:9},{wch:14},{wch:9},
     {wch:16},{wch:16},{wch:16},{wch:20}
   ];
   ws['!rows'] = aoa.map((_,i)=> i===0 ? {hpt:22} : (i>=2 && i<=3 ? {hpt:30} : (i>=dataStart && i<=dataEnd ? {hpt:26} : (i===sigRow+1 ? {hpt:34} : {hpt:18}))));
