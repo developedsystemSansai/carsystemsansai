@@ -151,6 +151,21 @@ textarea{resize:vertical;min-height:70px;}
 .day-pick .dshift{font-size:9px;color:var(--text-light);margin-top:2px;line-height:1.3;}
 .empty-note{font-size:11.5px;color:var(--text-light);text-align:center;padding:14px 6px;}
 
+/* ✅ NEW: สลับโหมด "แลกเวร" (สลับกัน 2 ทาง) / "ยกเวร" (ให้ทางเดียว) ในหน้ายื่นคำขอ */
+.mode-toggle{display:flex;gap:8px;margin-bottom:12px;}
+.mode-toggle-btn{flex:1;padding:10px 6px;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);background:#fff;font-family:'Noto Sans Thai',sans-serif;font-size:12.5px;font-weight:700;color:var(--text-mid);cursor:pointer;text-align:center;transition:.12s;line-height:1.5;}
+.mode-toggle-btn .mt-sub{display:block;font-size:9.5px;font-weight:500;color:var(--text-light);margin-top:1px;}
+.mode-toggle-btn.active{border-color:var(--violet);background:var(--violet-soft);color:var(--violet);}
+.mode-toggle-btn.active .mt-sub{color:var(--violet-mid);}
+
+/* ✅ NEW: กล่องพรีวิวผลลัพธ์การ "ยกเวร" — โชว์เวรเดิมของผู้รับ + ผลรวมหลังยกเวร ก่อนกดส่ง */
+.give-preview-box{grid-column:1/-1;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-top:8px;background:var(--bg2);}
+.give-preview-row{font-size:12.5px;color:var(--text-mid);line-height:1.6;}
+.give-preview-row b{color:var(--navy-mid);}
+.give-preview-arrow{text-align:center;font-size:11px;color:var(--text-light);margin:8px 0;}
+.give-preview-result{text-align:center;font-size:13px;font-weight:700;color:var(--teal);background:var(--teal-soft);border:1px solid #b9e3dd;border-radius:8px;padding:9px;line-height:1.5;}
+.give-badge{display:inline-block;background:var(--amber-soft);color:var(--amber);font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:20px;margin-left:6px;vertical-align:middle;}
+
 /* REQUEST CARD */
 .req-card{border:1px solid var(--border);border-radius:var(--radius);padding:13px;margin-bottom:10px;background:#fff;box-shadow:var(--shadow-sm);}
 .req-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:9px;}
@@ -252,6 +267,12 @@ textarea{resize:vertical;min-height:70px;}
     <div class="tab-panel" id="panel-request">
       <div class="card">
         <h2>🔄 ยื่นคำขอแลกเวร</h2>
+
+        <div class="mode-toggle" id="req-mode-toggle">
+          <button type="button" class="mode-toggle-btn active" id="mode-btn-swap" onclick="setReqMode('swap')">🔄 แลกเวร<span class="mt-sub">สลับเวรกัน 2 ทาง</span></button>
+          <button type="button" class="mode-toggle-btn" id="mode-btn-give" onclick="setReqMode('give')">🎁 ยกเวร<span class="mt-sub">ให้ทางเดียว ไม่ต้องรับคืน</span></button>
+        </div>
+
         <div class="hint" id="req-hint-swap">เลือกวันเวรของคุณที่ต้องการให้เพื่อน แล้วเลือกเพื่อนร่วมงาน + วันเวรของเขาที่จะรับมาแทน ระบบจะสลับวันเวรทั้งสองฝั่งให้อัตโนมัติเมื่อได้รับอนุมัติ</div>
 
         <div class="msg-box msg-error" id="req-msg-error"></div>
@@ -361,6 +382,7 @@ let staffList = [];      // จาก getSwapStaffList
 let myDays = null;       // จาก getMyShiftDays(session.name) -> {current:{month,year,days:[]}, next:{...}}
 let targetDays = null;   // shift days ของเพื่อนที่เลือก
 let selReqDay = null, selTgtDay = null;
+let reqMode = 'swap';    // ✅ NEW: 'swap' = แลกเวร (สลับกัน 2 ทาง, ค่าเริ่มต้น) หรือ 'give' = ยกเวร (ให้ทางเดียว)
 
 function shiftName(s){if(!s)return'';const l=String(s).toLowerCase();if(l.includes('ems'))return'EMS';if(l.startsWith('ช1'))return'เช้า1';if(l.startsWith('ช2'))return'เช้า2';if(l.startsWith('ช3'))return'เช้า3';if(l==='ด'||l.startsWith('ด'))return'ดึก';return s;}
 
@@ -423,12 +445,8 @@ async function enterApp(){
     if($('history-show-all')) $('history-show-all').checked = true;
     // ✅ สิทธิ์แอดมิน: แลกเวรแทนพนักงานคนใดก็ได้ทั้ง 2 ฝั่ง โดยไม่ต้องเข้าไอดีของแต่ละคน
     $('req-admin-picker').style.display='block';
-    $('req-hint-swap').textContent = 'เลือกพนักงาน 2 คน แล้วเลือกวันเวรของแต่ละคนที่จะสลับกัน ระบบจะแก้ไขตารางเวรจริงทันทีเมื่อกดส่ง (สิทธิ์แอดมิน ไม่ต้องรออนุมัติ)';
-    $('req-my-days-label').textContent = 'วันเวรของพนักงานคนที่ 1 ที่จะให้พนักงานคนที่ 2 แทน';
-    $('req-target-label').textContent = 'พนักงานคนที่ 2 (ผู้รับเวรแทน)';
-    $('req-target-days-label').textContent = 'วันเวรของพนักงานคนที่ 2 ที่จะให้พนักงานคนที่ 1 แทน';
-    $('req-consent-label').textContent = 'ตรวจสอบแล้วว่าพนักงานทั้งสองฝ่ายยินยอมให้แลกเวรนี้';
   }
+  updateReqTexts();
 
   const canApproveReports = !!(session.isAdmin || String(session.role||'').indexOf('หัวหน้างาน')>=0);
   if(canApproveReports){ $('swap-report-card').style.display='block'; loadReportMonths(); }
@@ -527,6 +545,93 @@ function renderMineTab(){
 }
 
 // ── TAB: ขอแลกเวร ────────────────────────────────────────
+
+/** ✅ NEW: อัปเดตข้อความคำอธิบาย/ป้ายกำกับของฟอร์มยื่นคำขอ ให้ตรงกับโหมดที่เลือก (แลกเวร/ยกเวร)
+ *  และสิทธิ์ของผู้ใช้ (พนักงานทั่วไป/แอดมิน) — เรียกตอนเข้าแอปครั้งแรก และทุกครั้งที่สลับโหมด */
+function updateReqTexts(){
+  const isGive = (reqMode === 'give');
+  if(session.isAdmin){
+    $('req-hint-swap').textContent = isGive
+      ? 'เลือกพนักงาน 2 คน แล้วเลือกวันเวรของพนักงานคนที่ 1 ที่จะ "ยกให้" พนักงานคนที่ 2 — พนักงานคนที่ 2 จะได้เวรนั้นเพิ่มในวันเดียวกัน แม้จะมีเวรอยู่แล้วก็ตาม (บันทึกรวมเป็นเวรเดียว เช่น ด/ช1บ2) ระบบจะแก้ไขตารางเวรจริงทันทีเมื่อกดส่ง (สิทธิ์แอดมิน ไม่ต้องรออนุมัติ)'
+      : 'เลือกพนักงาน 2 คน แล้วเลือกวันเวรของแต่ละคนที่จะสลับกัน ระบบจะแก้ไขตารางเวรจริงทันทีเมื่อกดส่ง (สิทธิ์แอดมิน ไม่ต้องรออนุมัติ)';
+    $('req-my-days-label').textContent = isGive
+      ? 'วันเวรของพนักงานคนที่ 1 (ผู้ให้เวร) ที่จะยกให้พนักงานคนที่ 2'
+      : 'วันเวรของพนักงานคนที่ 1 ที่จะให้พนักงานคนที่ 2 แทน';
+    $('req-target-label').textContent = 'พนักงานคนที่ 2 (ผู้รับเวรแทน)';
+    $('req-target-days-label').textContent = isGive
+      ? 'เวรของพนักงานคนที่ 2 ในวันนั้น (ระบบจะรวมเวรให้อัตโนมัติ แม้มีเวรอยู่แล้ว)'
+      : 'วันเวรของพนักงานคนที่ 2 ที่จะให้พนักงานคนที่ 1 แทน';
+    $('req-consent-label').textContent = isGive
+      ? 'ตรวจสอบแล้วว่าพนักงานทั้งสองฝ่ายยินยอมให้ยกเวรนี้ (พนักงานคนที่ 2 รับทราบว่าจะมี 2 เวรในวันดังกล่าว)'
+      : 'ตรวจสอบแล้วว่าพนักงานทั้งสองฝ่ายยินยอมให้แลกเวรนี้';
+  }else{
+    $('req-hint-swap').textContent = isGive
+      ? 'เลือกวันเวรของคุณที่ต้องการ "ยกให้" เพื่อน แล้วเลือกเพื่อนร่วมงานที่จะรับเวรนี้ไป — แม้เพื่อนจะมีเวรอยู่แล้วในวันนั้นก็ยกให้ได้ ระบบจะบันทึกไว้เป็นหลักฐานว่าเพื่อนทำงาน 2 เวรในวันนั้น เพื่อให้ฝ่ายการเงินจ่ายเงินเวรถูกต้องครบถ้วน'
+      : 'เลือกวันเวรของคุณที่ต้องการให้เพื่อน แล้วเลือกเพื่อนร่วมงาน + วันเวรของเขาที่จะรับมาแทน ระบบจะสลับวันเวรทั้งสองฝั่งให้อัตโนมัติเมื่อได้รับอนุมัติ';
+    $('req-my-days-label').textContent = isGive ? 'วันเวรของคุณที่จะยกให้เพื่อน' : 'วันเวรของฉันที่จะให้เพื่อนแทน';
+    $('req-target-label').textContent = isGive ? 'ยกเวรให้เพื่อนร่วมงาน (ผู้รับเวรแทน)' : 'แลกกับเพื่อนร่วมงาน';
+    $('req-target-days-label').textContent = isGive ? 'เวรของเพื่อนในวันนั้น (ระบบจะรวมเวรให้อัตโนมัติ แม้เพื่อนมีเวรอยู่แล้ว)' : 'วันเวรของเพื่อนที่ฉันจะรับมาแทน';
+    $('req-consent-label').textContent = isGive
+      ? 'ฉันได้แจ้งและตกลงกับเพื่อนร่วมงานที่จะรับเวรนี้ไปเรียบร้อยแล้ว (เพื่อนรับทราบว่าจะมี 2 เวรในวันนั้น)'
+      : 'ฉันได้แจ้งและตกลงกับเพื่อนร่วมงานที่จะแลกเวรด้วยเรียบร้อยแล้ว';
+  }
+}
+
+/** ✅ NEW: สลับโหมดฟอร์ม 'swap' (แลกเวร สลับกัน 2 ทาง) ⇄ 'give' (ยกเวร ให้ทางเดียว)
+ *  รีเซ็ตส่วนเพื่อนร่วมงาน/วันเวรที่เลือกไว้ เพราะความหมายของ "วันเวรของเพื่อน" เปลี่ยนไปตามโหมด */
+function setReqMode(mode){
+  if(reqMode === mode) return;
+  reqMode = mode;
+  $('mode-btn-swap').classList.toggle('active', mode==='swap');
+  $('mode-btn-give').classList.toggle('active', mode==='give');
+  selTgtDay = null;
+  $('req-target-name').value = '';
+  $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
+  updateReqTexts();
+}
+
+/** ✅ NEW: รวมค่าเวร 2 ค่าเข้าด้วยกันแบบเดียวกับฝั่งเซิร์ฟเวอร์ (swapCombineShiftValues_)
+ *  ใช้เพื่อ "พรีวิว" ผลลัพธ์ให้ผู้ใช้เห็นก่อนกดส่งเท่านั้น — ค่าจริงที่บันทึกจะคำนวณซ้ำที่ฝั่งเซิร์ฟเวอร์เสมอ */
+function swapCombinePreview_(existingShift, newShift){
+  const e = String(existingShift==null? '' : existingShift).trim();
+  const n = String(newShift==null? '' : newShift).trim();
+  if(!e || e==='0') return n;
+  if(!n || n==='0') return e;
+  const parts = e.split('/').map(p=>p.trim()).filter(Boolean);
+  if(parts.indexOf(n)>=0) return e;
+  parts.push(n);
+  return parts.join('/');
+}
+/** ป้ายชื่อเวรอ่านง่าย รองรับค่าที่ถูกรวมด้วย "/" เช่น "ด/ช1บ2" → "ดึก + เช้า1" */
+function shiftNameCombined(code){
+  const s = String(code==null? '' : code).trim();
+  if(!s) return 'ไม่มีเวร (วันหยุด)';
+  return s.split('/').map(p=>shiftName(p.trim())||p.trim()).join(' + ');
+}
+
+/** ✅ NEW: แสดงพรีวิวผล "ยกเวร" แทนตารางเลือกวัน — วันของผู้รับเวรแทนจะยึดตามวันที่ผู้ให้เวรเลือกไว้เสมอ
+ *  (selReqDay) ไม่ต้องให้ผู้ใช้เลือกวันของเพื่อนอีก เพราะเป็นวันเดียวกัน */
+function renderGivePreview(){
+  const box = $('req-target-days');
+  const name = $('req-target-name').value;
+  if(!name){ box.innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>'; return; }
+  if(!selReqDay){ box.innerHTML = '<div class="empty-note">กรุณาเลือกวันเวรของคุณที่จะยกให้ก่อน (ด้านบน)</div>'; return; }
+  if(!targetDays){ box.innerHTML = '<div class="loading-dots">กำลังโหลด…</div>'; return; }
+  const ms = $('req-month').value;
+  const d = targetDays[ms];
+  const dayInfo = (d && d.days) ? d.days.find(x=>+x.day===+selReqDay.day) : null;
+  const existingShift = dayInfo ? dayInfo.shift : '';
+  const combined = swapCombinePreview_(existingShift, selReqDay.shift);
+  // เก็บไว้ให้ฟอร์มผ่านการตรวจสอบก่อนส่ง — ค่าจริงที่จะบันทึกฝั่งเซิร์ฟเวอร์จะคำนวณจากตารางเวรสดอีกครั้งเสมอ
+  selTgtDay = {day: selReqDay.day, shift: existingShift || ''};
+  box.innerHTML = `
+    <div class="give-preview-box">
+      <div class="give-preview-row">เวรเดิมของ <b>${escHtml(name)}</b> วันที่ ${selReqDay.day}: <b>${escHtml(existingShift ? shiftName(existingShift) : 'ไม่มีเวร (วันหยุด)')}</b></div>
+      <div class="give-preview-arrow">⬇️ หลังยกเวรให้แล้ว จะบันทึกในตารางเวรเป็น</div>
+      <div class="give-preview-result">${escHtml(name)} วันที่ ${selReqDay.day}<br>${escHtml(shiftNameCombined(combined))} <span style="opacity:.7">(${escHtml(combined)})</span></div>
+    </div>`;
+}
+
 function onReqMonthChange(){
   selReqDay = null; selTgtDay = null;
   $('req-target-name').value = '';
@@ -560,6 +665,8 @@ function pickReqDay(el){
   document.querySelectorAll('#req-my-days .day-pick').forEach(e=>e.classList.remove('sel'));
   el.classList.add('sel');
   selReqDay = {day:+el.dataset.day, shift:el.dataset.shift};
+  // ✅ NEW: โหมด "ยกเวร" — ถ้าเลือกเพื่อนร่วมงานไว้แล้ว ต้องรีเฟรชพรีวิวผลลัพธ์ใหม่ตามวันที่เพิ่งเลือก
+  if(reqMode==='give' && $('req-target-name').value) renderGivePreview();
 }
 async function onTargetChange(){
   selTgtDay = null;
@@ -570,6 +677,8 @@ async function onTargetChange(){
   const res = await callGet('getMyShiftDays', {name});
   if(res.status!=='ok'){ box.innerHTML = '<div class="empty-note">โหลดข้อมูลไม่สำเร็จ</div>'; return; }
   targetDays = res;
+  // ✅ NEW: โหมด "ยกเวร" — ไม่ต้องให้เลือกวันของเพื่อน (ยึดวันเดียวกับผู้ให้เวรเสมอ) แสดงพรีวิวผลรวมแทน
+  if(reqMode==='give'){ renderGivePreview(); return; }
   const ms = $('req-month').value;
   const d = res[ms];
   if(!d || !d.days || !d.days.length){ box.innerHTML = '<div class="empty-note">เพื่อนคนนี้ไม่มีเวรในเดือนนี้</div>'; return; }
@@ -590,11 +699,13 @@ async function submitRequest(){
   const reason = $('req-reason').value.trim();
   const consent = $('req-consent').checked;
 
+  const isGive = (reqMode === 'give');
+
   if(session.isAdmin && !reqRequesterName){ errBox.textContent='กรุณาเลือกพนักงานคนที่ 1 (ผู้ให้เวร)'; errBox.classList.add('show'); return; }
-  if(!selReqDay){ errBox.textContent=(session.isAdmin?'กรุณาเลือกวันเวรของพนักงานคนที่ 1':'กรุณาเลือกวันเวรของคุณที่จะให้เพื่อนแทน'); errBox.classList.add('show'); return; }
-  if(!targetName){ errBox.textContent=(session.isAdmin?'กรุณาเลือกพนักงานคนที่ 2':'กรุณาเลือกเพื่อนร่วมงานที่จะแลกเวรด้วย'); errBox.classList.add('show'); return; }
-  if(!selTgtDay){ errBox.textContent=(session.isAdmin?'กรุณาเลือกวันเวรของพนักงานคนที่ 2':'กรุณาเลือกวันเวรของเพื่อนที่คุณจะรับมาแทน'); errBox.classList.add('show'); return; }
-  if(!reason){ errBox.textContent='กรุณาระบุเหตุผลการขอแลกเวร'; errBox.classList.add('show'); return; }
+  if(!selReqDay){ errBox.textContent=(session.isAdmin?'กรุณาเลือกวันเวรของพนักงานคนที่ 1':(isGive?'กรุณาเลือกวันเวรของคุณที่จะยกให้เพื่อน':'กรุณาเลือกวันเวรของคุณที่จะให้เพื่อนแทน')); errBox.classList.add('show'); return; }
+  if(!targetName){ errBox.textContent=(session.isAdmin?'กรุณาเลือกพนักงานคนที่ 2':(isGive?'กรุณาเลือกเพื่อนร่วมงานที่จะยกเวรให้':'กรุณาเลือกเพื่อนร่วมงานที่จะแลกเวรด้วย')); errBox.classList.add('show'); return; }
+  if(!selTgtDay){ errBox.textContent=(isGive?'ระบบกำลังตรวจสอบเวรของเพื่อนร่วมงานในวันนั้น กรุณารอสักครู่แล้วลองใหม่':(session.isAdmin?'กรุณาเลือกวันเวรของพนักงานคนที่ 2':'กรุณาเลือกวันเวรของเพื่อนที่คุณจะรับมาแทน')); errBox.classList.add('show'); return; }
+  if(!reason){ errBox.textContent='กรุณาระบุเหตุผลการ'+(isGive?'ยกเวร':'ขอแลกเวร'); errBox.classList.add('show'); return; }
   if(!consent){ errBox.textContent=(session.isAdmin?'กรุณายืนยันว่าตรวจสอบและได้รับความยินยอมจากทั้งสองฝ่ายแล้ว':'กรุณายืนยันว่าตกลงกับเพื่อนร่วมงานแล้ว'); errBox.classList.add('show'); return; }
 
   const btn = $('req-submit-btn');
@@ -604,6 +715,7 @@ async function submitRequest(){
       action:'submitSwapRequest',
       requesterPhone: session.phone,
       requesterName: session.isAdmin ? reqRequesterName : undefined,
+      requestType: reqMode, // ✅ NEW: 'swap' (แลกเวร, ค่าเริ่มต้น) หรือ 'give' (ยกเวร ให้ทางเดียว)
       monthSheet, targetName,
       requesterDay: selReqDay.day, requesterShift: selReqDay.shift,
       targetDay: selTgtDay.day, targetShift: selTgtDay.shift,
@@ -612,16 +724,16 @@ async function submitRequest(){
     if(res.status!=='ok'){ errBox.textContent = res.message || 'ส่งคำขอไม่สำเร็จ'; errBox.classList.add('show'); return; }
 
     if(res.autoApproved){
-      okBox.innerHTML = '✅ แลกเวรสำเร็จทันที (สิทธิ์แอดมิน) ตารางเวรถูกแก้ไขแล้ว' + memoBlockHtml(res.requestId, res.memo, true);
+      okBox.innerHTML = (isGive? '✅ ยกเวรสำเร็จทันที (สิทธิ์แอดมิน) ตารางเวรถูกแก้ไขแล้ว' : '✅ แลกเวรสำเร็จทันที (สิทธิ์แอดมิน) ตารางเวรถูกแก้ไขแล้ว') + memoBlockHtml(res.requestId, res.memo, true);
     }else{
-      okBox.innerHTML = '✅ ส่งคำขอแลกเวรสำเร็จ — รหัสคำขอ <b>'+escHtml(res.requestId)+'</b><br>กรุณารอแอดมินตรวจสอบและอนุมัติ';
+      okBox.innerHTML = (isGive? '✅ ส่งคำขอยกเวรสำเร็จ' : '✅ ส่งคำขอแลกเวรสำเร็จ') + ' — รหัสคำขอ <b>'+escHtml(res.requestId)+'</b><br>กรุณารอแอดมินตรวจสอบและอนุมัติ';
     }
     okBox.classList.add('show');
 
     // reset ฟอร์ม
     selReqDay = null; selTgtDay = null;
-    $('req-target-name').value=''; $('req-reason').value=''; $('req-consent').checked=false;
-    $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
+    $('req-reason').value=''; $('req-consent').checked=false;
+    setReqMode('swap'); // กลับสู่โหมดเริ่มต้นเสมอหลังส่งคำขอ ป้องกันการยกเวรผิดคนโดยไม่ตั้งใจในครั้งถัดไป
     if(session.isAdmin){
       reqRequesterName = null; requesterDaysData = null;
       $('req-requester-name').value = '';
@@ -633,7 +745,7 @@ async function submitRequest(){
   }catch(err){
     errBox.textContent = 'เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่'; errBox.classList.add('show');
   }finally{
-    btn.disabled = false; btn.innerHTML = 'ส่งคำขอแลกเวร';
+    btn.disabled = false; btn.innerHTML = (isGive? 'ส่งคำขอยกเวร' : 'ส่งคำขอแลกเวร');
   }
 }
 
@@ -715,13 +827,22 @@ function statusChip(status){
   if(status && status.indexOf('ปฏิเสธ')>=0) return `<span class="status-chip status-rejected">ปฏิเสธ</span>`;
   return `<span class="status-chip status-approved">${escHtml(status)}</span>`;
 }
+/** ✅ NEW: บรรทัดสรุปคำขอ — แยกการแสดงผลระหว่าง "แลกเวร" (สลับ 2 ทาง) กับ "ยกเวร" (ให้ทางเดียว)
+ *  ใช้ร่วมกันทั้งหน้ารออนุมัติและหน้าประวัติ เพื่อให้เห็นชัดว่ารายการไหนเป็นการยกเวร (หลักฐานจ่ายเงิน 2 เวร) */
+function reqLineHtml(r){
+  const isGive = String(r.requestType||'') === 'ยกเวร';
+  if(isGive){
+    return `<div class="req-swap-line"><b>${escHtml(r.requesterName)}</b> วันที่ ${r.requesterDay} (${escHtml(shiftName(r.requesterShift))}) <span class="req-arrow">🎁➜</span> <b>${escHtml(r.targetName)}</b><span class="give-badge">ยกเวร</span></div>`;
+  }
+  return `<div class="req-swap-line"><b>${escHtml(r.requesterName)}</b> วันที่ ${r.requesterDay} (${escHtml(shiftName(r.requesterShift))}) <span class="req-arrow">⇄</span> <b>${escHtml(r.targetName)}</b> วันที่ ${r.targetDay} (${escHtml(shiftName(r.targetShift))})</div>`;
+}
 function renderPendingList(list){
   const box = $('pending-list');
   if(!list.length){ box.innerHTML = '<div class="empty-note">ไม่มีคำขอรออนุมัติ 🎉</div>'; return; }
   box.innerHTML = list.map(r=>`
     <div class="req-card" id="req-${r.requestId}">
       <div class="req-top"><span class="req-id">${r.requestId}</span>${statusChip(r.status)}</div>
-      <div class="req-swap-line"><b>${escHtml(r.requesterName)}</b> วันที่ ${r.requesterDay} (${escHtml(shiftName(r.requesterShift))}) <span class="req-arrow">⇄</span> <b>${escHtml(r.targetName)}</b> วันที่ ${r.targetDay} (${escHtml(shiftName(r.targetShift))})</div>
+      ${reqLineHtml(r)}
       <div class="req-reason">${escHtml(r.reason)}</div>
       <div class="req-meta">ยื่นเมื่อ ${escHtml(r.createdAt)} • เดือน${ r.monthSheet==='next' ? 'ถัดไป':'นี้' }</div>
       <div class="btn-row">
@@ -769,7 +890,7 @@ async function loadHistory(){
     return `
     <div class="req-card">
       <div class="req-top"><span class="req-id">${r.requestId}</span>${statusChip(r.status)}</div>
-      <div class="req-swap-line"><b>${escHtml(r.requesterName)}</b> วันที่ ${r.requesterDay} (${escHtml(shiftName(r.requesterShift))}) <span class="req-arrow">⇄</span> <b>${escHtml(r.targetName)}</b> วันที่ ${r.targetDay} (${escHtml(shiftName(r.targetShift))})</div>
+      ${reqLineHtml(r)}
       <div class="req-reason">${escHtml(r.reason)}</div>
       <div class="req-meta">ยื่นเมื่อ ${escHtml(r.createdAt)}${r.decidedBy? ' • ดำเนินการโดย '+escHtml(r.decidedBy)+' เมื่อ '+escHtml(r.decidedAt):''}${r.rejectReason? ' • เหตุผล: '+escHtml(r.rejectReason):''}</div>
       ${memoHtml}
@@ -896,7 +1017,11 @@ function buildSwapReportWorksheet(monthLabel, rows){
     for(let c=0;c<17;c++){ setStyle(r,c, (c===2||c===7||c===16) ? dataStyleL : dataStyle); }
   }
 
-  ws['!printHeader'] = true;
+  // ✅ FIX: ต้องเป็น "ช่วงแถว" [แถวเริ่ม, แถวจบ] แบบเลขแถว Excel (เริ่มที่ 1) ไม่ใช่ true/false เฉยๆ
+  //    ของเดิมตั้งเป็น true ทำให้ library เขียนเป็น definedName ที่มีช่วงแถวเป็น "undefined:undefined"
+  //    (ไม่ error แต่ Excel/Google Sheets ไม่รู้จักช่วงนี้) — นี่คือสาเหตุที่พิมพ์ไฟล์ Excel นี้แล้ว
+  //    หัวเรื่อง+หัวตาราง (แถว 1-4) ไม่ติดซ้ำในหน้าถัดไป
+  ws['!printHeader'] = [1, 4];
   ws['!margins'] = { left:0.3, right:0.3, top:0.4, bottom:0.4, header:0.2, footer:0.2 };
   return ws;
 }
