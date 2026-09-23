@@ -354,6 +354,21 @@ textarea{resize:vertical;min-height:70px;}
         </div>
         <div id="report-export-msg"></div>
       </div>
+
+      <!-- ✅ NEW: สรุปเวรจริงเพื่อจ่ายเงิน (Final) — สำหรับนักวิชาการเงินและบัญชี
+           ต่างจาก "ใบแลกเวร" ด้านบน (ซึ่งเป็น log ทุกคำขอที่อนุมัติ เรียงตามเวลาที่ยื่น) ไฟล์นี้อ่านค่า
+           "ล่าสุดจริง" จากตารางเวรโดยตรง (สูตรเดียวกับที่หน้าแลกเวร/ยกเวรเขียนทับตอนอนุมัติ) จึงตัดรายการที่
+           ถูกแลก/ยกซ้อนทับไปแล้วออกโดยอัตโนมัติ เหลือแค่ "ผลลัพธ์สุดท้าย" ว่าวันนั้นใครอยู่เวรอะไรบ้างจริงๆ
+           และชี้ชัดว่าใครมี "เวรซ้อน" (2 เวรในวันเดียว) ที่ต้องจ่ายเงินเพิ่ม -->
+      <div class="card" id="final-payment-card" style="display:none">
+        <h2>💰 สรุปเวรจริงเพื่อจ่ายเงิน (Final)</h2>
+        <div class="hint">อ่านค่าล่าสุดจริงจากตารางเวร (หลังแลก/ยกเวรทุกรายการที่อนุมัติแล้วเสร็จสิ้น) จึงเป็นไฟล์ "ฉบับสุดท้าย" ที่ตรวจสอบได้ทันทีว่าแต่ละวันใครอยู่เวรบ้าง และใครมีเวรซ้อนที่ต้องจ่ายเพิ่ม — ไม่ปนรายการแลกเวรเก่าที่ถูกแลกทับไปแล้ว<br>* รองรับเฉพาะ "เดือนนี้" และ "เดือนถัดไป" เท่านั้น (ตารางเวรจริงในระบบเก็บไว้ 2 เดือนนี้)</div>
+        <label>เดือนที่ต้องการ</label>
+        <select id="final-pay-month-select"><option value="">— กำลังโหลด… —</option></select>
+        <button class="btn btn-success btn-sm" id="final-pay-export-btn" onclick="exportFinalPaymentXlsx()" disabled style="margin-top:10px">⬇️ Excel สรุปจ่ายเงินเวร (Final)</button>
+        <div id="final-pay-msg"></div>
+      </div>
+
       <div class="card">
         <h2>📜 ประวัติการแลกเวร</h2>
         <div class="toggle-row" id="history-toggle-row" style="display:none">
@@ -473,7 +488,11 @@ async function enterApp(){
   updateReqTexts();
 
   const canApproveReports = !!(session.isAdmin || String(session.role||'').indexOf('หัวหน้างาน')>=0);
-  if(canApproveReports){ $('swap-report-card').style.display='block'; loadReportMonths(); }
+  if(canApproveReports){
+    $('swap-report-card').style.display='block'; loadReportMonths();
+    // ✅ NEW: สรุปเวรจริงเพื่อจ่ายเงิน (Final) — สิทธิ์เดียวกับใบแลกเวร
+    $('final-payment-card').style.display='block'; loadFinalPaymentMonths();
+  }
 
   await Promise.all([loadStaffList(), loadMyDays()]);
   renderMineTab();
@@ -1111,6 +1130,232 @@ async function exportSwapMonthlyXlsx(){
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'ใบแลกเวร');
     const filename = `ใบแลกเวร_${res.monthLabel.replace(/\s+/g,'_')}.xlsx`;
+    if(typeof XLSX.writeFileXLSX === 'function') XLSX.writeFileXLSX(wb, filename);
+    else XLSX.writeFile(wb, filename, {bookType:'xlsx'});
+  }catch(err){
+    msg.textContent = 'เกิดข้อผิดพลาด: ' + (err.message||err);
+  }finally{
+    btn.disabled = false; btn.innerHTML = oldLabel;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════
+// ✅ NEW: "สรุปเวรจริงเพื่อจ่ายเงิน (Final)" — สำหรับนักวิชาการเงินและบัญชี
+// ต่างจาก "ใบแลกเวร" ด้านบนซึ่งเป็น log ทุกคำขอแลก/ยกเวรที่อนุมัติ (เรียงตามเวลายื่น จึงอาจมีรายการ
+// วันเดียวกันซ้ำกันหลายแถวถ้ามีการแลกต่อกันหลายทอด — อ่านแล้วสับสนว่าสุดท้ายใครอยู่เวรจริง) ไฟล์นี้อ่านค่า
+// "ล่าสุดจริง" ตรงจากตารางเวร (sheet "ตารางเวร"/"ตารางเวรถัดไป" — ที่ระบบเขียนทับทุกครั้งที่มีการอนุมัติ
+// แลก/ยกเวร) จึงเหลือแค่ผลลัพธ์สุดท้ายของแต่ละวันแต่ละคนเพียงค่าเดียวเสมอ ไม่ต้องนั่งไล่ log เอง
+// ══════════════════════════════════════════════════════════════════
+let finalPayScheduleCache = null; // {current:{...}, next:{...}} ผลจาก getSchedule/getScheduleNext (แคชไว้ใช้ตอน export)
+
+async function loadFinalPaymentMonths(){
+  const sel = $('final-pay-month-select');
+  const btn = $('final-pay-export-btn');
+  sel.innerHTML = '<option value="">— กำลังโหลด… —</option>';
+  btn.disabled = true;
+  try{
+    const [cur, nxt] = await Promise.all([ callGet('getSchedule',{}), callGet('getScheduleNext',{}) ]);
+    finalPayScheduleCache = {current: cur, next: nxt};
+    const opts = [];
+    if(cur.status==='ok') opts.push(`<option value="current">${MONTH_TH[cur.month]||''} ${cur.year} (เดือนนี้)</option>`);
+    if(nxt.status==='ok') opts.push(`<option value="next">${MONTH_TH[nxt.month]||''} ${nxt.year} (เดือนถัดไป)</option>`);
+    if(!opts.length){ sel.innerHTML = '<option value="">ไม่พบตารางเวร</option>'; return; }
+    sel.innerHTML = opts.join('');
+    btn.disabled = false;
+  }catch(err){
+    sel.innerHTML = '<option value="">โหลดรายชื่อเดือนไม่สำเร็จ</option>';
+  }
+}
+
+/** แปลงรหัสเวร (เดี่ยว หรือรวมกันด้วย "/" เช่น "ด/บ1") เป็น array ของป้ายชื่ออ่านง่ายทีละส่วน
+ *  ค่าว่าง หรือ "0" (ไม่มีเวร/วันหยุด) → array ว่าง (ไม่ต้องมีแถวในรายงาน ไม่ต้องจ่ายเงิน) */
+function finalPaySplitLabel_(code){
+  const s = String(code==null? '' : code).trim();
+  if(!s || s==='0') return [];
+  return s.split('/').map(p=>p.trim()).filter(Boolean).map(p=>`${shiftName(p)} (${p})`);
+}
+
+/** สร้างรายการแถวสุดท้าย (final) 1 แถวต่อ 1 คนต่อ 1 วันที่มีเวร จากตารางเวรจริง (scheduleRes)
+ *  พร้อมแนบ "หมายเหตุ/ที่มา" (best-effort) จากประวัติแลก/ยกเวรที่อนุมัติแล้วของเดือนเดียวกัน (swapRows)
+ *  — หมายเหตุนี้ไว้ประกอบการตรวจสอบเท่านั้น แหล่งความจริงหลักคือค่าจริงในตารางเวร (scheduleRes) เสมอ */
+function buildFinalPaymentRows_(scheduleRes, swapRows){
+  const remarkMap = {};
+  (swapRows||[]).forEach(r=>{
+    const kind = r.isGive ? 'ยกเวร' : 'แลกเวร';
+    const reqKey = r.requesterName+'|'+r.sortDay;
+    (remarkMap[reqKey] = remarkMap[reqKey]||[]).push(`${kind}กับ ${r.targetName}`);
+    const tgtKey = r.targetName+'|'+r.targetSortDay;
+    (remarkMap[tgtKey] = remarkMap[tgtKey]||[]).push(`ได้รับเวรจาก ${r.requesterName} (${kind})`);
+  });
+
+  const rows = [];
+  (scheduleRes.data||[]).forEach(staff=>{
+    for(let d=1; d<=31; d++){
+      const raw = staff.schedule[String(d)];
+      if(raw===undefined) continue;
+      const parts = finalPaySplitLabel_(raw);
+      if(!parts.length) continue; // ไม่มีเวร/วันหยุด — ไม่ต้องจ่าย ไม่ต้องลงรายการ
+      const remarks = remarkMap[staff.name+'|'+d] || [];
+      rows.push({
+        day: d, name: staff.name, role: staff.role||'',
+        parts, shiftCount: parts.length,
+        remark: [...new Set(remarks)].join(' / ')
+      });
+    }
+  });
+  rows.sort((a,b)=> a.day-b.day || a.name.localeCompare(b.name,'th'));
+  rows.forEach((r,i)=>r.no=i+1);
+  return rows;
+}
+
+/** ชีตหลัก: รายการสรุปจ่ายเงินเวรแบบเรียงตามวันที่ (final) — แถวไหนมี "เวรซ้อน" (2 เวรในวันเดียว จ่ายเพิ่ม)
+ *  จะไฮไลต์สีแดงอ่อนให้เห็นชัดทันที ไม่ต้องไล่นับเอง */
+function buildFinalPaymentWorksheet_(monthLabel, rows){
+  const THIN = { style:'thin', color:{ rgb:'000000' } };
+  const BORDER_ALL = { top:THIN, bottom:THIN, left:THIN, right:THIN };
+  const titleStyle  = { font:{ name:'Sarabun', sz:15, bold:true }, alignment:{ horizontal:'center', vertical:'center' } };
+  const subStyle     = { font:{ name:'Sarabun', sz:11 }, alignment:{ horizontal:'center', vertical:'center' } };
+  const headerStyle = { font:{ name:'Sarabun', sz:13, bold:true }, alignment:{ horizontal:'center', vertical:'center', wrapText:true }, fill:{ fgColor:{ rgb:'DCE6F1' } }, border:BORDER_ALL };
+  const dataStyle   = { font:{ name:'Sarabun', sz:12.5 }, alignment:{ horizontal:'center', vertical:'center', wrapText:true }, border:BORDER_ALL };
+  const dataStyleL  = { font:{ name:'Sarabun', sz:12.5 }, alignment:{ horizontal:'left', vertical:'center', wrapText:true }, border:BORDER_ALL };
+  const extraStyle  = { font:{ name:'Sarabun', sz:12.5, bold:true, color:{ rgb:'C0392B' } }, alignment:{ horizontal:'center', vertical:'center', wrapText:true }, fill:{ fgColor:{ rgb:'FDECEA' } }, border:BORDER_ALL };
+  const extraStyleL = { font:{ name:'Sarabun', sz:12.5, bold:true, color:{ rgb:'C0392B' } }, alignment:{ horizontal:'left', vertical:'center', wrapText:true }, fill:{ fgColor:{ rgb:'FDECEA' } }, border:BORDER_ALL };
+
+  const totalExtra = rows.filter(r=>r.shiftCount>1).length;
+  const totalShiftUnits = rows.reduce((s,r)=>s+r.shiftCount,0);
+
+  const aoa = [];
+  aoa.push([`สรุปเวรจริงเพื่อจ่ายเงิน (Final) — งานยานพาหนะ(บริหารทั่วไป) โรงพยาบาลสันทราย จังหวัดเชียงใหม่`]);
+  aoa.push([`เดือน ${monthLabel}  •  คำนวณจากตารางเวรล่าสุด (รวมผลการแลก/ยกเวรทุกรายการที่อนุมัติแล้วเสร็จสิ้นแล้ว)`]);
+  aoa.push([`รวม ${rows.length} รายการเวร (${totalShiftUnits} เวร)  •  มีเวรซ้อนต้องจ่ายเพิ่ม ${totalExtra} รายการ (ไฮไลต์สีแดง)  •  พิมพ์เมื่อ ${new Date().toLocaleString('th-TH')}`]);
+  aoa.push([]);
+  aoa.push(['ลำดับ','วันที่','ชื่อ-สกุล','ตำแหน่ง','เวรที่ปฏิบัติงานจริง','จำนวนเวรที่ต้องจ่าย','ประเภท','หมายเหตุ/ที่มา (แลก-ยกเวร)']);
+
+  rows.forEach(r=>{
+    aoa.push([
+      r.no, r.day, r.name, r.role,
+      r.parts.join(' + '),
+      r.shiftCount,
+      r.shiftCount>1 ? 'มีเวรซ้อน (จ่ายเพิ่ม)' : 'ปกติ',
+      thaiWordBreak(r.remark || (r.shiftCount>1 ? '' : '-'))
+    ]);
+  });
+
+  const dataStart = 4;
+  const dataEnd = dataStart + rows.length - 1;
+  const sigRow = dataEnd + 2;
+  while (aoa.length <= sigRow + 4) aoa.push(new Array(8).fill(''));
+  aoa[sigRow][0]   = 'ตรวจสอบแล้ว';
+  aoa[sigRow+2][0] = '.......................................';
+  aoa[sigRow+3][0] = '(...........................................)';
+  aoa[sigRow+4][0] = 'ตำแหน่ง นักวิชาการเงินและบัญชี ผู้จัดทำ';
+  aoa[sigRow][4]   = 'ตรวจสอบแล้ว';
+  aoa[sigRow+2][4] = '.......................................';
+  aoa[sigRow+3][4] = '(...........................................)';
+  aoa[sigRow+4][4] = 'ตำแหน่ง หัวหน้างานยานพาหนะ ผู้รับรอง';
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges'] = [
+    { s:{r:0,c:0}, e:{r:0,c:7} },
+    { s:{r:1,c:0}, e:{r:1,c:7} },
+    { s:{r:2,c:0}, e:{r:2,c:7} },
+    { s:{r:sigRow,c:0},   e:{r:sigRow,c:3} },
+    { s:{r:sigRow+2,c:0}, e:{r:sigRow+2,c:3} },
+    { s:{r:sigRow+3,c:0}, e:{r:sigRow+3,c:3} },
+    { s:{r:sigRow+4,c:0}, e:{r:sigRow+4,c:3} },
+    { s:{r:sigRow,c:4},   e:{r:sigRow,c:7} },
+    { s:{r:sigRow+2,c:4}, e:{r:sigRow+2,c:7} },
+    { s:{r:sigRow+3,c:4}, e:{r:sigRow+3,c:7} },
+    { s:{r:sigRow+4,c:4}, e:{r:sigRow+4,c:7} }
+  ];
+  ws['!cols'] = [{wch:6},{wch:8},{wch:22},{wch:18},{wch:26},{wch:12},{wch:18},{wch:32}];
+  ws['!rows'] = aoa.map((_,i)=> i===0?{hpt:24} : (i>=1&&i<=2?{hpt:18} : (i>=dataStart&&i<=dataEnd?{hpt:22}:{hpt:18})));
+
+  function setStyle(r,c,style){ const ref = XLSX.utils.encode_cell({r,c}); if(ws[ref]) ws[ref].s = style; }
+  setStyle(0,0,titleStyle); setStyle(1,0,subStyle); setStyle(2,0,subStyle);
+  for(let c=0;c<8;c++) setStyle(4,c,headerStyle);
+  rows.forEach((r,i)=>{
+    const rowIdx = dataStart+1+i, extra = r.shiftCount>1;
+    for(let c=0;c<8;c++){
+      const leftAlign = (c===2||c===4||c===7);
+      setStyle(rowIdx,c, extra ? (leftAlign?extraStyleL:extraStyle) : (leftAlign?dataStyleL:dataStyle));
+    }
+  });
+  ws['!printHeader'] = [1, 5];
+  ws['!margins'] = { left:0.3, right:0.3, top:0.4, bottom:0.4, header:0.2, footer:0.2 };
+  return ws;
+}
+
+/** ชีตที่ 2: ตารางเวรฉบับสมบูรณ์ทั้งเดือนแบบตาราง (คน × วันที่ 1-31) เหมือนตารางเวรต้นฉบับ — เก็บไว้อ้างอิง/
+ *  ตรวจทานย้อนหลังคู่กับชีตหลัก (ค่าที่แสดงคือค่าจริงในตารางเวร ไม่ผ่านการแปลง จึงตรงกับที่หน้าจอเวรเห็นทุกตัวอักษร) */
+function buildFinalPaymentMatrixWorksheet_(monthLabel, scheduleRes){
+  const THIN = { style:'thin', color:{ rgb:'000000' } };
+  const BORDER_ALL = { top:THIN, bottom:THIN, left:THIN, right:THIN };
+  const headerStyle = { font:{ name:'Sarabun', sz:10.5, bold:true }, alignment:{ horizontal:'center', vertical:'center' }, fill:{ fgColor:{ rgb:'DCE6F1' } }, border:BORDER_ALL };
+  const dataStyle   = { font:{ name:'Sarabun', sz:10 }, alignment:{ horizontal:'center', vertical:'center' }, border:BORDER_ALL };
+  const nameStyle   = { font:{ name:'Sarabun', sz:10.5 }, alignment:{ horizontal:'left', vertical:'center' }, border:BORDER_ALL };
+  const titleStyle  = { font:{ name:'Sarabun', sz:13, bold:true }, alignment:{ horizontal:'center', vertical:'center' } };
+
+  const staff = scheduleRes.data || [];
+  const header = ['ชื่อ-สกุล','ตำแหน่ง'];
+  for(let d=1; d<=31; d++) header.push(String(d));
+
+  const aoa = [[`ตารางเวรฉบับสมบูรณ์ทั้งเดือน (Final) เดือน ${monthLabel}`], header];
+  staff.forEach(s=>{
+    const row = [s.name, s.role||''];
+    for(let d=1; d<=31; d++) row.push(s.schedule[String(d)] || '');
+    aoa.push(row);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!merges'] = [{ s:{r:0,c:0}, e:{r:0,c:header.length-1} }];
+  ws['!cols'] = [{wch:22},{wch:14}].concat(new Array(31).fill({wch:6}));
+
+  function setStyle(r,c,style){ const ref = XLSX.utils.encode_cell({r,c}); if(ws[ref]) ws[ref].s = style; }
+  setStyle(0,0,titleStyle);
+  for(let c=0;c<header.length;c++) setStyle(1,c,headerStyle);
+  for(let r=2;r<aoa.length;r++){
+    setStyle(r,0,nameStyle);
+    for(let c=1;c<header.length;c++) setStyle(r,c,dataStyle);
+  }
+  return ws;
+}
+
+async function exportFinalPaymentXlsx(){
+  const sel = $('final-pay-month-select');
+  const btn = $('final-pay-export-btn');
+  const msg = $('final-pay-msg');
+  msg.textContent = '';
+  const which = sel.value; // 'current' | 'next'
+  if(!which) return;
+  if(typeof XLSX === 'undefined'){ msg.textContent = 'ไลบรารีสร้างไฟล์ Excel โหลดไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'; return; }
+  if(!finalPayScheduleCache || !finalPayScheduleCache[which] || finalPayScheduleCache[which].status!=='ok'){
+    msg.textContent = 'ไม่พบตารางเวรของเดือนนี้ กรุณาโหลดหน้าใหม่แล้วลองอีกครั้ง'; return;
+  }
+
+  btn.disabled = true; const oldLabel = btn.innerHTML; btn.innerHTML = '<span class="spinner"></span> กำลังสร้างไฟล์…';
+  try{
+    const scheduleRes = finalPayScheduleCache[which];
+    const monthLabel = `${MONTH_TH[scheduleRes.month]||''} ${scheduleRes.year}`;
+    const monthKey = `${scheduleRes.year}-${String(scheduleRes.month).padStart(2,'0')}`;
+
+    // ดึงประวัติแลก/ยกเวรของเดือนเดียวกัน มาใช้ทำคอลัมน์ "หมายเหตุ/ที่มา" เท่านั้น (best-effort — ถ้าดึงไม่ได้
+    // ก็ยังสร้างรายงานหลักได้ตามปกติ เพราะแหล่งความจริงหลักคือตารางเวรจริง ไม่ใช่ log นี้)
+    let swapRows = [];
+    try{
+      const repRes = await callGet('getSwapMonthlyReport', {monthKey});
+      if(repRes.status==='ok') swapRows = repRes.rows || [];
+    }catch(e){ /* เพิกเฉย — ไม่กระทบรายงานหลัก */ }
+
+    const rows = buildFinalPaymentRows_(scheduleRes, swapRows);
+    if(!rows.length){ msg.textContent = 'เดือนนี้ยังไม่มีข้อมูลเวรในตาราง'; return; }
+
+    const wsMain   = buildFinalPaymentWorksheet_(monthLabel, rows);
+    const wsMatrix = buildFinalPaymentMatrixWorksheet_(monthLabel, scheduleRes);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, wsMain, 'สรุปจ่ายเงินเวร');
+    XLSX.utils.book_append_sheet(wb, wsMatrix, 'ตารางเวรฉบับสมบูรณ์');
+    const filename = `สรุปจ่ายเงินเวร_Final_${monthLabel.replace(/\s+/g,'_')}.xlsx`;
     if(typeof XLSX.writeFileXLSX === 'function') XLSX.writeFileXLSX(wb, filename);
     else XLSX.writeFile(wb, filename, {bookType:'xlsx'});
   }catch(err){
