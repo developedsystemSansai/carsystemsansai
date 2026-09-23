@@ -158,6 +158,14 @@ textarea{resize:vertical;min-height:70px;}
 .mode-toggle-btn.active{border-color:var(--violet);background:var(--violet-soft);color:var(--violet);}
 .mode-toggle-btn.active .mt-sub{color:var(--violet-mid);}
 
+/* ✅ NEW: เลือก "ส่วนที่จะยก" เมื่อเวรวันนั้นเป็นเวรรวมเช้า-บ่าย (แยกครึ่งได้ เช่น ช2บ1 → ช2 + บ1) */
+.scope-toggle{display:none;gap:6px;margin-top:10px;}
+.scope-toggle.show{display:flex;}
+.scope-toggle-btn{flex:1;padding:8px 4px;border:1.5px solid var(--border-strong);border-radius:var(--radius-sm);background:#fff;font-family:'Noto Sans Thai',sans-serif;font-size:11.5px;font-weight:700;color:var(--text-mid);cursor:pointer;text-align:center;transition:.12s;line-height:1.4;}
+.scope-toggle-btn .st-sub{display:block;font-size:9px;font-weight:500;color:var(--text-light);margin-top:1px;}
+.scope-toggle-btn.active{border-color:var(--teal);background:var(--teal-soft);color:var(--teal);}
+.scope-toggle-btn.active .st-sub{color:var(--teal);}
+
 /* ✅ NEW: กล่องพรีวิวผลลัพธ์การ "ยกเวร" — โชว์เวรเดิมของผู้รับ + ผลรวมหลังยกเวร ก่อนกดส่ง */
 .give-preview-box{grid-column:1/-1;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-top:8px;background:var(--bg2);}
 .give-preview-row{font-size:12.5px;color:var(--text-mid);line-height:1.6;}
@@ -294,6 +302,13 @@ textarea{resize:vertical;min-height:70px;}
         <label id="req-my-days-label">วันเวรของฉันที่จะให้เพื่อนแทน</label>
         <div id="req-my-days" class="day-pick-grid"></div>
 
+        <!-- ✅ NEW: แสดงเฉพาะโหมด "ยกเวร" + วันที่เลือกเป็นเวรรวมเช้า-บ่าย (แยกครึ่งได้) -->
+        <div class="scope-toggle" id="give-scope-toggle">
+          <button type="button" class="scope-toggle-btn active" id="scope-btn-full" onclick="setGiveScope('full')">🎁 ยกทั้งเวร<span class="st-sub">ให้ทั้งวัน</span></button>
+          <button type="button" class="scope-toggle-btn" id="scope-btn-am" onclick="setGiveScope('am')">🌅 ยกเฉพาะเช้า<span class="st-sub" id="scope-am-label">ช่วงเช้า</span></button>
+          <button type="button" class="scope-toggle-btn" id="scope-btn-pm" onclick="setGiveScope('pm')">🌇 ยกเฉพาะบ่าย<span class="st-sub" id="scope-pm-label">ช่วงบ่าย</span></button>
+        </div>
+
         <label id="req-target-label">แลกกับเพื่อนร่วมงาน</label>
         <select id="req-target-name" onchange="onTargetChange()">
           <option value="">— เลือกเพื่อนร่วมงาน —</option>
@@ -383,8 +398,17 @@ let myDays = null;       // จาก getMyShiftDays(session.name) -> {current:{
 let targetDays = null;   // shift days ของเพื่อนที่เลือก
 let selReqDay = null, selTgtDay = null;
 let reqMode = 'swap';    // ✅ NEW: 'swap' = แลกเวร (สลับกัน 2 ทาง, ค่าเริ่มต้น) หรือ 'give' = ยกเวร (ให้ทางเดียว)
+let giveScope = 'full';  // ✅ NEW: เฉพาะโหมด 'give' — 'full' (ยกทั้งเวร) / 'am' (เฉพาะครึ่งเช้า) / 'pm' (เฉพาะครึ่งบ่าย)
 
-function shiftName(s){if(!s)return'';const l=String(s).toLowerCase();if(l.includes('ems'))return'EMS';if(l.startsWith('ช1'))return'เช้า1';if(l.startsWith('ช2'))return'เช้า2';if(l.startsWith('ช3'))return'เช้า3';if(l==='ด'||l.startsWith('ด'))return'ดึก';return s;}
+function shiftName(s){if(!s)return'';const l=String(s).toLowerCase();if(l.includes('ems'))return'EMS';if(l.startsWith('ช1'))return'เช้า1';if(l.startsWith('ช2'))return'เช้า2';if(l.startsWith('ช3'))return'เช้า3';if(l==='ด'||l.startsWith('ด'))return'ดึก';if(l.startsWith('บ'))return'บ่าย'+s.slice(1);return s;}
+/** ✅ NEW: ตรวจสอบว่ารหัสเวรเป็น "เวรรวม" เช้าต่อบ่าย (เช่น "ช2บ1") ที่แยกเป็น 2 ส่วนได้หรือไม่ — คู่กับ
+ *  swapSplitCombinedShift_() ฝั่งเซิร์ฟเวอร์ (ใช้แค่แสดงผล/พรีวิวที่นี่ ค่าจริงคำนวณซ้ำที่เซิร์ฟเวอร์เสมอ) */
+function swapSplitCombined_(code){
+  const s = String(code==null? '' : code).trim();
+  const m = /^(ช[1-3])(บ[1-3])$/.exec(s);
+  if(!m) return null;
+  return {am:m[1], pm:m[2]};
+}
 
 async function callGet(action, params){
   const qs = new URLSearchParams({action, ...(params||{})});
@@ -502,6 +526,7 @@ async function onRequesterChange(){
   selTgtDay = null;
   $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
   rebuildTargetOptions();
+  updateGiveScopeUI();
 }
 
 function escHtml(s){ return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -588,6 +613,28 @@ function setReqMode(mode){
   $('req-target-name').value = '';
   $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
   updateReqTexts();
+  updateGiveScopeUI();
+}
+
+/** ✅ NEW: แสดง/ซ่อนตัวเลือก "ส่วนที่จะยก" (ยกทั้งเวร / เฉพาะเช้า / เฉพาะบ่าย) — แสดงเฉพาะเมื่ออยู่โหมด
+ *  "ยกเวร" และวันเวรที่เลือกไว้เป็นเวรรวมเช้า-บ่ายที่แยกครึ่งได้ (เช่น ช2บ1) เท่านั้น เรียกทุกครั้งที่
+ *  วันเวร/โหมด/พนักงานที่เลือกเปลี่ยนไป เพื่อให้ตัวเลือกตรงกับวันที่เลือกอยู่เสมอ */
+function updateGiveScopeUI(){
+  const box = $('give-scope-toggle');
+  if(reqMode!=='give' || !selReqDay){ box.classList.remove('show'); giveScope='full'; return; }
+  const split = swapSplitCombined_(selReqDay.shift);
+  if(!split){ box.classList.remove('show'); giveScope='full'; return; }
+  $('scope-am-label').textContent = shiftName(split.am)+' ('+split.am+')';
+  $('scope-pm-label').textContent = shiftName(split.pm)+' ('+split.pm+')';
+  box.classList.add('show');
+  setGiveScope('full');
+}
+/** ✅ NEW: เลือกส่วนที่จะยก — เปลี่ยนปุ่มที่เลือกไว้ แล้วรีเฟรชพรีวิวผลลัพธ์ใหม่ถ้าเลือกเพื่อนร่วมงานไว้แล้ว */
+function setGiveScope(scope){
+  giveScope = scope;
+  document.querySelectorAll('.scope-toggle-btn').forEach(b=>b.classList.remove('active'));
+  $('scope-btn-'+scope).classList.add('active');
+  if($('req-target-name').value) renderGivePreview();
 }
 
 /** ✅ NEW: รวมค่าเวร 2 ค่าเข้าด้วยกันแบบเดียวกับฝั่งเซิร์ฟเวอร์ (swapCombineShiftValues_)
@@ -621,14 +668,29 @@ function renderGivePreview(){
   const d = targetDays[ms];
   const dayInfo = (d && d.days) ? d.days.find(x=>+x.day===+selReqDay.day) : null;
   const existingShift = dayInfo ? dayInfo.shift : '';
-  const combined = swapCombinePreview_(existingShift, selReqDay.shift);
+
+  // ✅ NEW: ถ้าเลือกยกเฉพาะครึ่งเวร (giveScope !== 'full') ให้ใช้เฉพาะส่วนนั้นในการรวมกับเวรเดิมของเพื่อน
+  //  และเก็บส่วนที่เหลือ (remainShift) ไว้แสดงว่าผู้ให้เวรจะยังมีเวรอะไรอยู่กับตัวเองบ้าง
+  let givenShift = selReqDay.shift, remainShift = '';
+  const split = swapSplitCombined_(selReqDay.shift);
+  if(split && giveScope!=='full'){
+    givenShift = giveScope==='am' ? split.am : split.pm;
+    remainShift = giveScope==='am' ? split.pm : split.am;
+  }
+  const combined = swapCombinePreview_(existingShift, givenShift);
   // เก็บไว้ให้ฟอร์มผ่านการตรวจสอบก่อนส่ง — ค่าจริงที่จะบันทึกฝั่งเซิร์ฟเวอร์จะคำนวณจากตารางเวรสดอีกครั้งเสมอ
   selTgtDay = {day: selReqDay.day, shift: existingShift || ''};
+
+  const remainRow = remainShift
+    ? `<div class="give-preview-row" style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border-strong)">คุณจะยังคงเหลือ <b>${escHtml(shiftName(remainShift))}</b> <span style="opacity:.7">(${escHtml(remainShift)})</span> ของวันนี้ไว้กับตัวเอง</div>`
+    : '';
+
   box.innerHTML = `
     <div class="give-preview-box">
       <div class="give-preview-row">เวรเดิมของ <b>${escHtml(name)}</b> วันที่ ${selReqDay.day}: <b>${escHtml(existingShift ? shiftName(existingShift) : 'ไม่มีเวร (วันหยุด)')}</b></div>
       <div class="give-preview-arrow">⬇️ หลังยกเวรให้แล้ว จะบันทึกในตารางเวรเป็น</div>
       <div class="give-preview-result">${escHtml(name)} วันที่ ${selReqDay.day}<br>${escHtml(shiftNameCombined(combined))} <span style="opacity:.7">(${escHtml(combined)})</span></div>
+      ${remainRow}
     </div>`;
 }
 
@@ -637,6 +699,7 @@ function onReqMonthChange(){
   $('req-target-name').value = '';
   $('req-target-days').innerHTML = '<div class="empty-note">กรุณาเลือกเพื่อนร่วมงานก่อน</div>';
   renderReqMyDays();
+  updateGiveScopeUI();
 }
 function renderReqMyDays(){
   const ms = $('req-month').value;
@@ -665,6 +728,8 @@ function pickReqDay(el){
   document.querySelectorAll('#req-my-days .day-pick').forEach(e=>e.classList.remove('sel'));
   el.classList.add('sel');
   selReqDay = {day:+el.dataset.day, shift:el.dataset.shift};
+  // ✅ NEW: อัปเดตตัวเลือก "ส่วนที่จะยก" ให้ตรงกับวันที่เพิ่งเลือก (แสดงเฉพาะถ้าเวรวันนั้นแยกครึ่งได้)
+  updateGiveScopeUI();
   // ✅ NEW: โหมด "ยกเวร" — ถ้าเลือกเพื่อนร่วมงานไว้แล้ว ต้องรีเฟรชพรีวิวผลลัพธ์ใหม่ตามวันที่เพิ่งเลือก
   if(reqMode==='give' && $('req-target-name').value) renderGivePreview();
 }
@@ -716,6 +781,7 @@ async function submitRequest(){
       requesterPhone: session.phone,
       requesterName: session.isAdmin ? reqRequesterName : undefined,
       requestType: reqMode, // ✅ NEW: 'swap' (แลกเวร, ค่าเริ่มต้น) หรือ 'give' (ยกเวร ให้ทางเดียว)
+      giveScope: isGive ? giveScope : undefined, // ✅ NEW: 'full' (ยกทั้งเวร) / 'am' (เฉพาะครึ่งเช้า) / 'pm' (เฉพาะครึ่งบ่าย)
       monthSheet, targetName,
       requesterDay: selReqDay.day, requesterShift: selReqDay.shift,
       targetDay: selTgtDay.day, targetShift: selTgtDay.shift,
