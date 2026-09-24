@@ -233,6 +233,7 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
 
 <div class="toast" id="toast"></div>
 
+<script src="secure-fetch.js"></script>
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec'; // ✅ เรียก code.gs ตรง — ใช้ URL เดียวกับหน้าอื่นๆ ในระบบ
 let ADMIN_CODE = '';
@@ -262,10 +263,13 @@ async function gasPost(payload){
 
 // ── PIN GATE ──
 async function verifyPin(){
-  const val = document.getElementById('pinInput').value.trim();
+  const inp = document.getElementById('pinInput');
+  const btn = document.querySelector('#gate button');
+  const val = inp.value.trim();
   const errEl = document.getElementById('pinErr');
   if (!val) { errEl.textContent = 'กรุณากรอกรหัส'; return; }
   errEl.textContent = 'กำลังตรวจสอบ…';
+  btn.disabled = true;
   try {
     const r = await gasPost({ action: 'verifyEditMileAdminCode', code: val });
     if (r && r.status === 'ok' && r.valid) {
@@ -274,11 +278,14 @@ async function verifyPin(){
       document.getElementById('mainWrap').style.display = 'block';
       initAll();
     } else {
-      errEl.textContent = 'รหัสไม่ถูกต้อง หรือลองผิดเกินกำหนด (รอ 15 นาที)';
+      errEl.textContent = 'รหัสไม่ถูกต้อง';
+      inp.value = '';
+      inp.focus();
     }
   } catch(e) {
-    errEl.textContent = 'เชื่อมต่อไม่สำเร็จ: ' + e.message;
+    errEl.textContent = 'เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง';
   }
+  btn.disabled = false;
 }
 document.getElementById('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') verifyPin(); });
 
