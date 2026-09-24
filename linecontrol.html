@@ -101,6 +101,7 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
 .sw input:checked + .slider{background:var(--accent)}
 .sw input:checked + .slider::before{transform:translateX(18px)}
 .sw input:focus-visible + .slider{outline:2px solid var(--accent);outline-offset:2px}
+.sw input:disabled + .slider{opacity:.5;cursor:wait}
 
 /* BUTTONS */
 .btn{padding:9px 16px;border-radius:var(--radius-sm);border:1px solid transparent;font-weight:600;font-size:13px;cursor:pointer;transition:background var(--dur),border-color var(--dur);display:inline-flex;align-items:center;justify-content:center;gap:6px}
@@ -145,7 +146,34 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
 .toast.err{background:var(--err)}
 .toast.ok{background:var(--ok)}
 
-.empty-hint,.loading{text-align:center;padding:28px 12px;color:var(--text-light);font-size:13px}
+.empty-hint{text-align:center;padding:28px 12px;color:var(--text-light);font-size:13px}
+.loading{display:flex;align-items:center;justify-content:center;gap:9px;padding:28px 12px;color:var(--text-light);font-size:13px}
+
+/* SPINNER */
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:16px;height:16px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.spinner.sm{width:13px;height:13px;border-width:2px}
+.btn .spinner{border-color:rgba(255,255,255,.4);border-top-color:#fff}
+.btn-ghost .spinner{border-color:var(--border-strong);border-top-color:var(--accent)}
+.btn.is-loading{cursor:default}
+#gate button .spinner{border-color:rgba(255,255,255,.4);border-top-color:#fff}
+
+/* TOP PROGRESS BAR (แสดงตอนกำลังยิง request ไปเซิร์ฟเวอร์) */
+#topbar{position:fixed;top:0;left:0;height:3px;width:0;background:linear-gradient(90deg,var(--teal),var(--accent));z-index:1100;transition:width .3s ease,opacity .25s ease;box-shadow:0 0 8px rgba(29,111,181,.5)}
+#topbar.on{width:70%}
+#topbar.done{width:100%;opacity:0}
+
+/* SKELETON (ใช้ตอนรอข้อมูลชุดแรกของแต่ละแท็บ) */
+@keyframes shimmer{0%{background-position:-120% 0}100%{background-position:120% 0}}
+.sk-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--border)}
+.sk-row:first-child{border-top:none}
+.sk-bar{border-radius:6px;background:linear-gradient(90deg,var(--border) 25%,#eef2f7 37%,var(--border) 63%);background-size:400% 100%;animation:shimmer 1.3s ease-in-out infinite}
+.sk-toggle{width:40px;height:22px;border-radius:22px;flex-shrink:0}
+.sk-lines{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.sk-line{height:12px}
+.sk-line.w60{width:60%}
+.sk-line.w30{width:32%}
+.sk-btn{width:84px;height:30px;border-radius:8px;flex-shrink:0}
 
 @media(max-width:560px){
   .hd-in,.wrap{padding-left:14px;padding-right:14px}
@@ -162,6 +190,8 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
 </style>
 </head>
 <body>
+
+<div id="topbar"></div>
 
 <div id="gate">
   <div class="box">
@@ -201,9 +231,13 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
     <div class="card">
       <h3>เวลาส่งข้อความอัตโนมัติ</h3>
       <div class="sub">แก้เวลาแล้วกด "บันทึก" ระบบจะตั้ง trigger ใหม่ให้ทันที ไม่ต้องเข้า Apps Script Editor</div>
-      <div id="schedList"><div class="loading">กำลังโหลด…</div></div>
+      <div id="schedList">
+        <div class="sk-row"><div class="sk-bar sk-toggle"></div><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div></div>
+        <div class="sk-row"><div class="sk-bar sk-toggle"></div><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div></div>
+        <div class="sk-row"><div class="sk-bar sk-toggle"></div><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div></div>
+      </div>
       <div class="sched-foot">
-        <button class="btn btn-primary" onclick="saveSchedule()">บันทึกการตั้งค่า</button>
+        <button class="btn btn-primary" onclick="saveSchedule(event)">บันทึกการตั้งค่า</button>
       </div>
     </div>
   </div>
@@ -213,7 +247,11 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
     <div class="card">
       <h3>ข้อความทั้งหมดในระบบ</h3>
       <div class="sub">กด "ทดสอบส่ง" เพื่อส่งข้อความจริงไปยัง userId ทดสอบ (ตั้งค่าได้ที่แท็บ "บัญชี LINE") — ทุกครั้งที่กดจะใช้โควต้า LINE <b>1 ข้อความ</b></div>
-      <div id="msgList"><div class="loading">กำลังโหลด…</div></div>
+      <div id="msgList">
+        <div class="sk-row"><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div><div class="sk-bar sk-btn"></div></div>
+        <div class="sk-row"><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div><div class="sk-bar sk-btn"></div></div>
+        <div class="sk-row"><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div><div class="sk-bar sk-btn"></div></div>
+      </div>
     </div>
   </div>
 
@@ -222,7 +260,11 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
     <div class="card">
       <h3>ผู้รับรายงานอัตโนมัติ</h3>
       <div class="sub">เปิด/ปิดสวิตช์เพื่อควบคุมว่าใครจะได้รับรายงานอัตโนมัติทาง LINE บ้าง (ไม่กระทบบทบาทที่ตั้งไว้ในชีท LineUsers)</div>
-      <div id="userList"><div class="loading">กำลังโหลด…</div></div>
+      <div id="userList">
+        <div class="sk-row"><div class="sk-bar sk-toggle"></div><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div></div>
+        <div class="sk-row"><div class="sk-bar sk-toggle"></div><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div></div>
+        <div class="sk-row"><div class="sk-bar sk-toggle"></div><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div></div>
+      </div>
     </div>
   </div>
 
@@ -231,14 +273,14 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
     <div class="card">
       <h3>บัญชี LINE หลัก/สำรอง</h3>
       <div class="sub">เมื่อบัญชีหลัก token หรือโควต้าข้อความหมด สลับมาใช้บัญชีสำรองได้ทันทีโดยไม่ต้องแก้โค้ด (ต้องตั้งค่า LINE_CHANNEL_ACCESS_TOKEN_BACKUP ใน Script Properties ไว้ก่อน)</div>
-      <div id="chanInfo"><div class="loading">กำลังโหลด…</div></div>
+      <div id="chanInfo"><div class="loading"><span class="spinner"></span>กำลังโหลด…</div></div>
     </div>
     <div class="card">
       <h3>userId ทดสอบ</h3>
       <div class="sub">userId ของแอดมิน (หาได้จากชีท "LineUsers" คอลัมน์ UserId) ที่จะใช้รับข้อความตอนกด "ทดสอบส่ง"</div>
       <div class="field-row">
         <input type="text" id="testUserIdInput" placeholder="Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
-        <button class="btn btn-primary" onclick="saveTestUserId()">บันทึก</button>
+        <button class="btn btn-primary" onclick="saveTestUserId(event)">บันทึก</button>
       </div>
     </div>
   </div>
@@ -261,18 +303,64 @@ function showToast(msg, type){
   t._timer = setTimeout(()=> t.className = 'toast', 2600);
 }
 
+// ── แถบโหลดด้านบน: ทำงานอัตโนมัติทุกครั้งที่มีการเรียก gasGet/gasPost ──
+let _pendingReq = 0;
+function reqStart(){
+  _pendingReq++;
+  const bar = document.getElementById('topbar');
+  if (!bar) return;
+  bar.classList.remove('done');
+  bar.style.transition = '';
+  requestAnimationFrame(() => bar.classList.add('on'));
+}
+function reqEnd(){
+  _pendingReq = Math.max(0, _pendingReq - 1);
+  if (_pendingReq > 0) return;
+  const bar = document.getElementById('topbar');
+  if (!bar) return;
+  bar.classList.remove('on');
+  bar.classList.add('done');
+  setTimeout(() => {
+    bar.classList.remove('done');
+    bar.style.transition = 'none';
+    bar.style.width = '0';
+    bar.style.opacity = '1';
+  }, 320);
+}
+
+// ── ปุ่ม: สลับสถานะกำลังโหลด (spinner + ล็อกปุ่ม) ──
+function setBtnLoading(btn, loading, label){
+  if (!btn) return;
+  if (loading) {
+    if (btn.dataset.origHtml === undefined) btn.dataset.origHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.classList.add('is-loading');
+    btn.innerHTML = '<span class="spinner sm"></span>' + (label || 'กำลังดำเนินการ…');
+  } else {
+    btn.classList.remove('is-loading');
+    btn.disabled = false;
+    if (btn.dataset.origHtml !== undefined) { btn.innerHTML = btn.dataset.origHtml; delete btn.dataset.origHtml; }
+  }
+}
+
 async function gasGet(action, params){
   const qs = new URLSearchParams(Object.assign({ action }, params || {}));
-  const res = await fetch(GAS_URL + '?' + qs.toString());
-  return res.json();
+  reqStart();
+  try {
+    const res = await fetch(GAS_URL + '?' + qs.toString());
+    return await res.json();
+  } finally { reqEnd(); }
 }
 async function gasPost(payload){
-  const res = await fetch(GAS_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'payload=' + encodeURIComponent(JSON.stringify(payload))
-  });
-  return res.json();
+  reqStart();
+  try {
+    const res = await fetch(GAS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'payload=' + encodeURIComponent(JSON.stringify(payload))
+    });
+    return await res.json();
+  } finally { reqEnd(); }
 }
 
 // ── PIN GATE ──
@@ -282,8 +370,8 @@ async function verifyPin(){
   const val = inp.value.trim();
   const errEl = document.getElementById('pinErr');
   if (!val) { errEl.textContent = 'กรุณากรอกรหัส'; return; }
-  errEl.textContent = 'กำลังตรวจสอบ…';
-  btn.disabled = true;
+  errEl.textContent = '';
+  setBtnLoading(btn, true, 'กำลังตรวจสอบ…');
   try {
     const r = await gasPost({ action: 'verifyEditMileAdminCode', code: val });
     if (r && r.status === 'ok' && r.valid) {
@@ -291,6 +379,7 @@ async function verifyPin(){
       document.getElementById('gate').style.display = 'none';
       document.getElementById('mainWrap').style.display = 'block';
       initAll();
+      return; // ไม่ต้องคืนสถานะปุ่ม เพราะ gate ถูกซ่อนไปแล้ว
     } else {
       errEl.textContent = 'รหัสไม่ถูกต้อง';
       inp.value = '';
@@ -299,7 +388,7 @@ async function verifyPin(){
   } catch(e) {
     errEl.textContent = 'เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง';
   }
-  btn.disabled = false;
+  setBtnLoading(btn, false);
 }
 document.getElementById('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') verifyPin(); });
 
@@ -354,36 +443,41 @@ async function loadChannelStatus(){
           <h4>บัญชีหลัก</h4>
           <div style="font-size:11.5px;color:var(--text-light);margin-bottom:8px">${r.primaryConfigured ? 'ตั้งค่า token แล้ว' : 'ยังไม่ได้ตั้งค่า token'}</div>
           ${r.active === 'primary' ? quotaHtml : ''}
-          ${r.active !== 'primary' ? `<button class="btn btn-ghost" style="width:100%;margin-top:6px" onclick="switchChannel('primary')" ${!r.primaryConfigured ? 'disabled' : ''}>สลับมาใช้บัญชีนี้</button>` : ''}
+          ${r.active !== 'primary' ? `<button class="btn btn-ghost" style="width:100%;margin-top:6px" onclick="switchChannel('primary', event)" ${!r.primaryConfigured ? 'disabled' : ''}>สลับมาใช้บัญชีนี้</button>` : ''}
         </div>
         <div class="chan-card ${r.active === 'backup' ? 'active' : ''}">
           ${r.active === 'backup' ? '<div class="tag">กำลังใช้งาน</div>' : ''}
           <h4>บัญชีสำรอง</h4>
           <div style="font-size:11.5px;color:var(--text-light);margin-bottom:8px">${r.backupConfigured ? 'ตั้งค่า token แล้ว' : 'ยังไม่ได้ตั้งค่า LINE_CHANNEL_ACCESS_TOKEN_BACKUP'}</div>
           ${r.active === 'backup' ? quotaHtml : ''}
-          ${r.active !== 'backup' ? `<button class="btn btn-ghost" style="width:100%;margin-top:6px" onclick="switchChannel('backup')" ${!r.backupConfigured ? 'disabled' : ''}>สลับมาใช้บัญชีนี้</button>` : ''}
+          ${r.active !== 'backup' ? `<button class="btn btn-ghost" style="width:100%;margin-top:6px" onclick="switchChannel('backup', event)" ${!r.backupConfigured ? 'disabled' : ''}>สลับมาใช้บัญชีนี้</button>` : ''}
         </div>
       </div>`;
   } catch(e) { console.error(e); }
 }
 
-async function switchChannel(target){
+async function switchChannel(target, ev){
   if (!confirm((target === 'backup' ? 'สลับไปใช้บัญชีสำรอง' : 'สลับกลับมาใช้บัญชีหลัก') + ' ใช่หรือไม่?\n(ข้อความอัตโนมัติและปุ่ม Rich Menu ทั้งหมดจะเปลี่ยนไปใช้บัญชีนี้ทันที)')) return;
+  const btn = ev && ev.currentTarget;
+  setBtnLoading(btn, true, 'กำลังสลับ…');
   try {
     const r = await gasPost({ action: 'switchLineChannel', target, adminCode: ADMIN_CODE });
-    if (r.status === 'ok') { showToast('สลับช่องทางสำเร็จ', 'ok'); loadChannelStatus(); }
-    else showToast(r.message || 'สลับไม่สำเร็จ', 'err');
-  } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
+    if (r.status === 'ok') { showToast('สลับช่องทางสำเร็จ', 'ok'); loadChannelStatus(); /* กล่องจะถูกวาดใหม่ทั้งหมด ไม่ต้องคืนสถานะปุ่ม */ }
+    else { showToast(r.message || 'สลับไม่สำเร็จ', 'err'); setBtnLoading(btn, false); }
+  } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); setBtnLoading(btn, false); }
 }
 
-async function saveTestUserId(){
+async function saveTestUserId(ev){
   const uid = document.getElementById('testUserIdInput').value.trim();
   if (!uid) { showToast('กรุณากรอก userId', 'err'); return; }
+  const btn = ev && ev.currentTarget;
+  setBtnLoading(btn, true, 'กำลังบันทึก…');
   try {
     const r = await gasPost({ action: 'saveLineTestUserId', userId: uid, adminCode: ADMIN_CODE });
     if (r.status === 'ok') showToast('บันทึก userId ทดสอบแล้ว', 'ok');
     else showToast(r.message || 'บันทึกไม่สำเร็จ', 'err');
   } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
+  setBtnLoading(btn, false);
 }
 
 // ── SCHEDULE (tab 1) ──
@@ -412,12 +506,15 @@ function renderSchedule(){
       <span class="mono" style="font-size:11px;color:var(--text-light)">น.</span>
     </div>`).join('');
 }
-async function saveSchedule(){
+async function saveSchedule(ev){
+  const btn = ev && ev.currentTarget;
+  setBtnLoading(btn, true, 'กำลังบันทึก…');
   try {
     const r = await gasPost({ action: 'saveLineReportSchedule', items: SCHED_ITEMS, adminCode: ADMIN_CODE });
     if (r.status === 'ok') showToast('บันทึกเวลาและตั้ง trigger ใหม่แล้ว', 'ok');
     else showToast(r.message || 'บันทึกไม่สำเร็จ', 'err');
   } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
+  setBtnLoading(btn, false);
 }
 
 // ── TEST SEND (tab 2) ──
@@ -432,20 +529,22 @@ async function loadCatalog(){
           <div class="name">${it.label}</div>
           <span class="badge ${it.type}">${it.type === 'auto' ? 'ส่งอัตโนมัติ' : 'ตอบสด/Rich Menu'}</span>
         </div>
-        <button class="btn btn-ghost" onclick="testSend('${it.key}', ${i})">ทดสอบส่ง</button>
+        <button class="btn btn-ghost" onclick="testSend('${it.key}', ${i}, event)">ทดสอบส่ง</button>
       </div>
       <div class="preview-box" id="preview-${i}"></div>`).join('');
   } catch(e) { document.getElementById('msgList').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ: ' + e.message + '</div>'; }
 }
-async function testSend(key, i){
+async function testSend(key, i, ev){
   if (!confirm('ส่งข้อความทดสอบจริงไปยัง userId ทดสอบตอนนี้เลยหรือไม่?\n(จะเสียโควต้า LINE 1 ข้อความ)')) return;
-  showToast('กำลังส่ง…');
+  const btn = ev && ev.currentTarget;
+  setBtnLoading(btn, true, 'กำลังส่ง…');
   try {
     const r = await gasPost({ action: 'testSendLineMessageByKey', key, adminCode: ADMIN_CODE });
     const box = document.getElementById('preview-' + i);
     if (r.preview) { box.textContent = r.preview; box.style.display = 'block'; }
     showToast(r.message || (r.status === 'ok' ? 'ส่งสำเร็จ' : 'ส่งไม่สำเร็จ'), r.status === 'ok' ? 'ok' : 'err');
   } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
+  setBtnLoading(btn, false);
 }
 
 // ── USERS (tab 3) ──
@@ -469,11 +568,13 @@ async function loadUsers(){
   } catch(e) { document.getElementById('userList').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ: ' + e.message + '</div>'; }
 }
 async function toggleUser(userId, enabled, checkboxEl){
+  checkboxEl.disabled = true;
   try {
     const r = await gasPost({ action: 'setLineUserEnabled', userId, enabled, adminCode: ADMIN_CODE });
     if (r.status === 'ok') showToast(enabled ? 'เปิดรับข้อความแล้ว' : 'ปิดรับข้อความแล้ว', 'ok');
     else { showToast(r.message || 'บันทึกไม่สำเร็จ', 'err'); checkboxEl.checked = !enabled; }
   } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); checkboxEl.checked = !enabled; }
+  checkboxEl.disabled = false;
 }
 </script>
 </body>
