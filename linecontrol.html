@@ -119,6 +119,22 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
 .badge.ondemand{background:#eef0f2;color:var(--text-mid)}
 .preview-box{margin:0 0 4px;padding:12px;background:var(--bg);border-radius:var(--radius-sm);font-size:12px;white-space:pre-wrap;font-family:'IBM Plex Mono',monospace;max-height:220px;overflow-y:auto;display:none;border:1px solid var(--border)}
 
+/* EDIT MESSAGE TEMPLATES */
+.edit-key-tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:18px;padding-bottom:2px;scrollbar-width:none}
+.edit-key-tabs::-webkit-scrollbar{display:none}
+.ek-tab{flex-shrink:0;padding:7px 13px;border-radius:999px;border:1px solid var(--border-strong);background:#fff;font-size:12.5px;font-weight:500;color:var(--text-mid);cursor:pointer;white-space:nowrap;transition:background var(--dur),color var(--dur),border-color var(--dur)}
+.ek-tab:hover{background:var(--bg)}
+.ek-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.ek-field{border-top:1px solid var(--border);padding:16px 0}
+.ek-field:first-child{border-top:none;padding-top:4px}
+.ek-field-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+.ek-field-label{font-size:13.5px;font-weight:600}
+.ek-field-badge{font-size:10.5px;padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:600;white-space:nowrap}
+.ek-textarea{width:100%;min-height:72px;padding:10px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-family:'IBM Plex Mono',monospace;font-size:12.5px;line-height:1.6;background:#fff;resize:vertical}
+.ek-textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.ek-field-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+.ek-save-bar{position:sticky;bottom:0;background:var(--card);margin:16px -20px -20px;padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;border-radius:0 0 var(--radius) var(--radius)}
+
 /* USERS */
 .user-row{display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid var(--border)}
 .user-row:first-child{border-top:none}
@@ -222,6 +238,7 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
   <div class="tabs" role="tablist">
     <button class="tab active" data-tab="sched"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>เวลาอัตโนมัติ</button>
     <button class="tab" data-tab="test"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>ทดสอบส่ง</button>
+    <button class="tab" data-tab="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>แก้ไขข้อความ</button>
     <button class="tab" data-tab="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8"/></svg>ผู้รับข้อความ</button>
     <button class="tab" data-tab="chan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H8l-4 4V4z"/></svg>บัญชี LINE</button>
   </div>
@@ -251,6 +268,18 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
         <div class="sk-row"><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div><div class="sk-bar sk-btn"></div></div>
         <div class="sk-row"><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div><div class="sk-bar sk-btn"></div></div>
         <div class="sk-row"><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div><div class="sk-bar sk-btn"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB EDIT: MESSAGE TEMPLATES ═══ -->
+  <div class="panel" id="panel-edit">
+    <div class="card">
+      <h3>แก้ไขชุดข้อความ LINE</h3>
+      <div class="sub">แก้ถ้อยคำ/อีโมจิของแต่ละท่อนได้อิสระ แล้วกด "บันทึก" มีผลทันทีโดยไม่ต้องแก้โค้ด — ส่วนที่เป็น <b>{{...}}</b> คือค่าที่ระบบจะแทนที่ด้วยข้อมูลจริงตอนส่ง (เช่น {{todayThai}} = วันที่วันนี้) <b>ห้ามลบวงเล็บปีกกาหรือชื่อด้านในทิ้ง</b> มิฉะนั้นข้อมูลส่วนนั้นจะหายไปจากข้อความจริง</div>
+      <div id="editKeyTabs" class="edit-key-tabs"></div>
+      <div id="editFieldsWrap">
+        <div class="loading"><span class="spinner"></span>กำลังโหลด…</div>
       </div>
     </div>
   </div>
@@ -407,6 +436,7 @@ function initAll(){
   loadSchedule();
   loadCatalog();
   loadUsers();
+  loadMessageTemplates();
 }
 
 // ── CHANNEL STATUS (header pill + tab 4) ──
@@ -545,6 +575,88 @@ async function testSend(key, i, ev){
     showToast(r.message || (r.status === 'ok' ? 'ส่งสำเร็จ' : 'ส่งไม่สำเร็จ'), r.status === 'ok' ? 'ok' : 'err');
   } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
   setBtnLoading(btn, false);
+}
+
+// ── EDIT MESSAGE TEMPLATES (tab "แก้ไขข้อความ") ──
+let LINE_TEMPLATES = [];
+let EDIT_ACTIVE_KEY = null;
+
+async function loadMessageTemplates(){
+  try {
+    const r = await gasGet('getLineMessageTemplates');
+    if (!r || r.status !== 'ok') { document.getElementById('editFieldsWrap').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ</div>'; return; }
+    LINE_TEMPLATES = r.items || [];
+    if (!EDIT_ACTIVE_KEY && LINE_TEMPLATES.length) EDIT_ACTIVE_KEY = LINE_TEMPLATES[0].key;
+    renderEditKeyTabs();
+    renderEditFields(EDIT_ACTIVE_KEY);
+  } catch(e) { document.getElementById('editFieldsWrap').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ: ' + e.message + '</div>'; }
+}
+
+function renderEditKeyTabs(){
+  const wrap = document.getElementById('editKeyTabs');
+  wrap.innerHTML = LINE_TEMPLATES.map(it =>
+    `<button class="ek-tab ${it.key === EDIT_ACTIVE_KEY ? 'active' : ''}" onclick="selectEditKey('${it.key}')">${it.label}</button>`
+  ).join('');
+}
+
+function selectEditKey(key){
+  EDIT_ACTIVE_KEY = key;
+  renderEditKeyTabs();
+  renderEditFields(key);
+}
+
+function escHtml_(s){
+  return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function renderEditFields(key){
+  const wrap = document.getElementById('editFieldsWrap');
+  const item = LINE_TEMPLATES.find(it => it.key === key);
+  if (!item) { wrap.innerHTML = '<div class="empty-hint">ไม่พบข้อมูล</div>'; return; }
+  const fieldsHtml = item.fields.map(f => `
+    <div class="ek-field">
+      <div class="ek-field-head">
+        <div class="ek-field-label">${f.label}</div>
+        ${f.customized ? '<span class="ek-field-badge">ปรับแต่งแล้ว</span>' : ''}
+      </div>
+      <textarea class="ek-textarea mono" id="ekfield-${key}-${f.field}" data-key="${key}" data-field="${f.field}">${escHtml_(f.currentText)}</textarea>
+      <div class="ek-field-foot">
+        <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" onclick="resetTemplateField('${key}','${f.field}', event)" ${f.customized ? '' : 'disabled'}>รีเซ็ตท่อนนี้เป็นค่าเดิม</button>
+      </div>
+    </div>`).join('');
+  wrap.innerHTML = fieldsHtml + `
+    <div class="ek-save-bar">
+      <button class="btn btn-ghost" onclick="renderEditFields('${key}')">เลิกแก้ไข (ยกเลิกที่ยังไม่บันทึก)</button>
+      <button class="btn btn-primary" onclick="saveTemplateFields('${key}', event)">บันทึกการเปลี่ยนแปลงทั้งหมด</button>
+    </div>`;
+}
+
+async function saveTemplateFields(key, ev){
+  const item = LINE_TEMPLATES.find(it => it.key === key);
+  if (!item) return;
+  const values = {};
+  item.fields.forEach(f => {
+    const el = document.getElementById('ekfield-' + key + '-' + f.field);
+    if (el) values[f.field] = el.value;
+  });
+  const btn = ev && ev.currentTarget;
+  setBtnLoading(btn, true, 'กำลังบันทึก…');
+  try {
+    const r = await gasPost({ action: 'saveLineMessageTemplates', key, values, adminCode: ADMIN_CODE });
+    if (r.status === 'ok') { showToast('บันทึกข้อความแล้ว', 'ok'); await loadMessageTemplates(); }
+    else { showToast(r.message || 'บันทึกไม่สำเร็จ', 'err'); setBtnLoading(btn, false); }
+  } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); setBtnLoading(btn, false); }
+}
+
+async function resetTemplateField(key, field, ev){
+  if (!confirm('รีเซ็ตท่อนนี้กลับเป็นข้อความเดิมของระบบใช่หรือไม่?')) return;
+  const btn = ev && ev.currentTarget;
+  setBtnLoading(btn, true, 'กำลังรีเซ็ต…');
+  try {
+    const r = await gasPost({ action: 'resetLineMessageTemplates', key, field, adminCode: ADMIN_CODE });
+    if (r.status === 'ok') { showToast('รีเซ็ตแล้ว', 'ok'); await loadMessageTemplates(); }
+    else { showToast(r.message || 'รีเซ็ตไม่สำเร็จ', 'err'); setBtnLoading(btn, false); }
+  } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); setBtnLoading(btn, false); }
 }
 
 // ── USERS (tab 3) ──
