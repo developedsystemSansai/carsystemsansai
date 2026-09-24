@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAND · ควบคุม LINE — โรงพยาบาลสันทราย</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1c2733; --text:#1c2733; --text-mid:#4a5867; --text-light:#7b8794;
+  --bg:#f4f5f7; --card:#fff; --border:#e2e6ea; --border-strong:#c9d0d7;
+  --accent:#2b5c7e; --accent-dark:#204a67; --accent-soft:#eaf1f6;
+  --ok:#2f7d5b; --ok-soft:#eaf4ef;
+  --warn:#9a6a12; --warn-soft:#fbf3e2;
+  --err:#b3402f; --err-soft:#fbeeeb;
+  /* alias เดิมที่ JS ใช้ */
+  --navy:var(--ink); --blue:var(--accent); --blue-soft:var(--accent-soft);
+  --teal:var(--accent); --teal-soft:var(--accent-soft);
+  --amber:var(--warn); --amber-soft:var(--warn-soft);
+  --red:var(--err); --red-soft:var(--err-soft);
+  --success:var(--ok); --success-soft:var(--ok-soft);
+  --radius:10px; --radius-sm:6px; --dur:140ms;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:64px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.mono{font-family:'IBM Plex Mono',monospace}
+button,input,select{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* HEADER */
+header{position:sticky;top:0;z-index:50;background:var(--card);border-bottom:1px solid var(--border)}
+.hd-in{max-width:880px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:14px}
+.back{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--text-mid);text-decoration:none;padding:6px 8px;margin-left:-8px;border-radius:var(--radius-sm)}
+.back:hover{background:var(--bg);color:var(--text)}
+.hd-title{flex:1;min-width:0}
+header h1{font-size:15px;font-weight:600;letter-spacing:-.005em}
+header p{font-size:12px;color:var(--text-light)}
+.chan-pill{font-size:12px;padding:5px 11px;border-radius:999px;border:1px solid var(--border);color:var(--text-mid);display:flex;align-items:center;gap:7px;white-space:nowrap}
+.chan-dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.chan-pill.backup .chan-dot{background:var(--warn)}
+
+.wrap{max-width:880px;margin:0 auto;padding:20px 20px}
+
+/* PIN GATE */
+#gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;padding:16px}
+#gate .box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:32px 28px;width:100%;max-width:340px;text-align:center}
+#gate .icn{width:44px;height:44px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
+#gate h2{font-size:16px;font-weight:600;margin-bottom:4px}
+#gate p{font-size:13px;color:var(--text-light);margin-bottom:20px}
+#gate input{width:100%;padding:11px 14px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:16px;text-align:center;letter-spacing:3px;margin-bottom:10px;background:#fff}
+#gate input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+#gate button{width:100%;padding:11px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-weight:600;font-size:14px;cursor:pointer;transition:background var(--dur)}
+#gate button:hover{background:var(--accent-dark)}
+#gate .err{color:var(--err);font-size:12.5px;margin-top:10px;min-height:18px}
+#gate .home{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--text-light);text-decoration:none}
+#gate .home:hover{color:var(--text)}
+
+/* TABS (underline) */
+.tabs{display:flex;gap:4px;overflow-x:auto;margin-bottom:20px;border-bottom:1px solid var(--border);scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;display:flex;align-items:center;gap:7px;padding:10px 14px;margin-bottom:-1px;border:none;border-bottom:2px solid transparent;background:none;font-size:13.5px;font-weight:500;color:var(--text-light);cursor:pointer;transition:color var(--dur),border-color var(--dur)}
+.tab svg{width:16px;height:16px;flex-shrink:0}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+
+.panel{display:none}
+.panel.active{display:block;animation:fade .18s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);padding:20px;margin-bottom:16px}
+.card h3{font-size:15px;font-weight:600;margin-bottom:4px}
+.card .sub{font-size:13px;color:var(--text-light);margin-bottom:16px;max-width:62ch}
+.card .sub b{color:var(--text-mid);font-weight:600}
+
+/* SCHEDULE */
+.sched-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--border)}
+.sched-row:first-of-type{border-top:none}
+.sched-row .info,.msg-row .info,.user-row .info{flex:1;min-width:0}
+.sched-row .name,.msg-row .name,.user-row .name{font-size:14px;font-weight:500}
+.sched-row .meta,.user-row .meta{font-size:12px;color:var(--text-light);margin-top:1px}
+.time-inp{width:54px;padding:7px 4px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);text-align:center;font-family:'IBM Plex Mono',monospace;font-size:14px;background:#fff;-moz-appearance:textfield}
+.time-inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.time-sep{font-weight:600;color:var(--text-light)}
+select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:12px}
+.sched-foot{margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end}
+
+/* TOGGLE */
+.sw{position:relative;width:40px;height:22px;flex-shrink:0;display:inline-block}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw .slider{position:absolute;inset:0;background:#c3cad2;border-radius:22px;cursor:pointer;transition:background var(--dur)}
+.sw .slider::before{content:'';position:absolute;width:16px;height:16px;left:3px;top:3px;background:#fff;border-radius:50%;transition:transform var(--dur)}
+.sw input:checked + .slider{background:var(--accent)}
+.sw input:checked + .slider::before{transform:translateX(18px)}
+.sw input:focus-visible + .slider{outline:2px solid var(--accent);outline-offset:2px}
+
+/* BUTTONS */
+.btn{padding:9px 16px;border-radius:var(--radius-sm);border:1px solid transparent;font-weight:600;font-size:13px;cursor:pointer;transition:background var(--dur),border-color var(--dur);display:inline-flex;align-items:center;justify-content:center;gap:6px}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent-dark)}
+.btn-ghost{background:#fff;color:var(--text);border-color:var(--border-strong)}
+.btn-ghost:hover{background:var(--bg)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* TEST SEND */
+.msg-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-top:1px solid var(--border)}
+.msg-row:first-child{border-top:none}
+.badge{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;font-weight:500;margin-top:3px}
+.badge.auto{background:var(--accent-soft);color:var(--accent)}
+.badge.ondemand{background:#eef0f2;color:var(--text-mid)}
+.preview-box{margin:0 0 4px;padding:12px;background:var(--bg);border-radius:var(--radius-sm);font-size:12px;white-space:pre-wrap;font-family:'IBM Plex Mono',monospace;max-height:220px;overflow-y:auto;display:none;border:1px solid var(--border)}
+
+/* USERS */
+.user-row{display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid var(--border)}
+.user-row:first-child{border-top:none}
+.user-row .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:3px}
+.role-pill{font-size:11px;padding:1px 8px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-weight:500}
+.role-pill.empty{background:var(--err-soft);color:var(--err)}
+
+/* CHANNEL */
+.chan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.chan-card{border:1px solid var(--border);border-radius:var(--radius);padding:16px;position:relative;background:#fff}
+.chan-card.active{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.chan-card .tag{position:static;display:inline-block;margin-bottom:8px;background:var(--ok-soft);color:var(--ok);font-size:11px;font-weight:600;padding:2px 9px;border-radius:999px}
+.chan-card h4{font-size:14px;font-weight:600;margin-bottom:4px}
+.quota-bar{height:6px;background:var(--border);border-radius:6px;overflow:hidden;margin:8px 0}
+.quota-bar .fill{height:100%;background:var(--accent);border-radius:6px}
+.quota-bar .fill.warn{background:var(--warn)}
+.quota-bar .fill.danger{background:var(--err)}
+
+.field-row{display:flex;gap:8px;margin-top:4px}
+.field-row input{flex:1;min-width:0;padding:9px 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-family:'IBM Plex Mono',monospace;font-size:13px;background:#fff}
+.field-row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(16px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:all .22s;z-index:1000;max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:var(--err)}
+.toast.ok{background:var(--ok)}
+
+.empty-hint,.loading{text-align:center;padding:28px 12px;color:var(--text-light);font-size:13px}
+
+@media(max-width:560px){
+  .hd-in,.wrap{padding-left:14px;padding-right:14px}
+  .card{padding:16px}
+  .sched-row{flex-wrap:wrap;gap:10px}
+  .sched-row .info{flex-basis:calc(100% - 60px)}
+  .msg-row{flex-wrap:wrap}
+  .chan-pill #chanPillText{max-width:110px;overflow:hidden;text-overflow:ellipsis}
+}
+</style>
+</head>
+<body>
+
+<div id="gate">
+  <div class="box">
+    <div class="icn"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg></div>
+    <h2>ระบบควบคุม LINE</h2>
+    <p>กรอกรหัสแอดมินเพื่อเข้าใช้งาน</p>
+    <input type="password" id="pinInput" inputmode="numeric" placeholder="รหัสแอดมิน" autocomplete="off" autofocus>
+    <button onclick="verifyPin()">เข้าสู่ระบบ</button>
+    <div class="err" id="pinErr"></div>
+    <a class="home" href="index.html">กลับหน้าหลัก</a>
+  </div>
+</div>
+
+<header>
+  <div class="hd-in">
+    <a class="back" href="index.html" aria-label="กลับหน้าหลัก"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>หน้าหลัก</a>
+    <div class="hd-title">
+      <h1>ระบบควบคุม LINE</h1>
+      <p>โรงพยาบาลสันทราย</p>
+    </div>
+    <div class="chan-pill" id="chanPill"><span class="chan-dot"></span><span id="chanPillText">กำลังตรวจสอบ…</span></div>
+  </div>
+</header>
+
+<div class="wrap" id="mainWrap" style="display:none">
+
+  <div class="tabs" role="tablist">
+    <button class="tab active" data-tab="sched"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>เวลาอัตโนมัติ</button>
+    <button class="tab" data-tab="test"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>ทดสอบส่ง</button>
+    <button class="tab" data-tab="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8"/></svg>ผู้รับข้อความ</button>
+    <button class="tab" data-tab="chan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H8l-4 4V4z"/></svg>บัญชี LINE</button>
+  </div>
+
+  <!-- ═══ TAB 1: SCHEDULE ═══ -->
+  <div class="panel active" id="panel-sched">
+    <div class="card">
+      <h3>เวลาส่งข้อความอัตโนมัติ</h3>
+      <div class="sub">แก้เวลาแล้วกด "บันทึก" ระบบจะตั้ง trigger ใหม่ให้ทันที ไม่ต้องเข้า Apps Script Editor</div>
+      <div id="schedList"><div class="loading">กำลังโหลด…</div></div>
+      <div class="sched-foot">
+        <button class="btn btn-primary" onclick="saveSchedule()">บันทึกการตั้งค่า</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB 2: TEST SEND ═══ -->
+  <div class="panel" id="panel-test">
+    <div class="card">
+      <h3>ข้อความทั้งหมดในระบบ</h3>
+      <div class="sub">กด "ทดสอบส่ง" เพื่อส่งข้อความจริงไปยัง userId ทดสอบ (ตั้งค่าได้ที่แท็บ "บัญชี LINE") — ทุกครั้งที่กดจะใช้โควต้า LINE <b>1 ข้อความ</b></div>
+      <div id="msgList"><div class="loading">กำลังโหลด…</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB 3: USERS ═══ -->
+  <div class="panel" id="panel-users">
+    <div class="card">
+      <h3>ผู้รับรายงานอัตโนมัติ</h3>
+      <div class="sub">เปิด/ปิดสวิตช์เพื่อควบคุมว่าใครจะได้รับรายงานอัตโนมัติทาง LINE บ้าง (ไม่กระทบบทบาทที่ตั้งไว้ในชีท LineUsers)</div>
+      <div id="userList"><div class="loading">กำลังโหลด…</div></div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB 4: CHANNEL ═══ -->
+  <div class="panel" id="panel-chan">
+    <div class="card">
+      <h3>บัญชี LINE หลัก/สำรอง</h3>
+      <div class="sub">เมื่อบัญชีหลัก token หรือโควต้าข้อความหมด สลับมาใช้บัญชีสำรองได้ทันทีโดยไม่ต้องแก้โค้ด (ต้องตั้งค่า LINE_CHANNEL_ACCESS_TOKEN_BACKUP ใน Script Properties ไว้ก่อน)</div>
+      <div id="chanInfo"><div class="loading">กำลังโหลด…</div></div>
+    </div>
+    <div class="card">
+      <h3>userId ทดสอบ</h3>
+      <div class="sub">userId ของแอดมิน (หาได้จากชีท "LineUsers" คอลัมน์ UserId) ที่จะใช้รับข้อความตอนกด "ทดสอบส่ง"</div>
+      <div class="field-row">
+        <input type="text" id="testUserIdInput" placeholder="Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
+        <button class="btn btn-primary" onclick="saveTestUserId()">บันทึก</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec'; // ✅ เรียก code.gs ตรง — ใช้ URL เดียวกับหน้าอื่นๆ ในระบบ
+let ADMIN_CODE = '';
+let SCHED_ITEMS = [];
+
+function showToast(msg, type){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(()=> t.className = 'toast', 2600);
+}
+
+async function gasGet(action, params){
+  const qs = new URLSearchParams(Object.assign({ action }, params || {}));
+  const res = await fetch(GAS_URL + '?' + qs.toString());
+  return res.json();
+}
+async function gasPost(payload){
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'payload=' + encodeURIComponent(JSON.stringify(payload))
+  });
+  return res.json();
+}
+
+// ── PIN GATE ──
+async function verifyPin(){
+  const val = document.getElementById('pinInput').value.trim();
+  const errEl = document.getElementById('pinErr');
+  if (!val) { errEl.textContent = 'กรุณากรอกรหัส'; return; }
+  errEl.textContent = 'กำลังตรวจสอบ…';
+  try {
+    const r = await gasPost({ action: 'verifyEditMileAdminCode', code: val });
+    if (r && r.status === 'ok' && r.valid) {
+      ADMIN_CODE = val;
+      document.getElementById('gate').style.display = 'none';
+      document.getElementById('mainWrap').style.display = 'block';
+      initAll();
+    } else {
+      errEl.textContent = 'รหัสไม่ถูกต้อง หรือลองผิดเกินกำหนด (รอ 15 นาที)';
+    }
+  } catch(e) {
+    errEl.textContent = 'เชื่อมต่อไม่สำเร็จ: ' + e.message;
+  }
+}
+document.getElementById('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') verifyPin(); });
+
+// ── TABS ──
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+function initAll(){
+  loadChannelStatus();
+  loadSchedule();
+  loadCatalog();
+  loadUsers();
+}
+
+// ── CHANNEL STATUS (header pill + tab 4) ──
+async function loadChannelStatus(){
+  try {
+    const r = await gasGet('getLineChannelStatus');
+    if (!r || r.status !== 'ok') return;
+
+    const pill = document.getElementById('chanPill');
+    const pillText = document.getElementById('chanPillText');
+    pill.className = 'chan-pill' + (r.active === 'backup' ? ' backup' : '');
+    pillText.textContent = r.active === 'backup' ? 'กำลังใช้บัญชีสำรอง' : 'บัญชีหลัก';
+
+    document.getElementById('testUserIdInput').value = r.testUserId || '';
+
+    const q = r.quota || {};
+    let quotaHtml = '';
+    if (q.available && typeof q.limit === 'number' && typeof q.used === 'number' && q.limit > 0) {
+      const pct = Math.min(100, Math.round((q.used / q.limit) * 100));
+      const cls = pct >= 90 ? 'danger' : (pct >= 70 ? 'warn' : '');
+      quotaHtml = `<div class="quota-bar"><div class="fill ${cls}" style="width:${pct}%"></div></div>
+        <div style="font-size:11.5px;color:var(--text-light)">ใช้ไปแล้ว ${q.used.toLocaleString()} / ${q.limit.toLocaleString()} ข้อความ (${pct}%) — เดือนนี้</div>`;
+    } else if (q.available) {
+      quotaHtml = `<div style="font-size:11.5px;color:var(--text-light)">แพ็กเกจนี้ไม่จำกัดโควต้า หรือยังไม่มีข้อมูลใช้งาน</div>`;
+    } else {
+      quotaHtml = `<div style="font-size:11.5px;color:var(--red)">ยังไม่ได้ตั้งค่า token ของช่องทางนี้</div>`;
+    }
+
+    const box = document.getElementById('chanInfo');
+    box.innerHTML = `
+      <div class="chan-grid">
+        <div class="chan-card ${r.active === 'primary' ? 'active' : ''}">
+          ${r.active === 'primary' ? '<div class="tag">กำลังใช้งาน</div>' : ''}
+          <h4>บัญชีหลัก</h4>
+          <div style="font-size:11.5px;color:var(--text-light);margin-bottom:8px">${r.primaryConfigured ? 'ตั้งค่า token แล้ว' : 'ยังไม่ได้ตั้งค่า token'}</div>
+          ${r.active === 'primary' ? quotaHtml : ''}
+          ${r.active !== 'primary' ? `<button class="btn btn-ghost" style="width:100%;margin-top:6px" onclick="switchChannel('primary')" ${!r.primaryConfigured ? 'disabled' : ''}>สลับมาใช้บัญชีนี้</button>` : ''}
+        </div>
+        <div class="chan-card ${r.active === 'backup' ? 'active' : ''}">
+          ${r.active === 'backup' ? '<div class="tag">กำลังใช้งาน</div>' : ''}
+          <h4>บัญชีสำรอง</h4>
+          <div style="font-size:11.5px;color:var(--text-light);margin-bottom:8px">${r.backupConfigured ? 'ตั้งค่า token แล้ว' : 'ยังไม่ได้ตั้งค่า LINE_CHANNEL_ACCESS_TOKEN_BACKUP'}</div>
+          ${r.active === 'backup' ? quotaHtml : ''}
+          ${r.active !== 'backup' ? `<button class="btn btn-ghost" style="width:100%;margin-top:6px" onclick="switchChannel('backup')" ${!r.backupConfigured ? 'disabled' : ''}>สลับมาใช้บัญชีนี้</button>` : ''}
+        </div>
+      </div>`;
+  } catch(e) { console.error(e); }
+}
+
+async function switchChannel(target){
+  if (!confirm((target === 'backup' ? 'สลับไปใช้บัญชีสำรอง' : 'สลับกลับมาใช้บัญชีหลัก') + ' ใช่หรือไม่?\n(ข้อความอัตโนมัติและปุ่ม Rich Menu ทั้งหมดจะเปลี่ยนไปใช้บัญชีนี้ทันที)')) return;
+  try {
+    const r = await gasPost({ action: 'switchLineChannel', target, adminCode: ADMIN_CODE });
+    if (r.status === 'ok') { showToast('สลับช่องทางสำเร็จ', 'ok'); loadChannelStatus(); }
+    else showToast(r.message || 'สลับไม่สำเร็จ', 'err');
+  } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
+}
+
+async function saveTestUserId(){
+  const uid = document.getElementById('testUserIdInput').value.trim();
+  if (!uid) { showToast('กรุณากรอก userId', 'err'); return; }
+  try {
+    const r = await gasPost({ action: 'saveLineTestUserId', userId: uid, adminCode: ADMIN_CODE });
+    if (r.status === 'ok') showToast('บันทึก userId ทดสอบแล้ว', 'ok');
+    else showToast(r.message || 'บันทึกไม่สำเร็จ', 'err');
+  } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
+}
+
+// ── SCHEDULE (tab 1) ──
+const WD_LABELS = { '': 'ทุกวัน (จ-ศ)', MONDAY:'จันทร์', TUESDAY:'อังคาร', WEDNESDAY:'พุธ', THURSDAY:'พฤหัสบดี', FRIDAY:'ศุกร์', SATURDAY:'เสาร์', SUNDAY:'อาทิตย์' };
+async function loadSchedule(){
+  try {
+    const r = await gasGet('getLineReportSchedule');
+    if (!r || r.status !== 'ok') { document.getElementById('schedList').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ</div>'; return; }
+    SCHED_ITEMS = r.items || [];
+    renderSchedule();
+  } catch(e) { document.getElementById('schedList').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ: ' + e.message + '</div>'; }
+}
+function renderSchedule(){
+  const el = document.getElementById('schedList');
+  if (!SCHED_ITEMS.length) { el.innerHTML = '<div class="empty-hint">ยังไม่มีรายงานอัตโนมัติ</div>'; return; }
+  el.innerHTML = SCHED_ITEMS.map((it, i) => `
+    <div class="sched-row">
+      <label class="sw"><input type="checkbox" ${it.enabled ? 'checked' : ''} onchange="SCHED_ITEMS[${i}].enabled=this.checked"><span class="slider"></span></label>
+      <div class="info">
+        <div class="name">${it.label || it.key}</div>
+        <div class="meta">${WD_LABELS[it.weekday] || it.weekday}</div>
+      </div>
+      <input type="number" class="time-inp" min="0" max="23" value="${it.hour}" onchange="SCHED_ITEMS[${i}].hour=Math.max(0,Math.min(23,Number(this.value)||0));this.value=SCHED_ITEMS[${i}].hour">
+      <span class="time-sep">:</span>
+      <input type="number" class="time-inp" min="0" max="59" value="${String(it.minute).padStart(2,'0')}" onchange="SCHED_ITEMS[${i}].minute=Math.max(0,Math.min(59,Number(this.value)||0));this.value=String(SCHED_ITEMS[${i}].minute).padStart(2,'0')">
+      <span class="mono" style="font-size:11px;color:var(--text-light)">น.</span>
+    </div>`).join('');
+}
+async function saveSchedule(){
+  try {
+    const r = await gasPost({ action: 'saveLineReportSchedule', items: SCHED_ITEMS, adminCode: ADMIN_CODE });
+    if (r.status === 'ok') showToast('บันทึกเวลาและตั้ง trigger ใหม่แล้ว', 'ok');
+    else showToast(r.message || 'บันทึกไม่สำเร็จ', 'err');
+  } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
+}
+
+// ── TEST SEND (tab 2) ──
+async function loadCatalog(){
+  try {
+    const r = await gasGet('getLineMessageCatalog');
+    if (!r || r.status !== 'ok') { document.getElementById('msgList').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ</div>'; return; }
+    const items = r.items || [];
+    document.getElementById('msgList').innerHTML = items.map((it, i) => `
+      <div class="msg-row">
+        <div class="info">
+          <div class="name">${it.label}</div>
+          <span class="badge ${it.type}">${it.type === 'auto' ? 'ส่งอัตโนมัติ' : 'ตอบสด/Rich Menu'}</span>
+        </div>
+        <button class="btn btn-ghost" onclick="testSend('${it.key}', ${i})">ทดสอบส่ง</button>
+      </div>
+      <div class="preview-box" id="preview-${i}"></div>`).join('');
+  } catch(e) { document.getElementById('msgList').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ: ' + e.message + '</div>'; }
+}
+async function testSend(key, i){
+  if (!confirm('ส่งข้อความทดสอบจริงไปยัง userId ทดสอบตอนนี้เลยหรือไม่?\n(จะเสียโควต้า LINE 1 ข้อความ)')) return;
+  showToast('กำลังส่ง…');
+  try {
+    const r = await gasPost({ action: 'testSendLineMessageByKey', key, adminCode: ADMIN_CODE });
+    const box = document.getElementById('preview-' + i);
+    if (r.preview) { box.textContent = r.preview; box.style.display = 'block'; }
+    showToast(r.message || (r.status === 'ok' ? 'ส่งสำเร็จ' : 'ส่งไม่สำเร็จ'), r.status === 'ok' ? 'ok' : 'err');
+  } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
+}
+
+// ── USERS (tab 3) ──
+async function loadUsers(){
+  try {
+    const r = await gasGet('getLineUsersForAdmin');
+    if (!r || r.status !== 'ok') { document.getElementById('userList').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ</div>'; return; }
+    const items = r.items || [];
+    if (!items.length) { document.getElementById('userList').innerHTML = '<div class="empty-hint">ยังไม่มีผู้ใช้ LINE ที่ลงทะเบียน</div>'; return; }
+    document.getElementById('userList').innerHTML = items.map(u => `
+      <div class="user-row">
+        <label class="sw"><input type="checkbox" ${u.enabled ? 'checked' : ''} onchange="toggleUser('${u.userId}', this.checked, this)"><span class="slider"></span></label>
+        <div class="info">
+          <div class="name">${u.displayName || '(ไม่ทราบชื่อ)'}</div>
+          <div class="meta">
+            <span class="role-pill ${u.role ? '' : 'empty'}">${u.role || 'ยังไม่ตั้งบทบาท'}</span>
+            ${u.status === 'ยกเลิก' ? '<span class="role-pill empty">บล็อกบัญชีแล้ว</span>' : ''}
+          </div>
+        </div>
+      </div>`).join('');
+  } catch(e) { document.getElementById('userList').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ: ' + e.message + '</div>'; }
+}
+async function toggleUser(userId, enabled, checkboxEl){
+  try {
+    const r = await gasPost({ action: 'setLineUserEnabled', userId, enabled, adminCode: ADMIN_CODE });
+    if (r.status === 'ok') showToast(enabled ? 'เปิดรับข้อความแล้ว' : 'ปิดรับข้อความแล้ว', 'ok');
+    else { showToast(r.message || 'บันทึกไม่สำเร็จ', 'err'); checkboxEl.checked = !enabled; }
+  } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); checkboxEl.checked = !enabled; }
+}
+</script>
+</body>
+</html>
