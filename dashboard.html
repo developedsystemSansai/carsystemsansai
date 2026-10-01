@@ -1527,23 +1527,52 @@ function checkSession() {
   return false;
 }
 
+// ── กันเดารหัสผ่านรัวๆ: ผิดครบ 5 ครั้ง ล็อก 30 วินาที ──
+let _pwFails = 0;
+let _pwLockUntil = 0;
+
+function showPwError(msg) {
+  const err = document.getElementById('pwError');
+  const inp = document.getElementById('pwInput');
+  err.textContent = msg;
+  err.style.display = 'block';
+  inp.value = '';
+  inp.style.borderColor = '#f44336';
+  setTimeout(() => {
+    err.style.display = 'none';
+    inp.style.borderColor = '#dde3eb';
+  }, 2500);
+}
+
 async function checkPw() {
+  const now = Date.now();
+  if (now < _pwLockUntil) {
+    showPwError('ลองผิดหลายครั้ง กรุณารอ ' + Math.ceil((_pwLockUntil - now) / 1000) + ' วินาที');
+    return;
+  }
   const v = document.getElementById('pwInput').value;
+  if (!v) return;
   const h = await hashStr(v);
   if (h === PASS_HASH) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ ts: Date.now() }));
+    _pwFails = 0;
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify({ ts: Date.now() })); } catch(_) {}
     document.getElementById('pwOverlay').style.display = 'none';
-    loadData();
-    loadLiveVehicleStatus();
+    startDashboard();   // โหลดข้อมูลหลังผ่านรหัสผ่านเท่านั้น
   } else {
-    document.getElementById('pwError').style.display = 'block';
-    document.getElementById('pwInput').value = '';
-    document.getElementById('pwInput').style.borderColor = '#f44336';
-    setTimeout(() => {
-      document.getElementById('pwError').style.display = 'none';
-      document.getElementById('pwInput').style.borderColor = '#dde3eb';
-    }, 2000);
+    _pwFails++;
+    if (_pwFails >= 5) {
+      _pwFails = 0;
+      _pwLockUntil = Date.now() + 30000;
+      showPwError('ลองผิดครบ 5 ครั้ง ระบบล็อก 30 วินาที');
+    } else {
+      showPwError('รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่');
+    }
   }
+}
+
+function logoutDash() {
+  try { localStorage.removeItem(SESSION_KEY); } catch(_) {}
+  location.reload();
 }
 
 // Check session on load — listener moved to after main script block
@@ -1562,6 +1591,7 @@ async function checkPw() {
     </div>
     <div class="header-right">
       <span class="header-chip">Dashboard · 2569</span>
+      <a href="javascript:void(0)" class="nav-btn" onclick="logoutDash()" title="ออกจากระบบ">ออกจากระบบ</a>
       <a href="index.html" class="nav-btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
         หน้าหลัก
@@ -2069,6 +2099,16 @@ async function checkPw() {
 
 <script>
 // ── CONFIG ──
+    // ── HTML escape helpers (กัน XSS จากข้อความอิสระใน Sheet เช่น ชื่อพขร./ปลายทาง/หมายเหตุ) ──
+    function esc(v) {
+      return String(v == null ? '' : v)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    // ใช้ใส่ค่าใน onclick="fn('...')" — escape ทั้งระดับ JS และ HTML attribute
+    function escJs(v) {
+      return esc(String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+    }
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec'; // ✅ เรียก code.gs ตรง — ไม่ใช้ proxy แล้ว
 // NOTE: GAS_STATUS_URL ใช้ตัวเดียวกับ GAS_URL (ประกาศซ้ำด้านล่างเพื่อ compatibility)
 // ── Bangkok Timezone Helpers ──────────────────────────────
@@ -2475,7 +2515,7 @@ function renderOdometer(checkData) {
       initMileHtml = `
         <div class="odo-init">${m.toLocaleString()}</div>
         <div style="font-size:0.67rem;color:var(--text-light);margin-top:2px;">
-          🕐 ${getInspTime(chk)||''} · ${chk.driverName||''}
+          🕐 ${esc(getInspTime(chk)||'')} · ${esc(chk.driverName||'')}
         </div>`;
     } else {
       initMileHtml = `<span class="odo-no-check">ยังไม่ตรวจวันนี้</span>`;
@@ -2525,7 +2565,7 @@ function renderOdometer(checkData) {
 
         const isOtherDest = dest.includes('อื่นๆ') || dest.includes('โปรดระบุ');
         infoHtml += `<div style="font-size:0.72rem;color:var(--text-mid);margin-bottom:2px;">
-          📍 ${dest}${isOtherDest && tRemarks ? ` <span style="color:#b45309;font-weight:600;">(${tRemarks})</span>` : ''}${driver ? ` · 👤 ${driver.split(' ').slice(-1)[0]}` : ''}
+          📍 ${esc(dest)}${isOtherDest && tRemarks ? ` <span style="color:#b45309;font-weight:600;">(${esc(tRemarks)})</span>` : ''}${driver ? ` · 👤 ${esc(driver.split(' ').slice(-1)[0])}` : ''}
         </div>`;
       });
 
@@ -2648,7 +2688,7 @@ function renderBarChart(data) {
   el.innerHTML = sorted.map(([plate,cnt]) => {
     const responsible = getVehicleResponsible(plate);
     return `
-    <div class="bar-row clickable" title="คลิกดูวันที่ไม่ได้ตรวจสภาพ" onclick="openMissingCheckModal('${plate}')">
+    <div class="bar-row clickable" title="คลิกดูวันที่ไม่ได้ตรวจสภาพ" onclick="openMissingCheckModal('${escJs(plate)}')">
       <div class="bar-label">
         <div class="bar-label-plate">${plate}</div>
         <div class="bar-label-owner" title="${responsible || 'ไม่มีข้อมูลผู้รับผิดชอบ'}">${responsible ? '👤 ' + responsible : '—'}</div>
@@ -2871,7 +2911,7 @@ function renderFuelSummary(_unused) {
       </td>
       <td style="padding:9px 12px;text-align:center;">
         <span style="background:var(--blue-soft);color:var(--blue);font-size:0.72rem;font-weight:700;padding:3px 9px;border-radius:4px;font-family:'IBM Plex Mono',monospace;">
-          ล่าสุด ${lastStr}${v.lastDriver ? ' · ' + v.lastDriver.split(' ').slice(-1)[0] : ''}
+          ล่าสุด ${lastStr}${v.lastDriver ? ' · ' + esc(v.lastDriver.split(' ').slice(-1)[0]) : ''}
         </span>
       </td>
     </tr>`;
@@ -3310,27 +3350,19 @@ function renderGarageVisitTable() {
         <span style="font-size:0.65rem;color:var(--text-light);"> ครั้ง</span>
       </td>
       <td style="padding:9px 12px;font-size:0.76rem;color:var(--text-mid);">${lastStr}</td>
-      <td style="padding:9px 12px;font-size:0.76rem;color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;" title="${v.lastDest}">${v.lastDest}</td>
+      <td style="padding:9px 12px;font-size:0.76rem;color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;" title="${esc(v.lastDest)}">${esc(v.lastDest)}</td>
     </tr>`;
   }).join('');
 }
 
 // init summary date picker
 (function initSummaryDatePicker() {
-  document.addEventListener('DOMContentLoaded', async function() {
+  // ตั้งค่าเริ่มต้นของตัวเลือกวันที่/เดือนเท่านั้น — การโหลด MileLog ทำใน loadData() หลังผ่านรหัสผ่าน
+  document.addEventListener('DOMContentLoaded', function() {
     const picker = document.getElementById('summaryDatePicker');
     const monthPicker = document.getElementById('usageMonthPicker');
     if (monthPicker) monthPicker.value = bkkMonthStr();
-    if (picker) {
-      picker.value = bkkDateStr();
-      // โหลด MileLog ทั้งหมดแล้ว render
-      await loadMileLogAll();
-      renderSummaryTables();
-    } else if (monthPicker) {
-      await loadMileLogAll();
-      renderUsageFrequencyTable();
-      renderGarageVisitTable();
-    }
+    if (picker) picker.value = bkkDateStr();
   });
 })();
 
@@ -3438,11 +3470,11 @@ function renderRecentRecords(data) {
         ${fmtDateTime(r.timestamp||r.inspDate||'')}
       </td>
       <td><span class="plate-badge" style="font-size:0.7rem;">${extractPlate(r.carType)||'—'}</span></td>
-      <td style="font-size:0.78rem;">${(r.driverName||'—').substring(0,16)}</td>
+      <td style="font-size:0.78rem;">${esc((r.driverName||'—').substring(0,16))}</td>
       <td style="font-family:'Space Grotesk',monospace;font-weight:600;font-size:0.82rem;">${r.odometer ? (+r.odometer).toLocaleString() : '—'}</td>
       <td>${statusTag}</td>
       <td style="font-size:0.8rem;">${r.fuelLevel||'—'} ${fuelFilled ? '<span style="color:var(--blue);font-size:0.68rem;font-weight:700;">✅ เติม</span>'+fuelPhotoIcon+fuelLitersLabel : '<span style="color:var(--text-light);font-size:0.68rem;">ไม่เติม</span>'}</td>
-      <td style="font-size:0.75rem;color:var(--text-mid);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${r.remarks||'—'}</td>
+      <td style="font-size:0.75rem;color:var(--text-mid);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(r.remarks||'—')}</td>
       <td>
         <button class="view-btn" onclick="event.stopPropagation();openDetailByKey('${key}')">
           ${hasPhoto ? '📎 ' : ''}ดูรายละเอียด
@@ -3896,7 +3928,10 @@ function fmtNow24() {
   return fmt24(new Date());
 }
 
+let _liveLoading = false;
 async function loadLiveVehicleStatus() {
+  if (_liveLoading) return;          // กันเรียกซ้อน (poll + ปุ่ม refresh + หลังแก้สถานะ)
+  _liveLoading = true;
   const timeEl = document.getElementById('vehicleLiveTime');
   try {
     // รีเฟรช Vehicles sheet ก่อนเสมอ เพื่อให้ sheetStatus เป็นปัจจุบัน
@@ -3930,6 +3965,8 @@ async function loadLiveVehicleStatus() {
     renderLiveVehicleGridFromCheckLog();
     // จากนั้นนับจาก sheetStatus ที่ถูก populate แล้ว
     renderFuelTrackerFromMileLog();
+  } finally {
+    _liveLoading = false;
   }
 }
 
@@ -4091,7 +4128,7 @@ function renderFuelTracker(json) {
     const sourceLabel = fd?.source === 'check' ? '🔍 ตรวจรถ'
       : fd?.source === 'mile' ? '🚗 ออกรถ (มีบิล)'
       : fd?.source === 'destination'
-        ? ('⛽ ตรวจจับอัตโนมัติ' + (fd?.destination ? ' · ' + fd.destination.substring(0, 16) : ''))
+        ? ('⛽ ตรวจจับอัตโนมัติ' + (fd?.destination ? ' · ' + esc(String(fd.destination).substring(0, 16)) : ''))
       : '';
     const litersLabel = fd?.fuelLiters ? fd.fuelLiters + ' ลิตร' : '';
     const priceLabel  = fd?.fuelPrice  ? parseFloat(fd.fuelPrice).toLocaleString() + ' บาท' : '';
@@ -4131,7 +4168,7 @@ function renderFuelTracker(json) {
         ? `<div class="ft-no-bill">
              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
              <span>${fd?.source === 'destination'
-               ? ('⛽ ตรวจจับอัตโนมัติจากปลายทาง' + (fd?.destination ? ' (' + fd.destination + ')' : '') + ' — ยังไม่มีรูปบิล')
+               ? ('⛽ ตรวจจับอัตโนมัติจากปลายทาง' + (fd?.destination ? ' (' + esc(fd.destination) + ')' : '') + ' — ยังไม่มีรูปบิล')
                : 'ยังไม่มีรูปบิล'}</span>
            </div>` : '';
       const billSection = (outBtn || returnBtn)
@@ -4154,8 +4191,8 @@ function renderFuelTracker(json) {
           ${levelLabel  ? `<span class="ft-tag ft-tag--level">${levelLabel}</span>` : ''}
           ${sourceLabel ? `<span class="ft-tag ft-tag--source">${sourceLabel}</span>` : ''}
         </div>
-        ${fd?.driverName ? `<div class="ft-driver"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${fd.driverName}${timeLabel ? ' · ' + timeLabel : ''}</div>` : ''}
-        ${fd?.source === 'destination' && fd?.destination ? `<div class="ft-driver" style="color:var(--teal);font-size:10.5px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>ปลายทาง: ${fd.destination}</div>` : ''}
+        ${fd?.driverName ? `<div class="ft-driver"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${esc(fd.driverName)}${timeLabel ? ' · ' + timeLabel : ''}</div>` : ''}
+        ${fd?.source === 'destination' && fd?.destination ? `<div class="ft-driver" style="color:var(--teal);font-size:10.5px;"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>ปลายทาง: ${esc(fd.destination)}</div>` : ''}
         ${billSection}
       </div>`;
     } else {
@@ -4476,7 +4513,7 @@ function renderLiveVehicleGrid(json) {
         </div>`
       : '';
 
-    return `<div class="veh-card" onclick="openLiveVehicleDetail('${v.plate}')">
+    return `<div class="veh-card" onclick="openLiveVehicleDetail('${escJs(v.plate)}')">
       <div class="veh-stripe ${stripeClass}"></div>
       <div class="veh-body">
         <!-- Row 1: plate (full width, no overlap) -->
@@ -4494,7 +4531,7 @@ function renderLiveVehicleGrid(json) {
           </span>
         </div>
         <!-- Row 3: sub info -->
-        ${statusSub ? `<div class="veh-sub"><span class="veh-dest">${statusSub}</span></div>` : ''}
+        ${statusSub ? `<div class="veh-sub"><span class="veh-dest">${esc(statusSub)}</span></div>` : ''}
         <!-- Row 4: odo -->
         ${odoHtml}
         <!-- Row 5: fuel -->
@@ -4690,8 +4727,8 @@ function activateMockup() {
   if (_siu) _siu.textContent = mockLive.inUseCount;
   if (_sut) _sut.textContent = 'โหมดสาธิต';
 
-  // หยุด auto-refresh จริง
-  clearInterval(_mockInterval);
+  // หยุด auto-refresh จริง (เดิมเรียก clearInterval(_mockInterval) ซึ่งเป็น null → timer จริงยังทำงานและทับข้อมูลสาธิต)
+  stopLiveRefresh();
 
   // แสดง toast
   showMockToast('โหมดสาธิต — แสดงข้อมูลจำลอง 45 วัน');
@@ -4704,8 +4741,10 @@ function deactivateMockup() {
     btn.textContent = 'โหมดสาธิต';
     btn.style.background = '';
   }
+  _dashLastSignal = null;
   loadData();
   loadLiveVehicleStatus();
+  startLiveRefresh();
   showMockToast('กลับสู่ข้อมูลจริง');
 }
 
@@ -4730,46 +4769,59 @@ function showMockToast(msg) {
 }
 
 // ── เพิ่มปุ่ม Mockup เข้า filter bar ──
-document.addEventListener('DOMContentLoaded', async () => {
-  // ⓪ ตรวจสอบ / trigger daily reset (ตี 3 ทุกวัน)
-  // ① โหลดรายการรถก่อน (เพื่อให้ dropdown + ALL_VEHICLES พร้อม)
-  await loadVehicleMaster();
+// ── Startup: เรียกหลังผ่านรหัสผ่านเท่านั้น (ทำงานครั้งเดียว) ──
+let _dashStarted = false;
+let _dashLastSignal = null;
 
-  // ② โหลดข้อมูล CheckLog + MileLog หลัก (รวม renderOdometer ด้วย)
-  await loadData();
+// smart poll: ตรวจ reloadSignal ก่อน ถ้าไม่เปลี่ยนแค่ update เวลา ไม่ต้อง fetch ข้อมูลทั้งหมด
+async function smartDashRefresh() {
+  if (document.hidden || _isMockActive) return;
+  try {
+    const res  = await fetch(GAS_STATUS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'payload=' + encodeURIComponent(JSON.stringify({ action: 'getReloadSignal' })),
+      cache: 'no-cache'
+    });
+    const sig = await res.json();
+    const sigStr = JSON.stringify(sig);
+    if (_dashLastSignal === null || sigStr !== _dashLastSignal) {
+      _dashLastSignal = sigStr;
+      await loadLiveVehicleStatus();
+    } else {
+      const timeEl = document.getElementById('vehicleLiveTime');
+      if (timeEl) timeEl.textContent = 'อัปเดต ' + fmtNow24() + ' (ไม่มีการเปลี่ยนแปลง)';
+    }
+  } catch(_) { await loadLiveVehicleStatus(); } // fallback
+}
 
-  // ③ โหลดสถานะรถ live (ใช้ allData ที่โหลดเสร็จแล้ว)
-  await loadLiveVehicleStatus();
-
-  // ④ refresh อัตโนมัติ — smart poll: ตรวจ reloadSignal ก่อน ถ้าไม่เปลี่ยนแค่ update เวลา
-  let _dashLastSignal = null;
-  async function smartDashRefresh() {
-    try {
-      const res  = await fetch(GAS_STATUS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'payload=' + encodeURIComponent(JSON.stringify({ action: 'getReloadSignal' })),
-        cache: 'no-cache'
-      });
-      const sig = await res.json();
-      const sigStr = JSON.stringify(sig);
-      if (_dashLastSignal === null || sigStr !== _dashLastSignal) {
-        _dashLastSignal = sigStr;
-        // มีการเปลี่ยนแปลง → โหลดข้อมูลใหม่
-        await loadLiveVehicleStatus();
-      } else {
-        // ไม่มีการเปลี่ยนแปลง → แค่ update เวลา ไม่ต้อง fetch GAS
-        const timeEl = document.getElementById('vehicleLiveTime');
-        if (timeEl) timeEl.textContent = 'อัปเดต ' + fmtNow24() + ' (ไม่มีการเปลี่ยนแปลง)';
-      }
-    } catch(_) { await loadLiveVehicleStatus(); } // fallback
-  }
+function startLiveRefresh() {
   if (_liveRefreshTimer) clearInterval(_liveRefreshTimer);
-  _liveRefreshTimer = setInterval(smartDashRefresh, 30000); // ทุก 30 วินาที (ลดจาก 2 นาที)
+  _liveRefreshTimer = setInterval(smartDashRefresh, 30000); // ทุก 30 วินาที
+}
+function stopLiveRefresh() {
+  if (_liveRefreshTimer) { clearInterval(_liveRefreshTimer); _liveRefreshTimer = null; }
+}
 
-  // ตรวจสอบ Drive authorization status
-  checkDriveAuth();
+async function startDashboard() {
+  if (_dashStarted) return;
+  _dashStarted = true;
+  await loadVehicleMaster();       // ① รายการรถ (dropdown + ALL_VEHICLES)
+  await loadData();                // ② CheckLog + MileLog
+  await loadLiveVehicleStatus();   // ③ สถานะรถ live
+  startLiveRefresh();              // ④ auto-refresh
+  checkDriveAuth();                // ⑤ ตรวจสิทธิ์ Drive
+}
 
+// หยุด poll เมื่อซ่อนแท็บ (ประหยัดโควตา GAS) และ sync ทันทีเมื่อกลับมา
+document.addEventListener('visibilitychange', () => {
+  if (!_dashStarted || _isMockActive) return;
+  if (document.hidden) { stopLiveRefresh(); }
+  else { smartDashRefresh(); startLiveRefresh(); }
+});
+
+// ── เพิ่มปุ่ม Mockup / Drive เข้า filter bar (UI เท่านั้น ไม่โหลดข้อมูล) ──
+document.addEventListener('DOMContentLoaded', () => {
   const filterActions = document.querySelector('.filter-actions');
   if (filterActions) {
     const btn = document.createElement('button');
@@ -5142,7 +5194,7 @@ function openLiveVehicleDetail(plate) {
        </div>`
     ).join('');
     if (extraNote.trim()) {
-      extraHtml += `<div class="lvm-extra-note">📝 ${extraNote}</div>`;
+      extraHtml += `<div class="lvm-extra-note">📝 ${esc(extraNote)}</div>`;
     }
     extraContent.innerHTML = extraHtml || '<div class="lvm-extra-item lvm-extra-full"><div class="lvm-extra-val" style="color:var(--text-light);font-size:12px;font-family:inherit;">ไม่มีข้อมูลเพิ่มเติม</div></div>';
     extraWrap.style.display = 'block';
@@ -5308,7 +5360,7 @@ function confirmVehStatus() {
       if (extraContent) {
         // หา/เพิ่ม note item
         const existingNote = extraContent.querySelector('.lvm-extra-note');
-        const noteHtml = `<div class="lvm-extra-note">📝 [ผู้บริหาร] ${reason}</div>`;
+        const noteHtml = `<div class="lvm-extra-note">📝 [ผู้บริหาร] ${esc(reason)}</div>`;
         if (existingNote) {
           existingNote.outerHTML = noteHtml;
         } else {
@@ -5414,11 +5466,12 @@ async function uploadPhotosToDrive(photos, carType, inspDate, driverName) {
 <script>
 // ── Check session on load (after all functions are defined) ──
 document.addEventListener('DOMContentLoaded', function() {
-  loadVehicleMaster(); // โหลด vehicle list ก่อนเสมอ (ใช้ใน filter + live grid)
   if (checkSession()) {
     document.getElementById('pwOverlay').style.display = 'none';
-    loadData();
-    loadLiveVehicleStatus();
+    startDashboard();
+  } else {
+    const pw = document.getElementById('pwInput');
+    if (pw) pw.focus();
   }
 });
 </script>
