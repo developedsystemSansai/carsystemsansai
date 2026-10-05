@@ -263,7 +263,7 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
   <div class="panel" id="panel-test">
     <div class="card">
       <h3>ข้อความทั้งหมดในระบบ</h3>
-      <div class="sub">กด "ทดสอบส่ง" เพื่อส่งข้อความจริงไปยัง userId ทดสอบ (ตั้งค่าได้ที่แท็บ "บัญชี LINE") — ทุกครั้งที่กดจะใช้โควต้า LINE <b>1 ข้อความ</b></div>
+      <div class="sub">กด "ทดสอบส่ง" เพื่อส่งข้อความจริงไปยัง <b>แอดมินทุกคน</b> ที่ลงทะเบียนไว้ (ดูรายชื่อ/ตั้งบทบาทได้ที่แท็บ "ผู้รับข้อความ") — ทุกครั้งที่กดจะใช้โควต้า LINE <b>1 ข้อความ/แอดมิน 1 คน</b></div>
       <div id="msgList">
         <div class="sk-row"><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div><div class="sk-bar sk-btn"></div></div>
         <div class="sk-row"><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div><div class="sk-bar sk-btn"></div></div>
@@ -305,8 +305,8 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
       <div id="chanInfo"><div class="loading"><span class="spinner"></span>กำลังโหลด…</div></div>
     </div>
     <div class="card">
-      <h3>userId ทดสอบ</h3>
-      <div class="sub">userId ของแอดมิน (หาได้จากชีท "LineUsers" คอลัมน์ UserId) ที่จะใช้รับข้อความตอนกด "ทดสอบส่ง"</div>
+      <h3>userId ทดสอบ (สำรอง)</h3>
+      <div class="sub">ปกติปุ่ม "ทดสอบส่ง" จะส่งไปหาแอดมินทุกคนที่ลงทะเบียนไว้โดยอัตโนมัติ ไม่ต้องตั้งค่าตรงนี้ — ใช้ช่องนี้เฉพาะกรณีสำรอง เช่น ยังไม่มีใครตั้งบทบาทเป็นแอดมินในระบบเลย</div>
       <div class="field-row">
         <input type="text" id="testUserIdInput" placeholder="Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
         <button class="btn btn-primary" onclick="saveTestUserId(event)">บันทึก</button>
