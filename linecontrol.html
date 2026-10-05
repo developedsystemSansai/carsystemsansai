@@ -191,6 +191,69 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
 .sk-line.w30{width:32%}
 .sk-btn{width:84px;height:30px;border-radius:8px;flex-shrink:0}
 
+
+/* BUTTONS เพิ่มเติม */
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-danger{background:var(--red);color:#fff}
+.btn-danger:hover{background:#a5311f}
+.btn-danger .spinner{border-color:rgba(255,255,255,.4);border-top-color:#fff}
+
+/* PILLS */
+.pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:1px 9px;border-radius:999px;font-weight:600;white-space:nowrap;line-height:1.7}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.err{background:var(--err-soft);color:var(--err)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.info{background:var(--accent-soft);color:var(--accent)}
+.pill.mute{background:#eef0f2;color:var(--text-mid)}
+.pill.mono{font-family:'IBM Plex Mono',monospace;font-weight:500}
+
+/* TEST / RESEND ROW */
+.msg-meta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:4px}
+.msg-meta .badge{margin-top:0}
+.msg-actions{display:flex;gap:8px;flex-shrink:0}
+
+/* HISTORY */
+.hist-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:16px}
+.sum-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow-sm)}
+.sum-card .t{font-size:12px;color:var(--text-light);font-weight:500}
+.sum-card .v{font-size:24px;font-weight:700;margin:2px 0;color:var(--text)}
+.sum-card .v .u{font-size:12px;font-weight:500;color:var(--text-light)}
+.sum-card .s{font-size:11.5px;color:var(--text-light)}
+.hist-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.hist-bar select{padding:7px 8px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:12.5px;background:#fff;color:var(--text)}
+.hist-bar .grow{flex:1}
+.hist-item{border-top:1px solid var(--border);padding:13px 0}
+.hist-item:first-child{border-top:none}
+.hist-top{display:flex;align-items:center;gap:6px 8px;flex-wrap:wrap}
+.hist-time{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-mid)}
+.hist-title{font-size:14px;font-weight:600;margin-top:5px}
+.hist-sub{font-size:12px;color:var(--text-light);margin-top:3px;display:flex;flex-wrap:wrap;gap:2px 14px}
+.hist-err{margin-top:7px;font-size:12px;color:var(--err);background:var(--err-soft);border-radius:var(--radius-sm);padding:6px 10px;word-break:break-word}
+.hist-prev{margin-top:6px;font-size:12px;color:var(--text-mid);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist-actions{margin-top:9px;display:flex;gap:8px;flex-wrap:wrap}
+.hist-detail{margin-top:9px;display:none}
+.hist-foot{text-align:center;font-size:11.5px;color:var(--text-light);padding-top:12px;border-top:1px solid var(--border)}
+
+/* CONFIRM MODAL */
+#modalBack{position:fixed;inset:0;background:rgba(13,33,55,.5);display:none;align-items:center;justify-content:center;z-index:1200;padding:16px}
+#modalBack.show{display:flex;animation:fade .15s ease}
+.modal{background:#fff;border-radius:14px;box-shadow:var(--shadow-lg);width:100%;max-width:440px;padding:22px;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:16px;font-weight:700;margin-bottom:8px}
+.modal .mb{font-size:13px;color:var(--text-mid);line-height:1.65}
+.modal .mb p{margin-bottom:8px}
+.modal .mb .note{font-size:12px;color:var(--text-light)}
+.modal .mb .warn-line{color:var(--err);font-weight:600}
+.modal .mf{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;flex-wrap:wrap}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 14px;margin:10px 0;font-size:13px;background:var(--bg);border-radius:var(--radius-sm);padding:10px 12px}
+.kv dt{color:var(--text-light)}
+.kv dd{font-weight:600;color:var(--text);word-break:break-word}
+
+@media(max-width:560px){
+  .msg-actions{width:100%}
+  .msg-actions .btn{flex:1}
+  .hist-bar select{flex:1;min-width:0}
+}
+
 @media(max-width:560px){
   .hd-in,.wrap{padding-left:14px;padding-right:14px}
   .hd-in{gap:10px}
@@ -237,7 +300,8 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
 
   <div class="tabs" role="tablist">
     <button class="tab active" data-tab="sched"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>เวลาอัตโนมัติ</button>
-    <button class="tab" data-tab="test"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>ทดสอบส่ง</button>
+    <button class="tab" data-tab="test"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>ทดสอบ / ส่งซ้ำ</button>
+    <button class="tab" data-tab="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>ประวัติการส่ง</button>
     <button class="tab" data-tab="edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>แก้ไขข้อความ</button>
     <button class="tab" data-tab="users"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.9M16 3.1a4 4 0 010 7.8"/></svg>ผู้รับข้อความ</button>
     <button class="tab" data-tab="chan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12H8l-4 4V4z"/></svg>บัญชี LINE</button>
@@ -259,16 +323,43 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
     </div>
   </div>
 
-  <!-- ═══ TAB 2: TEST SEND ═══ -->
+  <!-- ═══ TAB 2: TEST / RESEND ═══ -->
   <div class="panel" id="panel-test">
     <div class="card">
-      <h3>ข้อความทั้งหมดในระบบ</h3>
-      <div class="sub">กด "ทดสอบส่ง" เพื่อส่งข้อความจริงไปยัง <b>แอดมินทุกคน</b> ที่ลงทะเบียนไว้ (ดูรายชื่อ/ตั้งบทบาทได้ที่แท็บ "ผู้รับข้อความ") — ทุกครั้งที่กดจะใช้โควต้า LINE <b>1 ข้อความ/แอดมิน 1 คน</b></div>
+      <h3>ทดสอบ / ส่งซ้ำข้อความ LINE</h3>
+      <div class="sub"><b>ทดสอบส่ง</b> = ส่งข้อความจริงเฉพาะ <b>แอดมิน</b> (ไม่รบกวนผู้รับจริง) · <b>ส่งจริงอีกครั้ง</b> = สร้างข้อความ <b>ใหม่จากข้อมูลล่าสุดตอนนี้</b> แล้วส่งให้ <b>ผู้รับจริงตามบทบาท</b> เหมือนที่ระบบส่งอัตโนมัติ (ส่งทาง LINE เท่านั้น ไม่ส่งอีเมลซ้ำ · ไม่ขึ้นกับสวิตช์เวลาอัตโนมัติ) — ทุกครั้งที่ส่งจะใช้โควต้า LINE ตามจำนวนผู้รับ และถูกบันทึกลงแท็บ "ประวัติการส่ง" พร้อม token ที่ใช้</div>
       <div id="msgList">
         <div class="sk-row"><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div><div class="sk-bar sk-btn"></div></div>
         <div class="sk-row"><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div><div class="sk-bar sk-btn"></div></div>
         <div class="sk-row"><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div><div class="sk-bar sk-btn"></div></div>
       </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB HISTORY: SEND LOG ═══ -->
+  <div class="panel" id="panel-history">
+    <div class="hist-sum" id="histSummary"></div>
+    <div class="card">
+      <h3>ประวัติการส่ง LINE</h3>
+      <div class="sub">บันทึกทุกครั้งที่ระบบยิง LINE API — ดูได้ว่าส่งผ่านบัญชีไหน (หลัก/สำรอง) และ <b>token ตัวไหน</b> (เก็บเฉพาะ 4 ตัวท้ายเพื่อแยกแยะ ไม่เก็บ token เต็ม) พร้อมผู้รับ จำนวนข้อความ โควต้าที่ใช้ และสถานะ · กด "ดูข้อความเต็ม" เพื่ออ่าน คัดลอก หรือ <b>ส่งซ้ำข้อความเดิม</b></div>
+      <div class="hist-bar">
+        <select id="histStatus" onchange="renderHistory()" aria-label="กรองตามสถานะ">
+          <option value="all">ทุกสถานะ</option><option value="ok">สำเร็จ</option><option value="fail">ล้มเหลว</option><option value="norcpt">ไม่มีผู้รับ</option>
+        </select>
+        <select id="histChannel" onchange="renderHistory()" aria-label="กรองตามบัญชี">
+          <option value="all">ทุกบัญชี</option><option value="primary">บัญชีหลัก</option><option value="backup">บัญชีสำรอง</option>
+        </select>
+        <select id="histKind" onchange="renderHistory()" aria-label="กรองตามประเภท">
+          <option value="all">ทุกประเภท</option><option value="sys">ไม่รวมตอบสด Rich Menu</option><option value="reply">เฉพาะตอบสด Rich Menu</option>
+        </select>
+        <select id="histLimit" onchange="loadHistory(true)" aria-label="จำนวนรายการ">
+          <option value="50">ล่าสุด 50</option><option value="100" selected>ล่าสุด 100</option><option value="200">ล่าสุด 200</option><option value="500">ล่าสุด 500</option>
+        </select>
+        <span class="grow"></span>
+        <button class="btn btn-ghost btn-sm" id="histRefreshBtn" onclick="loadHistory(true, event)">รีเฟรช</button>
+      </div>
+      <div id="histList"><div class="empty-hint">เปิดแท็บนี้เพื่อโหลดประวัติ</div></div>
+      <div class="hist-foot" id="histFoot" style="display:none"></div>
     </div>
   </div>
 
@@ -316,6 +407,17 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
 
 </div>
 
+<div id="modalBack" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <h3 id="modalTitle"></h3>
+    <div class="mb" id="modalBody"></div>
+    <div class="mf">
+      <button class="btn btn-ghost" id="modalCancel">ยกเลิก</button>
+      <button class="btn btn-primary" id="modalOk">ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="secure-fetch.js"></script>
@@ -324,12 +426,38 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdb
 let ADMIN_CODE = '';
 let SCHED_ITEMS = [];
 
-function showToast(msg, type){
+function showToast(msg, type, ms){
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast show' + (type ? ' ' + type : '');
   clearTimeout(t._timer);
-  t._timer = setTimeout(()=> t.className = 'toast', 2600);
+  t._timer = setTimeout(()=> t.className = 'toast', ms || 2600);
+}
+
+// ── หน้าต่างยืนยัน (แทน confirm() เดิม): แสดงรายละเอียดผู้รับ/บัญชีที่ใช้ก่อนกดส่งจริง → Promise<boolean> ──
+function confirmModal(opts){
+  return new Promise(resolve => {
+    const back = document.getElementById('modalBack');
+    const ok = document.getElementById('modalOk');
+    const cancel = document.getElementById('modalCancel');
+    document.getElementById('modalTitle').textContent = opts.title || 'ยืนยัน';
+    document.getElementById('modalBody').innerHTML = opts.body || '';
+    ok.textContent = opts.okLabel || 'ยืนยัน';
+    ok.className = 'btn ' + (opts.danger ? 'btn-danger' : 'btn-primary');
+    function done(v){
+      back.classList.remove('show');
+      ok.onclick = cancel.onclick = back.onclick = null;
+      document.removeEventListener('keydown', onKey);
+      resolve(v);
+    }
+    function onKey(e){ if (e.key === 'Escape') done(false); }
+    ok.onclick = () => done(true);
+    cancel.onclick = () => done(false);
+    back.onclick = e => { if (e.target === back) done(false); };
+    document.addEventListener('keydown', onKey);
+    back.classList.add('show');
+    cancel.focus(); // โฟกัสที่ "ยกเลิก" ไว้ก่อน กันกด Enter พลาดแล้วส่งจริง
+  });
 }
 
 // ── แถบโหลดด้านบน: ทำงานอัตโนมัติทุกครั้งที่มีการเรียก gasGet/gasPost ──
@@ -428,8 +556,13 @@ document.querySelectorAll('.tab').forEach(tab => {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     tab.classList.add('active');
     document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    onTabShown(tab.dataset.tab);
   });
 });
+function onTabShown(name){
+  // ประวัติต้องใช้รหัสแอดมินและข้อมูลค่อนข้างใหญ่ → โหลดตอนเปิดแท็บ (และโหลดใหม่ถ้ามีการส่งเกิดขึ้นหลังโหลดครั้งก่อน)
+  if (name === 'history' && (!HIST.loaded || HIST.stale)) loadHistory();
+}
 
 function initAll(){
   loadChannelStatus();
@@ -445,6 +578,7 @@ async function loadChannelStatus(){
     const r = await gasGet('getLineChannelStatus');
     if (!r || r.status !== 'ok') return;
 
+    CHANNEL = r;
     const pill = document.getElementById('chanPill');
     const pillText = document.getElementById('chanPillText');
     pill.className = 'chan-pill' + (r.active === 'backup' ? ' backup' : '');
@@ -547,34 +681,296 @@ async function saveSchedule(ev){
   setBtnLoading(btn, false);
 }
 
-// ── TEST SEND (tab 2) ──
+// ── TEST / RESEND (tab 2) ──
+let CATALOG = [];
+let CHANNEL = null; // ผลล่าสุดของ getLineChannelStatus (ใช้แสดงบัญชีที่กำลังใช้งานในหน้าต่างยืนยัน)
+
+function rolesText_(roles){ return (roles && roles.length) ? roles.join(', ') : 'ไม่ระบุ'; }
+function channelLabel_(ch){ return ch === 'backup' ? 'บัญชีสำรอง' : 'บัญชีหลัก'; }
+function activeChannelText_(){ return channelLabel_(CHANNEL && CHANNEL.active); }
+
 async function loadCatalog(){
+  const box = document.getElementById('msgList');
   try {
     const r = await gasGet('getLineMessageCatalog');
-    if (!r || r.status !== 'ok') { document.getElementById('msgList').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ</div>'; return; }
-    const items = r.items || [];
-    document.getElementById('msgList').innerHTML = items.map((it, i) => `
+    if (!r || r.status !== 'ok') { box.innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ</div>'; return; }
+    CATALOG = r.items || [];
+    if (!CATALOG.length) { box.innerHTML = '<div class="empty-hint">ไม่พบรายการข้อความ</div>'; return; }
+    box.innerHTML = CATALOG.map((it, i) => {
+      const n = Number(it.recipientCount) || 0;
+      const roleTxt = rolesText_(it.roles);
+      return `
       <div class="msg-row">
         <div class="info">
-          <div class="name">${it.label}</div>
-          <span class="badge ${it.type}">${it.type === 'auto' ? 'ส่งอัตโนมัติ' : 'ตอบสด/Rich Menu'}</span>
+          <div class="name">${escHtml_(it.label)}</div>
+          <div class="msg-meta">
+            <span class="badge ${it.type === 'auto' ? 'auto' : 'ondemand'}">${it.type === 'auto' ? 'ส่งอัตโนมัติ' : 'ตอบสด/Rich Menu'}</span>
+            <span class="pill ${n ? 'mute' : 'err'}">ผู้รับ: ${escHtml_(roleTxt)} · ${n} คน</span>
+          </div>
         </div>
-        <button class="btn btn-ghost" onclick="testSend('${it.key}', ${i}, event)">ทดสอบส่ง</button>
+        <div class="msg-actions">
+          <button class="btn btn-ghost btn-sm" onclick="testSend(${i}, event)">ทดสอบส่ง</button>
+          <button class="btn btn-primary btn-sm" onclick="resendSend(${i}, event)" ${n ? '' : 'disabled title="ยังไม่มีผู้รับที่ตรงบทบาทของข้อความนี้"'}>ส่งจริงอีกครั้ง</button>
+        </div>
       </div>
-      <div class="preview-box" id="preview-${i}"></div>`).join('');
-  } catch(e) { document.getElementById('msgList').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ: ' + e.message + '</div>'; }
+      <div class="preview-box" id="preview-${i}"></div>`;
+    }).join('');
+  } catch(e) { box.innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ: ' + escHtml_(e.message) + '</div>'; }
 }
-async function testSend(key, i, ev){
-  if (!confirm('ส่งข้อความทดสอบจริงไปยัง userId ทดสอบตอนนี้เลยหรือไม่?\n(จะเสียโควต้า LINE 1 ข้อความ)')) return;
-  const btn = ev && ev.currentTarget;
+
+function showPreview_(i, text){
+  const box = document.getElementById('preview-' + i);
+  if (box && text) { box.textContent = text; box.style.display = 'block'; }
+}
+
+async function testSend(i, ev){
+  const btn = ev && ev.currentTarget; // ต้องเก็บไว้ก่อน await — หลังจากนั้น currentTarget จะเป็น null
+  const it = CATALOG[i]; if (!it) return;
+  const ok = await confirmModal({
+    title: 'ทดสอบส่งข้อความ',
+    body: `<p>ส่ง <b>${escHtml_(it.label)}</b> ไปยัง <b>แอดมินทุกคน</b> ที่ลงทะเบียนไว้เท่านั้น (ไม่ส่งถึงผู้รับอื่น)</p>
+           <p class="note">ใช้โควต้า LINE อย่างน้อย 1 ข้อความ/แอดมิน 1 คน · ส่งผ่าน${escHtml_(activeChannelText_())}</p>`,
+    okLabel: 'ส่งทดสอบ'
+  });
+  if (!ok) return;
   setBtnLoading(btn, true, 'กำลังส่ง…');
   try {
-    const r = await gasPost({ action: 'testSendLineMessageByKey', key, adminCode: ADMIN_CODE });
-    const box = document.getElementById('preview-' + i);
-    if (r.preview) { box.textContent = r.preview; box.style.display = 'block'; }
-    showToast(r.message || (r.status === 'ok' ? 'ส่งสำเร็จ' : 'ส่งไม่สำเร็จ'), r.status === 'ok' ? 'ok' : 'err');
+    const r = await gasPost({ action: 'testSendLineMessageByKey', key: it.key, adminCode: ADMIN_CODE });
+    showPreview_(i, r.preview);
+    showToast(r.message || (r.status === 'ok' ? 'ส่งสำเร็จ' : 'ส่งไม่สำเร็จ'), r.status === 'ok' ? 'ok' : 'err', 4500);
+    HIST.stale = true; if (HIST.loaded) loadHistory(true);
   } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
   setBtnLoading(btn, false);
+}
+
+async function resendSend(i, ev){
+  const btn = ev && ev.currentTarget; // เก็บก่อน await (ดูเหตุผลที่ testSend)
+  const it = CATALOG[i]; if (!it) return;
+  const n = Number(it.recipientCount) || 0;
+  if (!n) { showToast('ยังไม่มีผู้รับที่ตรงบทบาทของข้อความนี้', 'err'); return; }
+  const ok = await confirmModal({
+    title: 'ส่งจริงอีกครั้ง',
+    danger: true,
+    body: `<p class="warn-line">นี่คือการส่งจริงถึงผู้รับจริง ไม่ใช่การทดสอบ</p>
+           <dl class="kv">
+             <dt>ข้อความ</dt><dd>${escHtml_(it.label)}</dd>
+             <dt>ผู้รับ</dt><dd>${escHtml_(rolesText_(it.roles))} · ${n} คน</dd>
+             <dt>บัญชี LINE</dt><dd>${escHtml_(activeChannelText_())}</dd>
+           </dl>
+           <p class="note">ระบบจะสร้างข้อความใหม่จากข้อมูลล่าสุดตอนนี้แล้วส่งทันที ใช้โควต้า LINE อย่างน้อย ${n} ข้อความ (ข้อความยาวจะถูกแบ่งเป็นหลายข้อความ) และบันทึกลงประวัติการส่ง</p>`,
+    okLabel: 'ยืนยันส่งจริง ' + n + ' คน'
+  });
+  if (!ok) return;
+  setBtnLoading(btn, true, 'กำลังส่ง…');
+  try {
+    const r = await gasPost({ action: 'resendLineMessageByKey', key: it.key, adminCode: ADMIN_CODE });
+    showPreview_(i, r.preview);
+    showToast(r.message || (r.status === 'ok' ? 'ส่งสำเร็จ' : 'ส่งไม่สำเร็จ'), r.status === 'ok' ? 'ok' : 'err', 5000);
+    HIST.stale = true; if (HIST.loaded) loadHistory(true);
+  } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
+  setBtnLoading(btn, false);
+}
+
+// ── HISTORY (tab "ประวัติการส่ง") ──
+const HIST = { loaded: false, stale: false, loading: false, items: [], summary: null, total: 0, details: {} };
+const TRIGGER_LABELS = { auto: 'อัตโนมัติ (ตั้งเวลา)', test: 'ทดสอบส่ง', resend: 'ส่งจริงอีกครั้ง', 'resend-history': 'ส่งซ้ำข้อความเดิม', richmenu: 'ตอบสด Rich Menu', editor: 'รันจาก Apps Script', system: 'ระบบ' };
+const MODE_LABELS = { push: 'Push', multicast: 'Multicast', reply: 'Reply (ตอบสด)' };
+const THAI_MONTHS = ['', 'มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+
+function thaiMonthYear_(mmyyyy){
+  const p = String(mmyyyy || '').split('/');
+  const m = Number(p[0]), y = Number(p[1]);
+  return (m >= 1 && m <= 12 && y) ? (THAI_MONTHS[m] + ' ' + (y + 543)) : String(mmyyyy || '');
+}
+function histVal_(id){ const el = document.getElementById(id); return el ? el.value : 'all'; }
+
+async function loadHistory(force, ev){
+  if (HIST.loading) return;
+  const btn = (ev && ev.currentTarget) || document.getElementById('histRefreshBtn');
+  HIST.loading = true;
+  const list = document.getElementById('histList');
+  if (!HIST.loaded) list.innerHTML = '<div class="loading"><span class="spinner"></span>กำลังโหลดประวัติ…</div>';
+  setBtnLoading(btn, true, 'กำลังโหลด…');
+  try {
+    const limit = Number(histVal_('histLimit')) || 100;
+    const r = await gasPost({ action: 'getLineSendHistory', limit, adminCode: ADMIN_CODE });
+    if (!r || r.status !== 'ok') {
+      if (!HIST.loaded) list.innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ' + (r && r.message ? ': ' + escHtml_(r.message) : '') + '</div>';
+      else showToast((r && r.message) || 'โหลดประวัติไม่สำเร็จ', 'err');
+    } else {
+      HIST.items = r.items || [];
+      HIST.summary = r.summary || null;
+      HIST.total = r.total || 0;
+      HIST.loaded = true; HIST.stale = false; HIST.details = {};
+      renderHistorySummary();
+      renderHistory();
+    }
+  } catch(e) {
+    if (!HIST.loaded) list.innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ: ' + escHtml_(e.message) + '</div>';
+    else showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err');
+  } finally {
+    HIST.loading = false;
+    setBtnLoading(btn, false);
+  }
+}
+
+function renderHistorySummary(){
+  const el = document.getElementById('histSummary');
+  const s = HIST.summary;
+  if (!s) { el.innerHTML = ''; return; }
+  const card = (title, o, sub) => {
+    o = o || {};
+    return `<div class="sum-card">
+      <div class="t">${escHtml_(title)}</div>
+      <div class="v">${(Number(o.quota) || 0).toLocaleString()} <span class="u">ข้อความ</span></div>
+      <div class="s">${sub ? escHtml_(sub) + ' · ' : ''}ยิง API ${(Number(o.sends) || 0).toLocaleString()} ครั้ง${o.fail ? ` · <span style="color:var(--err)">ล้มเหลว ${o.fail}</span>` : ''}</div>
+    </div>`;
+  };
+  const mon = thaiMonthYear_(s.month);
+  el.innerHTML = card('วันนี้ (ทุกบัญชี)', s.today, 'โควต้าที่ใช้')
+    + card('บัญชีหลัก · ' + mon, s.primary, 'โควต้าที่ใช้')
+    + card('บัญชีสำรอง · ' + mon, s.backup, 'โควต้าที่ใช้');
+}
+
+function histFiltered_(){
+  const st = histVal_('histStatus'), ch = histVal_('histChannel'), kind = histVal_('histKind');
+  return HIST.items.filter(it => {
+    if (st === 'ok' && it.status !== 'สำเร็จ') return false;
+    if (st === 'fail' && it.status !== 'ล้มเหลว') return false;
+    if (st === 'norcpt' && it.status !== 'ไม่มีผู้รับ') return false;
+    if (ch !== 'all' && it.channel !== ch) return false;
+    if (kind === 'sys' && it.mode === 'reply') return false;
+    if (kind === 'reply' && it.mode !== 'reply') return false;
+    return true;
+  });
+}
+
+function histItemHtml_(it){
+  const stCls = it.status === 'สำเร็จ' ? 'ok' : (it.status === 'ล้มเหลว' ? 'err' : 'warn');
+  const chCls = it.channel === 'backup' ? 'warn' : 'info';
+  const token = it.tokenHint ? escHtml_(it.tokenHint) : 'ไม่มี token';
+  const showHttp = it.http !== '' && it.http != null;
+  return `<div class="hist-item" data-id="${escHtml_(it.logId)}">
+    <div class="hist-top">
+      <span class="hist-time">${escHtml_(it.time)}</span>
+      <span class="pill ${stCls}">${escHtml_(it.status || '-')}</span>
+      <span class="pill ${chCls} mono" title="token ที่ใช้ส่ง (เก็บเฉพาะ 4 ตัวท้าย)">🔑 ${channelLabel_(it.channel)} ${token}</span>
+      <span class="pill mute">${escHtml_(TRIGGER_LABELS[it.trigger] || it.trigger || '-')}</span>
+    </div>
+    <div class="hist-title">${escHtml_(it.label || it.key || '(ไม่ระบุชื่อข้อความ)')}</div>
+    <div class="hist-sub">
+      <span>${escHtml_(MODE_LABELS[it.mode] || it.mode || '-')}</span>
+      <span>ผู้รับ ${it.recipients} คน</span>
+      <span>${it.messageCount} ข้อความ/คน</span>
+      <span>โควต้า ${it.quota}</span>
+      ${it.roles ? `<span>บทบาท: ${escHtml_(it.roles)}</span>` : ''}
+      ${it.by ? `<span>สั่งโดย ${escHtml_(it.by)}</span>` : ''}
+      ${showHttp ? `<span>HTTP ${escHtml_(it.http)}</span>` : ''}
+    </div>
+    ${it.error ? `<div class="hist-err">${escHtml_(it.error)}</div>` : ''}
+    ${it.preview ? `<div class="hist-prev">${escHtml_(it.preview)}</div>` : ''}
+    <div class="hist-actions"><button class="btn btn-ghost btn-sm" onclick="toggleHistDetail(this)">ดูข้อความเต็ม</button></div>
+    <div class="hist-detail"></div>
+  </div>`;
+}
+
+function renderHistory(){
+  const list = document.getElementById('histList');
+  const foot = document.getElementById('histFoot');
+  if (!HIST.loaded) return;
+  const rows = histFiltered_();
+  if (!HIST.items.length) {
+    list.innerHTML = '<div class="empty-hint">ยังไม่มีประวัติการส่ง — รายการจะเริ่มบันทึกตั้งแต่ครั้งถัดไปที่ระบบยิง LINE</div>';
+    foot.style.display = 'none';
+    return;
+  }
+  list.innerHTML = rows.length ? rows.map(histItemHtml_).join('') : '<div class="empty-hint">ไม่มีรายการที่ตรงกับตัวกรอง</div>';
+  foot.style.display = 'block';
+  foot.textContent = 'แสดง ' + rows.length + ' จาก ' + HIST.items.length + ' รายการล่าสุด (ทั้งหมดในชีท ' + HIST.total.toLocaleString() + ' รายการ · ระบบเก็บย้อนหลังสูงสุดประมาณ 2,500 รายการ)';
+}
+
+function detailHtml_(r){
+  const it = r.item || {};
+  const rid = it.requestId ? `<div class="hist-sub"><span>LINE Request ID: <span class="mono">${escHtml_(it.requestId)}</span></span></div>` : '';
+  const note = r.isFull ? '' : '<div class="hist-sub"><span>⚠️ ไม่ได้เก็บข้อความเต็มไว้ (แสดงเฉพาะตัวอย่างย่อ)</span></div>';
+  const resend = r.canResend
+    ? `<button class="btn btn-primary btn-sm" onclick="resendFromHistory(this)">ส่งซ้ำข้อความเดิม</button>` : '';
+  const who = r.canResend
+    ? `<div class="hist-sub" style="margin-top:7px"><span>ส่งซ้ำจะไปยัง: ${escHtml_(rolesText_(r.targetRoles))} · ${Number(r.recipientCount) || 0} คน</span></div>` : '';
+  return `${rid}${note}<pre class="preview-box" style="display:block">${escHtml_(r.text)}</pre>
+    <div class="hist-actions">
+      <button class="btn btn-ghost btn-sm" onclick="copyHistText(this)">คัดลอกข้อความ</button>
+      ${resend}
+    </div>${who}`;
+}
+
+async function toggleHistDetail(btn){
+  const row = btn.closest('.hist-item');
+  const id = row.dataset.id;
+  const box = row.querySelector('.hist-detail');
+  if (box.dataset.loaded === '1') {
+    const show = box.style.display !== 'block';
+    box.style.display = show ? 'block' : 'none';
+    btn.textContent = show ? 'ซ่อนข้อความ' : 'ดูข้อความเต็ม';
+    return;
+  }
+  setBtnLoading(btn, true, 'กำลังโหลด…');
+  try {
+    const r = await gasPost({ action: 'getLineSendHistoryDetail', logId: id, adminCode: ADMIN_CODE });
+    if (!r || r.status !== 'ok') { showToast((r && r.message) || 'โหลดข้อความไม่สำเร็จ', 'err'); setBtnLoading(btn, false); return; }
+    HIST.details[id] = r;
+    box.innerHTML = detailHtml_(r);
+    box.dataset.loaded = '1';
+    box.style.display = 'block';
+    setBtnLoading(btn, false);
+    btn.textContent = 'ซ่อนข้อความ';
+  } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); setBtnLoading(btn, false); }
+}
+
+async function copyHistText(btn){
+  const pre = btn.closest('.hist-detail').querySelector('pre');
+  const text = pre ? pre.textContent : '';
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) await navigator.clipboard.writeText(text);
+    else {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove();
+    }
+    showToast('คัดลอกข้อความแล้ว', 'ok');
+  } catch(e) { showToast('คัดลอกไม่สำเร็จ', 'err'); }
+}
+
+async function resendFromHistory(btn){
+  const row = btn.closest('.hist-item');
+  const id = row.dataset.id;
+  const d = HIST.details[id];
+  if (!d) return;
+  const it = d.item || {};
+  const n = Number(d.recipientCount) || 0;
+  if (!n) { showToast('ไม่พบผู้รับที่ตรงบทบาทสำหรับการส่งซ้ำ', 'err'); return; }
+  const ok = await confirmModal({
+    title: 'ส่งซ้ำข้อความเดิม',
+    danger: true,
+    body: `<p class="warn-line">นี่คือการส่งจริงถึงผู้รับจริง</p>
+           <dl class="kv">
+             <dt>ข้อความ</dt><dd>${escHtml_(it.label || it.key || '-')}</dd>
+             <dt>ส่งไปยัง</dt><dd>${escHtml_(rolesText_(d.targetRoles))} · ${n} คน</dd>
+             <dt>บัญชี LINE</dt><dd>${escHtml_(activeChannelText_())} (ปัจจุบัน)</dd>
+             <dt>ส่งครั้งเดิมเมื่อ</dt><dd>${escHtml_(it.time || '-')}</dd>
+           </dl>
+           <p class="note">ส่ง "ข้อความตัวเดิมเป๊ะ" โดยไม่ดึงข้อมูลใหม่ — ข้อมูลในข้อความจึงเป็นของเวลาข้างต้น หากต้องการข้อมูลล่าสุดให้ใช้ "ส่งจริงอีกครั้ง" ในแท็บ "ทดสอบ / ส่งซ้ำ" แทน</p>`,
+    okLabel: 'ยืนยันส่ง ' + n + ' คน'
+  });
+  if (!ok) return;
+  setBtnLoading(btn, true, 'กำลังส่ง…');
+  try {
+    const r = await gasPost({ action: 'resendLineFromHistory', logId: id, adminCode: ADMIN_CODE });
+    showToast(r.message || (r.status === 'ok' ? 'ส่งสำเร็จ' : 'ส่งไม่สำเร็จ'), r.status === 'ok' ? 'ok' : 'err', 5000);
+    HIST.stale = true;
+    await loadHistory(true); // ตารางถูกวาดใหม่ (มีแถวใหม่ของการส่งซ้ำนี้เพิ่มขึ้น)
+  } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
+  finally { if (btn.isConnected) setBtnLoading(btn, false); }
 }
 
 // ── EDIT MESSAGE TEMPLATES (tab "แก้ไขข้อความ") ──
