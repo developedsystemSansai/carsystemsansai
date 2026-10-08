@@ -1380,6 +1380,12 @@ const JOB_PRESETS = [
   { key:'somchai', name:'รับ-ส่ง อ.สมชัย', sub:'กายภาพบำบัด · หางดง',
     requester:'กายภาพบำบัด', headcount:1, mission:'รับ-ส่ง อ.สมชัย',
     destination:'หางดง', timeOut:'07:00', timeBack:'16:00' },
+  { key:'lab-send', name:'ส่งแลป / ส่งเลือด', sub:'แลป · คณะเทคนิคการแพทย์ กาชาด',
+    requester:'แลป', headcount:'', mission:'ส่งแลป ส่งเลือด',
+    destination:'คณะเทคนิคการแพทย์ กาชาด', timeOut:'08:00', timeBack:'16:00' },
+  { key:'admin-doc', name:'ส่งเอกสาร (ธุรการ)', sub:'งานธุรการ · สสจ./ศาลากลาง/กาชาด',
+    requester:'งานธุรการ', headcount:'', mission:'ส่งเอกสาร',
+    destination:'สสจ./ศาลากลาง/กาชาด/สหกรณ์ (เส้นทางในเมือง)', timeOut:'08:00', timeBack:'16:00' },
 ];
 function jobQuickPanelHtml(){
   const btns=JOB_PRESETS.map(p=>`<button type="button" class="jf-qbtn" data-key="${p.key}" onclick="applyJobPreset('${p.key}')"><span class="q-name">${escapeHtmlJob(p.name)}</span><span class="q-sub">${escapeHtmlJob(p.sub)}</span></button>`).join('');
