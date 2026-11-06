@@ -87,6 +87,12 @@ header p{font-size:11px;color:rgba(255,255,255,.45)}
 .sched-row .info,.msg-row .info,.user-row .info{flex:1;min-width:0}
 .sched-row .name,.msg-row .name,.user-row .name{font-size:14px;font-weight:500}
 .sched-row .meta.sched-note{color:var(--amber)}
+.testall-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:4px 0 14px}
+.testall-hint{font-size:12px;color:var(--text-light);flex:1;min-width:200px}
+.testall-result{border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:14px;font-size:13px}
+.testall-result .ta-row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-top:1px solid var(--border)}
+.testall-result .ta-row:first-child{border-top:none}
+.testall-result .ta-err{color:var(--warn);font-size:12px}
 .sched-row .meta,.user-row .meta{font-size:12px;color:var(--text-light);margin-top:1px}
 .time-inp{width:54px;padding:7px 4px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);text-align:center;font-family:'IBM Plex Mono',monospace;font-size:14px;background:#fff;-moz-appearance:textfield}
 .time-inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
@@ -330,6 +336,11 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
     <div class="card">
       <h3>ทดสอบ / ส่งซ้ำข้อความ LINE</h3>
       <div class="sub"><b>ทดสอบส่ง</b> = ส่งข้อความจริงเฉพาะ <b>แอดมิน</b> (ไม่รบกวนผู้รับจริง) · <b>ส่งจริงอีกครั้ง</b> = สร้างข้อความ <b>ใหม่จากข้อมูลล่าสุดตอนนี้</b> แล้วส่งให้ <b>ผู้รับจริงตามบทบาท</b> เหมือนที่ระบบส่งอัตโนมัติ (ส่งทาง LINE เท่านั้น ไม่ส่งอีเมลซ้ำ · ไม่ขึ้นกับสวิตช์เวลาอัตโนมัติ) — ทุกครั้งที่ส่งจะใช้โควต้า LINE ตามจำนวนผู้รับ และถูกบันทึกลงแท็บ "ประวัติการส่ง" พร้อม token ที่ใช้</div>
+      <div class="testall-bar">
+        <button class="btn btn-ghost" id="testAllBtn" onclick="testSendAll(event)">ทดสอบส่งทุกประเภทไปยังแอดมิน</button>
+        <span class="testall-hint">ส่งข้อความจริงจากข้อมูลล่าสุดครบทุกชุดให้แอดมินเท่านั้น ใช้ดูหน้าตาข้อความบนมือถือ</span>
+      </div>
+      <div id="testAllResult" class="testall-result" style="display:none"></div>
       <div id="msgList">
         <div class="sk-row"><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div><div class="sk-bar sk-btn"></div></div>
         <div class="sk-row"><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div><div class="sk-bar sk-btn"></div></div>
@@ -753,6 +764,30 @@ async function testSend(i, ev){
     const r = await gasPost({ action: 'testSendLineMessageByKey', key: it.key, adminCode: ADMIN_CODE });
     showPreview_(i, r.preview);
     showToast(r.message || (r.status === 'ok' ? 'ส่งสำเร็จ' : 'ส่งไม่สำเร็จ'), r.status === 'ok' ? 'ok' : 'err', 4500);
+    HIST.stale = true; if (HIST.loaded) loadHistory(true);
+  } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
+  setBtnLoading(btn, false);
+}
+
+async function testSendAll(ev){
+  const btn = ev && ev.currentTarget;
+  const n = CATALOG.length;
+  const ok = await confirmModal({
+    title: 'ทดสอบส่งทุกประเภท',
+    body: `<p>ส่งข้อความ <b>ทั้ง ${n} ชุด</b> ไปยัง <b>แอดมินทุกคน</b> ที่ลงทะเบียนไว้เท่านั้น (ไม่ส่งถึงผู้รับอื่น)</p>
+           <p class="note">แต่ละชุดมีหัว "🧪 ทดสอบ n/${n}" · ใช้โควต้า LINE ตามจำนวนข้อความ × จำนวนแอดมิน · ส่งผ่าน${escHtml_(activeChannelText_())} · ใช้เวลาประมาณครึ่งนาที</p>`,
+    okLabel: 'ส่งทดสอบทั้งหมด'
+  });
+  if (!ok) return;
+  setBtnLoading(btn, true, 'กำลังส่ง…');
+  const box = document.getElementById('testAllResult');
+  try {
+    const r = await gasPost({ action: 'testSendAllLineMessagesToAdmin', adminCode: ADMIN_CODE });
+    showToast(r.message || (r.status === 'ok' ? 'ส่งสำเร็จ' : 'ส่งไม่สำเร็จ'), r.status === 'ok' ? 'ok' : 'err', 5000);
+    if (r.items && r.items.length) {
+      box.innerHTML = r.items.map(it => `<div class="ta-row"><div>${escHtml_(it.label)}${it.error ? `<div class="ta-err">${escHtml_(it.error)}</div>` : ''}</div><span class="pill ${it.ok ? 'mute' : 'err'}">${it.ok ? 'ส่งแล้ว' : 'ไม่สำเร็จ'}</span></div>`).join('');
+      box.style.display = 'block';
+    }
     HIST.stale = true; if (HIST.loaded) loadHistory(true);
   } catch(e) { showToast('เชื่อมต่อไม่สำเร็จ: ' + e.message, 'err'); }
   setBtnLoading(btn, false);
