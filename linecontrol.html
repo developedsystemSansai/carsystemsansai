@@ -86,6 +86,7 @@ header p{font-size:11px;color:rgba(255,255,255,.45)}
 .sched-row:first-of-type{border-top:none}
 .sched-row .info,.msg-row .info,.user-row .info{flex:1;min-width:0}
 .sched-row .name,.msg-row .name,.user-row .name{font-size:14px;font-weight:500}
+.sched-row .meta.sched-note{color:var(--amber)}
 .sched-row .meta,.user-row .meta{font-size:12px;color:var(--text-light);margin-top:1px}
 .time-inp{width:54px;padding:7px 4px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);text-align:center;font-family:'IBM Plex Mono',monospace;font-size:14px;background:#fff;-moz-appearance:textfield}
 .time-inp:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
@@ -312,7 +313,7 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
   <div class="panel active" id="panel-sched">
     <div class="card">
       <h3>เวลาส่งข้อความอัตโนมัติ</h3>
-      <div class="sub">แก้เวลาแล้วกด "บันทึก" ระบบจะตั้ง trigger ใหม่ให้ทันที ไม่ต้องเข้า Apps Script Editor</div>
+      <div class="sub">แก้เวลาแล้วกด "บันทึก" ระบบจะตั้ง trigger ใหม่ให้ทันที ไม่ต้องเข้า Apps Script Editor<br>ตั้งเวลาแจ้งเตือน พขร. (ตรวจสภาพรถ) ให้เร็วกว่ารายงานตรวจสภาพรถของรองฯ เสมอ เพื่อให้ พขร. มีเวลาตรวจก่อนรายงานถูกส่ง</div>
       <div id="schedList">
         <div class="sk-row"><div class="sk-bar sk-toggle"></div><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div></div>
         <div class="sk-row"><div class="sk-bar sk-toggle"></div><div class="sk-lines"><div class="sk-bar sk-line w60"></div><div class="sk-bar sk-line w30"></div></div></div>
@@ -646,12 +647,19 @@ async function saveTestUserId(ev){
 }
 
 // ── SCHEDULE (tab 1) ──
+// ผู้รับ + เงื่อนไขของรายงานอัตโนมัติแต่ละตัว (แสดงใต้ชื่อในแท็บ "เวลาส่งอัตโนมัติ")
+const SCHED_META = {
+  dailyCheck:    { to: 'แอดมิน · รองฯ' },
+  workSchedule:  { to: 'รองฯ · พขร.' },
+  weeklyUsage:   { to: 'แอดมิน · รองฯ' },
+  checkReminder: { to: 'พขร. เท่านั้น', note: 'ส่งเฉพาะเมื่อมีคันที่ยังไม่ตรวจ — ตรวจครบแล้วจะไม่ส่ง', remind: true }
+};
 const WD_LABELS = { '': 'ทุกวัน (จ-ศ)', MONDAY:'จันทร์', TUESDAY:'อังคาร', WEDNESDAY:'พุธ', THURSDAY:'พฤหัสบดี', FRIDAY:'ศุกร์', SATURDAY:'เสาร์', SUNDAY:'อาทิตย์' };
 async function loadSchedule(){
   try {
     const r = await gasGet('getLineReportSchedule');
     if (!r || r.status !== 'ok') { document.getElementById('schedList').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ</div>'; return; }
-    SCHED_ITEMS = r.items || [];
+    SCHED_ITEMS = (r.items || []).slice().sort((a, b) => (a.hour * 60 + a.minute) - (b.hour * 60 + b.minute));
     renderSchedule();
   } catch(e) { document.getElementById('schedList').innerHTML = '<div class="empty-hint">โหลดไม่สำเร็จ: ' + e.message + '</div>'; }
 }
@@ -663,7 +671,8 @@ function renderSchedule(){
       <label class="sw"><input type="checkbox" ${it.enabled ? 'checked' : ''} onchange="SCHED_ITEMS[${i}].enabled=this.checked"><span class="slider"></span></label>
       <div class="info">
         <div class="name">${it.label || it.key}</div>
-        <div class="meta">${WD_LABELS[it.weekday] || it.weekday}</div>
+        <div class="meta">${WD_LABELS[it.weekday] || it.weekday}${SCHED_META[it.key] ? ' · ผู้รับ: ' + SCHED_META[it.key].to : ''}</div>
+        ${SCHED_META[it.key] && SCHED_META[it.key].note ? `<div class="meta sched-note">${SCHED_META[it.key].note}</div>` : ''}
       </div>
       <input type="number" class="time-inp" min="0" max="23" value="${it.hour}" onchange="SCHED_ITEMS[${i}].hour=Math.max(0,Math.min(23,Number(this.value)||0));this.value=SCHED_ITEMS[${i}].hour">
       <span class="time-sep">:</span>
@@ -673,6 +682,11 @@ function renderSchedule(){
 }
 async function saveSchedule(ev){
   const btn = ev && ev.currentTarget;
+  const _rem = SCHED_ITEMS.find(x => x.key === 'checkReminder');
+  const _rep = SCHED_ITEMS.find(x => x.key === 'dailyCheck');
+  if (_rem && _rep && _rem.enabled && _rep.enabled && (_rem.hour * 60 + _rem.minute) >= (_rep.hour * 60 + _rep.minute)) {
+    showToast('เวลาแจ้งเตือน พขร. ควรเร็วกว่ารายงานตรวจสภาพรถของรองฯ — บันทึกต่อไปตามที่ตั้ง', 'err');
+  }
   setBtnLoading(btn, true, 'กำลังบันทึก…');
   try {
     const r = await gasPost({ action: 'saveLineReportSchedule', items: SCHED_ITEMS, adminCode: ADMIN_CODE });
