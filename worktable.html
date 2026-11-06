@@ -218,6 +218,46 @@ tbody tr.dim{opacity:.22;}
 .s-ems{background:var(--red-soft);color:#8b1a1a;}
 .s-d{background:var(--amber-soft);color:#7a4f00;}
 .s-other{background:var(--bg2);color:var(--text-mid);}
+.shift-stack{display:inline-flex;flex-direction:column;align-items:center;gap:2px;}
+
+/* ── แก้ไขเวรรายช่อง (หัวหน้างาน/แอดมิน) ── */
+.edit-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 8px 8px 12px;margin-bottom:10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);font-size:11.5px;color:var(--text-mid);}
+.edit-bar-text{min-width:0;line-height:1.4;}
+.edit-bar-btn{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 13px;border-radius:8px;border:1.5px solid var(--violet);background:#fff;color:var(--violet);font:700 11.5px 'Noto Sans Thai',sans-serif;cursor:pointer;transition:background .15s,color .15s;}
+.edit-bar-btn:hover{background:var(--violet-soft);}
+body.sched-editing .edit-bar{background:var(--amber-soft);border-color:#e8d080;color:#7a4f00;}
+body.sched-editing .edit-bar-btn{background:var(--amber);border-color:var(--amber);color:#fff;}
+body.sched-editing td.td-edit{cursor:pointer;}
+body.sched-editing td.td-edit:hover{box-shadow:inset 0 0 0 1.5px var(--violet);background:#eef4ff;}
+body.sched-editing td.td-edit:focus-visible{outline:2px solid var(--violet);outline-offset:-2px;}
+body.sched-editing td.td-edit:empty::after{content:'+';color:var(--border-strong);font-size:15px;font-weight:700;}
+td.td-edit.just-saved{animation:cellSaved 1.4s ease-out;}
+@keyframes cellSaved{0%{box-shadow:inset 0 0 0 2px var(--success);background:var(--success-soft);}100%{box-shadow:inset 0 0 0 0 transparent;}}
+.se-label{font-size:11.5px;font-weight:700;color:var(--text-mid);margin:14px 0 7px;}
+.se-label span{font-weight:400;color:var(--text-light);}
+.se-tray{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.se-slot{display:inline-flex;align-items:center;border:1.5px solid var(--border);border-radius:10px;background:#fff;padding:2px;}
+.se-slot.active{border-color:var(--violet);box-shadow:0 0 0 3px var(--violet-soft);}
+.se-slot-pick{min-height:34px;min-width:44px;padding:0 6px;border:none;background:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+.se-slot-x{width:30px;height:34px;border:none;background:none;color:var(--text-light);cursor:pointer;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;}
+.se-slot-x:hover{color:var(--danger);background:var(--danger-soft);}
+.se-add{min-height:40px;padding:0 12px;border:1.5px dashed var(--border-strong);border-radius:10px;background:none;color:var(--violet);font:700 11.5px 'Noto Sans Thai',sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+.se-add:hover{background:var(--violet-soft);border-color:var(--violet);}
+.se-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+.se-opt{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:60px;padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;background:#fff;cursor:pointer;text-align:left;font-family:'Noto Sans Thai',sans-serif;transition:border-color .15s,background .15s;}
+.se-opt:hover{border-color:var(--violet);}
+.se-opt.on{border-color:var(--violet);background:var(--violet-soft);}
+.se-opt:focus-visible,.se-slot-pick:focus-visible,.se-add:focus-visible,.se-slot-x:focus-visible,.edit-bar-btn:focus-visible{outline:2px solid var(--violet);outline-offset:2px;}
+.se-opt-name{font-size:11px;color:var(--text-mid);line-height:1.3;}
+.se-opt-time{font-size:10px;color:var(--text-light);font-family:'IBM Plex Mono',monospace;}
+.se-custom{display:flex;gap:8px;}
+.se-custom input{flex:1;min-width:0;}
+.se-custom button{flex:none;padding:0 14px;border:1.5px solid var(--border-strong);border-radius:9px;background:#fff;color:var(--text-mid);font:700 12px 'Noto Sans Thai',sans-serif;cursor:pointer;}
+.se-custom button:hover{border-color:var(--violet);color:var(--violet);}
+.se-sum{margin-top:14px;padding:10px 12px;border-radius:10px;background:var(--bg);font-size:12px;color:var(--text-mid);line-height:1.5;}
+.se-sum b{font-family:'IBM Plex Mono',monospace;color:var(--text);}
+.se-note{margin-top:8px;font-size:10.5px;color:var(--text-light);line-height:1.5;}
+@media (prefers-reduced-motion:reduce){td.td-edit.just-saved{animation:none;}}
 
 /* LOADING / EMPTY / ERROR */
 .loading-wrap{text-align:center;padding:50px 20px;}
@@ -618,7 +658,7 @@ async function fetchGASRaw(payloadObj){
 
 function getDriverSession(){ try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch(_){return null;} }
 function setDriverSession(obj){ try{localStorage.setItem(SESSION_KEY,JSON.stringify(obj));}catch(_){} }
-function clearDriverSession(){ try{localStorage.removeItem(SESSION_KEY);}catch(_){} renderSessionBox(); }
+function clearDriverSession(){ try{localStorage.removeItem(SESSION_KEY);}catch(_){} renderSessionBox(); try{setSchedEdit(false);}catch(_){} }
 
 // ── ทำความสะอาดค่าเวลาที่อาจมาผิดรูปแบบจากชีท (เช่น เซลล์ฟอร์แมตเป็น "เวลา" ล้วน
 //    Google Sheets/Apps Script จะแทนเป็น Date ที่ปักวันที่ไว้ที่ 30 ธ.ค. 1899 ซึ่งพอ
@@ -1229,7 +1269,7 @@ async function submitLogin(){
   try{
     const r=await fetchGASRaw({action:'verifyDriverPhone',phone});
     if(r.status==='ok'){
-      setDriverSession({name:r.name,nick:r.nick,phone:r.phone,role:r.role,isAdmin:!!r.isAdmin});
+      setDriverSession({name:r.name,nick:r.nick,phone:r.phone,role:r.role,isAdmin:!!r.isAdmin,canEditSchedule:r.canEditSchedule});
       renderSessionBox();
       showToast(r.isAdmin?'เข้าสู่ระบบสิทธิ์แอดมินแล้ว':`ยินดีต้อนรับ ${r.nick||r.name}`,'success');
       const modal=document.querySelector('.modal-overlay');
@@ -1755,6 +1795,7 @@ function renderScheduleTabWrapper(){
 
   $('sched-content').innerHTML=html;
   activeSchedTab='current';
+  syncEditAttrs();
 
   // scroll to today on current month
   setTimeout(()=>{
@@ -1808,7 +1849,7 @@ function buildScheduleHTML(d, isCurrentMonth){
     for(let d2=1;d2<=daysInMonth;d2++){
       const shift=(s.schedule&&s.schedule[String(d2)])||'';
       const isTd=isCurrentMonth&&d2===todayDay;
-      bodyHtml+=`<td class="${isTd?'td-today':''}">${shift?`<span class="shift ${shiftClass(shift)}">${shift}</span>`:''}</td>`;
+      bodyHtml+=`<td class="${isTd?'td-today ':''}td-edit" data-day="${d2}">${shift?renderShiftChips(shift):''}</td>`;
     }
     bodyHtml+='</tr>';
   });
@@ -1824,6 +1865,7 @@ function buildScheduleHTML(d, isCurrentMonth){
       ${isCurrentMonth?'<div class="legend-item"><div class="l-dot" style="background:#fdf4dc;border:2px solid var(--amber)"></div>วันนี้</div>':''}
     </div>
     <div class="filter-row" id="filter-row-${uid}">${filterHtml}</div>
+    <div class="edit-bar" data-edit-bar>${editBarInner()}</div>
     <div class="table-wrap">
       <div class="scroll-hint" id="scroll-hint-${uid}">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -1833,6 +1875,212 @@ function buildScheduleHTML(d, isCurrentMonth){
         <table><thead>${headHtml}</thead><tbody id="sched-body-${uid}">${bodyHtml}</tbody></table>
       </div>
     </div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+//  แก้ไขเวรรายช่อง (หัวหน้างาน/แอดมิน) — เปลี่ยน/เพิ่มเวรของคนใดคนหนึ่งในวันใดวันหนึ่งโดยตรง
+//  ต่างจากระบบแลกเวร: ไม่มีคู่กรณี ไม่ต้องรออนุมัติ · เวรมากกว่า 1 ต่อวันเก็บเป็น "ด/ด", "ด/ช1บ2" (คั่นด้วย /)
+//  ซึ่งเป็นรูปแบบเดียวกับระบบยกเวร จึงใช้ร่วมกับใบแลกเวร/รายงานเงินเวร/LINE ได้ทันที
+// ══════════════════════════════════════════════════════════
+let schedEditMode=false,shiftEd=null;
+const DOW_FULL=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+const SHIFT_OPTIONS=[
+  {code:'ช',      name:'ปกติ',            time:'08.00–16.00'},
+  {code:'ช1บ2',   name:'เช้า1 ต่อบ่าย2',  time:'08.00–00.00'},
+  {code:'ช2บ1',   name:'เช้า2 ต่อบ่าย1',  time:'08.00–00.00'},
+  {code:'ช3(Ems)',name:'EMS',             time:'08.00–16.00'},
+  {code:'ด',      name:'ดึก',             time:'00.00–08.00'},
+  {code:'บ1',     name:'บ่าย 1',          time:'16.00–00.00'},
+  {code:'บ2',     name:'บ่าย 2',          time:'16.00–00.00'},
+  {code:'ลา',     name:'ลา',              time:''},
+  {code:'0',      name:'หยุด',            time:''},
+];
+const SHIFT_MAX_PARTS=3;
+function isExclusiveShift(v){ v=String(v||'').trim(); return v==='0'||v.indexOf('ลา')===0; }
+function renderShiftChips(v){
+  const parts=String(v).split('/').map(x=>x.trim()).filter(Boolean);
+  if(parts.length<=1) return `<span class="shift ${shiftClass(v)}">${escapeHtmlJob(v)}</span>`;
+  return `<span class="shift-stack">${parts.map(x=>`<span class="shift ${shiftClass(x)}">${escapeHtmlJob(x)}</span>`).join('')}</span>`;
+}
+function icoPencil(){return _ico('<path d="M4 20h4L19 9l-4-4L4 16v4z"></path><path d="M13.5 6.5l4 4"></path>');}
+function icoPlus(){return _ico('<path d="M12 5v14M5 12h14"></path>');}
+function icoX(){return _ico('<path d="M6 6l12 12M18 6L6 18"></path>');}
+function editBarInner(){
+  return schedEditMode
+    ? `<div class="edit-bar-text"><b>โหมดแก้ไขเวร</b> — แตะช่องในตารางเพื่อเปลี่ยนหรือเพิ่มเวร</div><button class="edit-bar-btn" onclick="toggleSchedEdit()">เสร็จสิ้น</button>`
+    : `<div class="edit-bar-text">หัวหน้างาน/แอดมิน แก้เวรรายวันได้โดยตรงจากตารางนี้</div><button class="edit-bar-btn" onclick="toggleSchedEdit()">${icoPencil()} แก้ไขเวร</button>`;
+}
+function canEditSchedule(s){
+  if(!s) return false;
+  if(s.canEditSchedule!==undefined&&s.canEditSchedule!==null) return !!s.canEditSchedule;
+  return !!s.isAdmin||/หัวหน้างาน/.test(s.role||'');
+}
+// เซสชันเก่า (ก่อนมีฟิลด์ canEditSchedule) → ถามเซิร์ฟเวอร์ซ้ำ 1 ครั้งแล้วจำไว้
+async function ensureEditorSession(){
+  let s=getDriverSession(); if(!s) return null;
+  if(s.canEditSchedule!==undefined&&s.canEditSchedule!==null) return s;
+  try{
+    const r=await fetchGASRaw({action:'verifyDriverPhone',phone:s.phone});
+    if(r.status==='ok'&&r.canEditSchedule!==undefined){ s=Object.assign({},s,{role:r.role,isAdmin:!!r.isAdmin,canEditSchedule:!!r.canEditSchedule}); setDriverSession(s); }
+  }catch(_){}
+  return s;
+}
+function toggleSchedEdit(){
+  if(schedEditMode){ setSchedEdit(false); return; }
+  requireLogin(async()=>{
+    const s=await ensureEditorSession();
+    if(!canEditSchedule(s)){ showToast('แก้ไขเวรได้เฉพาะหัวหน้างานหรือแอดมิน','error'); return; }
+    setSchedEdit(true);
+  });
+}
+function setSchedEdit(on){
+  schedEditMode=!!on;
+  document.body.classList.toggle('sched-editing',schedEditMode);
+  document.querySelectorAll('[data-edit-bar]').forEach(el=>{el.innerHTML=editBarInner();});
+  syncEditAttrs();
+}
+function syncEditAttrs(){
+  document.querySelectorAll('td.td-edit').forEach(td=>{
+    if(schedEditMode){ td.setAttribute('tabindex','0'); td.setAttribute('role','button'); }
+    else{ td.removeAttribute('tabindex'); td.removeAttribute('role'); }
+  });
+}
+document.addEventListener('click',e=>{
+  if(!schedEditMode||!e.target.closest) return;
+  const td=e.target.closest('td.td-edit'); if(td) openShiftEditor(td);
+});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&shiftEd){ closeShiftEditor(); return; }
+  if(!schedEditMode) return;
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('td.td-edit')){ e.preventDefault(); openShiftEditor(e.target); }
+});
+
+// อ้างอิง element ภายในหน้าต่างแก้เวรอันปัจจุบันเท่านั้น (กัน id ซ้ำตอนหน้าต่างเก่ายังไม่ถูกลบออกจาก DOM)
+function se$(id){ return shiftEd&&shiftEd.root?shiftEd.root.querySelector('#'+id):null; }
+function seParse(v){ return String(v||'').split('/').map(x=>x.trim()).filter(Boolean); }
+function openShiftEditor(td){
+  const tr=td.closest('tr'),panel=td.closest('[id^="msched-"]'); if(!tr||!panel) return;
+  const uid=panel.id.replace('msched-','');
+  const data=uid==='current'?scheduleData:scheduleNextData; if(!data) return;
+  const name=tr.getAttribute('data-name'),day=+td.dataset.day;
+  const person=(data.data||[]).find(p=>p.name===name); if(!person) return;
+  const cur=(person.schedule&&person.schedule[String(day)])||'';
+  const slots=seParse(cur); if(!slots.length) slots.push('');
+  shiftEd={uid,data,person,name,day,expected:cur,slots,active:0,busy:false,td};
+  const dow=new Date((+data.year)-543,(+data.month)-1,day).getDay();
+  shiftEd.root=openModal(`
+    <button class="modal-close" aria-label="ปิด" onclick="closeShiftEditor()">✕</button>
+    <div class="modal-title">แก้เวร · ${escapeHtmlJob(person.nick||person.name)}</div>
+    <div class="modal-sub">วัน${DOW_FULL[dow]}ที่ ${day} ${MONTH_TH[+data.month]} ${data.year}</div>
+    <div class="modal-err" id="se-err"></div>
+    <div class="se-label">เวรของวันนี้ <span>แตะช่องเพื่อเลือก แล้วเลือกเวรด้านล่าง</span></div>
+    <div class="se-tray" id="se-tray"></div>
+    <div class="se-label">เปลี่ยนเป็น</div>
+    <div class="se-grid" id="se-grid"></div>
+    <div class="form-group" style="margin:12px 0 0"><label for="se-custom">รหัสเวรอื่น ๆ</label>
+      <div class="se-custom"><input id="se-custom" maxlength="20" placeholder="พิมพ์รหัสเวร" autocomplete="off"><button type="button" onclick="seApplyCustom()">ใช้รหัสนี้</button></div></div>
+    <div class="se-sum" id="se-sum"></div>
+    <div class="se-note">แก้ไขลงตารางเวรจริง ไม่ใช่การแลกเวร · ใบแลกเวรและรายงานจะใช้ค่าตามนี้</div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeShiftEditor()">ยกเลิก</button>
+      <button class="btn-primary" id="se-save" onclick="saveShiftEditor()">บันทึก</button>
+    </div>`);
+  seRefresh();
+}
+function closeShiftEditor(){ shiftEd=null; closeModal(); }
+function seCode(){ return shiftEd.slots.filter(Boolean).join('/'); }
+function seRefresh(){
+  const e=shiftEd; if(!e) return;
+  const last=e.slots[e.slots.length-1];
+  const canAdd=e.slots.length<SHIFT_MAX_PARTS&&last&&!isExclusiveShift(last);
+  se$('se-tray').innerHTML=e.slots.map((v,i)=>`<div class="se-slot${i===e.active?' active':''}">
+      <button class="se-slot-pick" onclick="sePick(${i})" aria-label="เวรที่ ${i+1}">${v?`<span class="shift ${shiftClass(v)}">${escapeHtmlJob(v)}</span>`:'<span class="shift s-other">ว่าง</span>'}</button>
+      ${e.slots.length>1?`<button class="se-slot-x" onclick="seRemove(${i})" aria-label="เอาเวรนี้ออก">${icoX()}</button>`:''}
+    </div>`).join('')+(canAdd?`<button class="se-add" onclick="seAddSlot()">${icoPlus()} เพิ่มอีกเวร</button>`:'');
+  const act=e.slots[e.active];
+  se$('se-grid').innerHTML=SHIFT_OPTIONS.map(o=>`<button class="se-opt${o.code===act?' on':''}" onclick="seChoose(this.dataset.code)" data-code="${escapeHtmlJob(o.code)}">
+      <span class="shift ${shiftClass(o.code)}">${escapeHtmlJob(o.code)}</span>
+      <span class="se-opt-name">${o.name}</span>${o.time?`<span class="se-opt-time">${o.time}</span>`:''}
+    </button>`).join('');
+  const code=seCode(),n=e.slots.filter(v=>v&&!isExclusiveShift(v)).length;
+  const labels=e.slots.filter(Boolean).map(v=>{const o=SHIFT_OPTIONS.find(x=>x.code===v);return o?o.name:v;}).join(' + ');
+  let sum;
+  if(code===e.expected) sum='ยังไม่มีการเปลี่ยนแปลง';
+  else if(!code) sum='ช่องนี้จะถูกล้างให้ว่าง';
+  else sum=`จะบันทึกเป็น <b>${escapeHtmlJob(code)}</b> · ${escapeHtmlJob(labels)}${n>=2?` · ${n} เวรในวันเดียว`:''}`;
+  se$('se-sum').innerHTML=sum;
+  const btn=se$('se-save'); if(btn&&!e.busy) btn.disabled=(code===e.expected);
+}
+function sePick(i){ if(!shiftEd) return; shiftEd.active=i; seRefresh(); }
+function seRemove(i){
+  const e=shiftEd; if(!e||e.slots.length<2) return;
+  e.slots.splice(i,1); e.active=Math.min(e.active,e.slots.length-1); seRefresh();
+}
+function seAddSlot(){
+  const e=shiftEd; if(!e||e.slots.length>=SHIFT_MAX_PARTS) return;
+  e.slots.push(e.slots[e.slots.length-1]); // เริ่มจากเวรเดิมซ้ำ (เช่น ด → ด/ด) แล้วค่อยเปลี่ยนถ้าต้องการ
+  e.active=e.slots.length-1; seRefresh();
+}
+function seChoose(code){
+  const e=shiftEd; if(!e) return;
+  if(isExclusiveShift(code)||e.slots.some(isExclusiveShift)){ e.slots=[code]; e.active=0; }
+  else e.slots[e.active]=code;
+  seRefresh();
+}
+function seApplyCustom(){
+  const inp=se$('se-custom'),err=se$('se-err'); err.classList.remove('show');
+  const v=inp.value.trim().replace(/\s+/g,' ');
+  if(!v) return;
+  if(/\//.test(v)||/^[=+\-@]/.test(v)||!/^[0-9A-Za-z\u0E00-\u0E7F().\- ]{1,20}$/.test(v)){
+    err.textContent='รหัสเวรใช้ได้เฉพาะตัวอักษร ตัวเลข และวงเล็บ (ไม่ต้องใส่ "/" — กดเพิ่มอีกเวรแทน)'; err.classList.add('show'); return;
+  }
+  seChoose(v); inp.value='';
+}
+function seApplyLocal(e,value){
+  if(value) e.person.schedule[String(e.day)]=value; else delete e.person.schedule[String(e.day)];
+  let td=e.td&&e.td.isConnected?e.td:null;
+  if(!td){
+    const rows=document.querySelectorAll(`#sched-body-${e.uid} tr`);
+    rows.forEach(r=>{ if(r.getAttribute('data-name')===e.name) td=r.querySelector(`td[data-day="${e.day}"]`); });
+  }
+  if(td){
+    td.innerHTML=value?renderShiftChips(value):'';
+    td.classList.remove('just-saved'); void td.offsetWidth; td.classList.add('just-saved');
+    setTimeout(()=>td.classList.remove('just-saved'),1500);
+  }
+}
+async function refreshTodayAfterEdit(){
+  try{ const d=await api('getTodayDuty'); if(d&&d.status==='ok'){ todayData=d; renderTodayStrip(d); renderTodayTab(d); } }catch(_){}
+}
+async function saveShiftEditor(){
+  const e=shiftEd; if(!e||e.busy) return;
+  const err=se$('se-err'); err.classList.remove('show');
+  const s=getDriverSession();
+  if(!s){ closeShiftEditor(); openLoginModal(()=>{}); return; }
+  const value=seCode();
+  e.busy=true; const btn=se$('se-save'); btn.disabled=true; btn.textContent='กำลังบันทึก...';
+  try{
+    const r=await fetchGASRaw({action:'setWorktableShift',phone:s.phone,sheetName:e.data.sheetName||'',monthSheet:e.uid==='next'?'next':'current',name:e.name,day:e.day,value,expected:e.expected});
+    if(r.status==='ok'){
+      seApplyLocal(e,r.value);
+      const isToday=e.uid==='current'&&e.day===new Date().getDate();
+      closeShiftEditor();
+      showToast(r.warning?'บันทึกแล้ว · ช่องนี้มีคำขอแลกเวรค้างอยู่':'บันทึกเวรเรียบร้อยแล้ว',r.warning?'error':'success');
+      if(isToday) refreshTodayAfterEdit();
+    } else if(r.status==='conflict'){
+      // มีคนเปลี่ยนช่องนี้ไปก่อน → ซิงก์ค่าล่าสุดเข้าตาราง แล้วให้ตัดสินใจใหม่
+      seApplyLocal(e,r.current||'');
+      e.expected=r.current||''; e.slots=seParse(e.expected); if(!e.slots.length) e.slots.push(''); e.active=0; e.busy=false;
+      btn.textContent='บันทึก'; seRefresh();
+      err.textContent=r.message||'ช่องนี้ถูกเปลี่ยนไปแล้ว'; err.classList.add('show');
+    } else {
+      e.busy=false; btn.disabled=false; btn.textContent='บันทึก';
+      err.textContent=r.message||'บันทึกไม่สำเร็จ'; err.classList.add('show');
+    }
+  }catch(ex){
+    e.busy=false; btn.disabled=false; btn.textContent='บันทึก';
+    err.textContent='เชื่อมต่อไม่สำเร็จ กรุณาลองใหม่'; err.classList.add('show');
+  }
 }
 
 function renderScheduleTab(d){
