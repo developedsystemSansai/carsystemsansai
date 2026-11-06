@@ -1033,6 +1033,23 @@ button, select, input, textarea, .tab-btn { touch-action:manipulation; -webkit-t
   .modal-overlay .modal, .modal-box { width:calc(100% - 20px) !important; max-height:88vh; overflow:auto; }
 }
 @media (prefers-reduced-motion: reduce) { * { animation-duration:.01ms !important; transition-duration:.01ms !important; } }
+
+.row-fuel-missing td:first-child { box-shadow: inset 4px 0 0 #f59e0b; }
+.hist-table tr.row-fuel-missing { background:#fffaf0; }
+.fuel-fix { border:1px solid #f1c36b; background:#fff; color:#9a6200; font:inherit; font-size:11.5px; font-weight:800; padding:4px 10px; border-radius:999px; cursor:pointer; min-height:28px; }
+.fuel-fix:active { background:#fff4dc; }
+.ff-overlay { position:fixed; inset:0; background:rgba(13,33,55,.55); display:none; align-items:flex-end; justify-content:center; z-index:300; padding:0; }
+.ff-overlay.show { display:flex; }
+.ff-box { background:#fff; width:100%; max-width:440px; border-radius:20px 20px 0 0; padding:18px 16px calc(16px + env(safe-area-inset-bottom)); max-height:92vh; overflow:auto; }
+.ff-title { font-size:17px; font-weight:800; color:var(--navy); } .ff-sub { font-size:12.5px; color:var(--text-mid); margin:2px 0 12px; }
+.ff-box label { display:block; font-size:12.5px; font-weight:700; color:var(--text-mid); margin-top:10px; }
+.ff-box input[type=number], .ff-box input[type=text], .ff-box input[type=password] { display:block; width:100%; margin-top:4px; font:inherit; font-size:16px; min-height:48px; padding:0 12px; border:1px solid var(--border-strong); border-radius:12px; box-sizing:border-box; }
+.ff-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.ff-box .ff-chk { display:flex; gap:8px; align-items:center; font-weight:600; } .ff-box .ff-chk input { width:20px; height:20px; }
+.ff-err { color:#c0392b; font-size:12.5px; font-weight:700; min-height:18px; margin-top:8px; }
+.ff-btns { display:flex; gap:10px; margin-top:8px; } .ff-btns button { flex:1; min-height:50px; border-radius:14px; border:none; font:inherit; font-weight:800; font-size:15px; }
+.ff-cancel { background:#eef2f7; color:var(--text-mid); } .ff-save { background:var(--blue); color:#fff; } .ff-save:disabled { opacity:.6; }
+@media (min-width:701px){ .ff-overlay { align-items:center; } .ff-box { border-radius:20px; } }
 </style>
 <script src="secure-fetch.js"></script>
   <script defer src="https://sandtools.vercel.app/t.js" data-site="prnskn2arc"></script>
@@ -3437,7 +3454,7 @@ function renderHistory() {
   const histSubtitleEl = document.getElementById('histSubtitle');
   if (histSubtitleEl) {
     histSubtitleEl.textContent = filtered.length
-      ? `บันทึกล่าสุด 30 รายการ · ล่าสุด ${extractDate(filtered[0]['วันที่'] || filtered[0]['Timestamp'] || '')}`
+      ? `บันทึกล่าสุด 30 รายการ · ล่าสุด ${extractDate(filtered[0]['วันที่'] || filtered[0]['Timestamp'] || '')}` + (() => { const n = filtered.filter(x => fuelMissing(x, String(x['สถานะ']||'')==='กำลังใช้งาน')).length; return n ? ` · ⚠ ขาดลิตร/ราคา ${n} รายการ` : ''; })()
       : 'บันทึกล่าสุด 30 รายการ';
   }
 
@@ -3491,7 +3508,7 @@ function renderHistory() {
     const timeBack  = isActive ? '<span style="color:#94a3b8;font-size:11px;">กำลังออก...</span>'
                                : extractTime(r['เวลากลับ'] || r['returnTime'] || '');
 
-    return `<tr>
+    return `<tr class="${fuelMissing(r,isActive)?'row-fuel-missing':''}">
       <td data-label="ทะเบียน"><span class="plate-chip">${plate}</span></td>
       <td data-label="พขร." style="font-size:12px;">${(r['พนักงานขับรถ']||'—').substring(0,12)}</td>
       <td data-label="วันที่" style="font-size:12px;white-space:nowrap;font-weight:500;">${dateStr}</td>
@@ -3580,18 +3597,97 @@ function getTripFuel(r){
   const p=_numF(r['ราคาน้ำมัน(บาท)']||r['ราคาน้ำมัน']||r.fuelPrice)+_numF(r['ราคาเติมขากลับ(บาท)']);
   return { liters:l, price:p };
 }
+function _fuelResolved(r){ return String(r['น้ำมันที่เติม(ลิตร)']||'').trim()==='ไม่เติม'; }
+// ต้องกรอกลิตร/ราคาเพิ่มหรือไม่ (มีบิล หรือปลายทางเป็นปั๊มที่กลับแล้ว แต่ยังไม่มีทั้งลิตรและราคา)
+function fuelMissing(r, isActive){
+  if(_fuelResolved(r)) return false;
+  const f=getTripFuel(r);
+  if(f.liters && f.price) return false;
+  const hasBill=!!(getFuelUrlSafe(r)||getReturnFuelUrlSafe(r));
+  const auto=String(r['น้ำมันที่เติม(ลิตร)']||'').trim()==='auto';
+  const pump=_FUEL_DEST_RE.test(String(r['ปลายทาง']||''));
+  return hasBill || auto || (pump && !isActive);
+}
+function _driveUrl(v){ if(!v) return ''; const t=String(v).trim(); const m=t.match(/=HYPERLINK\("([^"]+)"/i); if(m) return m[1]; return t.startsWith('http')?t:''; }
+function getFuelUrlSafe(r){ return _driveUrl(r['รูปบิลน้ำมันออกรถ'])||_driveUrl(r['รูปบิลน้ำมัน'])||_driveUrl(r['fuelPhotoUrl']); }
+function getReturnFuelUrlSafe(r){ return _driveUrl(r['รูปบิลน้ำมันขากลับ'])||_driveUrl(r['returnFuelPhotoUrl']); }
 function fuelInfoHtml(r, outUrl, backUrl, isActive){
   const f=getTripFuel(r);
   const pump=_FUEL_DEST_RE.test(String(r['ปลายทาง']||''));
   const auto=String(r['น้ำมันที่เติม(ลิตร)']||'').trim()==='auto';
   const hasBill=!!(outUrl||backUrl);
+  if(_fuelResolved(r)) return '<div class="fuel-line"><span class="fuel-chip go">⛽ ไม่ได้เติมน้ำมัน</span></div>';
   if(!(f.liters||f.price||hasBill||pump||auto)) return '';
   const fmt=n=>n.toLocaleString('th-TH',{maximumFractionDigits:2});
-  if(f.liters||f.price){
-    return '<div class="fuel-line"><span class="fuel-chip ok">⛽ '+(f.liters?fmt(f.liters)+' ลิตร':'ไม่ระบุลิตร')+' · '+(f.price?'฿'+fmt(f.price):'ไม่ระบุราคา')+'</span></div>';
+  const tid=String(r['TripID']||r['รหัสทริป']||'').replace(/'/g,'');
+  const fixBtn=tid?'<button type="button" class="fuel-fix" onclick="openFuelFix(\''+tid+'\')">✏️ กรอกด่วน</button>':'';
+  if(f.liters&&f.price){
+    return '<div class="fuel-line"><span class="fuel-chip ok">⛽ '+fmt(f.liters)+' ลิตร · ฿'+fmt(f.price)+'</span></div>';
   }
-  if(isActive) return '<div class="fuel-line"><span class="fuel-chip go">⛽ ไปปั๊มน้ำมัน</span></div>';
-  return '<div class="fuel-line"><span class="fuel-chip warn">⛽ เติมน้ำมัน · ยังไม่ระบุลิตร/ราคา</span></div>';
+  if(f.liters||f.price){
+    return '<div class="fuel-line"><span class="fuel-chip warn">⚠ '+(f.liters?fmt(f.liters)+' ลิตร · ยังไม่ระบุราคา':'฿'+fmt(f.price)+' · ยังไม่ระบุลิตร')+'</span>'+fixBtn+'</div>';
+  }
+  if(isActive && !hasBill) return '<div class="fuel-line"><span class="fuel-chip go">⛽ ไปปั๊มน้ำมัน</span></div>';
+  return '<div class="fuel-line"><span class="fuel-chip warn">⚠ ยังไม่ระบุลิตร/ราคา</span>'+fixBtn+'</div>';
+}
+
+// ═══ ⚡ ทางลัดแอดมิน: กรอกลิตร/ราคาจากหน้าประวัติโดยตรง (ใช้ directEditMileRow + รหัสแอดมิน + บันทึก MileEditLog เดิม) ═══
+let _fixAdminCode = '';   // เก็บในหน่วยความจำของหน้านี้เท่านั้น
+function _ensureFuelFixModal(){
+  if(document.getElementById('fuelFixModal')) return;
+  const d=document.createElement('div'); d.id='fuelFixModal'; d.className='ff-overlay';
+  d.innerHTML='<div class="ff-box" role="dialog" aria-modal="true">'
+   +'<div class="ff-title">⛽ กรอกลิตร / ราคาน้ำมัน</div><div class="ff-sub" id="ffSub"></div>'
+   +'<div class="ff-grid"><label>จำนวนลิตร<input id="ffLiters" type="number" inputmode="decimal" min="0" step="0.01" placeholder="เช่น 35.5"></label>'
+   +'<label>ราคา (บาท)<input id="ffPrice" type="number" inputmode="decimal" min="0" step="0.01" placeholder="เช่น 1250"></label></div>'
+   +'<label class="ff-chk"><input id="ffNone" type="checkbox" onchange="ffToggleNone()"> ไม่ได้เติมน้ำมันจริง (ปิดการแจ้งเตือนรายการนี้)</label>'
+   +'<label>ชื่อผู้แก้ไข<input id="ffName" type="text" placeholder="ชื่อแอดมิน"></label>'
+   +'<label id="ffCodeWrap">รหัสแอดมิน<input id="ffCode" type="password" inputmode="numeric" autocomplete="off"></label>'
+   +'<div class="ff-err" id="ffErr"></div>'
+   +'<div class="ff-btns"><button type="button" class="ff-cancel" onclick="closeFuelFix()">ยกเลิก</button><button type="button" class="ff-save" id="ffSave" onclick="saveFuelFix()">บันทึก</button></div></div>';
+  d.addEventListener('click',e=>{ if(e.target===d) closeFuelFix(); });
+  document.body.appendChild(d);
+}
+let _ffTripId='';
+function openFuelFix(tripId){
+  _ensureFuelFixModal();
+  const r=mileHistory.find(x=>String(x['TripID']||x['รหัสทริป']||'')===String(tripId)); if(!r) return;
+  _ffTripId=String(tripId);
+  document.getElementById('ffSub').textContent=String(r['ทะเบียน/รถ']||'').split(' ')[0]+' · '+(r['ปลายทาง']||'')+' · '+String(r['วันที่']||'').slice(0,10);
+  const l=_numF(r['น้ำมันที่เติม(ลิตร)']), p=_numF(r['ราคาน้ำมัน(บาท)']||r['ราคาน้ำมัน']);
+  document.getElementById('ffLiters').value=l||''; document.getElementById('ffPrice').value=p||'';
+  document.getElementById('ffNone').checked=false; ffToggleNone();
+  try{ document.getElementById('ffName').value=localStorage.getItem('sm_admin_name')||''; }catch(_){}
+  document.getElementById('ffCode').value=''; document.getElementById('ffCodeWrap').style.display=_fixAdminCode?'none':'block';
+  document.getElementById('ffErr').textContent='';
+  document.getElementById('fuelFixModal').classList.add('show');
+  setTimeout(()=>document.getElementById('ffLiters').focus(),80);
+}
+function closeFuelFix(){ const m=document.getElementById('fuelFixModal'); if(m) m.classList.remove('show'); }
+function ffToggleNone(){ const n=document.getElementById('ffNone').checked; ['ffLiters','ffPrice'].forEach(id=>{ const e=document.getElementById(id); e.disabled=n; if(n) e.value=''; }); }
+async function saveFuelFix(){
+  const err=document.getElementById('ffErr'); err.textContent='';
+  const none=document.getElementById('ffNone').checked;
+  const lit=parseFloat(document.getElementById('ffLiters').value), pr=parseFloat(document.getElementById('ffPrice').value);
+  const name=document.getElementById('ffName').value.trim();
+  const code=_fixAdminCode||document.getElementById('ffCode').value.trim();
+  if(!none && !(lit>0)){ err.textContent='กรุณาระบุจำนวนลิตร'; return; }
+  if(!none && !(pr>0)){ err.textContent='กรุณาระบุราคา'; return; }
+  if(!name){ err.textContent='กรุณาระบุชื่อผู้แก้ไข'; return; }
+  if(!code){ err.textContent='กรุณาระบุรหัสแอดมิน'; return; }
+  const r=mileHistory.find(x=>String(x['TripID']||x['รหัสทริป']||'')===_ffTripId); if(!r) return;
+  const fields = none ? {'น้ำมันที่เติม(ลิตร)':'ไม่เติม'} : {'น้ำมันที่เติม(ลิตร)':lit,'ราคาน้ำมัน(บาท)':pr};
+  const btn=document.getElementById('ffSave'); btn.disabled=true; btn.textContent='กำลังบันทึก...';
+  try{
+    const res=await fetchGAS('directEditMileRow',{ tripId:_ffTripId, fields:fields,
+      oldValues:{'น้ำมันที่เติม(ลิตร)':r['น้ำมันที่เติม(ลิตร)']||'','ราคาน้ำมัน(บาท)':r['ราคาน้ำมัน(บาท)']||r['ราคาน้ำมัน']||''},
+      editedBy:name, reason: none?'ยืนยันว่าไม่ได้เติมน้ำมัน (ทางลัดหน้าประวัติ)':'เพิ่มลิตร/ราคาน้ำมัน (ทางลัดหน้าประวัติ)', adminCode:code });
+    if(res.status!=='ok'){ if(/รหัสแอดมิน/.test(res.message||'')){ _fixAdminCode=''; document.getElementById('ffCodeWrap').style.display='block'; } err.textContent=res.message||'บันทึกไม่สำเร็จ'; return; }
+    _fixAdminCode=code; try{ localStorage.setItem('sm_admin_name',name); }catch(_){}
+    Object.keys(fields).forEach(k=>{ r[k]=fields[k]; }); r['ราคาน้ำมัน']=fields['ราคาน้ำมัน(บาท)']; r.fuelLiters=fields['น้ำมันที่เติม(ลิตร)']; r.fuelPrice=fields['ราคาน้ำมัน(บาท)'];
+    _lsSet('sm_mile', mileHistory); renderHistory(); closeFuelFix(); showToast('✅ บันทึกลิตร/ราคาน้ำมันแล้ว','success',2500);
+  }catch(e){ err.textContent='เชื่อมต่อไม่สำเร็จ: '+e.message; }
+  finally{ btn.disabled=false; btn.textContent='บันทึก'; }
 }
 
 function _fuelMsg(l,p){ const a=[]; if(_numF(l)) a.push(_numF(l)+' ลิตร'); if(_numF(p)) a.push('฿'+_numF(p).toLocaleString('th-TH')); return a.length?' ('+a.join(' · ')+')':''; }
