@@ -483,6 +483,10 @@ td.td-edit.just-saved{animation:cellSaved 1.4s ease-out;}
 .jf-chip.active{border-color:var(--violet);background:var(--violet);color:#fff;}
 .jf-chip-label{font-size:10.5px;color:var(--text-light);margin:0 0 5px;}
 /* ✅ NEW: ฟอร์มลงงานหลายรายการต่อวัน */
+.jf-datewrap{position:relative;display:flex;gap:8px;}
+.jf-datewrap #jf-date-txt{flex:1;width:auto;font-family:'IBM Plex Mono','Noto Sans Thai',monospace;font-size:15px;letter-spacing:.5px;}
+.jf-datepick{width:46px;border:1.5px solid var(--border);border-radius:9px;background:#fff;font-size:18px;cursor:pointer;}
+.form-group input.jf-date-native{position:absolute;right:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;padding:0;border:0;}
 .jf-datebtns{display:flex;gap:6px;margin-top:6px;}
 .jf-datebtns .cal-today-btn{flex:1;height:30px;font-size:11px;}
 .jf-date-label{font-size:13px;font-weight:800;color:var(--teal);margin-top:7px;}
@@ -1546,7 +1550,7 @@ function renderJobFormModal(job){
     <div class="modal-err" id="job-form-err"></div>
     <div class="form-group jf-date-block">
       <label>วันที่ *</label>
-      <input type="date" id="jf-date" lang="en-GB" value="${d}" onchange="jfRender()">
+      <div class="jf-datewrap"><input type="text" id="jf-date-txt" inputmode="numeric" maxlength="10" autocomplete="off" placeholder="วว/ดด/ปปปป" oninput="jfDateTyped(this)" onblur="jfDateBlur()"><button type="button" class="jf-datepick" onclick="jfOpenPicker()" aria-label="เลือกจากปฏิทิน">📅</button><input type="date" id="jf-date" value="${d}" onchange="jfRender()" tabindex="-1" aria-hidden="true" class="jf-date-native"></div>
       <div class="jf-datebtns">
         <button type="button" class="cal-today-btn" onclick="jfDateShift(-1)">‹ วันก่อน</button>
         <button type="button" class="cal-today-btn" onclick="jfDateSet(todayYmd())">วันนี้</button>
@@ -1616,6 +1620,7 @@ function jfCardHtml_(c,i,duty){
 
 function jfRender(){
   const wrap=$('jf-cards'); if(!wrap||!jfState) return;
+  const t=$('jf-date-txt'); if(t&&document.activeElement!==t) t.value=ymdToDmy_($('jf-date').value);
   jfState.duty=dutyDriversForDate_($('jf-date').value);
   wrap.innerHTML=jfState.cards.map((c,i)=>jfCardHtml_(c,i,jfState.duty)).join('');
   jfRenderMeta_();
@@ -1638,6 +1643,22 @@ function jfRenderMeta_(){
     } else bulk.innerHTML='';
   }
 }
+// วันที่แสดงเป็น วว/ดด/ปปปป (พ.ศ.) เสมอ ไม่ขึ้นกับภาษาของเบราว์เซอร์ · พิมพ์ปี ค.ศ. ก็ได้ ระบบแปลงให้
+function ymdToDmy_(ymd){ if(!ymd) return ''; const [y,m,d]=ymd.split('-'); return d+'/'+m+'/'+(+y+543); }
+function dmyToYmd_(s){
+  const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s||''); if(!m) return '';
+  const d=+m[1],mo=+m[2]; let y=+m[3]; if(y>2400) y-=543;
+  const dt=new Date(y,mo-1,d); if(dt.getFullYear()!==y||dt.getMonth()!==mo-1||dt.getDate()!==d) return '';
+  return y+'-'+String(mo).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+}
+function jfDateTyped(el){
+  const dg=el.value.replace(/\D/g,'').slice(0,8);
+  el.value=dg.length>4?dg.slice(0,2)+'/'+dg.slice(2,4)+'/'+dg.slice(4):dg.length>2?dg.slice(0,2)+'/'+dg.slice(2):dg;
+  const y=dg.length===8?dmyToYmd_(el.value):'';
+  if(y){ $('jf-date').value=y; jfRender(); }
+}
+function jfDateBlur(){ const t=$('jf-date-txt'); if(t) t.value=ymdToDmy_($('jf-date').value); }
+function jfOpenPicker(){ const n=$('jf-date'); try{ n.showPicker(); }catch(_){ try{ n.focus(); n.click(); }catch(__){} } }
 function jfDateSet(ymd){ $('jf-date').value=ymd; jfRender(); }
 function jfDateShift(n){ jfDateSet(addDaysYmd($('jf-date').value||todayYmd(),n)); }
 
@@ -1708,6 +1729,7 @@ async function submitJobForm(jobId){
   };
   const date=$('jf-date').value;
   if(!date){ showErr('กรุณาเลือกวันที่'); return; }
+  const _t=$('jf-date-txt'); if(_t&&dmyToYmd_(_t.value)!==date){ showErr('รูปแบบวันที่ไม่ถูกต้อง กรุณากรอกแบบ วว/ดด/ปปปป เช่น 15/11/2569'); return; }
   const isEdit=!!jobId;
   const cards=jfState.cards.filter(c=>isEdit||jfState.cards.length===1||!jfIsBlank_(c));
   for(let i=0;i<cards.length;i++){
