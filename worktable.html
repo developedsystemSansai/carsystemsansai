@@ -502,6 +502,11 @@ td.td-edit.just-saved{animation:cellSaved 1.4s ease-out;}
 .jf-card-btn{border:none;background:#eef1f6;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:14px;color:var(--text-mid);flex-shrink:0;}
 .jf-dup{background:#fff7e0;color:#8a5a00;border-radius:8px;padding:7px 10px;font-size:11.5px;margin-bottom:10px;}
 .jf-mini-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px;}
+.jf-chip.sug{border-color:#e0b24a;background:#fff8e6;color:#7a5320;}
+.jf-chip.sug.active{background:var(--violet);border-color:var(--violet);color:#fff;}
+.jf-chip.off{background:#f4f6fa;font-weight:600;}
+.jf-chip.off.active{background:var(--violet);color:#fff;}
+.jf-chip.more{border-style:dashed;color:var(--teal);border-color:var(--teal);background:#f4faf9;}
 .jf-mini{padding:5px 10px;min-height:28px;border-radius:999px;border:1px solid var(--border);background:#f4f6fa;font-size:11px;font-weight:600;color:var(--text-mid);cursor:pointer;font-family:'Noto Sans Thai',sans-serif;-webkit-tap-highlight-color:transparent;}
 .jf-mini:active{background:#e6f4f1;border-color:var(--teal);}
 .jf-add-card{width:100%;padding:12px;border-radius:12px;border:1.5px dashed var(--teal);background:#f4faf9;color:var(--teal);font-size:13px;font-weight:800;cursor:pointer;font-family:'Noto Sans Thai',sans-serif;margin-bottom:4px;}
@@ -1585,6 +1590,34 @@ function jobQuickPanelHtml(){
   </div>`;
 }
 
+// ── ปุ่มลัด พขร.: ⭐ คนที่เคยไปงานนี้บ่อย · เวรของวันที่เลือก · ＋ คนอื่น (ทุกคน) ──
+function jfDriverLabel_(v){
+  const st=((scheduleData&&scheduleData.data)||[]).find(s=>s.name===v||s.nick===v);
+  return st?(st.nick||st.name.replace(/^(นาย|นาง)\.?\s*/,'')):v;
+}
+function jfSuggestDrivers_(c){
+  const d=normJ_(c.destination), m=normJ_(c.mission); if(!d&&!m) return [];
+  const cnt=new Map();
+  (jobsData||[]).forEach(j=>{
+    const dr=String(j.driver||'').trim(); if(!dr) return;
+    if((d&&normJ_(j.destination)===d)||(m&&normJ_(j.mission)===m)) cnt.set(dr,(cnt.get(dr)||0)+1);
+  });
+  return [...cnt.entries()].sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);
+}
+function jfToggleAll(u){ const c=jfCard_(u); if(!c) return; c.showAll=!c.showAll; jfRender(); }
+function jfDriverChipsHtml_(c,duty){
+  const E=escapeHtmlJob, u=c.uid;
+  const chip=(name,label,cls)=>`<button type="button" class="jf-chip${cls||''}${name===c.driver?' active':''}" data-name="${E(name)}" onclick="jfPickDriver(${u},this.dataset.name)">${E(label)}</button>`;
+  let out='';
+  const sug=jfSuggestDrivers_(c);
+  if(sug.length) out+=`<div class="jf-chip-label">⭐ เคยไปงานนี้บ่อย (แตะเพื่อเลือก)</div><div class="jf-chips">${sug.map(n=>chip(n,jfDriverLabel_(n),' sug')).join('')}</div>`;
+  const dutyNames=new Set(duty.list.map(x=>x.name));
+  const others=((scheduleData&&scheduleData.data)||[]).filter(st=>!dutyNames.has(st.name));
+  const toggle=others.length?`<button type="button" class="jf-chip more" onclick="jfToggleAll(${u})">${c.showAll?'− ซ่อน':'＋ คนอื่น'}</button>`:'';
+  if(duty.list.length||toggle) out+=`<div class="jf-chip-label">${E(duty.label)}</div><div class="jf-chips">${duty.list.map(x=>chip(x.name,x.label)).join('')}${toggle}</div>`;
+  if(c.showAll&&others.length) out+=`<div class="jf-chip-label">พขร. คนอื่น (ไม่ได้อยู่เวรวันนี้)</div><div class="jf-chips">${others.map(st=>chip(st.name,st.nick||st.name.replace(/^(นาย|นาง)\.?\s*/,''),' off')).join('')}</div>`;
+  return out;
+}
 function jfCardHtml_(c,i,duty){
   const edit=jfState.mode==='edit', n=jfState.cards.length, u=c.uid, E=escapeHtmlJob;
   const title=c.mission||c.destination||c.requester||'รายการใหม่';
@@ -1611,7 +1644,7 @@ function jfCardHtml_(c,i,duty){
     <div class="jf-mini-chips" style="margin:-6px 0 10px">${timeChips}</div>
     ${edit?`<div class="form-group jf-preview-wrap"><label>ตำแหน่งบนตารางงาน</label><div id="jf-prev-${u}">${renderMiniPreviewBar(c.timeOut,c.timeBack)}</div><div class="jf-preview-hint">เว้น "เวลาไป" ไว้ → ปักหมุดที่ "เวลากลับ" · เว้นทั้งสองช่อง → ไปอยู่ที่ช่อง "ไม่ระบุเวลา"</div></div>`:''}
     <div class="form-group" data-driver-group><label>ผู้ไปส่ง (พขร.)</label>
-      ${chips?`<div class="jf-chip-label">${E(duty.label)}</div><div class="jf-chips">${chips}</div>`:''}
+      ${jfDriverChipsHtml_(c,duty)}
       <input type="text" data-f="driver" list="jf-staff-list" value="${E(c.driver)}" placeholder="ชื่อ พขร. ผู้ไปส่ง" oninput="jfSet(${u},'driver',this.value)">
     </div>
     <div class="form-group"><label>รถที่ใช้ (ไม่บังคับ)</label><input type="text" data-f="car" list="jf-car-list" value="${E(c.car)}" placeholder="เช่น นง.8781 ชม. · รถตู้ฮุนได" oninput="jfSet(${u},'car',this.value)"></div>
@@ -1680,6 +1713,7 @@ function jfFill_(u,patch){
   const t=card.querySelector('.jf-card-title'); if(t) t.textContent=c.mission||c.destination||c.requester||'รายการใหม่';
   const p=$('jf-prev-'+u); if(p) p.innerHTML=renderMiniPreviewBar(c.timeOut,c.timeBack);
   card.classList.remove('invalid'); jfRenderMeta_();
+  if('destination' in patch||'mission' in patch) jfRender(); // อัปเดตปุ่มลัด พขร. ที่เคยไปงานนี้
 }
 function jfPickDriver(u,name){ const c=jfCard_(u); if(!c) return; jfFill_(u,{driver:c.driver===name?'':name}); }
 function jfBulkDriver(name){
