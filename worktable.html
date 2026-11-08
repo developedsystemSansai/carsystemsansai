@@ -492,10 +492,12 @@ td.td-edit.just-saved{animation:cellSaved 1.4s ease-out;}
 .jf-quick-title{font-size:13.5px;font-weight:700;color:var(--navy);}
 .jf-quick-clear{border:none;background:none;color:var(--text-mid);font:600 12px 'Noto Sans Thai',sans-serif;cursor:pointer;padding:4px 0;text-decoration:underline;text-underline-offset:3px;}
 .jf-quick-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--border-strong);}
-.jf-qbtn{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-height:54px;padding:9px 34px 9px 0;border:0;border-bottom:1px solid var(--border);background:none;text-align:left;cursor:pointer;font-family:'Noto Sans Thai',sans-serif;}
+.jf-qbtn{position:relative;display:flex;flex-direction:row;align-items:center;gap:11px;min-height:62px;padding:9px 34px 9px 0;border:0;border-bottom:1px solid var(--border);background:none;text-align:left;cursor:pointer;font-family:'Noto Sans Thai',sans-serif;}
 .jf-qbtn:nth-child(odd){border-right:1px solid var(--border);padding-right:34px;}
 .jf-qbtn:nth-child(even){padding-left:14px;}
 .jf-qbtn:hover{background:#f6f8fb;}
+.jf-qbtn .q-ico{display:flex;color:var(--navy-light);flex-shrink:0;}
+.jf-qbtn .q-text{display:flex;flex-direction:column;gap:1px;min-width:0;}
 .jf-qbtn .q-name{font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3;}
 .jf-qbtn .q-sub{font-size:12px;color:var(--text-light);line-height:1.35;}
 .jf-qbtn.active .q-name{color:var(--navy-light);}
@@ -1453,22 +1455,22 @@ const JF_DEFAULT_DESTS=['ธนาคาร','สสจ./ศาลากลา�
 // ชุดมาตรฐาน — สรุปจากตารางงานจริง 142 รายการ (ก.ย.–พ.ย. 2569) ที่ลงซ้ำบ่อยที่สุด
 // (แก้ไข/เพิ่มได้ที่ array นี้ · รายการอื่นที่ลงซ้ำ ≥2 ครั้งจะถูกเพิ่มให้อัตโนมัติจากประวัติ)
 const JOB_PRESETS = [
-  { key:'finance', name:'ส่งการเงิน', sub:'งานการเงิน · ธนาคาร',
+  { key:'finance', icon:'bank', name:'ส่งการเงิน', sub:'งานการเงิน · ธนาคาร',
     requester:'งานการเงิน', headcount:1, mission:'ส่งการเงิน',
     destination:'ธนาคาร', timeOut:'08:00', timeBack:'16:00' },
-  { key:'doc-blood', name:'ส่งเอกสาร / รับเลือด', sub:'แลป ธุรการ · สสจ./กาชาด',
+  { key:'doc-blood', icon:'drop', name:'ส่งเอกสาร / รับเลือด', sub:'แลป ธุรการ · สสจ./กาชาด',
     requester:'แลป ธุรการ', headcount:1, mission:'ส่งเอกสาร รับเลือด',
     destination:'สสจ./ศาลากลาง/กาชาด/สหกรณ์ (เส้นทางในเมือง)', timeOut:'08:00', timeBack:'16:00' },
-  { key:'somchai', name:'รับ-ส่ง อ.สมชัย', sub:'กายภาพบำบัด · หางดง',
+  { key:'somchai', icon:'car', name:'รับ-ส่ง อ.สมชัย', sub:'กายภาพบำบัด · หางดง',
     requester:'กายภาพบำบัด', headcount:1, mission:'รับ-ส่ง อ.สมชัย',
     destination:'หางดง', timeOut:'07:00', timeBack:'16:00' },
-  { key:'homevisit', name:'เยี่ยมบ้าน', sub:'พว.ประสพพร · 6 คน',
+  { key:'homevisit', icon:'home', name:'เยี่ยมบ้าน', sub:'พว.ประสพพร · 6 คน',
     requester:'พว.ประสพพร วิสิฐอุดรการ', headcount:6, mission:'เยี่ยมบ้าน',
     destination:'เยี่ยมบ้านในเขต', timeOut:'08:00', timeBack:'16:00' },
-  { key:'lab-send', name:'ส่งแลป / ส่งเลือด', sub:'แลป · คณะเทคนิคการแพทย์ กาชาด',
+  { key:'lab-send', icon:'flask', name:'ส่งแลป / ส่งเลือด', sub:'แลป · คณะเทคนิคการแพทย์ กาชาด',
     requester:'แลป', headcount:'', mission:'ส่งแลป ส่งเลือด',
     destination:'คณะเทคนิคการแพทย์ กาชาด', timeOut:'08:00', timeBack:'16:00' },
-  { key:'admin-doc', name:'ส่งเอกสาร (ธุรการ)', sub:'งานธุรการ · สสจ./ศาลากลาง/กาชาด',
+  { key:'admin-doc', icon:'file', name:'ส่งเอกสาร (ธุรการ)', sub:'งานธุรการ · สสจ./ศาลากลาง/กาชาด',
     requester:'งานธุรการ', headcount:'', mission:'ส่งเอกสาร',
     destination:'สสจ./ศาลากลาง/กาชาด/สหกรณ์ (เส้นทางในเมือง)', timeOut:'08:00', timeBack:'16:00' },
 ];
@@ -1481,8 +1483,26 @@ const JF_ICO={
   left:'<path d="M15 6l-6 6 6 6"/>',
   right:'<path d="M9 6l6 6-6 6"/>',
   star:'<path d="M12 4l2.4 5 5.4.7-4 3.8 1 5.4L12 16.3l-4.8 2.6 1-5.4-4-3.8 5.4-.7z"/>',
-  alert:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/>'
+  alert:'<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/>',
+  bank:'<path d="M3 10l9-6 9 6"/><path d="M5.5 10v8M9.5 10v8M14.5 10v8M18.5 10v8"/><path d="M3 20.5h18"/>',
+  file:'<path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/>',
+  drop:'<path d="M12 3.5c3 4 6 7 6 10.5a6 6 0 0 1-12 0c0-3.500 3-6.500 6-10.500z"/>',
+  flask:'<path d="M9.5 3h5M10.5 3v6L5 19a1.5 1.5 0 0 0 1.300 2h11.400a1.500 1.500 0 0 0 1.300-2L13.500 9V3"/><path d="M8 14.500h8"/>',
+  home:'<path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10M10 20v-5h4v5"/>',
+  users:'<circle cx="9" cy="8" r="3"/><path d="M3.500 20c0-3.300 2.500-5.500 5.500-5.500s5.500 2.200 5.500 5.500"/><circle cx="17" cy="9" r="2.400"/><path d="M16.500 14.600c2.600.2 4.500 2 4.500 5"/>',
+  car:'<path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16M6.500 19v-3M17.500 19v-3"/>',
+  pin:'<path d="M12 21s6.500-5.700 6.500-11a6.500 6.500 0 0 0-13 0C5.500 15.300 12 21 12 21z"/><circle cx="12" cy="10" r="2.200"/>'
 };
+function jfPresetIcon_(t){
+  t=String(t||'');
+  if(/เงิน|ธนาคาร/.test(t)) return 'bank';
+  if(/ประชุม|อบรม|สัมมนา/.test(t)) return 'users';
+  if(/เลือด|แลป|ตรวจ/.test(t)) return 'flask';
+  if(/เยี่ยม|บ้าน/.test(t)) return 'home';
+  if(/เอกสาร|พัสดุ|หนังสือ/.test(t)) return 'file';
+  if(/รับ|ส่ง/.test(t)) return 'car';
+  return 'pin';
+}
 function jfIco_(n,size){ size=size||16; return `<svg class="jf-ico" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${JF_ICO[n]}</svg>`; }
 function normJ_(s){ return String(s||'').toLowerCase().replace(/[\s.\-–_\/()]/g,''); }
 function jfShort_(s,n){ s=String(s||''); return s.length>n?s.slice(0,n-1)+'…':s; }
@@ -1505,7 +1525,7 @@ function learnedJobPresets_(){
     .sort((a,b)=>b.n-a.n).slice(0,4)
     .map((g,i)=>{
       const j=[...g.variants.values()].sort((a,b)=>b.n-a.n)[0].job;
-      return { key:'h'+i, learned:true, name:j.mission||j.destination, sub:jfShort_(j.requester+' · '+j.destination,34),
+      return { key:'h'+i, learned:true, icon:jfPresetIcon_((j.mission||'')+' '+(j.destination||'')), name:j.mission||j.destination, sub:jfShort_(j.requester+' · '+j.destination,34),
         requester:j.requester, headcount:+j.headcount>0?j.headcount:'', mission:j.mission||'', destination:j.destination,
         timeOut:j.timeOut||'', timeBack:j.timeBack||'' };
     });
@@ -1608,7 +1628,7 @@ function renderJobFormModal(job){
 }
 
 function jobQuickPanelHtml(){
-  const btns=jfState.presets.map(p=>`<button type="button" class="jf-qbtn" data-key="${p.key}" onclick="jfPreset('${p.key}')"><span class="q-badge" style="display:none"></span><span class="q-name">${escapeHtmlJob(p.name)}</span><span class="q-sub">${escapeHtmlJob(p.sub)}</span></button>`).join('');
+  const btns=jfState.presets.map(p=>`<button type="button" class="jf-qbtn" data-key="${p.key}" onclick="jfPreset('${p.key}')"><span class="q-badge" style="display:none"></span><span class="q-ico">${jfIco_(p.icon||'pin',26)}</span><span class="q-text"><span class="q-name">${escapeHtmlJob(p.name)}</span><span class="q-sub">${escapeHtmlJob(p.sub)}</span></span></button>`).join('');
   return `<div class="jf-quick">
     <div class="jf-quick-head"><span class="jf-quick-title">งานที่ลงบ่อย</span><button type="button" class="jf-quick-clear" onclick="jfReset()">ล้างทั้งหมด</button></div>
     <div class="jf-quick-grid">${btns}</div>
