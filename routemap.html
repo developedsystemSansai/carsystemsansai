@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>แผนที่เส้นทางการใช้รถ — SAND</title>
+<title>แผนที่เส้นทางการใช้รถ · SAND</title>
 <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
 <link rel="icon" type="image/png" sizes="64x64" href="assets/favicon-64.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -16,12 +16,12 @@
     --navy: #0d2137; --navy-mid: #163251; --navy-light: #1e4a7a;
     --blue: #1d6fb5; --blue-soft: #e8f1fb;
     --teal: #007a6e; --teal-soft: #e0f4f1;
-    --amber: #c07a00; --amber-soft: #fdf4dc;
-    --success: #1a8a4a; --success-soft: #e4f5eb;
+    --amber: #9a6200; --amber-soft: #fdf4dc;
+    --success: #157a40; --success-soft: #e4f5eb;
     --danger: #c0392b; --danger-soft: #fdecea;
     --bg: #eef2f7; --card: #ffffff;
     --border: #d5dce8; --border-strong: #b8c4d4;
-    --text: #182332; --text-mid: #3d5168; --text-light: #7a8ea5;
+    --text: #182332; --text-mid: #3d5168; --text-light: #566b82;
     --radius: 12px; --radius-sm: 8px;
     --shadow-sm: 0 1px 6px rgba(13,33,55,.07);
     --shadow: 0 2px 14px rgba(13,33,55,.09);
@@ -35,7 +35,7 @@
   .header-logo img { width: 70%; height: 70%; object-fit: contain; }
   .header-titles { flex: 1; min-width: 0; }
   .header-titles .main-title { font-size: 13.5px; font-weight: 700; color: #fff; }
-  .header-titles .sub-title { font-size: 11px; color: rgba(255,255,255,.45); }
+  .header-titles .sub-title { font-size: 11px; color: rgba(255,255,255,.68); }
   .back-btn { display: flex; align-items: center; gap: 6px; padding: 8px 14px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14); border-radius: 999px; color: rgba(255,255,255,.8); font-size: 12.5px; font-weight: 600; text-decoration: none; transition: background .18s; font-family: inherit; }
   .back-btn:hover { background: rgba(255,255,255,.14); color: #fff; }
 
@@ -97,14 +97,14 @@
   .duration-summary b { color: var(--navy); font-family: 'IBM Plex Mono', monospace; }
   .duration-table-wrap { overflow-x: auto; }
   .duration-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-  .duration-table th { background: var(--navy); color: rgba(255,255,255,.85); padding: 9px 12px; text-align: left; font-size: 10.5px; font-weight: 600; letter-spacing: .3px; white-space: nowrap; }
+  .duration-table th { background: var(--navy); color: rgba(255,255,255,.85); padding: 9px 12px; text-align: left; font-size:11px; font-weight: 600; letter-spacing: .3px; white-space: nowrap; }
   .duration-table th.sortable { cursor: pointer; user-select: none; }
   .duration-table th.sortable:hover { color: #fff; }
   .duration-table th.sortable.active { color: #ffd88a; }
   .duration-table td { padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   .duration-table tr:hover td { background: var(--blue-soft); }
   .duration-table td.dname { white-space: normal; max-width: 260px; font-weight: 600; color: var(--text); }
-  .duration-flag { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .duration-flag { display: inline-flex; align-items: center; gap: 4px; font-size:11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
   .duration-flag.warn { background: var(--amber-soft); color: #7a4800; }
   .duration-flag.danger { background: var(--danger-soft); color: var(--danger); }
   .duration-empty { padding: 30px 16px; text-align: center; color: var(--text-light); font-size: 13px; white-space: normal; }
@@ -123,7 +123,7 @@
   .dest-name { font-size: 13px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .dest-sub { font-size: 11px; color: var(--text-light); margin-top: 1px; }
   .dest-count { font-size: 13px; font-weight: 700; color: var(--navy); font-family: 'IBM Plex Mono', monospace; flex-shrink: 0; }
-  .pin-badge { font-size: 9.5px; font-weight: 700; padding: 2px 7px; border-radius: 999px; flex-shrink: 0; border: none; font-family: inherit; cursor: pointer; }
+  .pin-badge { font-size:11px; font-weight: 700; padding: 2px 7px; border-radius: 999px; flex-shrink: 0; border: none; font-family: inherit; cursor: pointer; }
   .pin-badge.pinned { background: var(--success-soft); color: #0f5c2e; }
   .pin-badge.unpinned { background: var(--amber-soft); color: #7a4800; }
   .pin-badge.unpinned:hover { background: #ffe6a8; }
@@ -159,11 +159,11 @@
   .alias-group-row { display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-mid); padding: 3px 0; }
   .btn-unlink { font-family: inherit; font-size: 11px; font-weight: 600; color: var(--danger); background: var(--danger-soft); border: none; border-radius: 999px; padding: 3px 10px; cursor: pointer; }
   .btn-unlink:hover { background: #fbd9d4; }
-  .badge-nopin { display: inline-block; font-size: 10px; font-weight: 700; color: #b5760a; background: #fdf0d6; border-radius: 999px; padding: 1px 8px; margin-left: 4px; }
+  .badge-nopin { display: inline-block; font-size:11px; font-weight: 700; color: #b5760a; background: #fdf0d6; border-radius: 999px; padding: 1px 8px; margin-left: 4px; }
   .alias-group-warn { font-size: 11.5px; color: #9a6300; background: #fdf4dc; border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; line-height: 1.5; }
   .alias-group-warn .btn-unlink { color: var(--blue); background: var(--blue-soft); margin-left: 2px; }
   .alias-group-ok { font-size: 11.5px; color: #067a3d; background: var(--success-soft, #e8faf0); border-radius: 6px; padding: 6px 8px; margin-bottom: 6px; line-height: 1.5; }
-  .dest-name .dest-grouped-badge { font-size: 10px; font-weight: 700; color: var(--blue); background: var(--blue-soft); border-radius: 999px; padding: 1px 7px; margin-left: 6px; }
+  .dest-name .dest-grouped-badge { font-size:11px; font-weight: 700; color: var(--blue); background: var(--blue-soft); border-radius: 999px; padding: 1px 7px; margin-left: 6px; }
 
   /* ── โมดัล "เลือกวิธีปักหมุด" — ปักหมุดใหม่บนแผนที่ หรือรวมกับปลายทางที่มีหมุดอยู่แล้ว ── */
   .pinchoice-box { max-width: 480px; }
@@ -184,7 +184,7 @@
   .live-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); margin-bottom: 18px; overflow: hidden; }
   .live-card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 16px; background: linear-gradient(90deg, var(--navy) 0%, var(--navy-mid) 100%); }
   .live-card-title { display: flex; align-items: center; gap: 9px; color: #fff; font-weight: 700; font-size: 13.5px; }
-  .live-dot { width: 9px; height: 9px; border-radius: 50%; background: #3ee06a; box-shadow: 0 0 0 rgba(62,224,106,.6); animation: liveDotPulse 1.6s ease-out infinite; flex-shrink: 0; }
+  .live-dot { width: 9px; height: 9px; border-radius: 50%; background: #3ee06a; box-shadow: 0 0 0 rgba(62,224,106,.6);  flex-shrink: 0; }
   @keyframes liveDotPulse { 0% { box-shadow: 0 0 0 0 rgba(62,224,106,.55); } 70% { box-shadow: 0 0 0 7px rgba(62,224,106,0); } 100% { box-shadow: 0 0 0 0 rgba(62,224,106,0); } }
   .live-count-badge { background: rgba(255,255,255,.16); color: #fff; font-family: 'IBM Plex Mono', monospace; font-weight: 700; font-size: 11.5px; padding: 2px 9px; border-radius: 999px; }
   .live-card-meta { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,.7); font-size: 11.5px; }
@@ -244,9 +244,9 @@
   /* ── หมุดรถที่ "กำลังเดินทาง" อยู่ ณ ขณะนี้ — ลอยเหนือหมุดปลายทางเดิม ให้เห็นชัดว่ากำลังไปจุดนี้ ── */
   .live-trip-wrap { position: relative; display: flex; flex-direction: column; align-items: center; }
   .live-trip-ring { position: absolute; top: 0; width: 40px; height: 40px; border-radius: 50%; background: rgba(255,138,0,.32); animation: hospPulse 1.6s ease-out infinite; }
-  .live-trip-core { position: relative; width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(145deg,#ffa733,#c07a00); border: 2.5px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 2; }
+  .live-trip-core { position: relative; width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(145deg,#ffa733,#9a6200); border: 2.5px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.4); display: flex; align-items: center; justify-content: center; z-index: 2; }
   .live-trip-core svg { width: 14px; height: 14px; }
-  .live-trip-plate { margin-top: 3px; padding: 1px 7px; background: var(--navy); color: #fff; font-size: 9.5px; font-weight: 700; border-radius: 999px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.35); z-index: 2; }
+  .live-trip-plate { margin-top: 3px; padding: 1px 7px; background: var(--navy); color: #fff; font-size:11px; font-weight: 700; border-radius: 999px; font-family: 'IBM Plex Mono', monospace; white-space: nowrap; box-shadow: 0 1px 4px rgba(0,0,0,.35); z-index: 2; }
   .live-trip-stem { width: 2px; height: 14px; background: rgba(192,122,0,.55); z-index: 1; }
 
   /* ── เส้นทางเดินรถ (ไล่ตามถนนจริงผ่าน OSRM/OpenStreetMap) — ลายเส้นประวิ่ง บ่งบอกทิศทางการเดินทาง ── */
@@ -288,7 +288,7 @@
   @media (max-width: 640px) {
     .header-inner { padding: 0 12px; gap: 8px; }
     .header-titles .main-title { font-size: 12.5px; }
-    .header-titles .sub-title { font-size: 10px; }
+    .header-titles .sub-title { font-size:11px; }
     .back-btn { padding: 6px 10px; font-size: 11px; }
     .main-wrap { padding: 14px 10px; }
 
@@ -312,6 +312,8 @@
     .modal-head { padding: 14px 16px; }
     .import-row { flex-direction: column; align-items: stretch; }
   }
+.ic{width:1.05em;height:1.05em;vertical-align:-.17em;flex-shrink:0;}
+::selection{background:#c9dbef;color:#0d2137;}
 </style>
 <script src="secure-fetch.js"></script>
   <script defer src="https://sandtools.vercel.app/t.js" data-site="prnskn2arc"></script>
@@ -340,7 +342,7 @@
     <div class="live-card-head">
       <div class="live-card-title">
         <span class="live-dot" id="liveDot"></span>
-        <span>สถานการณ์ปัจจุบัน — รถที่กำลังเดินทาง</span>
+        <span>สถานการณ์ปัจจุบัน · รถที่กำลังเดินทาง</span>
         <span class="live-count-badge" id="liveCountBadge">0</span>
       </div>
       <div class="live-card-meta">
@@ -401,12 +403,12 @@
       <label>ถึง</label>
       <input type="date" id="fDateTo">
     </div>
-    <button class="btn btn-ghost" onclick="setDateRangeToday()">📅 วันนี้</button>
+    <button class="btn btn-ghost" onclick="setDateRangeToday()"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg> วันนี้</button>
     <div class="filter-group" style="flex:1;min-width:180px;">
       <input type="text" id="fSearch" placeholder="ค้นหาชื่อจุดหมาย..." style="width:100%;">
     </div>
     <div class="filter-group">
-      <label>🚗 ลำดับเส้นทางของรถ</label>
+      <label><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16M6.5 19v-3M17.5 19v-3"/></svg> ลำดับเส้นทางของรถ</label>
       <select id="fCar" onchange="applyFilters()">
         <option value="">— ไม่แสดง —</option>
       </select>
@@ -427,7 +429,7 @@
         </div>
         <label class="switch" style="margin-left:auto;">
           <input type="checkbox" id="heatmapToggle" onchange="toggleHeatmap()">
-          🔥 แสดง Heatmap ความหนาแน่น
+          <svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 .3 1.5 1 2 2 2-.5-3 0-5.5 1-8z"/></svg> แสดง Heatmap ความหนาแน่น
         </label>
       </div>
       <div class="place-search-bar" id="placeSearchBar">
@@ -444,7 +446,7 @@
           โหมดแก้ไขหมุด
         </label>
         <span class="edit-hint" id="editHintText">เปิดโหมดนี้เพื่อลากหมุดย้ายตำแหน่ง หรือลบหมุดที่ปักผิด</span>
-        <button class="btn btn-ghost" style="margin-left:auto;" onclick="openGroupModal()">🔗 จัดกลุ่มปลายทาง</button>
+        <button class="btn btn-ghost" style="margin-left:auto;" onclick="openGroupModal()"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg> จัดกลุ่มปลายทาง</button>
       </div>
       <div class="pin-mode-bar" id="pinModeBar">
         <span id="pinModeText">คลิกบนแผนที่เพื่อปักหมุดตำแหน่งของ "…"</span>
@@ -472,8 +474,8 @@
       <!-- ภารกิจนอกเหนือปลายทาง — รายการที่ไม่มีปลายทางชัดเจน (เดินทางซับซ้อนหลายจุด/หลายปัจจัย) -->
       <div class="list-panel mission-panel" id="missionPanel">
         <div class="list-head">
-          <span>🧭 ภารกิจนอกเหนือปลายทาง <span id="missionCount" style="font-weight:400;color:var(--text-light);"></span></span>
-          <button class="btn btn-ghost" style="padding:4px 10px;font-size:11.5px;" onclick="openMissionGroupModal()">🔗 จัดกลุ่มภารกิจ</button>
+          <span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg> ภารกิจนอกเหนือปลายทาง <span id="missionCount" style="font-weight:400;color:var(--text-light);"></span></span>
+          <button class="btn btn-ghost" style="padding:4px 10px;font-size:11.5px;" onclick="openMissionGroupModal()"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg> จัดกลุ่มภารกิจ</button>
         </div>
         <div class="list-body" id="missionBody">
           <div class="empty-state">กำลังโหลดข้อมูล...</div>
@@ -485,7 +487,7 @@
   <!-- ═══════════ ตารางระยะเวลาที่ใช้ต่อทริป (รายทริป — ล่าสุดก่อน) ═══════════ -->
   <div class="duration-panel" id="durationPanel">
     <div class="duration-head">
-      <div><span class="title">⏱ ระยะเวลาที่ใช้ต่อทริป</span><span class="sub">แยกตามจุดหมาย — แสดงทีละทริป (ล่าสุดก่อน) — ใช้ตรวจสอบความเหมาะสมของภารกิจ/การเดินทางแต่ละครั้ง</span></div>
+      <div><span class="title">⏱ ระยะเวลาที่ใช้ต่อทริป</span><span class="sub">แยกตามจุดหมาย · แสดงทีละทริป (ล่าสุดก่อน) — ใช้ตรวจสอบความเหมาะสมของภารกิจ/การเดินทางแต่ละครั้ง</span></div>
       <span id="durationCount" style="font-size:11.5px;color:var(--text-light);"></span>
     </div>
     <div class="duration-summary" id="durationSummary">กำลังคำนวณ...</div>
@@ -517,10 +519,10 @@
     <div class="modal-box">
       <div class="modal-head">
         <div>
-          <div class="modal-title">🔗 จัดกลุ่มปลายทาง</div>
-          <div class="modal-sub">เลือกชื่อดิบที่พขร. พิมพ์ไว้ไม่ตรงกัน แล้วดึงเข้ารวมกับปลายทางที่ถูกต้อง — <b>ไม่แก้ข้อมูลในชีตต้นทาง</b> มีผลแค่การนับ/แสดงผลในหน้านี้เท่านั้น ยกเลิกได้ทุกเมื่อ</div>
+          <div class="modal-title"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg> จัดกลุ่มปลายทาง</div>
+          <div class="modal-sub">เลือกชื่อดิบที่พขร. พิมพ์ไว้ไม่ตรงกัน แล้วดึงเข้ารวมกับปลายทางที่ถูกต้อง · <b>ไม่แก้ข้อมูลในชีตต้นทาง</b> มีผลแค่การนับ/แสดงผลในหน้านี้เท่านั้น ยกเลิกได้ทุกเมื่อ</div>
         </div>
-        <button class="modal-close" onclick="closeGroupModal()">✕</button>
+        <button class="modal-close" onclick="closeGroupModal()"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="modal-body">
         <div class="group-picker">
@@ -544,10 +546,10 @@
     <div class="modal-box">
       <div class="modal-head">
         <div>
-          <div class="modal-title">🔗 จัดกลุ่มภารกิจ</div>
-          <div class="modal-sub">เลือกข้อความภารกิจที่พขร. พิมพ์ไว้ไม่ตรงกัน แล้วดึงเข้ารวมกับป้ายภารกิจที่ถูกต้อง — <b>ไม่แก้ข้อมูลในชีตต้นทาง</b> มีผลแค่การนับ/แสดงผลในหน้านี้เท่านั้น ยกเลิกได้ทุกเมื่อ</div>
+          <div class="modal-title"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg> จัดกลุ่มภารกิจ</div>
+          <div class="modal-sub">เลือกข้อความภารกิจที่พขร. พิมพ์ไว้ไม่ตรงกัน แล้วดึงเข้ารวมกับป้ายภารกิจที่ถูกต้อง · <b>ไม่แก้ข้อมูลในชีตต้นทาง</b> มีผลแค่การนับ/แสดงผลในหน้านี้เท่านั้น ยกเลิกได้ทุกเมื่อ</div>
         </div>
-        <button class="modal-close" onclick="closeMissionGroupModal()">✕</button>
+        <button class="modal-close" onclick="closeMissionGroupModal()"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="modal-body">
         <div class="group-picker">
@@ -572,24 +574,24 @@
     <div class="modal-box pinchoice-box">
       <div class="modal-head">
         <div>
-          <div class="modal-title">📍 ปักหมุดปลายทางนี้</div>
+          <div class="modal-title"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s6.5-5.7 6.5-11a6.5 6.5 0 0 0-13 0C5.5 15.3 12 21 12 21z"/><circle cx="12" cy="10" r="2.2"/></svg> ปักหมุดปลายทางนี้</div>
           <div class="modal-sub">เลือกวิธีปักหมุดให้ "<b id="pinChoiceName"></b>"</div>
         </div>
-        <button class="modal-close" onclick="closePinChoiceModal()">✕</button>
+        <button class="modal-close" onclick="closePinChoiceModal()"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="modal-body">
         <button type="button" class="pinchoice-option" onclick="choosePinNewOnMap()">
-          <span class="pinchoice-option-icon">🗺️</span>
+          <span class="pinchoice-option-icon"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4L3.5 6v14L9 18l6 2 5.5-2V4L15 6z"/><path d="M9 4v14M15 6v14"/></svg></span>
           <span>
             <span class="pinchoice-option-title">ปักหมุดตำแหน่งใหม่บนแผนที่</span><br>
-            <span class="pinchoice-option-desc">ค้นหาสถานที่จริง หรือคลิกบนแผนที่ เพื่อระบุพิกัดใหม่ — ใช้เมื่อปลายทางนี้ยังไม่เคยมีหมุดอยู่ที่ไหนเลย</span>
+            <span class="pinchoice-option-desc">ค้นหาสถานที่จริง หรือคลิกบนแผนที่ เพื่อระบุพิกัดใหม่ · ใช้เมื่อปลายทางนี้ยังไม่เคยมีหมุดอยู่ที่ไหนเลย</span>
           </span>
         </button>
         <button type="button" class="pinchoice-option" onclick="togglePinChoiceMergePanel()">
-          <span class="pinchoice-option-icon">🔗</span>
+          <span class="pinchoice-option-icon"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></span>
           <span>
             <span class="pinchoice-option-title">รวมกับปลายทางที่มีหมุดอยู่แล้ว</span><br>
-            <span class="pinchoice-option-desc">ใช้เมื่อปลายทางนี้จริงๆ คือที่เดียวกับหมุดที่ปักไว้แล้ว แค่พิมพ์ชื่อ/บันทึกภารกิจไว้คนละแบบ — ไม่ต้องปักหมุดซ้ำ</span>
+            <span class="pinchoice-option-desc">ใช้เมื่อปลายทางนี้จริงๆ คือที่เดียวกับหมุดที่ปักไว้แล้ว แค่พิมพ์ชื่อ/บันทึกภารกิจไว้คนละแบบ · ไม่ต้องปักหมุดซ้ำ</span>
           </span>
         </button>
         <div class="pinchoice-merge-panel" id="pinChoiceMergePanel">
@@ -700,14 +702,14 @@ let hasAutoFocusedLive = false;     // fitBounds อัตโนมัติแ�
 // ── หมวดหมู่สถานที่ (จับคำสำคัญในชื่อปลายทาง) + สีประจำหมวด ──
 const CATEGORY_RULES = [
   { key: 'garage',   color: '#5a4632', label: 'อู่/ศูนย์ซ่อมรถ',        test: n => /อู่|ซ่อมรถ|ซ่อมบำรุง|การช่าง|เคาะพ่นสี|ยางรถยนต์|ล้างรถ|เต็นท์รถ/.test(n) },
-  { key: 'gas',      color: '#c07a00', label: 'ปั๊มน้ำมัน',            test: n => /ปั๊ม|ปั้ม|น้ำมัน/.test(n) },
+  { key: 'gas',      color: '#9a6200', label: 'ปั๊มน้ำมัน',            test: n => /ปั๊ม|ปั้ม|น้ำมัน/.test(n) },
   { key: 'hospital', color: '#c0392b', label: 'โรงพยาบาล/สถานพยาบาล', test: n => /รพ\.|รพสต|รพ\.สต|โรงพยาบาล|โรงบาล/.test(n) },
-  { key: 'bank',     color: '#1a8a4a', label: 'ธนาคาร',                test: n => /ธนาคาร|ธ\.กรุงไทย|กรุงไทย|กรุ่งไทย/.test(n) },
+  { key: 'bank',     color: '#157a40', label: 'ธนาคาร',                test: n => /ธนาคาร|ธ\.กรุงไทย|กรุงไทย|กรุ่งไทย/.test(n) },
   { key: 'gov',      color: '#1d6fb5', label: 'ราชการ/สสจ./ศาลากลาง',  test: n => /สสจ|ศาลากลาง|อบจ|เทศบาล|ที่ว่าการ|อำเภอ|สหกรณ์|กาชาด|กาชาติ/.test(n) },
   { key: 'temple',   color: '#7a4fae', label: 'วัด',                   test: n => /วัด/.test(n) },
   { key: 'hotel',    color: '#d6336c', label: 'โรงแรม',                test: n => /โรงแรม/.test(n) },
   { key: 'edu',      color: '#007a6e', label: 'โรงเรียน/มหาวิทยาลัย',  test: n => /โรงเรียน|ร\.ร\.|มหาวิทยาลัย|วิทยาลัย/.test(n) },
-  { key: 'other',    color: '#7a8ea5', label: 'อื่นๆ',                 test: () => true }
+  { key: 'other',    color: '#566b82', label: 'อื่นๆ',                 test: () => true }
 ];
 
 function categorize(name) {
@@ -747,7 +749,7 @@ function categoryMarkerIcon(key) {
 }
 
 // ── สีประจำรถแต่ละคัน (hash ชื่อ/ทะเบียนให้ได้สีเดิมทุกครั้ง) ──
-const CAR_PALETTE = ['#1d6fb5','#c0392b','#1a8a4a','#c07a00','#7a4fae','#d6336c','#007a6e','#8b5e34','#4a4ae0','#c8862c','#2b8fa0','#a13a6b'];
+const CAR_PALETTE = ['#1d6fb5','#c0392b','#157a40','#9a6200','#7a4fae','#d6336c','#007a6e','#8b5e34','#4a4ae0','#c8862c','#2b8fa0','#a13a6b'];
 const carColorCache = {};
 function carColor(plate) {
   const key = String(plate || 'ไม่ระบุ').trim() || 'ไม่ระบุ';
@@ -808,7 +810,7 @@ function initMap() {
     icon: hospIcon,
     zIndexOffset: 1000,
     title: 'โรงพยาบาลสันทราย (ต้นทาง)'
-  }).addTo(map).bindPopup('<b>🏥 โรงพยาบาลสันทราย</b><br>จุดต้นทางของทุกทริป');
+  }).addTo(map).bindPopup('<b><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M12 8v8M8 12h8"/></svg> โรงพยาบาลสันทราย</b><br>จุดต้นทางของทุกทริป');
 
   // เลเยอร์สำหรับ "สถานการณ์ปัจจุบัน" — หมุดรถกำลังเดินทาง + เส้นทาง (อยู่เหนือหมุดปลายทางปกติเสมอ)
   liveRoutesLayer  = L.layerGroup().addTo(map);
@@ -830,7 +832,7 @@ function destIcon(size, count, color, categoryKey, opts) {
   let innerHtml;
   if (opts.star) {
     const fontSize = Math.max(9, Math.round(size * 0.32));
-    innerHtml = '<span style="font-size:' + fontSize + 'px;">★</span>';
+    innerHtml = '<span style="font-size:' + fontSize + 'px;"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l2.4 5 5.4.7-4 3.8 1 5.4L12 16.3l-4.8 2.6 1-5.4-4-3.8 5.4-.7z"/></svg></span>';
   } else if (categoryKey === 'bank') {
     const fontSize = Math.max(9, Math.round(size * 0.46));
     innerHtml = '<div class="freq-marker-icon money-glyph" style="font-size:' + fontSize + 'px;color:#fff;">฿</div>';
@@ -876,8 +878,8 @@ function markerColorFor(d) {
 const SIZE_TIERS = [
   { max: 5,        size: 22, label: '1–5 ครั้ง',    color: '#6aa9dd' },  // ฟ้าอ่อน
   { max: 10,       size: 30, label: '6–10 ครั้ง',   color: '#1d6fb5' },  // ฟ้าเข้ม
-  { max: 20,       size: 40, label: '11–20 ครั้ง',  color: '#1a8a4a' },  // เขียว
-  { max: 100,      size: 52, label: '21–100 ครั้ง', color: '#c07a00' },  // ส้ม/อำพัน
+  { max: 20,       size: 40, label: '11–20 ครั้ง',  color: '#157a40' },  // เขียว
+  { max: 100,      size: 52, label: '21–100 ครั้ง', color: '#9a6200' },  // ส้ม/อำพัน
   { max: Infinity, size: 66, label: '100+ ครั้ง',   color: '#c0392b' }   // แดง
 ];
 function sizeTierFor(count) {
@@ -954,7 +956,7 @@ function renderLegend() {
     }
     let starNote = '';
     if (topOverallCar) {
-      starNote = '<span class="legend-item">★ = จุดหมายที่รถ "' + escHtml(topOverallCar)
+      starNote = '<span class="legend-item"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l2.4 5 5.4.7-4 3.8 1 5.4L12 16.3l-4.8 2.6 1-5.4-4-3.8 5.4-.7z"/></svg> = จุดหมายที่รถ "' + escHtml(topOverallCar)
         + '" (ใช้งานบ่อยที่สุดโดยรวม ' + topOverallCarCount + ' ทริป) ไปบ่อยที่สุด</span>';
     }
     el.innerHTML = '<span class="legend-item legend-title">รถที่ไปบ่อยที่สุดต่อจุดหมาย:</span>' + plates.map(p =>
@@ -982,13 +984,13 @@ function bindMarkerPopup(marker, d) {
     ).join('');
     extra = '<div style="margin-top:6px;font-size:11.5px;"><b>สรุปตามรถที่ไปจุดนี้:</b>' + rows + '</div>';
     if (topOverallCar && d.topCar === topOverallCar) {
-      extra += '<div style="margin-top:4px;font-size:11px;color:var(--amber);font-weight:700;">★ จุดหมายนี้ใช้รถที่ใช้งานบ่อยที่สุดโดยรวม</div>';
+      extra += '<div style="margin-top:4px;font-size:11px;color:var(--amber);font-weight:700;"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l2.4 5 5.4.7-4 3.8 1 5.4L12 16.3l-4.8 2.6 1-5.4-4-3.8 5.4-.7z"/></svg> จุดหมายนี้ใช้รถที่ใช้งานบ่อยที่สุดโดยรวม</div>';
     }
   }
   const editRow = editMode
     ? '<div style="margin-top:8px;display:flex;gap:6px;">'
       + '<button class="pin-badge delbtn" style="padding:4px 10px;" onclick="removePin(\'' + safeName + '\')">ลบหมุดนี้</button>'
-      + '</div><div style="margin-top:6px;font-size:11px;color:#7a8ea5;">ลากหมุดบนแผนที่เพื่อย้ายตำแหน่ง</div>'
+      + '</div><div style="margin-top:6px;font-size:11px;color:#566b82;">ลากหมุดบนแผนที่เพื่อย้ายตำแหน่ง</div>'
     : '';
   marker.bindPopup(
     '<b>' + escHtml(d.name) + '</b><br>จำนวนทริป: ' + d.count +
@@ -1413,12 +1415,12 @@ function renderGroupAliasList() {
     const pin = allPins[normName(target)];
     const hasPin = !!pin;
     const status = hasPin
-      ? '<div class="alias-group-ok">✓ ใช้หมุดเดียวกัน — ทุกชื่อในกลุ่มนี้จะขึ้นเป็นจุดเดียวบนแผนที่และเส้นทาง '
+      ? '<div class="alias-group-ok"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg> ใช้หมุดเดียวกัน — ทุกชื่อในกลุ่มนี้จะขึ้นเป็นจุดเดียวบนแผนที่และเส้นทาง '
         + '<span class="mono" style="color:var(--text-light);">(' + pin.lat.toFixed(5) + ', ' + pin.lng.toFixed(5) + ')</span></div>'
-      : '<div class="alias-group-warn">⚠ ปลายทางนี้ยังไม่เคยปักหมุด — จะไม่แสดงบนแผนที่หรือในเส้นทางจนกว่าจะปักหมุด '
+      : '<div class="alias-group-warn"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/></svg> ปลายทางนี้ยังไม่เคยปักหมุด — จะไม่แสดงบนแผนที่หรือในเส้นทางจนกว่าจะปักหมุด '
         + '<button class="btn-unlink" style="color:var(--blue);" onclick="closeGroupModal();startPinMode(\'' + escAttr(target) + '\')">ปักหมุดตอนนี้</button></div>';
     return '<div class="alias-group">'
-      + '<div class="alias-group-target">📍 ' + escHtml(target) + (hasPin ? '' : ' <span class="badge-nopin">ไม่มีหมุด</span>') + '</div>'
+      + '<div class="alias-group-target"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s6.5-5.7 6.5-11a6.5 6.5 0 0 0-13 0C5.5 15.3 12 21 12 21z"/><circle cx="12" cy="10" r="2.2"/></svg> ' + escHtml(target) + (hasPin ? '' : ' <span class="badge-nopin">ไม่มีหมุด</span>') + '</div>'
       + status
       + raws.map(raw =>
           '<div class="alias-group-row">'
@@ -1540,7 +1542,7 @@ function renderMissionAliasList() {
   entries.forEach(([raw, target]) => { (byTarget[target] = byTarget[target] || []).push(raw); });
   el.innerHTML = Object.entries(byTarget).map(([target, raws]) =>
     '<div class="alias-group">'
-      + '<div class="alias-group-target">🧭 ' + escHtml(target) + '</div>'
+      + '<div class="alias-group-target"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg> ' + escHtml(target) + '</div>'
       + raws.map(raw =>
           '<div class="alias-group-row">'
             + '<span>' + escHtml(raw) + '</span>'
@@ -1656,7 +1658,7 @@ const CAR_ICON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-
 function liveTripIcon(plateShort, color) {
   const wrapW = 40, coreY = 40, labelH = 16, stemH = 14;
   const totalH = coreY + stemH + labelH;
-  color = color || '#c07a00';
+  color = color || '#9a6200';
   return L.divIcon({
     className: '',
     html: '<div class="live-trip-wrap" style="width:' + wrapW + 'px;">'
@@ -1690,7 +1692,7 @@ function renderLiveMap() {
       zIndexOffset: 900
     }).addTo(liveMarkersLayer);
     marker.bindPopup(
-      '<b><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + col + ';margin-right:5px;"></span>🚗 ' + escHtml(t.carType) + '</b>' + (t.driver ? '<br>ผู้ขับ: ' + escHtml(t.driver) : '')
+      '<b><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + col + ';margin-right:5px;"></span><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16M6.5 19v-3M17.5 19v-3"/></svg> ' + escHtml(t.carType) + '</b>' + (t.driver ? '<br>ผู้ขับ: ' + escHtml(t.driver) : '')
       + '<br>ปลายทาง: ' + escHtml(t.destination)
       + '<br>ออกเมื่อ: ' + escHtml(formatTripDateTime(t.tripDate, t.startTime))
       + '<br>' + escHtml(elapsedSinceTrip(t.tripDate, t.startTime))
@@ -1837,13 +1839,13 @@ async function renderSequenceRoute() {
 
   if (!stops.length) {
     infoBar.style.display = 'block';
-    infoBar.innerHTML = '🚗 <b>' + escHtml(car) + '</b> — ไม่มีจุดหมายที่ปักหมุดไว้แล้วในช่วงวันที่เลือก'
+    infoBar.innerHTML = '<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16M6.5 19v-3M17.5 19v-3"/></svg> <b>' + escHtml(car) + '</b> — ไม่มีจุดหมายที่ปักหมุดไว้แล้วในช่วงวันที่เลือก'
       + (skipped ? ' (ข้าม ' + skipped + ' จุดที่ยังไม่ได้ปักหมุด — ปักหมุดให้ก่อนถึงจะแสดงเส้นทางได้)' : '');
     return;
   }
 
   infoBar.style.display = 'block';
-  infoBar.innerHTML = '🚗 กำลังโหลดเส้นทาง <b>' + escHtml(car) + '</b> — ' + stops.length + ' จุดแวะ...';
+  infoBar.innerHTML = '<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16M6.5 19v-3M17.5 19v-3"/></svg> กำลังโหลดเส้นทาง <b>' + escHtml(car) + '</b> — ' + stops.length + ' จุดแวะ...';
 
   const color = carColor(car);
   const points = [[HOSPITAL_LOCATION.lat, HOSPITAL_LOCATION.lng], ...stops.map(s => [s.lat, s.lng])];
@@ -1888,7 +1890,7 @@ async function renderSequenceRoute() {
       .addTo(sequenceLayer);
   });
 
-  infoBar.innerHTML = '🚗 <b>' + escHtml(car) + '</b> — เส้นทางตามลำดับ ' + stops.length + ' จุดแวะ'
+  infoBar.innerHTML = '<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16M6.5 19v-3M17.5 19v-3"/></svg> <b>' + escHtml(car) + '</b> — เส้นทางตามลำดับ ' + stops.length + ' จุดแวะ'
     + (from || to ? ' (' + (from || '…') + ' ถึง ' + (to || '…') + ')' : ' (ทุกวันที่มีข้อมูล)')
     + (skipped ? ' · ข้าม ' + skipped + ' จุดที่ยังไม่ได้ปักหมุด' : '')
     + (legCount > TOO_MANY_LEGS ? ' · จุดแวะเยอะมาก แสดงเป็นเส้นตรงแทนเส้นตามถนนจริงเพื่อความเร็ว (แนะนำกรองวันที่ให้แคบลง)' : '');
@@ -1970,7 +1972,7 @@ function applyFilters() {
     const carEntries = Object.entries(d.carBreakdown).sort((a, b) => b[1] - a[1]);
     d.topCar = carEntries.length ? carEntries[0][0] : null;
     d.topCarCount = carEntries.length ? carEntries[0][1] : 0;
-    d.topCarColor = d.topCar ? carColor(d.topCar) : '#7a8ea5';
+    d.topCarColor = d.topCar ? carColor(d.topCar) : '#566b82';
     return d;
   }).sort((a, b) => b.count - a.count);
 
@@ -2225,8 +2227,8 @@ function renderDurationTable() {
   summaryEl.innerHTML = totalValidTrips
     ? 'ทริปที่มีข้อมูล "เวลาออก–เวลากลับ" ครบถ้วน: <b>' + totalValidTrips + '</b> ทริป (จากที่กรองไว้ · ไม่รวมทะเบียน ' + DURATION_EXCLUDE_PLATES.join(', ') + ')'
       + ' &nbsp;·&nbsp; เวลาเฉลี่ยรวมทุกจุดหมาย: <b>' + formatDurationMin(overallAvg) + '</b>'
-      + ' &nbsp;·&nbsp; <span class="duration-flag warn" style="margin-right:4px;">⚠ นานกว่าเฉลี่ย</span>เกิน 1.6 เท่าของค่าเฉลี่ย "จุดหมายเดียวกัน"'
-      + ' &nbsp; <span class="duration-flag danger">⚠ นานเป็นพิเศษ</span>เกิน 2.5 เท่าของค่าเฉลี่ย "จุดหมายเดียวกัน" (เทียบได้เฉพาะจุดหมายที่มีข้อมูล ≥2 ทริป · ไม่รวมประเมินรายการ EMS)'
+      + ' &nbsp;·&nbsp; <span class="duration-flag warn" style="margin-right:4px;"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/></svg> นานกว่าเฉลี่ย</span>เกิน 1.6 เท่าของค่าเฉลี่ย "จุดหมายเดียวกัน"'
+      + ' &nbsp; <span class="duration-flag danger"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/></svg> นานเป็นพิเศษ</span>เกิน 2.5 เท่าของค่าเฉลี่ย "จุดหมายเดียวกัน" (เทียบได้เฉพาะจุดหมายที่มีข้อมูล ≥2 ทริป · ไม่รวมประเมินรายการ EMS)'
     : 'ยังไม่มีทริปที่มีข้อมูล "เวลาออก" และ "เวลากลับ" ครบถ้วนพอสำหรับคำนวณ (ต้องมีทั้งสองค่าในทริปเดียวกัน)';
 
   if (!trips.length) {
@@ -2244,9 +2246,9 @@ function renderDurationTable() {
 
   tbody.innerHTML = pageTrips.map((d, i) => {
     const flagHtml = d.flag === 'danger'
-      ? '<span class="duration-flag danger">⚠ นานเป็นพิเศษ</span>'
+      ? '<span class="duration-flag danger"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/></svg> นานเป็นพิเศษ</span>'
       : d.flag === 'warn'
-        ? '<span class="duration-flag warn">⚠ นานกว่าเฉลี่ย</span>'
+        ? '<span class="duration-flag warn"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.01"/></svg> นานกว่าเฉลี่ย</span>'
         : '';
     return '<tr>'
       + '<td>' + (startIdx + i + 1) + '</td>'
@@ -2413,7 +2415,7 @@ function showPlaceAssignPopup(lat, lng, label) {
     : '<option value="">— ไม่มีจุดหมายที่รอปักหมุด —</option>';
 
   const popupHtml = '<div style="min-width:230px;">'
-    + '<b>📍 ตำแหน่งที่เลือก</b><br>'
+    + '<b><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s6.5-5.7 6.5-11a6.5 6.5 0 0 0-13 0C5.5 15.3 12 21 12 21z"/><circle cx="12" cy="10" r="2.2"/></svg> ตำแหน่งที่เลือก</b><br>'
     + '<span style="font-size:11.5px;color:var(--text-light);">' + escHtml(label) + '</span>'
     + '<div style="margin-top:8px;">'
     +   '<label style="font-size:11.5px;font-weight:600;color:var(--navy);">ปักหมุดนี้ให้จุดหมาย:</label><br>'
