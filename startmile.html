@@ -1036,6 +1036,11 @@ button, select, input, textarea, .tab-btn { touch-action:manipulation; -webkit-t
 
 .row-fuel-missing td:first-child { box-shadow: inset 4px 0 0 #f59e0b; }
 .hist-table tr.row-fuel-missing { background:#fffaf0; }
+/* ⚠ ไมล์กระโดดหายเกินเกณฑ์ — ต้องตรวจสอบ (ประกาศหลัง row-fuel-missing เพื่อให้สีแดงชนะเมื่อเกิดพร้อมกัน) */
+.row-mile-gap td:first-child { box-shadow: inset 4px 0 0 #dc2626; }
+.hist-table tr.row-mile-gap { background:#fff1f1; }
+.mile-gap-chip { display:inline-flex; flex-direction:column; align-items:flex-start; gap:1px; margin-top:4px; padding:3px 8px; border-radius:8px; background:#fde2e2; border:1px solid #f5b5b5; color:#b42318; font-size:11px; font-weight:700; line-height:1.3; white-space:nowrap; }
+.mile-gap-chip small { font-weight:500; font-size:10px; color:#7a271a; }
 .fuel-fix { border:1px solid #f1c36b; background:#fff; color:#9a6200; font:inherit; font-size:11.5px; font-weight:800; padding:4px 10px; border-radius:999px; cursor:pointer; min-height:28px; }
 .fuel-fix:active { background:#fff4dc; }
 .ff-overlay { position:fixed; inset:0; background:rgba(13,33,55,.55); display:none; align-items:flex-end; justify-content:center; z-index:300; padding:0; }
@@ -3448,6 +3453,33 @@ function renderHistory() {
     ? sorted.filter(r => String(r['ทะเบียน/รถ'] || '').includes(filterPlate))
     : sorted;
 
+  // ── ⚠ ตรวจ "เลขไมล์กระโดดหาย": เลขไมล์ต้นของทริปนี้ − เลขไมล์ปลายล่าสุดของ "รถคันเดียวกัน" ──
+  // คำนวณจากประวัติทั้งหมดใน mileHistory (ไม่ใช่แค่ 30 แถวที่แสดง) เพื่อให้รายการเก่าสุดในตารางยังเทียบกับทริปก่อนหน้าได้
+  // ติดป้ายเฉพาะกรณีไมล์ "กระโดดขึ้น" เกินเกณฑ์ (ไมล์ย้อนหลัง/เท่ากัน ไม่ติด) — แถวที่ยังไม่มีไมล์ปลายไม่ถูกใช้เป็นจุดอ้างอิง
+  const MILE_GAP_THRESHOLD_KM = 50;
+  const mileGapMap = new Map();
+  (function () {
+    const byPlate = {};
+    mileHistory.forEach(r => {
+      const pl = String(r['ทะเบียน/รถ'] || '').split(' ')[0].trim();
+      if (pl) (byPlate[pl] = byPlate[pl] || []).push(r);
+    });
+    Object.keys(byPlate).forEach(pl => {
+      const rows = byPlate[pl].slice().sort((a, b) => {
+        const d = parseRowMs(a) - parseRowMs(b);
+        return d !== 0 ? d : parseTimeField(a['เวลาออก'] || a['startTime']) - parseTimeField(b['เวลาออก'] || b['startTime']);
+      });
+      let prevEnd = 0;
+      rows.forEach(r => {
+        const s = Number(r['เลขไมล์ต้น'] || 0), e = Number(r['เลขไมล์ปลาย'] || 0);
+        if (s > 0 && prevEnd > 0 && s - prevEnd > MILE_GAP_THRESHOLD_KM) {
+          mileGapMap.set(r, { gap: s - prevEnd, prevEnd: prevEnd, start: s });
+        }
+        if (e > 0) prevEnd = e;
+      });
+    });
+  })();
+
   // ── อัปเดตหัวข้อการ์ด: "บันทึกล่าสุด 30 รายการ · ล่าสุด dd/MM/yyyy" ──
   // ใช้รายการแรกของ "filtered" เพราะเป็นรายการบนสุดที่ผู้ใช้เห็นจริงในตาราง (เรียงใหม่→เก่าอยู่แล้ว)
   // หมายเหตุ: extractDate() ถูกประกาศแบบ function declaration ด้านล่าง แต่ hoist ขึ้นมาใช้ตรงนี้ได้ในสโคปเดียวกัน
@@ -3457,6 +3489,9 @@ function renderHistory() {
       ? `บันทึกล่าสุด 30 รายการ · ล่าสุด ${extractDate(filtered[0]['วันที่'] || filtered[0]['Timestamp'] || '')}` + (() => { const n = filtered.filter(x => fuelMissing(x, String(x['สถานะ']||'')==='กำลังใช้งาน')).length; return n ? ` · ⚠ ขาดลิตร/ราคา ${n} รายการ` : ''; })()
       : 'บันทึกล่าสุด 30 รายการ';
   }
+
+  { const _gapCount = filtered.filter(x => mileGapMap.has(x)).length;
+    if (histSubtitleEl && _gapCount) histSubtitleEl.textContent += ' · ⚠ ไมล์ขาดเกิน ' + MILE_GAP_THRESHOLD_KM + ' กม. ' + _gapCount + ' รายการ'; }
 
   const tbody = document.getElementById('histBody');
   if (!filtered.length) {
@@ -3508,7 +3543,8 @@ function renderHistory() {
     const timeBack  = isActive ? '<span style="color:#94a3b8;font-size:11px;">กำลังออก...</span>'
                                : extractTime(r['เวลากลับ'] || r['returnTime'] || '');
 
-    return `<tr class="${fuelMissing(r,isActive)?'row-fuel-missing':''}">
+    const _gap = mileGapMap.get(r);
+    return `<tr class="${[fuelMissing(r,isActive)?'row-fuel-missing':'', _gap?'row-mile-gap':''].join(' ').trim()}">
       <td data-label="ทะเบียน"><span class="plate-chip">${plate}</span></td>
       <td data-label="พขร." style="font-size:12px;">${(r['พนักงานขับรถ']||'—').substring(0,12)}</td>
       <td data-label="วันที่" style="font-size:12px;white-space:nowrap;font-weight:500;">${dateStr}</td>
@@ -3516,7 +3552,7 @@ function renderHistory() {
       <td data-label="เวลากลับ" style="font-size:13px;font-weight:600;color:#15803d;white-space:nowrap;">${timeBack}${!isActive && timeBack !== '—' ? ' น.' : ''}</td>
       <td data-label="ปลายทาง" style="font-size:12px;">${r['ปลายทาง']||'—'}</td>
       <td data-label="จุดขอใช้รถ" style="font-size:11px;color:#475569;max-width:110px;word-break:break-word;">${r['จุดขอใช้รถ']||r['requestPoints']||'—'}</td>
-      <td data-label="ไมล์ต้น" style="font-weight:600;">${startMile ? startMile.toLocaleString() : '—'}</td>
+      <td data-label="ไมล์ต้น" style="font-weight:600;">${startMile ? startMile.toLocaleString() : '—'}${_gap ? `<div class="mile-gap-chip" title="ไมล์ปลายทริปก่อนหน้า ${_gap.prevEnd.toLocaleString()} → ไมล์ต้นทริปนี้ ${_gap.start.toLocaleString()}">⚠ ขาด ${_gap.gap.toLocaleString()} กม.<small>ต่อจาก ${_gap.prevEnd.toLocaleString()}</small></div>` : ''}</td>
       <td data-label="ไมล์ปลาย" style="font-weight:600;">${endMile   ? endMile.toLocaleString()   : '—'}</td>
       <td data-label="ระยะ (กม.)" style="font-weight:700;color:var(--teal);">${dist !== '—' ? dist : '—'}</td>
       <td data-label="บิลออก" style="text-align:center;min-width:80px;">
@@ -3545,7 +3581,11 @@ function renderHistory() {
                      background:#0ea5e9;color:#fff;border-radius:6px;font-size:11px;
                      font-weight:700;text-decoration:none;">🧾 ดูบิล</a>`;
           }
-          if (r['น้ำมันที่เติม(ลิตร)'] || r['hasFuel']==='ใช่')
+          // ✅ FIX: ค่า 'ไม่เติม' (แอดมินยืนยันว่าไม่ได้เติมน้ำมัน) เป็นข้อความที่ truthy จึงเคยแสดงเป็น "เติมแล้ว"
+          if (_fuelResolved(r))
+            return '<span style="font-size:10px;color:#94a3b8;">ไม่ได้เติม</span>';
+          // ✅ FIX: ถ้ามีรูปบิลขากลับแล้ว ไม่ต้องขึ้น "เติมแล้ว (ไม่มีรูป)" ที่คอลัมน์บิลออก เพราะมีหลักฐานอยู่ในคอลัมน์บิลกลับแล้ว
+          if ((r['น้ำมันที่เติม(ลิตร)'] || r['hasFuel']==='ใช่') && !getReturnFuelUrl(r))
             return '<span style="font-size:10px;color:#94a3b8;">⛽ เติมแล้ว<br>(ไม่มีรูป)</span>';
           return '<span style="color:#cbd5e1;font-size:11px;">—</span>';
         })()}
