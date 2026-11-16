@@ -1,0 +1,80 @@
+/* SAND Sansai UI Kit — shared design tokens and component primitives */
+:root {
+  --sand-navy: #142d59;
+  --sand-navy-2: #1b3b70;
+  --sand-blue: #2563eb;
+  --sand-blue-soft: #eaf1ff;
+  --sand-purple: #7650b8;
+  --sand-purple-soft: #f1ebfb;
+  --sand-success: #16834a;
+  --sand-success-soft: #e8f6ee;
+  --sand-warning: #b77905;
+  --sand-warning-soft: #fff5df;
+  --sand-danger: #c93636;
+  --sand-danger-soft: #fff0f0;
+  --sand-surface: #fff;
+  --sand-bg: #f4f7fb;
+  --sand-border: #dfe6f0;
+  --sand-text: #18263d;
+  --sand-muted: #687891;
+  --sand-radius: 14px;
+  --sand-radius-sm: 9px;
+  --sand-shadow: 0 5px 20px rgba(20,45,89,.09);
+  --sand-transition: 180ms ease;
+}
+
+sand-progress, sand-status, sand-summary-card { display:block; }
+.sand-progress { width:100%; color:var(--sand-text); font-family:inherit; }
+.sand-progress__head,.sand-progress__meta { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.sand-progress__label { font-size:.9rem; font-weight:650; color:var(--sand-navy); }
+.sand-progress__value { font-size:.9rem; font-weight:750; font-variant-numeric:tabular-nums; color:var(--sand-navy); white-space:nowrap; }
+.sand-progress__track { height:10px; margin-top:9px; overflow:hidden; border-radius:999px; background:#e9eef6; }
+.sand-progress__bar { height:100%; width:0; border-radius:inherit; transition:width .65s cubic-bezier(.2,.8,.2,1); position:relative; }
+.sand-progress__bar.is-animated:after { content:""; position:absolute; inset:0; background:linear-gradient(105deg,transparent 25%,#ffffff66 50%,transparent 75%); transform:translateX(-100%); animation:sand-progress-shine 2.4s infinite; }
+@keyframes sand-progress-shine { to { transform:translateX(100%); } }
+.sand-progress--primary .sand-progress__bar { background:var(--sand-blue); }
+.sand-progress--purple .sand-progress__bar { background:var(--sand-purple); }
+.sand-progress--success .sand-progress__bar { background:var(--sand-success); }
+.sand-progress--warning .sand-progress__bar { background:#e3a008; }
+.sand-progress--danger .sand-progress__bar { background:var(--sand-danger); }
+.sand-progress--sm .sand-progress__track { height:6px; margin-top:6px; }
+.sand-progress--lg .sand-progress__track { height:14px; margin-top:11px; }
+.sand-progress__meta { margin-top:7px; color:var(--sand-muted); font-size:.75rem; }
+.sand-progress__meta:empty { display:none; }
+
+.sand-status__pill { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:999px; font-size:.75rem; font-weight:700; line-height:1.5; white-space:nowrap; }
+.sand-status__pill:before { content:""; width:7px; height:7px; border-radius:50%; background:currentColor; }
+.sand-status--success .sand-status__pill { color:var(--sand-success); background:var(--sand-success-soft); }
+.sand-status--warning .sand-status__pill { color:var(--sand-warning); background:var(--sand-warning-soft); }
+.sand-status--danger .sand-status__pill { color:var(--sand-danger); background:var(--sand-danger-soft); }
+.sand-status--info .sand-status__pill { color:var(--sand-blue); background:var(--sand-blue-soft); }
+.sand-status--neutral .sand-status__pill { color:var(--sand-muted); background:#eef1f5; }
+
+.sand-card { background:var(--sand-surface); border:1px solid var(--sand-border); border-radius:var(--sand-radius); padding:16px; box-shadow:var(--sand-shadow); }
+.sand-card__title { color:var(--sand-navy); font-weight:750; font-size:1rem; margin:0 0 12px; }
+.sand-card__value { color:var(--sand-navy); font-weight:850; font-size:1.8rem; line-height:1.2; font-variant-numeric:tabular-nums; }
+
+/* Shared toast host */
+#sand-ui-toast-host { position:fixed; z-index:99990; right:18px; bottom:18px; display:grid; gap:10px; width:min(390px,calc(100vw - 28px)); pointer-events:none; }
+.sand-toast { display:flex; align-items:center; gap:11px; padding:12px 13px; border:1px solid var(--sand-border); border-left:4px solid var(--sand-blue); border-radius:15px; background:#fff; box-shadow:0 12px 38px rgba(20,45,89,.2); font-family:inherit; pointer-events:auto; animation:sand-toast-in .22s ease-out; }
+.sand-toast--success { border-left-color:var(--sand-success); }
+.sand-toast--warning { border-left-color:#e3a008; }
+.sand-toast--danger { border-left-color:var(--sand-danger); }
+.sand-toast__mascot { width:56px; height:56px; object-fit:contain; flex:none; }
+.sand-toast__body { min-width:0; flex:1; }
+.sand-toast__title { display:block; color:var(--sand-navy); font-size:.85rem; font-weight:800; }
+.sand-toast__message { margin:3px 0 6px; color:var(--sand-muted); font-size:.77rem; }
+.sand-toast__action { border:0; padding:0; background:none; color:var(--sand-blue); font:inherit; font-size:.77rem; font-weight:800; cursor:pointer; }
+.sand-toast__close { border:0; background:none; color:#8390a4; font-size:20px; cursor:pointer; align-self:flex-start; padding:0 2px; }
+@keyframes sand-toast-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+/* Shared full-screen loading layer */
+sand-loading { display:none; }
+sand-loading[active] { display:block; }
+.sand-loading-overlay { position:fixed; inset:0; z-index:99980; display:grid; place-items:center; padding:20px; background:rgba(244,247,251,.88); backdrop-filter:blur(3px); }
+.sand-loading-box { width:min(310px,100%); padding:22px; border:1px solid var(--sand-border); border-radius:18px; background:#fff; box-shadow:var(--sand-shadow); text-align:center; }
+.sand-loading-box img { display:block; width:116px; height:116px; object-fit:contain; margin:0 auto 8px; }
+.sand-loading-box p { margin:0 0 13px; color:var(--sand-navy); font-weight:700; font-size:.9rem; }
+.sand-loading-box .sand-progress__track { margin-top:0; }
+@media (max-width:600px) { #sand-ui-toast-host { right:10px; bottom:10px; width:calc(100vw - 20px); } .sand-toast__mascot { width:48px; height:48px; } }
+@media (prefers-reduced-motion:reduce) { .sand-progress__bar,.sand-toast { transition:none; animation:none; } .sand-progress__bar.is-animated:after { animation:none; } }
