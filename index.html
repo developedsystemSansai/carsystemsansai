@@ -340,6 +340,16 @@
   .stat-dot.red    { background: #ef4444;  }
   .stat-dot.blue   { background: var(--blue); }
 
+  /* ── ความคืบหน้าการตรวจสภาพรถวันนี้ (sand-progress) ── */
+  .inspect-progress {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    box-shadow: var(--shadow-sm);
+    margin: -16px 0 28px;
+  }
+
   /* ── SECTION HEADER ── */
   .section-head {
     display: flex; align-items: center; gap: 10px;
@@ -877,6 +887,7 @@
 <script src="secure-fetch.js"></script>
 <link rel="stylesheet" href="sand-brand.css">
 <script defer src="sand-brand.js"></script>
+<script defer src="assets/sand-progress.js"></script>
   <script defer src="https://sandtools.vercel.app/t.js" data-site="prnskn2arc"></script>
 </head>
 <body>
@@ -989,6 +1000,11 @@
       <div class="stat-val" id="sv-inuse">—</div>
       <div class="stat-sub"><span class="stat-dot red"></span>คัน · ออกปฏิบัติงาน</div>
     </div>
+  </div>
+
+  <!-- ความคืบหน้าการตรวจสภาพรถวันนี้ -->
+  <div class="inspect-progress" id="inspectProgressCard" hidden>
+    <sand-progress id="inspectProgress" label="ตรวจสภาพรถวันนี้" value="0" max="1" show-value></sand-progress>
   </div>
 
   <!-- Vehicle status section: loading bar + grouped cards -->
@@ -1629,7 +1645,28 @@ async function loadStatus() {
   }
 }
 
+function updateInspectProgress(json) {
+  const card = document.getElementById('inspectProgressCard');
+  const bar  = document.getElementById('inspectProgress');
+  if (!card || !bar || !json) return;
+  const nc    = Math.max(0, Number(json.notCheckedCount) || 0);
+  const total = Number(json.totalCars) || ((Number(json.checkedCount) || 0) + nc);
+  if (!total) { card.hidden = true; return; }
+  const checked = Math.max(0, total - Math.min(nc, total));
+  // สีตามเกณฑ์เดียวกับจุดสถานะของการ์ด "รอตรวจสภาพ": 0=เขียว, ≤3=เหลือง, มากกว่านั้น=แดง
+  const variant = nc === 0 ? 'success' : nc <= 3 ? 'warning' : 'danger';
+  bar.setAttribute('max', total);
+  bar.setAttribute('value', checked);
+  bar.setAttribute('variant', variant);
+  bar.setAttribute('detail', nc === 0
+    ? 'ตรวจครบทุกคันแล้ว (' + checked + ' จาก ' + total + ' คัน)'
+    : 'ตรวจแล้ว ' + checked + ' จาก ' + total + ' คัน · เหลืออีก ' + nc + ' คัน (ตรวจก่อน 10:00 น.)');
+  if (nc > 0) bar.setAttribute('animated', ''); else bar.removeAttribute('animated');
+  card.hidden = false;
+}
+
 function renderVehicleCards(json) {
+  updateInspectProgress(json);
   // ── sync ALL_VEHICLES จาก vehicles meta ที่ GAS ส่งมา ──────────────
 
   // อัปเดต sheetStatus/sheetDriver/sheetDest เพื่อนำมา fallback แสดงสถานะ
@@ -1794,6 +1831,13 @@ function renderVehicleCards(json) {
       chkSub = 'ยังไม่ได้ตรวจสภาพวันนี้';
     }
 
+    // ── พขร. ล่าสุดของวันนี้ (แสดงใต้บรรทัด "ตรวจ") ──
+    //    รถที่กำลังใช้งานอยู่ บรรทัดบนแสดง พขร. ปัจจุบันอยู่แล้ว จึงไม่แสดงซ้ำ
+    const lastDrv = (json.lastDrivers || {})[plateKey] || '';
+    const lastDrvHtml = (lastDrv && !isInUse)
+      ? '<div class="vm-sub" title="พขร. ล่าสุดวันนี้: ' + lastDrv.replace(/"/g,'&quot;') + '">ขับล่าสุด · ' + truncate(lastDrv, 14) + '</div>'
+      : '';
+
     // ── EMS badge: แสดงเฉพาะ isEms:true ──
     const emsBadge = v.isEms ? '<span class="ems-badge">EMS</span>' : '';
 
@@ -1895,7 +1939,7 @@ function renderVehicleCards(json) {
     if (fullDriver) titleParts.push('พขร.: ' + fullDriver);
     const titleAttr = titleParts.length ? ' title="' + titleParts.join(' | ').replace(/"/g,'&quot;') + '"' : '';
 
-    return '<div class="vehicle-mini ' + vmClass + '"' + titleAttr + '>' + (json.tripCounts ? '<span class="vm-trips" title="จำนวนเที่ยววันนี้"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16M6.5 19v-3M17.5 19v-3"/></svg> ' + (json.tripCounts[plateKey] || 0) + ' เที่ยว</span>' : '')         + '<div class="vm-plate">' + plateKey + emsBadge + '</div>'         + '<div class="vm-type">' + v.type + '</div>'         + statusHtml         + '<div class="vm-sub">' + chkSub + '</div>'         + fuelMarkHtml         + oxygenMarkHtml         + '</div>';
+    return '<div class="vehicle-mini ' + vmClass + '"' + titleAttr + '>' + (json.tripCounts ? '<span class="vm-trips" title="จำนวนเที่ยววันนี้"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16M6.5 19v-3M17.5 19v-3"/></svg> ' + (json.tripCounts[plateKey] || 0) + ' เที่ยว</span>' : '')         + '<div class="vm-plate">' + plateKey + emsBadge + '</div>'         + '<div class="vm-type">' + v.type + '</div>'         + statusHtml         + '<div class="vm-sub">' + chkSub + '</div>'         + lastDrvHtml         + fuelMarkHtml         + oxygenMarkHtml         + '</div>';
   }
 
   // ── แบ่งกลุ่ม: ทั่วไป (van+pickup) | EMS/Refer ──────────────────
