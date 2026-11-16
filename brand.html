@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>SAND · ชุดแบรนด์ (ไอคอนและมาสคอต)</title>
+<style>
+  :root { --navy:#0d2137; --bg:#eef2f7; --card:#fff; --border:#d5dce8; --text:#182332; --mid:#3d5168; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:'Noto Sans Thai',system-ui,sans-serif; line-height:1.5; }
+  header { background:var(--navy); color:#fff; padding:20px 16px; }
+  header h1 { margin:0; font-size:20px; } header p { margin:4px 0 0; color:#b9c8da; font-size:14px; }
+  main { max-width:1040px; margin:0 auto; padding:8px 16px 56px; }
+  h2 { font-size:17px; margin:28px 0 4px; color:var(--navy); } h2 + p { margin:0 0 12px; color:var(--mid); font-size:14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; }
+  .tile { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px; text-align:center; }
+  .tile img { height:84px; width:auto; max-width:100%; object-fit:contain; }
+  .tile b { display:block; margin-top:6px; font-size:14px; } .tile code { font-size:11.5px; color:var(--mid); word-break:break-all; }
+  .tile small { display:block; color:var(--mid); font-size:12px; margin-top:2px; }
+  .wide { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); } .wide .tile img { height:150px; }
+  .dark { background:var(--navy); } .dark b, .dark small, .dark code { color:#fff; }
+</style>
+</head>
+<body>
+<header><h1>SAND · ชุดแบรนด์</h1><p>ไอคอน 12 · มาสคอต 4 ท่า · ภาพเคลื่อนไหว 3 · โลโก้ — ไฟล์อยู่ที่ <code>assets/sand/</code></p></header>
+<main>
+<h2>ไอคอนระบบ</h2><p>192px (@2x) และ -96 (@1x) พื้นโปร่งใส · ใช้ .webp เป็นหลัก มี .png สำรอง</p>
+<div class="grid">
+<div class="tile"><img src="assets/sand/icons/vehicle.webp" alt="" width="84" height="84" loading="lazy"><b>ยานพาหนะ</b><code>icons/vehicle</code><small>การ์ดสถานะ "พร้อมใช้งาน"</small></div>
+<div class="tile"><img src="assets/sand/icons/fuel.webp" alt="" width="84" height="84" loading="lazy"><b>บันทึกน้ำมัน</b><code>icons/fuel</code><small>พร้อมใช้ (ยังไม่มีหน้าที่ตรงกัน)</small></div>
+<div class="tile"><img src="assets/sand/icons/odometer.webp" alt="" width="84" height="84" loading="lazy"><b>เลขไมล์</b><code>icons/odometer</code><small>startmile / editmile</small></div>
+<div class="tile"><img src="assets/sand/icons/inspect.webp" alt="" width="84" height="84" loading="lazy"><b>ตรวจสภาพรถ</b><code>icons/inspect</code><small>check · การ์ดรอตรวจ</small></div>
+<div class="tile"><img src="assets/sand/icons/repair.webp" alt="" width="84" height="84" loading="lazy"><b>แจ้งซ่อม</b><code>icons/repair</code><small>fixedcar</small></div>
+<div class="tile"><img src="assets/sand/icons/schedule.webp" alt="" width="84" height="84" loading="lazy"><b>ตารางเวร</b><code>icons/schedule</code><small>worktable</small></div>
+<div class="tile"><img src="assets/sand/icons/swap.webp" alt="" width="84" height="84" loading="lazy"><b>แลกเวร</b><code>icons/swap</code><small>swap · แท็บแลกเวร</small></div>
+<div class="tile"><img src="assets/sand/icons/ems.webp" alt="" width="84" height="84" loading="lazy"><b>งาน EMS</b><code>icons/ems</code><small>EMScheck · emsDashboard</small></div>
+<div class="tile"><img src="assets/sand/icons/route.webp" alt="" width="84" height="84" loading="lazy"><b>แผนที่เส้นทาง</b><code>icons/route</code><small>routemap · การ์ด "กำลังใช้งาน"</small></div>
+<div class="tile"><img src="assets/sand/icons/report.webp" alt="" width="84" height="84" loading="lazy"><b>รายงานสถิติ</b><code>icons/report</code><small>dashboard</small></div>
+<div class="tile"><img src="assets/sand/icons/alert.webp" alt="" width="84" height="84" loading="lazy"><b>แจ้งเตือน</b><code>icons/alert</code><small>linecontrol</small></div>
+<div class="tile"><img src="assets/sand/icons/settings.webp" alt="" width="84" height="84" loading="lazy"><b>ตั้งค่าระบบ</b><code>icons/settings</code><small>การ์ด "สถานะระบบ"</small></div>
+</div>
+<h2>ท่าทางมาสคอต</h2><p>ความสูง 240px พื้นโปร่งใส</p>
+<div class="grid">
+<div class="tile"><img src="assets/sand/poses/ok.webp" alt="" loading="lazy"><b>ok</b><small>ทักทาย / เริ่มวัน (แถบหน้าแรกบนมือถือ)</small></div>
+<div class="tile"><img src="assets/sand/poses/laptop.webp" alt="" loading="lazy"><b>laptop</b><small>เข้าสู่ระบบ (swap)</small></div>
+<div class="tile"><img src="assets/sand/poses/idea.webp" alt="" loading="lazy"><b>idea</b><small>ไม่มีข้อมูล (empty-state ทุกหน้า)</small></div>
+<div class="tile"><img src="assets/sand/poses/cheer.webp" alt="" loading="lazy"><b>cheer</b><small>บันทึกสำเร็จ (success modal)</small></div>
+</div>
+<h2>ภาพเคลื่อนไหว (WebP)</h2><p>ทุกไฟล์มี <code>-still.webp</code> ใช้คู่กับ prefers-reduced-motion</p>
+<div class="grid wide">
+<div class="tile"><img src="assets/sand/anim/wave.webp" alt="" loading="lazy"><b>wave</b><small>ทักทาย — hero หน้าแรก</small></div>
+<div class="tile"><img src="assets/sand/anim/loading.webp" alt="" loading="lazy"><b>loading</b><small>กำลังโหลด — .loading-state ทุกหน้า</small></div>
+<div class="tile"><img src="assets/sand/anim/alert.webp" alt="" loading="lazy"><b>alert</b><small>แจ้งเตือน — วิดเจ็ตรถยังไม่ตรวจ</small></div>
+</div>
+<h2>โลโก้และฉากหลัก</h2><p>ใช้บนพื้นสว่าง · ฉากหลักใช้ในหน้า README / สไลด์</p>
+<div class="grid wide">
+<div class="tile"><img src="assets/sand/logo/sand-logo.webp" alt="โลโก้ SAND" loading="lazy"><b>sand-logo</b></div>
+<div class="tile"><img src="assets/sand/hero/hero-scene.webp" alt="" loading="lazy"><b>hero-scene</b></div>
+<div class="tile dark"><img src="assets/sand/icons/ems.webp" alt="" width="84" height="84"><b>บนพื้นเข้ม</b><small>ไอคอนมีวงกลมพื้นอ่อนในตัว อ่านได้ทั้งสองธีม</small></div>
+</div>
+</main>
+</body>
+</html>

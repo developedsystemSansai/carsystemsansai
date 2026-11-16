@@ -1,0 +1,129 @@
+/* ============================================================
+   sand-brand.css — ชุดแบรนด์ SAND (มาสคอต/ไอคอน) + วิดเจ็ตแจ้งเตือนรถที่ยังไม่ตรวจ
+   โหลดหลัง secure-fetch.js ในทุกหน้า · ไม่แก้ CSS เดิมของหน้า (ใช้คลาส sand-* และ selector ที่เจาะจง)
+   ออกแบบมือถือก่อน (≥360px) แล้วค่อยขยายขึ้นจอใหญ่
+   ============================================================ */
+
+/* ---------- 1) วิดเจ็ตแจ้งเตือน: รถที่ยังไม่ตรวจสภาพ (ก่อน 10:00 น.) ---------- */
+.sand-nc {
+  position: fixed; z-index: 900;
+  right: max(var(--sand-nc-right, 12px), env(safe-area-inset-right));
+  bottom: max(var(--sand-nc-bottom, 12px), env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+  font-family: 'Noto Sans Thai', system-ui, sans-serif;
+  pointer-events: none;                    /* ให้คลิกทะลุช่องว่าง เฉพาะปุ่ม/การ์ดรับคลิก */
+}
+.sand-nc[hidden], .sand-nc-card[hidden] { display: none; }
+.sand-nc > * { pointer-events: auto; }
+
+.sand-nc-fab {
+  position: relative; width: 56px; height: 56px; padding: 0;
+  border: 2px solid #fff; border-radius: 50%;
+  background: #fff; cursor: pointer;
+  box-shadow: 0 4px 14px rgba(13, 33, 55, .28), 0 0 0 1px rgba(13, 33, 55, .08);
+  -webkit-tap-highlight-color: transparent;
+  transition: transform .15s ease;
+}
+.sand-nc-fab:active { transform: scale(.94); }
+.sand-nc-fab:focus-visible, .sand-nc-card button:focus-visible, .sand-nc-card a:focus-visible { outline: 3px solid #1d6fb5; outline-offset: 2px; }
+.sand-nc-fab img { width: 100%; height: 100%; border-radius: 50%; object-fit: contain; display: block; }
+.sand-nc-badge {
+  position: absolute; top: -6px; right: -6px; min-width: 22px; height: 22px; padding: 0 6px;
+  box-sizing: border-box; border: 2px solid #fff; border-radius: 11px;
+  background: #c0392b; color: #fff; font: 700 12px/18px 'Noto Sans Thai', sans-serif; text-align: center;
+}
+.sand-nc:not(.is-open) .sand-nc-fab::after {          /* คลื่นวงแหวนเรียกความสนใจเบา ๆ */
+  content: ''; position: absolute; inset: -2px; border-radius: 50%;
+  border: 2px solid rgba(192, 57, 43, .55); animation: sandNcPing 2.4s ease-out infinite; pointer-events: none;
+}
+@keyframes sandNcPing { 0% { transform: scale(1); opacity: .9; } 70%, 100% { transform: scale(1.45); opacity: 0; } }
+
+.sand-nc-card {
+  width: min(304px, calc(100vw - 24px)); max-height: min(60vh, 420px); overflow: auto;
+  background: #fff; border: 1px solid #d5dce8; border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(13, 33, 55, .22);
+  animation: sandNcIn .18s ease-out;
+}
+@keyframes sandNcIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.sand-nc-head { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; background: #fdf0e6; border-bottom: 1px solid #f3d9c2; border-radius: 16px 16px 0 0; }
+.sand-nc-head img { width: 48px; height: 40px; object-fit: contain; flex: none; }
+.sand-nc-head strong { display: block; font-size: 15px; line-height: 1.3; color: #9a3a05; }
+.sand-nc-head span { display: block; font-size: 12.5px; line-height: 1.4; color: #3d5168; }
+.sand-nc-head > div { flex: 1; min-width: 0; }
+.sand-nc-x { flex: none; width: 36px; height: 36px; border: 0; border-radius: 50%; background: transparent; color: #3d5168; font-size: 22px; line-height: 1; cursor: pointer; }
+.sand-nc-list { list-style: none; margin: 0; padding: 4px 14px; }
+.sand-nc-list li { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-bottom: 1px dashed #d5dce8; font-size: 14px; color: #182332; }
+.sand-nc-list li:last-child { border-bottom: 0; }
+.sand-nc-list b { font-weight: 600; }
+.sand-nc-list em { font-style: normal; font-size: 12.5px; color: #566b82; white-space: nowrap; }
+.sand-nc-more { margin: 0; padding: 0 14px 6px; font-size: 12.5px; color: #566b82; }
+.sand-nc-foot { display: flex; gap: 8px; padding: 10px 12px 12px; }
+.sand-nc-foot button, .sand-nc-foot a {
+  flex: 1; min-height: 44px; display: flex; align-items: center; justify-content: center;
+  border-radius: 12px; font: 600 14px 'Noto Sans Thai', sans-serif; text-decoration: none; cursor: pointer;
+}
+.sand-nc-foot button { background: #fff; color: #182332; border: 1px solid #b8c4d4; }
+.sand-nc-foot a { background: #0d2137; color: #fff; border: 1px solid #0d2137; }
+
+/* ---------- 2) มาสคอตในแถบ hero (หน้าแรก) ---------- */
+.sand-hero-mascot { position: absolute; right: 4px; bottom: -40px; width: 80px; pointer-events: none; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .3)); }
+.sand-hero-mascot img { display: block; width: 100%; height: auto; }
+@media (min-width: 720px) {
+  .sand-hero-mascot { position: static; flex: none; align-self: flex-end; width: 130px; margin: 0 0 -52px 4px; }
+}
+
+/* ---------- 3) แถบทักทายบนมือถือ (หน้าแรก) ---------- */
+.sand-greet {
+  display: flex; align-items: center; gap: 12px; margin: 0 0 14px; padding: 10px 14px 10px 10px;
+  background: #fff; border: 1px solid #d5dce8; border-radius: 16px; text-decoration: none; color: #182332;
+  -webkit-tap-highlight-color: transparent;
+}
+.sand-greet img { width: 56px; height: auto; flex: none; }
+.sand-greet b { display: block; font-size: 15px; line-height: 1.35; text-decoration: none; }
+.sand-greet span { display: block; font-size: 13px; line-height: 1.4; color: #3d5168; }
+@media (min-width: 720px) { .sand-greet { display: none; } }
+
+/* ---------- 4) ไอคอนในการ์ดเมนู / การ์ดสถานะ ---------- */
+.card-icon.sand-ico-wrap { background: transparent !important; width: 52px; height: 52px; }
+.card-icon.sand-ico-wrap img { width: 52px; height: 52px; object-fit: contain; display: block; }
+.stat-card:has(> .stat-ico) { position: relative; }
+.stat-ico { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; object-fit: contain; }
+.sand-inline-ico { width: 22px; height: 22px; vertical-align: -6px; margin-right: 6px; object-fit: contain; }
+
+/* ---------- 5) ไอคอนประจำหน้า ใน header สีเข้ม (กระเบื้องขาวมุมมน เหมือนโลโก้ รพ.) ---------- */
+.sand-page-ico {
+  width: 38px; height: 38px; flex: none; box-sizing: border-box; padding: 3px; object-fit: contain;
+  background: #fff; border-radius: 11px; box-shadow: 0 2px 6px rgba(0, 0, 0, .25);
+}
+.sand-page-ico.is-inline { width: 30px; height: 30px; margin-right: 8px; vertical-align: middle; }
+@media (max-width: 380px) { .sand-page-ico { width: 32px; height: 32px; border-radius: 9px; } }
+
+/* ---------- 6) โหลด / ว่าง / สำเร็จ (ครอบคลุมทุกหน้าด้วยคลาสเดิม) ---------- */
+.loading-state .spinner-sm { display: none !important; }
+.loading-state::before {
+  content: ''; display: block; width: 88px; height: 80px; margin: 0 auto 6px;
+  background: url(assets/sand/anim/loading.webp) center / contain no-repeat;
+}
+.empty-state .em { display: none; }
+.empty-state::before {
+  content: ''; display: block; width: 52px; height: 70px; margin: 0 auto 8px;
+  background: url(assets/sand/poses/idea.webp) center / contain no-repeat; opacity: .95;
+}
+.modal-icon svg { display: none; }
+.modal-icon { height: 96px; font-size: 0; }
+.modal-icon::before {
+  content: ''; display: block; width: 100%; height: 100%;
+  background: url(assets/sand/poses/cheer.webp) center / contain no-repeat;
+}
+
+/* ---------- 7) หน้าเข้าสู่ระบบแลกเวร + ทรานซิชัน ---------- */
+.sand-login-mascot { width: 88px; height: auto; margin: -2px 0 6px; }
+.login-wrap:has(.sand-login-mascot) .login-icon-logo { display: none; }
+.swap-transition-icon.sand-swap-img { width: 52px; height: 52px; margin-bottom: 18px; color: initial; }
+
+/* เว้นที่ท้ายหน้าให้เลื่อนเนื้อหาพ้นปุ่มลอยได้ (ไม่มีส่วนไหนถูกบังถาวร) */
+html.sand-nc-on body { padding-bottom: 84px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sand-nc:not(.is-open) .sand-nc-fab::after, .sand-nc-card { animation: none; }
+}
