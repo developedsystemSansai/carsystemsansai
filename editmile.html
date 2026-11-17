@@ -424,8 +424,13 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
         <div class="form-group span2" style="border-top:1.5px dashed var(--border); padding-top:12px; margin-top:2px;">
           <label style="color:var(--teal); font-weight:700;">🛢️ ข้อมูลน้ำมัน (กรอกเพื่อลงบิลย้อนหลัง ถ้ายังไม่มี)</label>
         </div>
-        <div class="form-group"><label>น้ำมันที่เติม (ลิตร)</label><input type="number" id="edFuelLiters" min="0" max="500" step="0.01" placeholder="เช่น 25.5"></div>
-        <div class="form-group"><label>ราคาน้ำมัน (บาท)</label><input type="number" id="edFuelPrice" min="0" step="1" placeholder="เช่น 950"></div>
+        <div class="form-group span2" style="font-size:12px; font-weight:700; color:var(--text-mid);">⬆️ เติมตอนออกรถ</div>
+        <div class="form-group"><label>น้ำมันที่เติม (ลิตร)</label><input type="number" id="edFuelLiters" min="0" max="500" step="0.01" placeholder="เช่น 25.5" oninput="updateFuelTotal()"></div>
+        <div class="form-group"><label>ราคาน้ำมัน (บาท)</label><input type="number" id="edFuelPrice" min="0" step="1" placeholder="เช่น 950" oninput="updateFuelTotal()"></div>
+        <div class="form-group span2" style="font-size:12px; font-weight:700; color:var(--text-mid);">⬇️ เติมตอนกลับ (คอลัมน์ "ลิตรเติมขากลับ" / "ราคาเติมขากลับ" — หน้าประวัติรวมกับตอนออกแสดงเป็นยอดเดียว)</div>
+        <div class="form-group"><label>ลิตรที่เติมตอนกลับ</label><input type="number" id="edRetFuelLiters" min="0" max="500" step="0.01" placeholder="เช่น 24.08" oninput="updateFuelTotal()"></div>
+        <div class="form-group"><label>ราคาที่เติมตอนกลับ (บาท)</label><input type="number" id="edRetFuelPrice" min="0" step="1" placeholder="เช่น 1000" oninput="updateFuelTotal()"></div>
+        <div class="form-group span2" id="edFuelTotal" style="font-size:12.5px; font-weight:700; color:var(--success); display:none;"></div>
         <div class="form-group span2" id="edFuelHint" style="display:none; font-size:12.5px; font-weight:600; color:var(--amber); background:var(--amber-soft); padding:7px 10px; border-radius:var(--radius-sm);"></div>
         <label class="form-group span2" style="flex-direction:row; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:var(--text-mid); cursor:pointer;"><input type="checkbox" id="edNoFuel" onchange="toggleEdNoFuel()" style="width:16px; height:16px; padding:0;"> ไม่ได้เติมน้ำมันจริงในทริปนี้ (บันทึกเป็น "ไม่เติม")</label>
         <div class="form-group span2" style="font-size:12px; color:var(--text-light);">💡 ถ้ามีรูปบิลน้ำมันด้วย ให้แนบเพิ่มได้จากแท็บ "รูปบิลน้ำมันออกรถ / ขากลับ" ด้านล่าง</div>
@@ -700,6 +705,8 @@ function resetTripFilters() {
 // ทริปถือว่า "ยังไม่ลงน้ำมัน" เมื่อยังไม่มีลิตรบันทึกไว้ (ไม่สนใจสถานะทริป — ให้เห็นครบทุกแถวในตาราง)
 function tripHasNoFuel(t) {
   const k = fuelKind(t['น้ำมันที่เติม(ลิตร)']);
+  if (k === 'nofuel') return false;
+  if (tripFuel(t).liters) return false;     // มีลิตรตอนออก "หรือ" ตอนกลับ ถือว่าลงน้ำมันแล้ว
   return k === 'empty' || k === 'marker';   // 'auto' = ไปปั๊มแล้วแต่ยังไม่มีลิตรจริง ก็ยังค้างลงบิล
 }
 
@@ -759,7 +766,12 @@ function renderTrips() {
     const liters = t['น้ำมันที่เติม(ลิตร)'];
     const price = t['ราคาน้ำมัน(บาท)'];
     const fkind = fuelKind(liters);
-    const fuelCell = fkind === 'marker'
+    const tf = tripFuel(t);
+    const fuelCell = fkind === 'nofuel'
+      ? '<span style="color:var(--text-light); font-weight:600; font-size:12px;">ไม่ได้เติม</span>'
+      : (tf.liters || tf.price)
+      ? '<span style="color:' + ((tf.liters && tf.price) ? 'var(--success)' : 'var(--amber)') + '; font-weight:600; font-size:12.5px;">' + (tf.liters ? tf.liters.toLocaleString('th-TH', { maximumFractionDigits: 2 }) + ' ล.' : 'ไม่ระบุลิตร') + ' · ' + (tf.price ? tf.price.toLocaleString('th-TH') + ' บ.' : 'ไม่ระบุราคา') + '</span>'
+      : fkind === 'marker'
       ? '<span style="color:var(--amber); font-weight:600; font-size:12px; background:var(--amber-soft); padding:2px 7px; border-radius:20px;">ไปปั๊ม · รอกรอกลิตร</span>'
       : fkind === 'nofuel'
       ? '<span style="color:var(--text-light); font-weight:600; font-size:12px;">ไม่ได้เติม</span>'
@@ -939,11 +951,29 @@ function toHM(v) {
   return m ? (m[1].padStart(2, '0') + ':' + m[2]) : '';
 }
 let editingFuelRaw = '';
+const RET_L = 'ลิตรเติมขากลับ', RET_P = 'ราคาเติมขากลับ(บาท)';
+function numF(v) { const x = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return x > 0 ? x : 0; }
+// ยอดน้ำมันรวมของทริป = ตอนออก + ตอนกลับ (ตรรกะเดียวกับ getTripFuel ใน startmile.html ที่หน้าประวัติใช้แสดง)
+function tripFuel(t) {
+  return {
+    liters: numF(t['น้ำมันที่เติม(ลิตร)'] || t.fuelLiters) + numF(t[RET_L]),
+    price : numF(t['ราคาน้ำมัน(บาท)'] || t['ราคาน้ำมัน'] || t.fuelPrice) + numF(t[RET_P])
+  };
+}
 function toggleEdNoFuel() {
   const on = document.getElementById('edNoFuel').checked;
-  const l = document.getElementById('edFuelLiters'), pr = document.getElementById('edFuelPrice');
-  l.disabled = on; pr.disabled = on;
-  if (on) { l.value = ''; pr.value = ''; }
+  ['edFuelLiters', 'edFuelPrice', 'edRetFuelLiters', 'edRetFuelPrice'].forEach(id => {
+    const el = document.getElementById(id); el.disabled = on; if (on) el.value = '';
+  });
+  updateFuelTotal();
+}
+function updateFuelTotal() {
+  const el = document.getElementById('edFuelTotal'); if (!el) return;
+  const g = id => numF(document.getElementById(id).value);
+  const l = g('edFuelLiters') + g('edRetFuelLiters'), pr = g('edFuelPrice') + g('edRetFuelPrice');
+  if (!l && !pr) { el.style.display = 'none'; return; }
+  el.style.display = 'block';
+  el.textContent = 'รวมทั้งทริป: ' + (l ? l.toLocaleString('th-TH', { maximumFractionDigits: 2 }) + ' ลิตร' : 'ยังไม่ระบุลิตร') + ' · ' + (pr ? '฿' + pr.toLocaleString('th-TH') : 'ยังไม่ระบุราคา');
 }
 
 function openEditModal(tripId, focusFuel) {
@@ -964,7 +994,9 @@ function openEditModal(tripId, focusFuel) {
     'ราคาน้ำมัน(บาท)'    : t['ราคาน้ำมัน(บาท)'] || '',
     'เวลาออก'      : toHM(t['เวลาออก']),
     'เวลากลับ'     : toHM(t['เวลากลับ']),
-    'จุดขอใช้รถ'   : t['จุดขอใช้รถ'] || ''
+    'จุดขอใช้รถ'   : t['จุดขอใช้รถ'] || '',
+    [RET_L]        : t[RET_L] == null ? '' : t[RET_L],
+    [RET_P]        : t[RET_P] == null ? '' : t[RET_P]
   };
   editingFuelRaw = t['น้ำมันที่เติม(ลิตร)'] == null ? '' : t['น้ำมันที่เติม(ลิตร)'];
 
@@ -988,10 +1020,14 @@ function openEditModal(tripId, focusFuel) {
   const fk = fuelKind(editingFuelRaw);
   document.getElementById('edFuelLiters').value = fk === 'num' ? editingFuelRaw : '';
   document.getElementById('edFuelPrice').value = editingOldValues['ราคาน้ำมัน(บาท)'];
+  document.getElementById('edRetFuelLiters').value = editingOldValues[RET_L];
+  document.getElementById('edRetFuelPrice').value = editingOldValues[RET_P];
   document.getElementById('edNoFuel').checked = (fk === 'nofuel');
   toggleEdNoFuel();
+  if (fk === 'nofuel') { /* toggle ล้างช่องแล้ว */ } else { updateFuelTotal(); }
   const hint = document.getElementById('edFuelHint');
-  if (fk === 'marker') {
+  // เตือนเฉพาะเมื่อ marker 'auto' และยังไม่มีลิตรตอนกลับ/ตอนออกจริง (ไม่งั้นหน้านี้จะขัดกับหน้าประวัติที่รวมสองชุด)
+  if (fk === 'marker' && !tripFuel(t).liters) {
     hint.style.display = 'block';
     hint.textContent = '⚠️ ระบบตรวจพบว่าทริปนี้ไปปั๊มน้ำมัน (ค่าในชีท: "' + String(editingFuelRaw) + '") แต่ยังไม่มีจำนวนลิตรจริง — กรอกลิตร/ราคาเพื่อลงบิล หรือติ๊ก "ไม่ได้เติมน้ำมันจริง"';
   } else { hint.style.display = 'none'; hint.textContent = ''; }
@@ -1255,7 +1291,9 @@ async function submitEdit() {
     'ราคาน้ำมัน(บาท)'    : document.getElementById('edNoFuel').checked ? '' : document.getElementById('edFuelPrice').value.trim(),
     'เวลาออก'      : document.getElementById('edTimeOut').value,
     'เวลากลับ'     : document.getElementById('edTimeIn').value,
-    'จุดขอใช้รถ'   : document.getElementById('edPickup').value.trim()
+    'จุดขอใช้รถ'   : document.getElementById('edPickup').value.trim(),
+    [RET_L]        : document.getElementById('edRetFuelLiters').value.trim(),
+    [RET_P]        : document.getElementById('edRetFuelPrice').value.trim()
   };
 
   // ตรวจให้ตรงกับ validateMileFields_ ใน Code.gs ก่อนส่ง (ไม่ต้องรอ round-trip แล้วโดนตีกลับ)
@@ -1265,8 +1303,15 @@ async function submitEdit() {
     if (lit !== '' && (isNaN(Number(lit)) || Number(lit) < 0)) { showToast('จำนวนลิตรต้องเป็นตัวเลขไม่ติดลบ', 'err'); return; }
     if (lit !== '' && Number(lit) > 500) { showToast('จำนวนลิตรสูงผิดปกติ (>500) กรุณาตรวจสอบอีกครั้ง', 'err'); return; }
     if (prc !== '' && (isNaN(Number(prc)) || Number(prc) < 0)) { showToast('ราคาน้ำมันต้องเป็นตัวเลขไม่ติดลบ', 'err'); return; }
+    const rl = newValues[RET_L], rp = newValues[RET_P];
+    if (rl !== '' && (isNaN(Number(rl)) || Number(rl) < 0)) { showToast('ลิตรตอนกลับต้องเป็นตัวเลขไม่ติดลบ', 'err'); return; }
+    if (rl !== '' && Number(rl) > 500) { showToast('ลิตรตอนกลับสูงผิดปกติ (>500) กรุณาตรวจสอบอีกครั้ง', 'err'); return; }
+    if (rp !== '' && (isNaN(Number(rp)) || Number(rp) < 0)) { showToast('ราคาตอนกลับต้องเป็นตัวเลขไม่ติดลบ', 'err'); return; }
+    if (rl !== '' && Number(rl) === 0 && Number(rp) > 0) { showToast('กรอกราคาตอนกลับแล้วแต่ลิตร = 0 — ตรวจสอบอีกครั้ง', 'err'); return; }
     if (lit !== '' && Number(lit) === 0 && Number(prc) > 0) { showToast('กรอกราคาแล้วแต่ลิตร = 0 — ตรวจสอบจำนวนลิตรอีกครั้ง (ถ้าไม่ได้เติมจริงให้ติ๊ก "ไม่ได้เติมน้ำมันจริง")', 'err'); return; }
   }
+  if (nf && (numF(editingOldValues[RET_L]) || numF(editingOldValues[RET_P])) &&
+      !confirm('ทริปนี้มีน้ำมันตอนกลับบันทึกไว้แล้ว (' + (editingOldValues[RET_L] || '-') + ' ลิตร / ' + (editingOldValues[RET_P] || '-') + ' บาท)\nการติ๊ก "ไม่ได้เติมน้ำมันจริง" จะลบค่านี้ทิ้ง ต้องการทำต่อหรือไม่?')) return;
   // เตือน (ไม่บล็อก) เมื่อสถานะกับเลขไมล์ปลายขัดกัน — ข้อมูลที่ขัดกันทำให้ dashboard/startmile แสดงสถานะรถผิด
   const stNew = newValues['สถานะ'], hasEnd = newValues['เลขไมล์ปลาย'] !== '';
   if (stNew === 'พร้อมใช้งาน' && !hasEnd && !confirm('สถานะ "พร้อมใช้งาน (กลับแล้ว)" แต่ยังไม่มีเลขไมล์ปลาย\nต้องการบันทึกต่อหรือไม่?')) return;
@@ -1283,7 +1328,7 @@ async function submitEdit() {
       if (fk0 === 'marker')      changed = (nv !== '');                 // marker 'auto' ค้างอยู่ → แก้เมื่อกรอกจริง/ติ๊ก "ไม่เติม" เท่านั้น
       else if (fk0 === 'nofuel') changed = (nv !== 'ไม่เติม');
       else                       changed = (nv !== String(editingFuelRaw === 0 ? '0' : (editingFuelRaw || '')));
-    } else if (k === 'ราคาน้ำมัน(บาท)') {
+    } else if (k === 'ราคาน้ำมัน(บาท)' || k === RET_L || k === RET_P) {
       changed = (nv !== String(editingOldValues[k] || ''));
     } else {
       changed = (nv !== String(editingOldValues[k] || ''));
@@ -1557,7 +1602,8 @@ const FIELD_LABELS = {
   'ปลายทาง': 'ปลายทาง', 'เลขไมล์ต้น': 'เลขไมล์ต้น', 'เลขไมล์ปลาย': 'เลขไมล์ปลาย',
   'ระยะทาง(กม.)': 'ระยะทาง(กม.)', 'สถานะ': 'สถานะ', 'หมายเหตุ': 'หมายเหตุ',
   'น้ำมันที่เติม(ลิตร)': 'น้ำมันที่เติม (ลิตร)', 'ราคาน้ำมัน(บาท)': 'ราคาน้ำมัน (บาท)',
-  'เวลาออก': 'เวลาออก', 'เวลากลับ': 'เวลากลับ', 'จุดขอใช้รถ': 'จุดขอใช้รถ'
+  'เวลาออก': 'เวลาออก', 'เวลากลับ': 'เวลากลับ', 'จุดขอใช้รถ': 'จุดขอใช้รถ',
+  'ลิตรเติมขากลับ': 'ลิตรที่เติมตอนกลับ', 'ราคาเติมขากลับ(บาท)': 'ราคาที่เติมตอนกลับ (บาท)'
 };
 
 function renderPendingEdits(list) {
