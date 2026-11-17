@@ -38,7 +38,7 @@
   }
 
   class SandMascotProgress extends HTMLElement {
-    static get observedAttributes(){ return ['value','max','label','detail','variant','mascot-size','show-value','show-percent','animated']; }
+    static get observedAttributes(){ return ['value','max','label','detail','variant','mascot-size','show-value','show-percent','animated','segments','unit']; }
     constructor(){ super(); this.attachShadow({mode:'open'}); }
     connectedCallback(){ this.render(); }
     attributeChangedCallback(){ if(this.isConnected) this.render(); }
@@ -56,6 +56,15 @@
       const showValue=this.hasAttribute('show-value')||this.hasAttribute('show-percent');
       const animated=this.hasAttribute('animated');
       const complete=pct>=100;
+      // segments="N" → แสดงเป็นช่องแยก N ช่อง (1 ช่อง = 1 หน่วย เช่น 1 คัน) แทนแท่งยาวต่อเนื่อง
+      const rawSeg=Number(this.getAttribute('segments')||0);
+      const segs=Number.isFinite(rawSeg)&&rawSeg>=2&&rawSeg<=40?Math.floor(rawSeg):0;
+      const filled=segs?Math.round(value/max*segs):0;
+      const runPct=segs?Math.round(filled/segs*1000)/10:pct;
+      const unit=this.escape(this.getAttribute('unit')||'');
+      const color=({primary:'#2563eb',purple:'#7650b8',success:'#16834a',warning:'#e3a008',danger:'#c93636'})[variant];
+      const segHtml=segs?`<div class="segs">${Array.from({length:segs},(_,i)=>`<i class="seg${i<filled?' on':''}${animated&&filled<segs&&i===filled?' next':''}"></i>`).join('')}</div>`:'';
+      const headVal=segs?`${value} / ${max}${unit?' '+unit:''}`:`${pct}%`;
       this.setAttribute('role','progressbar'); this.setAttribute('aria-label',this.getAttribute('label')||'ความคืบหน้า');
       this.setAttribute('aria-valuemin','0'); this.setAttribute('aria-valuemax',String(max)); this.setAttribute('aria-valuenow',String(value));
       this.shadowRoot.innerHTML=`<style>
@@ -67,16 +76,21 @@
         .track{position:absolute;left:0;right:0;bottom:7px;height:9px;border-radius:99px;background:#e9eef6;overflow:hidden}
         .bar{height:100%;width:${pct}%;border-radius:inherit;transition:width .65s cubic-bezier(.2,.8,.2,1);background:${({primary:'#2563eb',purple:'#7650b8',success:'#16834a',warning:'#e3a008',danger:'#c93636'})[variant]};position:relative}
         .bar.animated:after{content:'';position:absolute;inset:0;background:linear-gradient(105deg,transparent 25%,#ffffff66 50%,transparent 75%);transform:translateX(-100%);animation:shine 2.4s infinite}
-        .runner{position:absolute;bottom:9px;left:clamp(0px,calc(${pct}% - ${mascotSize/2}px),calc(100% - ${mascotSize}px));width:${mascotSize}px;height:${mascotSize}px;object-fit:contain;transition:left .65s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 2px 2px #142d5920);pointer-events:none}
+        .runner{position:absolute;bottom:9px;left:clamp(0px,calc(${runPct}% - ${mascotSize/2}px),calc(100% - ${mascotSize}px));width:${mascotSize}px;height:${mascotSize}px;object-fit:contain;transition:left .65s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 2px 2px #142d5920);pointer-events:none}
         .finish{position:absolute;right:0;bottom:0;width:2px;height:17px;border-radius:2px;background:#b9c5d8}
+        .segs{position:absolute;left:0;right:0;bottom:6px;height:11px;display:flex;gap:4px}
+        .seg{flex:1;min-width:0;border-radius:99px;background:#e9eef6;transition:background .35s}
+        .seg.on{background:${color}}
+        .seg.next{background:${color}33;animation:blink 1.5s ease-in-out infinite}
+        @keyframes blink{50%{background:${color}73}}
         .meta{margin-top:2px;color:var(--sand-muted,#687891);font-size:.75rem;flex-wrap:wrap}
         .done{color:var(--sand-success,#16834a);font-weight:750}
         @keyframes shine{to{transform:translateX(100%)}}
-        @media(prefers-reduced-motion:reduce){.bar,.runner{transition:none}.bar.animated:after{animation:none}}
+        @media(prefers-reduced-motion:reduce){.bar,.runner,.seg{transition:none}.bar.animated:after,.seg.next{animation:none}}
       </style>
-      <div class="head">${label?`<span class="label">${label}</span>`:'<span></span>'}${showValue?`<span class="value">${pct}%</span>`:''}</div>
-      <div class="stage"><div class="track"><div class="bar ${animated?'animated':''}"></div></div><span class="finish" aria-hidden="true"></span><picture><source media="(prefers-reduced-motion: reduce)" srcset="${ASSET}sand-mascot-run-static.png"><img class="runner" src="${ASSET}sand-mascot-run.gif" alt="มาสคอต SAND กำลังพาความคืบหน้า" draggable="false"></picture></div>
-      ${(detail||complete)?`<div class="meta"><span>${detail}</span><span class="${complete?'done':''}">${complete?'✓ เสร็จสมบูรณ์':`${value} / ${max}`}</span></div>`:''}`;
+      <div class="head">${label?`<span class="label">${label}</span>`:'<span></span>'}${showValue?`<span class="value">${headVal}</span>`:''}</div>
+      <div class="stage">${segs?segHtml:`<div class="track"><div class="bar ${animated?'animated':''}"></div></div><span class="finish" aria-hidden="true"></span>`}<picture><source media="(prefers-reduced-motion: reduce)" srcset="${ASSET}sand-mascot-run-static.png"><img class="runner" src="${ASSET}sand-mascot-run.gif" alt="มาสคอต SAND กำลังพาความคืบหน้า" draggable="false"></picture></div>
+      ${(detail||complete)?`<div class="meta"><span>${detail}</span><span class="${complete?'done':''}">${complete?'✓ เสร็จสมบูรณ์':(segs?'':`${value} / ${max}`)}</span></div>`:''}`;
     }
   }
 
