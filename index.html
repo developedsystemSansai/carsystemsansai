@@ -540,6 +540,104 @@
   }
   .vehicle-mini:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
 
+  /* เอียงตามเมาส์เบาๆ (ปรับจาก Order Tracking Parallax Card) — เปิดเฉพาะอุปกรณ์ที่มีเมาส์ และปิดเมื่อผู้ใช้ตั้งค่า Reduce Motion */
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .vehicle-mini {
+      transform: perspective(800px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+      transition: box-shadow .15s, transform .12s ease-out;
+    }
+    .vehicle-mini:hover {
+      transform: perspective(800px) translateY(-1px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    }
+    .vehicle-mini::after {
+      content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+      background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.38), transparent 55%);
+      transition: opacity .15s;
+    }
+    .vehicle-mini:hover::after { opacity: 1; }
+  }
+
+  .vehicle-mini[data-plate] { cursor: pointer; }
+  .vehicle-mini[data-plate]:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  /* ── หน้าต่างรายละเอียดรถ (กดการ์ดแล้วเด้ง) — ปรับจาก Order Tracking Parallax Card ── */
+  .vp-overlay {
+    position: fixed; inset: 0; z-index: 1000;
+    display: none; align-items: center; justify-content: center;
+    padding: 18px; overflow: auto;
+    background: rgba(13,33,55,.55);
+    -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  }
+  .vp-overlay.open { display: flex; }
+  .vp-stage { margin: auto; perspective: 1100px; animation: vpIn .22s cubic-bezier(.2,.8,.2,1); }
+  @keyframes vpIn { from { opacity: 0; transform: translateY(14px) scale(.96); } to { opacity: 1; transform: none; } }
+  .vp-card {
+    --vp-accent: #94a3b8; --vp-ink: #3d5168;
+    position: relative; width: min(340px, calc(100vw - 36px));
+    padding: 22px 18px 18px; text-align: center;
+    background: var(--card); border: 1px solid var(--border); border-radius: 22px;
+    box-shadow: 0 28px 70px rgba(13,33,55,.4);
+    transform-style: preserve-3d;
+    transform: rotateX(var(--vrx, 0deg)) rotateY(var(--vry, 0deg));
+    transition: transform .12s ease-out;
+  }
+  .vp-card[data-state="inuse"]  { --vp-accent: #d99200; --vp-ink: #7a4800; }
+  .vp-card[data-state="ready"]  { --vp-accent: #16a34a; --vp-ink: #065f3a; }
+  .vp-card[data-state="repair"] { --vp-accent: #f97316; --vp-ink: #9a3412; }
+  .vp-close {
+    position: absolute; top: 10px; right: 10px; width: 30px; height: 30px;
+    border: 0; border-radius: 50%; background: var(--bg2); color: var(--text-mid);
+    font-size: 14px; line-height: 1; cursor: pointer; z-index: 2;
+  }
+  .vp-close:hover { background: var(--border); }
+  .vp-close:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .vp-img img {
+    display: block; margin: 0 auto; width: 132px; height: 132px; object-fit: contain;
+    filter: drop-shadow(0 10px 12px rgba(13,33,55,.18));
+    animation: vpFloat 3.6s ease-in-out infinite;
+  }
+  @keyframes vpFloat { 50% { transform: translateY(-5px); } }
+  .vp-plate {
+    margin-top: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 22px; font-weight: 700;
+    color: var(--navy, #142d59); letter-spacing: .04em;
+  }
+  .vp-plate .ems-badge { margin-left: 8px; vertical-align: middle; }
+  .vp-type { margin-top: 2px; font-size: 13px; color: var(--text-light); }
+  .vp-pill {
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 10px;
+    padding: 5px 12px; border-radius: 999px; font-size: 12.5px; font-weight: 700;
+  }
+  .vp-pill i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .vp-pill.is-inuse  { background: #fff3cd; color: #7a4800; border: 1px solid rgba(192,122,0,.30); }
+  .vp-pill.is-ready  { background: #d1fae5; color: #065f3a; border: 1px solid rgba(26,138,74,.30); }
+  .vp-pill.is-wait   { background: var(--bg2); color: var(--text-mid); border: 1px solid var(--border); }
+  .vp-pill.is-repair { background: #ffedd5; color: #9a3412; border: 1px solid rgba(212,88,10,.3); }
+  .vp-line { margin-top: 8px; font-size: 12.5px; line-height: 1.5; color: var(--text-mid); word-break: break-word; }
+  .vp-details { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; text-align: left; }
+  .vp-details:empty { display: none; }
+  .vp-tile { min-width: 0; padding: 7px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; }
+  .vp-tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  .vp-tile b { display: block; font-size: 10.5px; font-weight: 600; color: var(--text-light); }
+  .vp-tile span { display: block; font-size: 12.5px; font-weight: 700; color: var(--text); word-break: break-word; }
+  .vp-tile.ok span { color: #065f3a; } .vp-tile.warn span { color: #b45309; } .vp-tile.bad span { color: #b91c1c; }
+  .vp-track { margin-top: 16px; }
+  .vp-steps { display: flex; gap: 4px; font-size: 10.5px; font-weight: 600; line-height: 1.3; color: var(--text-light); }
+  .vp-steps span { flex: 1; text-align: center; }
+  .vp-steps span.cur { color: var(--vp-ink); font-weight: 800; }
+  .vp-bars { display: flex; gap: 4px; margin-top: 5px; }
+  .vp-bars i { flex: 1; height: 5px; border-radius: 99px; background: var(--bg2); transition: background .3s; }
+  .vp-bars i.on { background: var(--vp-accent); }
+  @media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+    .vp-img     { transform: translateZ(55px) translate(calc(var(--vx, 0) * -8px), calc(var(--vy, 0) * -8px)); }
+    .vp-info    { transform: translateZ(28px); }
+    .vp-details { transform: translateZ(18px); }
+    .vp-track   { transform: translateZ(40px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .vp-stage, .vp-img img { animation: none; }
+    .vp-card { transition: none; }
+  }
+
   /* ── Status variants — high contrast ── */
   .vehicle-mini.vm-inuse {
     border-left-color: var(--amber);
@@ -1005,7 +1103,7 @@
 
   <!-- ความคืบหน้าการตรวจสภาพรถวันนี้ (มาสคอต SAND วิ่งตามความคืบหน้า) -->
   <div class="inspect-progress" id="inspectProgressCard" hidden>
-    <sand-mascot-progress id="inspectProgress" label="ตรวจสภาพรถวันนี้" value="0" max="1" show-value></sand-mascot-progress>
+    <sand-mascot-progress id="inspectProgress" label="ตรวจสภาพรถวันนี้" value="0" max="2" segments="2" unit="คัน" show-value></sand-mascot-progress>
   </div>
 
   <!-- Vehicle status section: loading bar + grouped cards -->
@@ -1375,6 +1473,27 @@
   Frontend: GitHub Pages &nbsp;·&nbsp; Backend: Google Apps Script &nbsp;·&nbsp; Database: Google Sheets
 </footer>
 
+<!-- ── หน้าต่างรายละเอียดรถ (กดการ์ดรถ) ── -->
+<div class="vp-overlay" id="vpOverlay" aria-hidden="true">
+  <div class="vp-stage">
+    <div class="vp-card" id="vpCard" role="dialog" aria-modal="true" aria-labelledby="vpPlate" data-state="wait">
+      <button type="button" class="vp-close" id="vpClose" aria-label="ปิด">&#x2715;</button>
+      <div class="vp-img"><img id="vpImg" src="assets/sand/icons/vehicle.webp" alt="" width="132" height="132" decoding="async"></div>
+      <div class="vp-info">
+        <h2 class="vp-plate" id="vpPlate"></h2>
+        <p class="vp-type" id="vpType"></p>
+        <span class="vp-pill" id="vpPill"></span>
+        <p class="vp-line" id="vpLine"></p>
+      </div>
+      <div class="vp-details" id="vpDetails"></div>
+      <div class="vp-track">
+        <div class="vp-steps" id="vpSteps"><span>ตรวจสภาพ</span><span>พร้อมใช้งาน</span><span>ออกปฏิบัติงาน</span><span>กลับแล้ว</span></div>
+        <div class="vp-bars" id="vpBars"><i></i><i></i><i></i><i></i></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── FAQ MODAL ── -->
 <div class="modal-overlay" id="faqModal" onclick="closeFAQOutside(event)">
   <div class="modal-box">
@@ -1658,10 +1777,11 @@ function updateInspectProgress(json) {
   const variant = nc === 0 ? 'success' : nc <= 3 ? 'warning' : 'danger';
   const detail  = nc === 0
     ? 'ตรวจครบทุกคันแล้ว'
-    : 'ตรวจแล้ว ' + checked + ' จาก ' + total + ' คัน · เหลืออีก ' + nc + ' คัน';
+    : 'ยังไม่ได้ตรวจ ' + nc + ' คัน · ตรวจก่อน 10:00 น.';
   // component วาดใหม่ทุกครั้งที่เปลี่ยน attribute → เซ็ตเฉพาะค่าที่เปลี่ยนจริง กันมาสคอตกะพริบ
   const set = (k, v) => { if (bar.getAttribute(k) !== String(v)) bar.setAttribute(k, v); };
-  set('max', total); set('variant', variant); set('detail', detail); set('value', checked);
+  // 1 ช่อง = 1 คัน (component รองรับสูงสุด 40 ช่อง ถ้ามากกว่านั้นจะกลับไปเป็นแท่งต่อเนื่อง)
+  set('max', total); set('segments', total); set('variant', variant); set('detail', detail); set('value', checked);
   if (nc > 0) { if (!bar.hasAttribute('animated')) bar.setAttribute('animated', ''); }
   else bar.removeAttribute('animated');
   card.hidden = false;
@@ -1669,6 +1789,7 @@ function updateInspectProgress(json) {
 
 function renderVehicleCards(json) {
   updateInspectProgress(json);
+  window._vehInfo = {};
   // ── sync ALL_VEHICLES จาก vehicles meta ที่ GAS ส่งมา ──────────────
 
   // อัปเดต sheetStatus/sheetDriver/sheetDest เพื่อนำมา fallback แสดงสถานะ
@@ -1941,7 +2062,72 @@ function renderVehicleCards(json) {
     if (fullDriver) titleParts.push('พขร.: ' + fullDriver);
     const titleAttr = titleParts.length ? ' title="' + titleParts.join(' | ').replace(/"/g,'&quot;') + '"' : '';
 
-    return '<div class="vehicle-mini ' + vmClass + '"' + titleAttr + '>' + (json.tripCounts ? '<span class="vm-trips" title="จำนวนเที่ยววันนี้"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16M6.5 19v-3M17.5 19v-3"/></svg> ' + (json.tripCounts[plateKey] || 0) + ' เที่ยว</span>' : '')         + '<div class="vm-plate">' + plateKey + emsBadge + '</div>'         + '<div class="vm-type">' + v.type + '</div>'         + statusHtml         + '<div class="vm-sub">' + chkSub + '</div>'         + lastDrvHtml         + fuelMarkHtml         + oxygenMarkHtml         + '</div>';
+    // ── เก็บข้อมูลไว้ให้หน้าต่างรายละเอียด (กดการ์ด) — ใช้ข้อมูลชุดเดียวกับการ์ด ไม่เรียก API เพิ่ม ──
+    (function () {
+      const x       = isInUse ? inUseMap[inUseKey] : null;
+      const trips   = (json.tripCounts || {})[plateKey] || 0;
+      const repair  = sheetStatus === 'รอซ่อม' || sheetStatus === 'ส่งซ่อม';
+      // state ลำดับเดียวกับการ์ดด้านบน: inuse > ready(ตรวจแล้ว) > sheet inuse > sheet ready > repair > wait
+      let state;
+      if (isInUse) state = 'inuse';
+      else if (isChecked) state = 'ready';
+      else if (sheetStatus === 'กำลังใช้งาน') state = 'inuse';
+      else if (sheetStatus === 'พร้อมใช้งาน') state = 'ready';
+      else if (repair) state = 'repair';
+      else state = 'wait';
+      // 4 ขั้น: 1 ตรวจสภาพ → 2 พร้อมใช้งาน → 3 ออกปฏิบัติงาน → 4 กลับแล้ว
+      const step = state === 'inuse' ? 3
+                 : state === 'ready' ? ((trips > 0 || isFueled) ? 4 : 2)
+                 : state === 'wait'  ? 1 : 0;
+      const pillText = { inuse: 'กำลังใช้งาน', wait: 'รอตรวจสภาพ', repair: 'ส่งซ่อม',
+                         ready: step === 4 ? 'กลับแล้ว · พร้อมใช้งาน' : 'พร้อมใช้งาน' }[state];
+
+      const dest = (x && x.destination) || sheetDest || '';
+      const outT = x && x.startTime ? (extractTimeOnly(x.startTime) || x.startTime) : '';
+      const chkT = chkInfo ? (extractTimeOnly(chkInfo.inspTime) || chkInfo.inspTime || '') : '';
+      const _fl  = fueledInfo ? parseFloat(fueledInfo.fuelLiters) || 0 : 0;
+      const _fp  = fueledInfo ? parseFloat(fueledInfo.fuelPrice)  || 0 : 0;
+      let line;
+      if (state === 'inuse')       line = 'ปลายทาง ' + (dest || '—') + (outT ? ' · ออก ' + outT : '');
+      else if (state === 'repair') line = 'อยู่ระหว่างส่งซ่อม';
+      else if (state === 'wait')   line = 'ยังไม่ได้ตรวจสภาพวันนี้';
+      else if (isFueled)           line = (fueledInfo.time ? 'เติมน้ำมัน ' + fueledInfo.time : 'เติมน้ำมันวันนี้')
+                                        + (_fl ? ' · ' + _fl.toLocaleString('th-TH') + ' ลิตร' : '')
+                                        + (_fp ? ' · ฿' + _fp.toLocaleString('th-TH') : '');
+      else if (trips > 0)          line = 'ปฏิบัติงานแล้ว ' + trips + ' เที่ยววันนี้';
+      else                         line = chkT ? 'ตรวจสภาพ ' + chkT : 'พร้อมออกปฏิบัติงาน';
+
+      const details = [];  // [ป้าย, ค่า, โทนสี(ok|warn|bad)]
+      if (state === 'inuse') {
+        const d = (x && x.driver) || sheetDriver;
+        if (d) details.push(['พขร. ปัจจุบัน', d]);
+      }
+      if (chkInfo && chkInfo.driverName) details.push(['ผู้ตรวจสภาพ', chkInfo.driverName + (chkT ? ' · ' + chkT : '')]);
+      if (state !== 'inuse' && lastDrv) details.push(['ขับล่าสุดวันนี้', lastDrv]);
+      if (trips > 0) details.push(['เที่ยววันนี้', trips + ' เที่ยว']);   // 0 เที่ยว: การ์ดแสดงอยู่แล้ว ไม่ซ้ำ
+      const odoStart = x ? Number(x.odomStart) || 0 : 0;
+      const odoChk   = chkInfo ? Number(String(chkInfo.odometer || '').replace(/,/g, '')) || 0 : 0;
+      if (odoStart)    details.push(['ไมล์ตอนออก', odoStart.toLocaleString('th-TH')]);
+      else if (odoChk) details.push(['เลขไมล์ตอนตรวจ', odoChk.toLocaleString('th-TH')]);
+      if (fuelAlert) {
+        const refueled = !!fuelAlert.refueled || isFueled;
+        const pct = refueled ? 100 : fuelAlert.fuelPct;
+        details.push(['น้ำมัน', pct + '%' + (refueled ? ' · เติมแล้ว' : ''),
+                      refueled ? 'ok' : (pct <= 25 ? 'bad' : pct <= 50 ? 'warn' : '')]);
+      } else if (isFueled) {
+        details.push(['น้ำมัน', '100% · เติมแล้ว', 'ok']);
+      }
+      if (_fl || _fp) details.push(['ที่เติม', (_fl ? _fl.toLocaleString('th-TH') + ' ลิตร' : 'ไม่ระบุลิตร') + (_fp ? ' · ฿' + _fp.toLocaleString('th-TH') : '')]);
+      if (v.sys === 'EMS' && oxygenAlert) {
+        details.push(['ออกซิเจน (O₂)',
+                      oxygenAlert.changed ? 'เปลี่ยนแล้ว' : oxygenAlert.o2Status === 'ไม่ตรวจ' ? 'ไม่ตรวจ' : 'ต่ำ — ต้องเปลี่ยน',
+                      oxygenAlert.changed ? 'ok' : oxygenAlert.o2Status === 'ไม่ตรวจ' ? '' : 'bad']);
+      }
+      window._vehInfo[plateKey] = { plate: plateKey, type: v.type || '', isEms: !!v.isEms, grp: v.sys === 'EMS' ? 'ems' : 'gen',
+                                    state: state, step: step, pill: pillText, line: line, details: details };
+    })();
+
+    return '<div class="vehicle-mini ' + vmClass + '"' + titleAttr + ' data-plate="' + plateKey + '" role="button" tabindex="0">' + (json.tripCounts ? '<span class="vm-trips" title="จำนวนเที่ยววันนี้"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16M6.5 19v-3M17.5 19v-3"/></svg> ' + (json.tripCounts[plateKey] || 0) + ' เที่ยว</span>' : '')         + '<div class="vm-plate">' + plateKey + emsBadge + '</div>'         + '<div class="vm-type">' + v.type + '</div>'         + statusHtml         + '<div class="vm-sub">' + chkSub + '</div>'         + lastDrvHtml         + fuelMarkHtml         + oxygenMarkHtml         + '</div>';
   }
 
   // ── แบ่งกลุ่ม: ทั่วไป (van+pickup) | EMS/Refer ──────────────────
@@ -1957,7 +2143,146 @@ function renderVehicleCards(json) {
   const lb = document.getElementById('vehicleLoadingBar');
   if (lb) lb.style.display = 'none';
   document.getElementById('vehicleStatusWrap').style.display = 'block';
+  refreshVehiclePopup();
 }
+
+// ── เอียงการ์ดรถตามเมาส์ (event delegation: ไม่หายเมื่อ render การ์ดใหม่) ──
+(function initCardTilt() {
+  const MAX_DEG = 5;   // องศาสูงสุด — เพิ่ม/ลดได้ตามชอบ (0 = ปิด)
+  if (!MAX_DEG || !window.matchMedia) return;
+  if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const reset = c => ['--rx', '--ry', '--mx', '--my'].forEach(k => c.style.removeProperty(k));
+  document.querySelectorAll('.vehicle-grid').forEach(grid => {
+    grid.addEventListener('pointermove', e => {
+      const c = e.target.closest && e.target.closest('.vehicle-mini');
+      if (!c) return;
+      const r = c.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height;
+      c.style.setProperty('--ry', ((px - 0.5) * 2 * MAX_DEG).toFixed(2) + 'deg');
+      c.style.setProperty('--rx', ((0.5 - py) * 2 * MAX_DEG).toFixed(2) + 'deg');
+      c.style.setProperty('--mx', (px * 100).toFixed(1) + '%');
+      c.style.setProperty('--my', (py * 100).toFixed(1) + '%');
+    });
+    grid.addEventListener('pointerout', e => {
+      const c = e.target.closest && e.target.closest('.vehicle-mini');
+      if (c && !c.contains(e.relatedTarget)) reset(c);
+    });
+  });
+})();
+
+// ── หน้าต่างรายละเอียดรถ: กดการ์ด → เด้ง (ข้อมูลจาก window._vehInfo ที่ buildCard เก็บไว้) ──
+function vpState() { return (window._vpState = window._vpState || { plate: null, detailsKey: '' }); }
+function vpEl(id) { return document.getElementById(id); }
+
+function fillVehiclePopup(info) {
+  const card = vpEl('vpCard');
+  card.dataset.state = info.state;
+
+  const plate = vpEl('vpPlate');
+  plate.textContent = info.plate;
+  if (info.isEms) { const b = document.createElement('span'); b.className = 'ems-badge'; b.textContent = 'EMS'; plate.appendChild(b); }
+  vpEl('vpType').textContent = info.type;
+
+  const src = info.grp === 'ems' ? 'assets/sand/icons/ems.webp' : 'assets/sand/icons/vehicle.webp';
+  const img = vpEl('vpImg');
+  if (img.getAttribute('src') !== src) img.setAttribute('src', src);
+
+  const pill = vpEl('vpPill');
+  pill.className = 'vp-pill is-' + info.state;
+  pill.textContent = '';
+  pill.appendChild(document.createElement('i'));
+  pill.appendChild(document.createTextNode(info.pill));
+  vpEl('vpLine').textContent = info.line;
+
+  // รายละเอียด: สร้างใหม่เฉพาะเมื่อข้อมูลเปลี่ยน (กันกะพริบตอนหน้ารีเฟรช) — ใช้ textContent เสมอ
+  const key = JSON.stringify(info.details);
+  const st = vpState();
+  if (key !== st.detailsKey) {
+    st.detailsKey = key;
+    const box = vpEl('vpDetails');
+    box.textContent = '';
+    info.details.forEach(function (d) {
+      const t = document.createElement('div'); t.className = 'vp-tile' + (d[2] ? ' ' + d[2] : '');
+      const b = document.createElement('b');   b.textContent = d[0];
+      const s = document.createElement('span'); s.textContent = d[1];
+      t.appendChild(b); t.appendChild(s); box.appendChild(t);
+    });
+  }
+
+  vpEl('vpSteps').querySelectorAll('span').forEach(function (el, i) { el.classList.toggle('cur', i === info.step - 1); });
+  vpEl('vpBars').querySelectorAll('i').forEach(function (el, i) { el.classList.toggle('on', i < info.step); });
+}
+
+function openVehiclePopup(plate) {
+  const info = (window._vehInfo || {})[plate];
+  if (!info) return;
+  vpState().plate = plate;
+  vpState().detailsKey = '';
+  fillVehiclePopup(info);
+  const ov = vpEl('vpOverlay');
+  ov.classList.add('open'); ov.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  vpEl('vpClose').focus({ preventScroll: true });
+}
+
+function closeVehiclePopup() {
+  const st = vpState(), plate = st.plate;
+  const ov = vpEl('vpOverlay');
+  if (!ov || !ov.classList.contains('open')) return;
+  ov.classList.remove('open'); ov.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+  st.plate = null;
+  const card = vpEl('vpCard'); ['--vrx', '--vry', '--vx', '--vy'].forEach(function (k) { card.style.removeProperty(k); });
+  const opener = plate && document.querySelector('.vehicle-mini[data-plate="' + plate + '"]');
+  if (opener) opener.focus({ preventScroll: true });
+}
+
+// เรียกทุกครั้งที่ render การ์ดใหม่ (รีเฟรชอัตโนมัติ) — ถ้าหน้าต่างเปิดอยู่ให้อัปเดตข้อมูลในที่เดิม
+function refreshVehiclePopup() {
+  const st = vpState();
+  if (!st.plate) return;
+  const info = (window._vehInfo || {})[st.plate];
+  if (info) fillVehiclePopup(info); else closeVehiclePopup();
+}
+
+(function initVehiclePopup() {
+  const ov = vpEl('vpOverlay'), card = vpEl('vpCard');
+  if (!ov || !card) return;
+  ov.addEventListener('click', function (e) { if (!card.contains(e.target)) closeVehiclePopup(); });
+  vpEl('vpClose').addEventListener('click', closeVehiclePopup);
+  document.addEventListener('keydown', function (e) {
+    if (!ov.classList.contains('open')) return;
+    if (e.key === 'Escape') closeVehiclePopup();
+    else if (e.key === 'Tab') { e.preventDefault(); vpEl('vpClose').focus(); }   // มีปุ่มเดียว → ล็อกโฟกัสไว้ในหน้าต่าง
+  });
+  // เปิดด้วยการกด/Enter/Space ที่การ์ด (event delegation: ไม่หายเมื่อ render การ์ดใหม่)
+  document.querySelectorAll('.vehicle-grid').forEach(function (grid) {
+    const cardOf = function (e) { return e.target.closest && e.target.closest('.vehicle-mini[data-plate]'); };
+    grid.addEventListener('click', function (e) { const c = cardOf(e); if (c) openVehiclePopup(c.getAttribute('data-plate')); });
+    grid.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const c = cardOf(e); if (!c || e.target !== c) return;
+      e.preventDefault(); openVehiclePopup(c.getAttribute('data-plate'));
+    });
+  });
+  // เอียง 3 มิติตามเมาส์ (เฉพาะเมาส์ + ไม่ตั้ง Reduce Motion)
+  const MAX_DEG = 8;
+  if (!MAX_DEG || !window.matchMedia) return;
+  if (!matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  card.addEventListener('pointermove', function (e) {
+    const r = card.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5, py = (e.clientY - r.top) / r.height - 0.5;
+    card.style.setProperty('--vry', (px * 2 * MAX_DEG).toFixed(2) + 'deg');
+    card.style.setProperty('--vrx', (-py * 2 * MAX_DEG).toFixed(2) + 'deg');
+    card.style.setProperty('--vx', px.toFixed(3));
+    card.style.setProperty('--vy', py.toFixed(3));
+  });
+  card.addEventListener('pointerleave', function () {
+    ['--vrx', '--vry', '--vx', '--vy'].forEach(function (k) { card.style.removeProperty(k); });
+  });
+})();
 
 function renderVehicleCardsOffline() {
   function buildOfflineCard(v) {
