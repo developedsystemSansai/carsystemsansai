@@ -178,12 +178,19 @@ carsystemsansai/
 
 Google Apps Script · Google Sheets · Google Drive · Google Docs · HTML5 · CSS3 · Vanilla JavaScript · Leaflet · OSRM · LINE Messaging API · GitHub Pages
 
-## 👥 ผู้พัฒนาและดูแลระบบ
+## 👥 เครดิต
 
-กลุ่มงานบริหารทั่วไป / ทีมพัฒนาระบบสารสนเทศ **โรงพยาบาลสันทราย** อำเภอสันทราย จังหวัดเชียงใหม่
+**นายจันทกรณ์ จีกัน (Chanthakon Chikan)**
+นักวิชาการสาธารณสุขชำนาญการ กลุ่มงานพัฒนาคุณภาพบริการและมาตรฐาน
+โรงพยาบาลสันทราย จังหวัดเชียงใหม่
+โทรศัพท์: 053-921-199 ต่อ 168
+
+## 📄 License
+
+เผยแพร่ภายใต้ [MIT License](LICENSE) — Copyright © 2026 Chanthakon Chikan
 
 ---
 
 <div align="center">
-<sub>© โรงพยาบาลสันทราย · พัฒนาเพื่อใช้ภายในหน่วยงาน</sub>
+<sub>© 2026 Chanthakon Chikan · โรงพยาบาลสันทราย · <a href="LICENSE">MIT License</a></sub>
 </div>
