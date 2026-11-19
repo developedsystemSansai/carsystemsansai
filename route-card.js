@@ -3,7 +3,7 @@
    - แนวคิดจากคอมโพเนนต์ "expanded-map" (การ์ดแผนที่ที่กดขยายได้ + หมุดเด้ง) เขียนใหม่เป็น JS ล้วน
      เพราะระบบนี้ไม่ใช้ React/Next/Tailwind
    - พิกัดปลายทาง: ชีท Locations ผ่าน GAS ?action=getLocationPins (ชุดเดียวกับ routemap.html)
-   - เส้นทางตามถนนจริง: OSRM (ไม่ใช้ API key) · ภาพแผนที่: ไทล์ OpenStreetMap/CARTO
+   - เส้นทางตามถนนจริง: OSRM (ไม่ใช้ API key) · ภาพแผนที่: ไทล์ OpenStreetMap
      (ไม่ใช้ภาพจาก Google Maps โดยตรง เพราะต้องมี API key/ข้อกำหนดการใช้งาน — มีปุ่มเปิดเส้นทางเดียวกันใน Google Maps แทน)
    - ใช้ textContent/createElement เท่านั้น (ข้อมูลจากชีทไม่ถูกแทรกเป็น HTML)
    API:  SandRouteCard.update(info)  — เรียกทุกครั้งที่หน้าต่างรถถูกเติมข้อมูล
@@ -121,9 +121,8 @@
     return { x: (lng + 180) / 360 * n, y: (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * n };
   }
   function tileUrl(x, y, z) {
-    var n = Math.pow(2, z), tx = ((x % n) + n) % n, sub = 'abcd'.charAt((tx + y) % 4);
-    var r2 = (window.devicePixelRatio || 1) >= 1.5 ? '@2x' : '';
-    return 'https://' + sub + '.basemaps.cartocdn.com/light_all/' + z + '/' + tx + '/' + y + r2 + '.png';
+    var n = Math.pow(2, z), tx = ((x % n) + n) % n, sub = 'abc'.charAt((tx + y) % 3);
+    return 'https://' + sub + '.tile.openstreetmap.org/' + z + '/' + tx + '/' + y + '.png';      // ตัวเดียวกับที่ routemap.html ใช้ (ไม่ต้องมี API key)
   }
 
   // ───────────── UI ─────────────
@@ -216,15 +215,15 @@
   function renderMap(box, route, stops) {
     box.textContent = '';
     var W = box.clientWidth || 304, H = box.clientHeight || 176;
-    var padX = 34, padTop = 42, padBot = 26;
+    var padX = 40, padTop = 46, padBot = 34;
     var pts = route.coords, minLat = 90, maxLat = -90, minLng = 180, maxLng = -180;
     pts.forEach(function (p) { if (p.lat < minLat) minLat = p.lat; if (p.lat > maxLat) maxLat = p.lat; if (p.lng < minLng) minLng = p.lng; if (p.lng > maxLng) maxLng = p.lng; });
     // ซูมแบบต่อเนื่อง: คำนวณให้เส้นทางพอดีกรอบ แล้วใช้ไทล์ระดับจำนวนเต็มที่ใกล้ที่สุดยืด/หดเล็กน้อย (ซูมจำนวนเต็มล้วนเหลือที่ว่างมาก)
     var a0 = project(maxLat, minLng, 0), b0 = project(minLat, maxLng, 0);
     var dx0 = Math.max(b0.x - a0.x, 1e-9), dy0 = Math.max(b0.y - a0.y, 1e-9);
     var zf = Math.log(Math.min((W - padX * 2) / dx0, (H - padTop - padBot) / dy0)) / Math.LN2;
-    zf = clamp(zf, 3, 16.5);
-    var z = clamp(Math.round(zf), 3, 17), sc = Math.pow(2, zf - z), ts = 256 * sc;      // z = ระดับไทล์, ts = ขนาดไทล์บนจอ (px)
+    zf = clamp(zf, 3, 17);
+    var z = clamp(Math.ceil(zf - 0.25), 3, 19), sc = Math.pow(2, zf - z), ts = 256 * sc;      // z = ระดับไทล์, ts = ขนาดไทล์บนจอ (px)
     var tl = project(maxLat, minLng, zf), br = project(minLat, maxLng, zf);
     // วางกรอบเส้นทางให้อยู่กลางพื้นที่ที่เหลือหลังกันขอบบน (ป้ายชื่อ+หมุด) / ล่าง
     var cx = (tl.x + br.x) / 2, cy = (tl.y + br.y) / 2 - (padTop - padBot) / 2;
@@ -233,8 +232,11 @@
 
     // ไทล์
     var layer = el('div', 'vpr-tiles'); box.appendChild(layer);
-    var maxT = Math.pow(2, z) - 1, total = 0, done = 0, finished = false;
-    function ready() { if (finished) return; finished = true; box.classList.add('is-ready'); }
+    var maxT = Math.pow(2, z) - 1, total = 0, done = 0, failed = 0, finished = false;
+    function ready() {
+      if (finished) return; finished = true; box.classList.add('is-ready');
+      if (total && failed >= total) { var w = el('div', 'vpr-nobase', 'โหลดแผนที่พื้นหลังไม่สำเร็จ — แสดงเฉพาะเส้นทาง'); box.appendChild(w); }
+    }
     var imgs = [];
     for (var ty = Math.floor(top / ts); ty <= Math.floor((top + H) / ts); ty++) {
       if (ty < 0 || ty > maxT) continue;
@@ -244,11 +246,11 @@
         im.style.left = (tx * ts - left).toFixed(2) + 'px'; im.style.top = (ty * ts - top).toFixed(2) + 'px';
         im.style.transitionDelay = (imgs.length * 0.04) + 's';
         im.onload = function () { done++; if (done >= total) ready(); };
-        im.onerror = function () { this.style.display = 'none'; done++; if (done >= total) ready(); };   // ไทล์โหลดไม่ได้ → ซ่อน ไม่โชว์ไอคอนรูปแตก
+        im.onerror = function () { this.style.display = 'none'; failed++; done++; if (done >= total) ready(); };   // ไทล์โหลดไม่ได้ → ซ่อน ไม่โชว์ไอคอนรูปแตก
         im.src = tileUrl(tx, ty, z); layer.appendChild(im); imgs.push(im); total++;
       }
     }
-    setTimeout(ready, 4000);
+    setTimeout(ready, 5000);
 
     // เส้นทาง (ลดจุดถ้าเยอะเกิน) — เส้นขาวรองพื้น + เส้นประสีน้ำเงินวิ่งตามทิศ รพ. → ปลายทาง
     var step = Math.max(1, Math.ceil(pts.length / 500)), d = '';
@@ -256,8 +258,27 @@
     var last = xy(pts[pts.length - 1]); d += 'L' + last.x.toFixed(1) + ' ' + last.y.toFixed(1);
     var svg = svgEl('svg', { 'class': 'vpr-svg', width: W, height: H, viewBox: '0 0 ' + W + ' ' + H, 'aria-hidden': 'true' });
     svg.appendChild(svgEl('path', { d: d, 'class': 'vpr-casing' }));
-    svg.appendChild(svgEl('path', { d: d, 'class': 'vpr-line' + (route.approx ? ' approx' : '') + (reduceMotion() ? ' still' : '') }));
+    svg.appendChild(svgEl('path', { d: d, 'class': 'vpr-line' + (route.approx ? ' approx' : '') }));
+    // ลูกศรบอกทิศทาง (รพ. → ปลายทาง) ทุก ~64px ตามแนวเส้น + หาจุดกึ่งกลางสำหรับป้ายสรุป
+    var px = []; for (var j = 0; j < pts.length; j += step) px.push(xy(pts[j])); px.push(last);
+    var segLen = [], tot = 0; for (var k = 1; k < px.length; k++) { var l = Math.hypot(px[k].x - px[k - 1].x, px[k].y - px[k - 1].y); segLen.push(l); tot += l; }
+    var next = 40, acc = 0, mid = null;
+    for (var m2 = 1; m2 < px.length; m2++) {
+      var L2 = segLen[m2 - 1];
+      while (L2 > 0 && acc + L2 >= next && next < tot - 24) {
+        var f = (next - acc) / L2, ax = px[m2 - 1].x + (px[m2].x - px[m2 - 1].x) * f, ay = px[m2 - 1].y + (px[m2].y - px[m2 - 1].y) * f;
+        var ang = Math.atan2(px[m2].y - px[m2 - 1].y, px[m2].x - px[m2 - 1].x) * 180 / Math.PI;
+        svg.appendChild(svgEl('path', { d: 'M-4 -4L4 0L-4 4Z', 'class': 'vpr-arrow', transform: 'translate(' + ax.toFixed(1) + ' ' + ay.toFixed(1) + ') rotate(' + ang.toFixed(0) + ')' }));
+        next += 64;
+      }
+      if (!mid && acc + L2 >= tot / 2) { var g = (tot / 2 - acc) / L2; mid = { x: px[m2 - 1].x + (px[m2].x - px[m2 - 1].x) * g, y: px[m2 - 1].y + (px[m2].y - px[m2 - 1].y) * g }; }
+      acc += L2;
+    }
     box.appendChild(svg);
+    if (mid) {
+      var chip = el('div', 'vpr-chip', route.km.toFixed(1) + ' กม.' + (route.min != null ? ' · ' + fmtDur(route.min) : ''));
+      chip.style.left = clamp(mid.x, 42, W - 42) + 'px'; chip.style.top = clamp(mid.y, 14, H - 14) + 'px'; box.appendChild(chip);
+    }
 
     // หมุด + ป้ายชื่อ
     // ป้ายชื่อวางข้างหมุด (ขวา; ถ้าชนขอบก็พลิกไปซ้าย) — ไม่ซ้อนกันเมื่อหมุดอยู่ใกล้กันในแนวตั้ง
@@ -277,8 +298,8 @@
       m.style.left = p.x + 'px'; m.style.top = p.y + 'px'; m.style.animationDelay = (0.3 + i * 0.12) + 's'; box.appendChild(m);
       if (isLast || stops.length === 1) label((stops.length > 1 ? (i + 1) + '. ' : '') + s.name, p.x, isLast ? p.y - 16 : p.y);
     });
-    var at = el('div', 'vpr-attr'); var a1 = el('a', null, '© OpenStreetMap'); a1.href = 'https://www.openstreetmap.org/copyright'; a1.target = '_blank'; a1.rel = 'noopener noreferrer';
-    at.appendChild(a1); at.appendChild(document.createTextNode(' · © CARTO')); box.appendChild(at);
+    var at = el('div', 'vpr-attr'); var a1 = el('a', null, '© OpenStreetMap contributors'); a1.href = 'https://www.openstreetmap.org/copyright'; a1.target = '_blank'; a1.rel = 'noopener noreferrer';
+    at.appendChild(a1); box.appendChild(at);
   }
 
   var rzTimer = 0;
