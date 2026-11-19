@@ -982,7 +982,9 @@
 </style>
 <script src="secure-fetch.js"></script>
 <link rel="stylesheet" href="sand-brand.css">
+<link rel="stylesheet" href="route-card.css">
 <script defer src="sand-brand.js"></script>
+<script defer src="route-card.js"></script>
 <link rel="stylesheet" href="assets/sand-ui.css">
 <script defer src="assets/sand-ui.js"></script>
   <script defer src="https://sandtools.vercel.app/t.js" data-site="prnskn2arc"></script>
@@ -1493,6 +1495,7 @@
         <p class="vp-line" id="vpLine"></p>
       </div>
       <div class="vp-details" id="vpDetails"></div>
+      <div class="vp-route" id="vpRoute" hidden></div>
       <div class="vp-track">
         <div class="vp-steps" id="vpSteps"><span>ตรวจสภาพ</span><span>พร้อมใช้งาน</span><span>ออกปฏิบัติงาน</span><span>กลับแล้ว</span></div>
         <div class="vp-bars" id="vpBars"><i></i><i></i><i></i><i></i></div>
@@ -2131,7 +2134,9 @@ function renderVehicleCards(json) {
                       oxygenAlert.changed ? 'ok' : oxygenAlert.o2Status === 'ไม่ตรวจ' ? '' : 'bad']);
       }
       window._vehInfo[plateKey] = { plate: plateKey, type: v.type || '', isEms: !!v.isEms, grp: v.sys === 'EMS' ? 'ems' : 'gen',
-                                    state: state, step: step, pill: pillText, line: line, details: details };
+                                    state: state, step: step, pill: pillText, line: line, details: details,
+                                    // ใช้โดย route-card.js (แผนที่เส้นทาง รพ. → ปลายทาง) — เฉพาะรถที่กำลังใช้งาน
+                                    dest: state === 'inuse' ? dest : '', driver: state === 'inuse' ? ((x && x.driver) || sheetDriver || '') : '', outT: state === 'inuse' ? outT : '' };
     })();
 
     return '<div class="vehicle-mini ' + vmClass + '"' + titleAttr + ' data-plate="' + plateKey + '" role="button" tabindex="0">' + (json.tripCounts ? '<span class="vm-trips" title="จำนวนเที่ยววันนี้"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16M6.5 19v-3M17.5 19v-3"/></svg> ' + (json.tripCounts[plateKey] || 0) + ' เที่ยว</span>' : '')         + '<div class="vm-plate">' + plateKey + emsBadge + '</div>'         + '<div class="vm-type">' + v.type + '</div>'         + statusHtml         + '<div class="vm-sub">' + chkSub + '</div>'         + lastDrvHtml         + fuelMarkHtml         + oxygenMarkHtml         + '</div>';
@@ -2219,6 +2224,8 @@ function fillVehiclePopup(info) {
 
   vpEl('vpSteps').querySelectorAll('span').forEach(function (el, i) { el.classList.toggle('cur', i === info.step - 1); });
   vpEl('vpBars').querySelectorAll('i').forEach(function (el, i) { el.classList.toggle('on', i < info.step); });
+
+  if (window.SandRouteCard) { try { SandRouteCard.update(info); } catch (e) { console.warn('route-card:', e); } }   // แผนที่เส้นทาง (error ของแผนที่ต้องไม่ทำให้การ์ดพัง)
 }
 
 function openVehiclePopup(plate) {
@@ -2240,6 +2247,7 @@ function closeVehiclePopup() {
   ov.classList.remove('open'); ov.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
   st.plate = null;
+  if (window.SandRouteCard) SandRouteCard.reset();
   const card = vpEl('vpCard'); ['--vrx', '--vry', '--vx', '--vy'].forEach(function (k) { card.style.removeProperty(k); });
   const opener = plate && document.querySelector('.vehicle-mini[data-plate="' + plate + '"]');
   if (opener) opener.focus({ preventScroll: true });
