@@ -4,9 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SAND · แผงควบคุมภาพรวม · โรงพยาบาลสันทราย</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<!-- ฟอนต์โหลดแบบไม่บล็อกการแสดงผล (display=swap: ใช้ฟอนต์สำรองก่อนแล้วสลับ) -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"></noscript>
 <!-- SheetJS: ใช้สร้างไฟล์ .xlsx จริงตามมาตรฐาน Office Open XML (แทนวิธี SpreadsheetML เดิมที่ Excel/Google Sheets บางเครื่องเปิดแล้วแจ้งไฟล์เสียหาย) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 /* ════════════════════════════════════════════════════════
    DASHBOARD — UNIFIED THEME (matches index.html)
@@ -2120,6 +2125,25 @@ function logoutDash() {
       return esc(String(v == null ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
     }
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdbA_kqB-Swlcx9k6_sCKuUcPFu_knfU9tMVIEG7pFkfHxh/exec'; // ✅ เรียก code.gs ตรง — ไม่ใช้ proxy แล้ว
+
+// ── เร่งการโหลดแรกเข้า ──────────────────────────────────────────────
+// เดิม startDashboard ยิงคำขอ Apps Script ต่อคิวทีละอัน (และ getVehicles/getMileData ซ้ำ) → เวลารอบวกกันหมด
+// ตอนนี้ยิงคำขอที่ต้องใช้ตอนเปิดหน้า "พร้อมกัน" แล้วให้ฟังก์ชันเดิมแชร์ผลร่วมกัน (ลำดับการเรนเดอร์ไม่เปลี่ยน)
+// ใช้เฉพาะช่วงเปิดหน้า — จบแล้วคืนค่า null เพื่อให้ปุ่มรีเฟรช/โพลล์ดึงข้อมูลสดตามเดิม
+let _boot = null;
+function bootFetch(url, opts) {
+  const p = _boot && _boot[url];
+  return p ? p.then(function (r) { return r.clone(); }) : fetch(url, opts);
+}
+function bootPrefetch() {
+  _boot = {};
+  ['getVehicles', 'getData', 'getMileData', 'getStatusSummary'].forEach(function (a) {
+    const u = GAS_URL + '?action=' + a;
+    const p = fetch(u); p.catch(function () {});          // กัน unhandled rejection ถ้าไม่มีใครมาอ่านผล
+    _boot[u] = p;
+  });
+  setTimeout(function () { _boot = null; }, 25000);        // หมดอายุเอง เผื่อขั้นตอนใดค้าง
+}
 // NOTE: GAS_STATUS_URL ใช้ตัวเดียวกับ GAS_URL (ประกาศซ้ำด้านล่างเพื่อ compatibility)
 // ── Bangkok Timezone Helpers ──────────────────────────────
 function bkkDateStr(d) {
@@ -2152,7 +2176,7 @@ let ALL_VEHICLES = [
 // โหลด Vehicles จาก Google Sheets แล้วอัปเดต filter dropdown + live grid
 async function loadVehicleMaster() {
   try {
-    const res  = await fetch(GAS_URL + '?action=getVehicles');
+    const res  = await bootFetch(GAS_URL + '?action=getVehicles');
     const json = await res.json();
     if (json.data && json.data.length) {
       ALL_VEHICLES = json.data.map(v => ({
@@ -2470,7 +2494,7 @@ async function loadMileLogToday() {
   if (_mileLogLoading) return;
   _mileLogLoading = true;
   try {
-    const res  = await fetch(GAS_URL + '?action=getMileData');
+    const res  = await bootFetch(GAS_URL + '?action=getMileData');
     const json = await res.json();
     const todayStr = bkkDateStr();
     _mileLogToday = (json.data || []).filter(r => {
@@ -2637,7 +2661,7 @@ function startOdoAutoRefresh() {
 async function loadData() {
   document.getElementById('lastUpdated').textContent = 'กำลังโหลด...';
   try {
-    const res = await fetch(GAS_URL + '?action=getData');
+    const res = await bootFetch(GAS_URL + '?action=getData');
     const json = await res.json();
     allData = json.data || [];
     window.allData = allData;
@@ -2953,7 +2977,7 @@ let _mileLogAllLoaded = false;
 async function loadMileLogAll() {
   if (_mileLogAllLoaded) return;
   try {
-    const res  = await fetch(GAS_URL + '?action=getMileData');
+    const res  = await bootFetch(GAS_URL + '?action=getMileData');
     const json = await res.json();
     _mileLogAll = json.data || [];
     _mileLogAllLoaded = true;
@@ -3948,7 +3972,7 @@ async function loadLiveVehicleStatus() {
     await loadVehicleMaster();
 
     // ดึง getStatusSummary (รวม Vehicles sheet + MileLog + CheckLog จาก GAS)
-    const res = await fetch(GAS_STATUS_URL + '?action=getStatusSummary');
+    const res = await bootFetch(GAS_STATUS_URL + '?action=getStatusSummary');
     const json = await res.json();
     if (json.status !== 'ok') throw new Error('api error');
 
@@ -4816,9 +4840,12 @@ function stopLiveRefresh() {
 async function startDashboard() {
   if (_dashStarted) return;
   _dashStarted = true;
-  await loadVehicleMaster();       // ① รายการรถ (dropdown + ALL_VEHICLES)
-  await loadData();                // ② CheckLog + MileLog
-  await loadLiveVehicleStatus();   // ③ สถานะรถ live
+  bootPrefetch();                  // ⓪ ยิงคำขอทั้งหมดพร้อมกัน (เครือข่ายขนานกัน แทนที่จะรอต่อคิว)
+  try {
+    await loadVehicleMaster();       // ① รายการรถ (dropdown + ALL_VEHICLES)
+    await loadData();                // ② CheckLog + MileLog
+    await loadLiveVehicleStatus();   // ③ สถานะรถ live
+  } finally { _boot = null; }      // จบช่วงเปิดหน้า → รอบหลังดึงข้อมูลสดตามปกติ
   startLiveRefresh();              // ④ auto-refresh
   checkDriveAuth();                // ⑤ ตรวจสิทธิ์ Drive
 }
@@ -5811,6 +5838,7 @@ const EXP = {
 window.openExportModal = async function() {
   document.getElementById('expOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+  loadXlsxLib().catch(function () {});   // เตรียมไลบรารี Excel ล่วงหน้าระหว่างผู้ใช้เลือกตัวเลือก (ไม่บล็อกอะไร)
   // set default date range = เดือนนี้
   expSetDateRange('month');
   // โหลดข้อมูลทั้งหมดพร้อมกัน
@@ -6593,6 +6621,21 @@ function expRefreshPreview() {
 });
 
 // ── Download ───────────────────────────────────────────
+// ไลบรารี Excel (~0.9MB) โหลดเมื่อจะใช้จริงเท่านั้น (เดิมโหลดบล็อกหัวหน้าทุกครั้งที่เปิดแดชบอร์ด)
+let _xlsxP = null;
+function loadXlsxLib() {
+  if (typeof XLSX !== 'undefined') return Promise.resolve();
+  if (_xlsxP) return _xlsxP;
+  _xlsxP = new Promise(function (resolve, reject) {
+    const sc = document.createElement('script');
+    sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    sc.onload = resolve;
+    sc.onerror = function () { _xlsxP = null; reject(new Error('xlsx load failed')); };
+    document.head.appendChild(sc);
+  });
+  return _xlsxP;
+}
+
 window.expDownload = function(format) {
   const rows    = expGetFilteredRows();
   const cols    = expGetColumns(EXP.selectedCard);
@@ -6602,12 +6645,18 @@ window.expDownload = function(format) {
 
   if (!rows.length) { alert('ไม่มีข้อมูลที่จะ export'); return; }
 
+  const loading = document.getElementById('expLoadingIndicator');
   if (format === 'xlsx' && typeof XLSX === 'undefined') {
-    alert('ไม่สามารถโหลดไลบรารีสำหรับสร้างไฟล์ Excel ได้ (ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต) กรุณาลองใหม่ หรือเลือกดาวน์โหลดเป็น CSV แทน');
+    // ยังไม่ได้โหลดไลบรารี → โหลดตอนนี้ (แสดงตัวโหลด) แล้วเรียกซ้ำ
+    loading.classList.add('show');
+    loadXlsxLib().then(function () { loading.classList.remove('show'); window.expDownload(format); })
+      .catch(function () {
+        loading.classList.remove('show');
+        alert('ไม่สามารถโหลดไลบรารีสำหรับสร้างไฟล์ Excel ได้ (ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต) กรุณาลองใหม่ หรือเลือกดาวน์โหลดเป็น CSV แทน');
+      });
     return;
   }
 
-  const loading = document.getElementById('expLoadingIndicator');
   loading.classList.add('show');
 
   setTimeout(function() {
