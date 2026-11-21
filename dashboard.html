@@ -2144,6 +2144,25 @@ function bootPrefetch() {
   });
   setTimeout(function () { _boot = null; }, 25000);        // หมดอายุเอง เผื่อขั้นตอนใดค้าง
 }
+
+// ── น้ำมันของ "ทริปเดียว" ─────────────────────────────────────────────
+// MileLog เก็บน้ำมันไว้ 2 ชุด: ตอนออก (น้ำมันที่เติม(ลิตร)/ราคาน้ำมัน(บาท)) และตอนกลับ (ลิตรเติมขากลับ/ราคาเติมขากลับ(บาท))
+// ตั้งแต่กลางพ.ย. ข้อมูลส่วนใหญ่อยู่ชุดตอนกลับ → ต้องรวมทั้งสองชุด (เหมือน startmile.html / getStatusSummary / รายงาน LINE รายสัปดาห์)
+// ค่าที่ไม่ใช่ตัวเลข ('auto' = ตรวจพบว่าไปปั๊มแต่ยังไม่มีลิตรจริง, 'ไม่เติม') นับเป็น 0
+function _numF(v) { const x = parseFloat(String(v == null ? '' : v).replace(/,/g, '')); return x > 0 ? x : 0; }
+function _r2(x) { return Math.round((Number(x) || 0) * 100) / 100; }
+function tripFuel(r) {
+  r = r || {};
+  const outL = r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'];
+  const outP = r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'];
+  return { liters: _numF(outL) + _numF(r['ลิตรเติมขากลับ']), price: _numF(outP) + _numF(r['ราคาเติมขากลับ(บาท)']) };
+}
+function fuelMarker(r) {   // 'auto' | 'nofuel' | ''
+  const v = String((r && (r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'])) || '').trim();
+  if (v === 'auto' || v === 'ตรวจจับอัตโนมัติ') return 'auto';
+  if (v === 'ไม่เติม') return 'nofuel';
+  return '';
+}
 // NOTE: GAS_STATUS_URL ใช้ตัวเดียวกับ GAS_URL (ประกาศซ้ำด้านล่างเพื่อ compatibility)
 // ── Bangkok Timezone Helpers ──────────────────────────────
 function bkkDateStr(d) {
@@ -2409,8 +2428,8 @@ function renderKPIs(data) {
   // ✅ v2.1: รวม plate ที่ตรวจจับอัตโนมัติจาก MileLog ปลายทาง (auto marker)
   const fueledAutoPlates = new Set(
     (_mileLogToday || []).filter(r => {
-      const v = String(r['น้ำมันที่เติม(ลิตร)'] || '').trim();
-      return v === 'auto' || v === 'ตรวจจับอัตโนมัติ';
+      const f = tripFuel(r);                          // ✅ รวมน้ำมันตอนกลับด้วย
+      return fuelMarker(r) === 'auto' || f.liters > 0 || f.price > 0;
     }).map(r => String(r['ทะเบียน/รถ'] || '').split(' ')[0].trim()).filter(Boolean)
   );
   const fueledToday = new Set([...fueledCheckPlates, ...fueledAutoPlates]).size;
@@ -2836,8 +2855,9 @@ function renderFuelSummary(_unused) {
 
   // ดึงจาก MileLog — เฉพาะแถวที่มีการเติมน้ำมัน
   const mileRows = (_mileLogAll || []).filter(r => {
-    const hasFuel = String(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || '').trim();
-    if (!hasFuel || hasFuel === '0' || hasFuel === '') return false;
+    // ✅ FIX: นับเฉพาะทริปที่มีลิตร/ราคาจริง (ตอนออก+ตอนกลับ) — เดิมนับทริป 'auto'/'ไม่เติม' ด้วย และตกหล่นทริปที่เติมตอนกลับ
+    const _f = tripFuel(r);
+    if (!_f.liters && !_f.price) return false;
     if (monF) {
       // กรองเดือน: วันที่ใน MileLog อยู่ใน col 'วันที่' (yyyy-MM-dd หรือ dd/MM/yyyy)
       const rowDate = normalizeInspDate(r['วันที่'] || r['Timestamp'] || '');
@@ -2871,8 +2891,9 @@ function renderFuelSummary(_unused) {
       trips: 0, totalLiters: 0, totalPrice: 0,
       lastDate: '', lastLiters: 0, lastPrice: 0, lastDriver: ''
     };
-    const liters = parseFloat(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || 0) || 0;
-    const price  = parseFloat(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || 0) || 0;
+    const _tf = tripFuel(r);
+    const liters = _tf.liters;
+    const price  = _tf.price;
     const rowDate = normalizeInspDate(r['วันที่'] || '');
     byPlate[plate].trips++;
     byPlate[plate].totalLiters += liters;
@@ -3138,8 +3159,9 @@ function renderFuelCostSummary(dateStr) {
     const plate  = raw.split(' ')[0].trim();
     if (!plate) return;
 
-    const liters = parseFloat(t['น้ำมันที่เติม(ลิตร)'] || t['fuelLiters'] || 0);
-    const price  = parseFloat(t['ราคาน้ำมัน(บาท)'] || t['ราคาน้ำมัน'] || t['fuelPrice'] || 0);
+    const _tf = tripFuel(t);          // ✅ ตอนออก + ตอนกลับ (เดิม parseFloat('auto') = NaN และไม่อ่านตอนกลับ)
+    const liters = _tf.liters;
+    const price  = _tf.price;
     if (!liters && !price) return; // ไม่มีการเติม
 
     const timeOut  = extractTimeOnly(t['เวลาออก']  || '');
@@ -3491,14 +3513,15 @@ function renderRecentRecords(data) {
     const fuelPhotoIcon = fuelFilled
       ? `<span title="มีรูปบิลน้ำมัน" style="color:#0ea5e9;font-size:0.72rem;margin-left:4px;cursor:pointer;"
            onclick="event.stopPropagation();openDetailByKey('${key}')"><svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11.5l-8 8a5 5 0 0 1-7-7l8.5-8.5a3.5 3.5 0 0 1 5 5L10 17.5a2 2 0 0 1-3-3l7.5-7.5"/></svg></span>` : '';
-    // ดึง fuelLiters จาก _mileLogToday ถ้ามี
-    const _fRec = fuelFilled ? (_mileLogToday || []).find(m => {
+    // ดึงยอดน้ำมันจาก _mileLogToday: รวมทุกทริปของรถคันนี้ (ตอนออก+ตอนกลับ) — ข้าม marker 'auto'
+    const _cp = extractPlate(r.carType);
+    const _fTot = fuelFilled ? (_mileLogToday || []).reduce((acc, m) => {
       const mp = (m['ทะเบียน/รถ'] || '').split(' ')[0].trim();
-      const cp = extractPlate(r.carType);
-      return mp === cp || mp.includes(cp) || cp.includes(mp);
-    }) : null;
-    const fuelLitersLabel = _fRec && _fRec['น้ำมันที่เติม(ลิตร)']
-      ? `<br><span style="color:#0369a1;font-size:.6875rem;font-weight:700;">${_fRec['น้ำมันที่เติม(ลิตร)']} ลิตร${_fRec['ราคาน้ำมัน(บาท)'] || _fRec['ราคาน้ำมัน'] ? ' · ' + (_fRec['ราคาน้ำมัน(บาท)'] || _fRec['ราคาน้ำมัน']) + ' บาท' : ''}</span>` : '';
+      if (!(mp === _cp || mp.includes(_cp) || _cp.includes(mp))) return acc;
+      const f = tripFuel(m); acc.l += f.liters; acc.p += f.price; return acc;
+    }, { l: 0, p: 0 }) : null;
+    const fuelLitersLabel = _fTot && (_fTot.l > 0 || _fTot.p > 0)
+      ? `<br><span style="color:#0369a1;font-size:.6875rem;font-weight:700;">${_fTot.l > 0 ? _r2(_fTot.l) + ' ลิตร' : ''}${_fTot.l > 0 && _fTot.p > 0 ? ' · ' : ''}${_fTot.p > 0 ? _r2(_fTot.p).toLocaleString() + ' บาท' : ''}</span>` : '';
     return `<tr onclick="openDetailByKey('${key}')" style="cursor:pointer;">
       <td style="white-space:nowrap;font-size:0.76rem;">
         ${fmtDateTime(r.timestamp||r.inspDate||'')}
@@ -4268,10 +4291,11 @@ function renderFuelTrackerFromMileLog() {
   }
 
   (_mileLogToday || []).forEach(r => {
-    const hasFuel = String(r['น้ำมันที่เติม(ลิตร)'] || r['fuelLiters'] || '').trim();
+    // ✅ FIX: ลิตร/ราคาจริง = ตอนออก + ตอนกลับ ('auto' ไม่ใช่ลิตร, 'ไม่เติม' ไม่ใช่การเติม — เดิมถูกนับเป็นเติมและขึ้น "auto ลิตร")
+    const _tf = tripFuel(r);
+    const hasFuelVal = _tf.liters > 0 || _tf.price > 0;
     // ✅ v2.1: รองรับ 'auto' marker จาก endMile() ที่ตรวจจับปลายทางเป็นปั๊มน้ำมัน
-    const hasFuelVal = hasFuel && hasFuel !== '0' && hasFuel !== '';
-    const hasAutoMarker = hasFuel === 'auto' || hasFuel === 'ตรวจจับอัตโนมัติ';
+    const hasAutoMarker = fuelMarker(r) === 'auto';
     // แยก URL ขาไป / ขากลับ อย่างชัดเจน
     const outPhotoUrl    = extractDriveUrl(r['fuelPhotoUrl'])
                         || extractDriveUrl(r['รูปบิลน้ำมันออกรถ'])
@@ -4288,15 +4312,16 @@ function renderFuelTrackerFromMileLog() {
         carType   : r['ทะเบียน/รถ'] || r['carType'] || plate,
         driverName: r['พนักงานขับรถ'] || '',
         time      : extractTimeOnly(r['เวลาออก'] || ''),
-        fuelLiters: hasFuelVal ? hasFuel : '',
-        fuelPrice : String(r['ราคาน้ำมัน(บาท)'] || r['ราคาน้ำมัน'] || r['fuelPrice'] || ''),
+        fuelLiters: _tf.liters,        // ตัวเลขสะสมข้ามทริปของรถคันเดียวกัน (แปลงเป็นข้อความตอนส่งให้การ์ด)
+        fuelPrice : _tf.price,
         outUrl    : outPhotoUrl,
         retUrl    : returnPhotoUrl,
       };
     } else {
       if (!plateFuelAccum[plate].outUrl && outPhotoUrl) plateFuelAccum[plate].outUrl = outPhotoUrl;
       if (!plateFuelAccum[plate].retUrl && returnPhotoUrl) plateFuelAccum[plate].retUrl = returnPhotoUrl;
-      if (!plateFuelAccum[plate].fuelLiters && hasFuelVal) plateFuelAccum[plate].fuelLiters = hasFuel;
+      plateFuelAccum[plate].fuelLiters += _tf.liters;
+      plateFuelAccum[plate].fuelPrice  += _tf.price;
     }
   });
   Object.values(plateFuelAccum).forEach(acc => {
@@ -4305,8 +4330,8 @@ function renderFuelTrackerFromMileLog() {
       driverName         : acc.driverName,
       time               : acc.time,
       fuelLevel          : '',
-      fuelLiters         : acc.fuelLiters,
-      fuelPrice          : acc.fuelPrice,
+      fuelLiters         : acc.fuelLiters ? String(_r2(acc.fuelLiters)) : '',
+      fuelPrice          : acc.fuelPrice  ? String(_r2(acc.fuelPrice))  : '',
       fuelPhotoUrl       : acc.outUrl,
       returnFuelPhotoUrl : acc.retUrl,
       source             : 'mile'
@@ -6451,8 +6476,8 @@ function expGetColumns(type) {
       { key: '__gapCheckKm',          label: '⚠ ระยะหาย: ตรวจเช็ค→ออกรถ (กม.)', derived: true },
       { key: '__gapFlag',             label: 'สถานะระยะ', derived: true },
       { key: 'ปลายทาง',              label: 'ปลายทาง' },
-      { key: 'fuelLiters',            label: 'น้ำมันที่เติม (ล.)' },
-      { key: 'fuelPrice',             label: 'ราคาน้ำมัน (บ.)' },
+      { key: '__fuelLiters',          label: 'น้ำมันที่เติม (ล.) ออก+กลับ', derived: true },
+      { key: '__fuelPrice',           label: 'ราคาน้ำมัน (บ.) ออก+กลับ', derived: true },
       { key: 'สถานะ',                 label: 'สถานะ' },
       { key: 'หมายเหตุ',              label: 'หมายเหตุ' },
       { key: '__mileDriveLinks',      label: 'ลิงก์ Google Drive', isDriveLink: true, derived: true },
@@ -6535,7 +6560,21 @@ function expComputeMileDriveLinks(r) {
   return urls.join('\n');
 }
 
+// น้ำมันรวมของทริป (ตอนออก+ตอนกลับ) สำหรับคอลัมน์ส่งออก — คืนค่า { n: ตัวเลข|null, text: ข้อความ }
+function expFuelCell(r, key) {
+  const f = tripFuel(r);
+  const n = key === '__fuelLiters' ? f.liters : f.price;
+  if (n > 0) return { n: _r2(n), text: String(_r2(n)) };
+  if (key === '__fuelLiters') {
+    const m = fuelMarker(r);
+    if (m === 'auto')   return { n: null, text: 'รอกรอกลิตร (ตรวจพบไปปั๊ม)' };
+    if (m === 'nofuel') return { n: null, text: 'ไม่เติม' };
+  }
+  return { n: null, text: '' };
+}
+
 function expCellValue(r, col) {
+  if (col.key === '__fuelLiters' || col.key === '__fuelPrice') return expFuelCell(r, col.key).text;
   // ── ฟิลด์คำนวณ (derived) ──
   if (col.key === 'hasIssue' || col.key === 'issueCount') {
     const computed = expComputeIssue(r);
@@ -7162,8 +7201,9 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
       if (!plate) return;
       if (!fuelByPlate[plate]) fuelByPlate[plate] = { trips: 0, dist: 0, liters: 0, price: 0, fillCount: 0 };
       const dist   = parseFloat(String(r['ระยะทาง(กม.)'] || 0).replace(/[^0-9.]/g, '')) || 0;
-      const liters = parseFloat(String(r['น้ำมันที่เติม(ลิตร)'] || 0).replace(/[^0-9.]/g, '')) || 0;
-      const price  = parseFloat(String(r['ราคาน้ำมัน(บาท)'] || 0).replace(/[^0-9.]/g, '')) || 0;
+      const _tf    = tripFuel(r);          // ✅ ตอนออก + ตอนกลับ (เดิมอ่านเฉพาะตอนออก → กม./ลิตร คลาดเคลื่อน/ไม่มีข้อมูล)
+      const liters = _tf.liters;
+      const price  = _tf.price;
       fuelByPlate[plate].trips += 1;
       fuelByPlate[plate].dist  += dist;
       fuelByPlate[plate].liters += liters;
@@ -7254,6 +7294,9 @@ function expDownloadXLSX(rows, cols, addHdr, addSum) {
 // แปลงค่าเซลล์ให้เหมาะสมกับชนิดข้อมูลจริงใน Excel (ตัวเลขเป็น Number, ที่เหลือเป็น String)
 // แทนการเดาจาก regex แบบเดิมซึ่งทำให้ทะเบียนรถ/รหัสที่เป็นตัวเลขถูกตีความผิดเป็นตัวเลขบ้าง
 function expCellForSheet(r, col) {
+  if (col.key === '__fuelLiters' || col.key === '__fuelPrice') {
+    const c = expFuelCell(r, col.key); return c.n !== null ? c.n : c.text;   // ตัวเลขเป็น Number ใน Excel
+  }
   // derived fields: คำนวณก่อน
   if (col.key === 'hasIssue' || col.key === 'issueCount') {
     return String(expComputeIssue(r)[col.key]);
