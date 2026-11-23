@@ -1468,7 +1468,9 @@ body {
 </style>
 <script src="secure-fetch.js"></script>
 <link rel="stylesheet" href="sand-brand.css">
+<link rel="stylesheet" href="monthly-report.css">
 <script defer src="sand-brand.js"></script>
+<script defer src="monthly-report.js"></script>
   <script defer src="https://sandtools.vercel.app/t.js" data-site="prnskn2arc"></script>
 <link rel="icon" href="assets/sand/app/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="assets/sand/app/favicon-32.png">
@@ -1816,6 +1818,16 @@ function logoutDash() {
       </div>
     </div>
 
+  </div>
+
+  <!-- ══ รายงานประจำเดือน (PDF) เก็บบน Google Drive ══ -->
+  <div class="card" id="monthlyReportCard" style="margin-bottom:12px;">
+    <div class="card-header">
+      <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="14" y2="17"/></svg></span>
+      <h2>รายงานประจำเดือน (PDF)</h2>
+      <span class="badge" style="background:rgba(255,255,255,0.25);color:#fff;">เก็บบน Google Drive</span>
+    </div>
+    <div class="card-body" id="monthlyReportBody"></div>
   </div>
 
   <!-- ══ DAILY SUMMARY DATE PICKER ══ -->
@@ -4872,6 +4884,7 @@ async function startDashboard() {
     await loadLiveVehicleStatus();   // ③ สถานะรถ live
   } finally { _boot = null; }      // จบช่วงเปิดหน้า → รอบหลังดึงข้อมูลสดตามปกติ
   startLiveRefresh();              // ④ auto-refresh
+  if (window.SandMonthlyReport) { try { SandMonthlyReport.init(); } catch (e) { console.warn('monthly-report:', e); } }   // รายการรายงานประจำเดือน + สร้างเดือนที่แล้วอัตโนมัติ
   checkDriveAuth();                // ⑤ ตรวจสิทธิ์ Drive
 }
 
