@@ -292,6 +292,32 @@
     background: linear-gradient(to bottom, transparent, rgba(255,255,255,.15), transparent);
     flex-shrink: 0;
   }
+  /* ปุ่มลัดใน hero */
+  .band-cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
+  .band-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 44px; padding: 0 22px; border-radius: 10px;
+    font-size: 14px; font-weight: 600; text-decoration: none;
+    border: 1.5px solid rgba(255,255,255,.85);
+    transition: background .15s, color .15s;
+  }
+  .band-btn-main { background: #fff; color: #0d2137; }
+  .band-btn-main:hover { background: #e8f1fb; }
+  .band-btn-ghost { color: #fff; background: transparent; }
+  .band-btn-ghost:hover { background: rgba(255,255,255,.12); }
+  .band-btn:focus-visible { outline: 3px solid #7cc4ff; outline-offset: 3px; }
+  /* ภาพมาสคอต hero (จอ >= 720px) — มือถือยังใช้มาสคอตโบกมือเดิม */
+  .band-scene { display: none; }
+  @media (min-width: 720px) {
+    .page-band .sand-hero-mascot { display: none; }
+    .band-scene {
+      display: block; flex: none; width: 190px; margin: -8px 0 -24px;
+      background: linear-gradient(180deg, #f4f8fc 0%, #dce8f5 100%);
+      border-radius: 22px; padding: 10px 12px 0; overflow: hidden;
+      box-shadow: 0 8px 28px rgba(0,0,0,.28);
+    }
+    .band-scene img { display: block; width: 100%; height: auto; }
+  }
 
   /* ── MAIN ── */
   .main-wrap {
@@ -1052,11 +1078,15 @@
     <div class="band-text">
       <h1>SAND</h1>
       <div class="band-subtitle">Sansai Administration Network Drive · โรงพยาบาลสันทราย</div>
-      <p>ระบบติดตาม ตรวจสอบ และบันทึกการใช้ยานพาหนะครบวงจร เพื่อความโปร่งใส ปลอดภัย และมีประสิทธิภาพ</p>
+      <p>ระบบบริหารจัดการยานพาหนะ แทนการจดบันทึกด้วยกระดาษ ให้ พขร. และผู้บริหารเห็นสถานะรถ เลขไมล์ การเติมน้ำมัน และภาระงานแบบเรียลไทม์ ผ่านเบราว์เซอร์บนมือถือ ไม่ต้องติดตั้งแอปเพิ่ม</p>
       <div class="band-meta">
         <span class="band-pill pill-active"><span class="pulse-dot"></span>ระบบออนไลน์</span>
         <span class="band-pill" id="statusUpdateTime">กำลังโหลดข้อมูล...</span>
         <span class="band-pill">รองรับมือถือ</span>
+      </div>
+      <div class="band-cta">
+        <a class="band-btn band-btn-main" href="check.html">ตรวจสภาพรถประจำวัน</a>
+        <a class="band-btn band-btn-ghost" href="#menu">ดูระบบทั้งหมด</a>
       </div>
     </div>
     <div class="band-divider"></div>
@@ -1068,6 +1098,9 @@
       <source srcset="assets/sand/anim/wave-still.webp" media="(prefers-reduced-motion: reduce)">
       <img src="assets/sand/anim/wave.webp" alt="" width="92" height="143" decoding="async">
     </picture>
+    <figure class="band-scene">
+      <img src="assets/sand/hero/hero-scene.webp" alt="มาสคอต SAND ชูนิ้วโป้ง ยืนหน้ารถพยาบาลและอาคารโรงพยาบาลสันทราย" width="473" height="560" decoding="async">
+    </figure>
   </div>
 </section>
 
@@ -1201,7 +1234,7 @@
   </div>
 
   <!-- Section: ประจำวัน -->
-  <div class="section-head">
+  <div class="section-head" id="menu" style="scroll-margin-top:12px;">
     <span class="sh-label">ระบบประจำวัน</span>
     <span class="sh-line"></span>
     <span class="sh-en">Daily Operations</span>
