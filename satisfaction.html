@@ -468,6 +468,36 @@
     .field-textarea, .field-select, .field-input { font-size: 16px !important; }
     .submit-btn { min-height: 46px; }
   }
+  /* ── QR รายคัน: สถานะรถ + เลือกเที่ยววิ่ง ── */
+  #carTripCard { display: none; }
+  .qr-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:10px; }
+  .qr-plate { font-size:22px; font-weight:700; color:var(--navy); line-height:1.25; }
+  .qr-type  { font-size:13px; color:var(--text-mid); }
+  .qr-pill  { font-size:12px; font-weight:700; padding:3px 12px; border-radius:999px; white-space:nowrap; background:#eef1f5; color:var(--text-mid); }
+  .qr-pill.busy { background:var(--amber-soft); color:var(--amber); }
+  .qr-pill.free { background:var(--success-soft); color:var(--success); }
+  .qr-meta  { font-size:13px; color:var(--text-mid); margin-bottom:14px; }
+  .qr-tabs  { display:flex; gap:6px; margin-bottom:12px; }
+  .qr-tab   { flex:1; min-height:44px; border:1.5px solid var(--border); background:#f8fafc; border-radius:var(--radius-sm);
+              font:600 13px 'Noto Sans Thai',sans-serif; color:var(--text-mid); cursor:pointer; padding:4px 6px; }
+  .qr-tab[aria-selected="true"] { border-color:var(--violet); background:var(--violet-soft); color:var(--violet-dark); }
+  .qr-tab[disabled] { opacity:.45; cursor:not-allowed; }
+  .qr-trip  { display:block; width:100%; text-align:left; min-height:44px; margin-bottom:8px; padding:10px 14px; background:#fff;
+              border:1.5px solid var(--border); border-radius:var(--radius-sm); font:inherit; color:var(--text); cursor:pointer; }
+  .qr-trip[aria-pressed="true"] { border-color:var(--violet); background:var(--violet-soft); box-shadow:0 0 0 3px rgba(109,63,192,.12); }
+  .qr-trip b { font-weight:700; }
+  .qr-trip small { display:block; color:var(--text-mid); font-size:12.5px; }
+  .qr-trip .qr-badge { float:right; font-size:11px; font-weight:700; color:var(--amber); background:var(--amber-soft); border-radius:999px; padding:1px 9px; }
+  .qr-trip .qr-badge.ok { color:var(--success); background:var(--success-soft); }
+  .qr-empty { font-size:13px; color:var(--text-light); padding:8px 2px 12px; }
+  .qr-row   { display:grid; gap:8px; margin-bottom:10px; }
+  .qr-row.date { grid-template-columns: 1fr 1.4fr 1.2fr; }
+  .qr-row.time { grid-template-columns: 1fr auto 1fr; align-items:center; }
+  .qr-row .colon { font-weight:700; color:var(--text-mid); }
+  .qr-sub   { font-size:12px; color:var(--text-light); margin:-4px 0 8px; }
+  .qr-sum   { margin-top:12px; padding:10px 14px; border-radius:var(--radius-sm); background:var(--success-soft); color:#136a39; font-size:13px; font-weight:600; display:none; }
+  .qr-warn  { margin-top:10px; padding:8px 12px; border-radius:var(--radius-sm); background:var(--amber-soft); color:#7a4f00; font-size:13px; display:none; }
+  .qr-load  { font-size:13px; color:var(--text-mid); padding:10px 2px; }
 </style>
 <script src="secure-fetch.js"></script>
 <link rel="stylesheet" href="sand-brand.css">
@@ -543,6 +573,53 @@
 
   <!-- ── FORM ── -->
   <div id="formArea">
+
+    <!-- QR รายคัน: การ์ดสถานะรถ + เลือกเที่ยววิ่ง (แสดงเฉพาะเมื่อเปิดด้วย ?car=ทะเบียน) -->
+    <div class="form-card" id="carTripCard" aria-live="polite">
+      <div class="section-label">รถที่ท่านใช้บริการ</div>
+      <div class="qr-load" id="qrLoad">กำลังโหลดข้อมูลรถ...</div>
+      <div id="qrBody" style="display:none">
+        <div class="qr-head">
+          <div><div class="qr-plate" id="qrPlate"></div><div class="qr-type" id="qrType"></div></div>
+          <span class="qr-pill" id="qrStatus"></span>
+        </div>
+        <div class="qr-meta" id="qrMeta"></div>
+
+        <div class="field-label" style="margin-bottom:8px">ท่านประเมินการใช้รถช่วงใด <span>*</span></div>
+        <div class="qr-tabs" role="tablist" id="qrTabs">
+          <button type="button" class="qr-tab" role="tab" data-tab="active" id="qrTabActive">กำลังใช้งาน</button>
+          <button type="button" class="qr-tab" role="tab" data-tab="today">วันนี้</button>
+          <button type="button" class="qr-tab" role="tab" data-tab="manual">เลือกวันที่เอง</button>
+        </div>
+
+        <div id="qrPaneActive" style="display:none"></div>
+        <div id="qrPaneToday" style="display:none"></div>
+        <div id="qrPaneManual" style="display:none">
+          <div class="field-label">วัน / เดือน / ปี</div>
+          <div class="qr-row date">
+            <select class="field-select" id="qrDay" aria-label="วัน"></select>
+            <select class="field-select" id="qrMonth" aria-label="เดือน"></select>
+            <select class="field-select" id="qrYear" aria-label="ปี (ค.ศ.)"></select>
+          </div>
+          <div class="field-label">เวลา (24 ชั่วโมง)</div>
+          <div class="qr-row time">
+            <select class="field-select" id="qrHour" aria-label="ชั่วโมง"></select>
+            <span class="colon">:</span>
+            <select class="field-select" id="qrMin" aria-label="นาที"></select>
+          </div>
+          <div class="qr-sub">เลือกย้อนหลังได้ไม่เกิน 30 วัน · ระบบจะค้นหาเที่ยวของรถคันนี้ที่ตรงกับวัน-เวลาที่ระบุ</div>
+          <div id="qrManualTrips"></div>
+          <div id="qrManualDriverWrap" style="display:none">
+            <label class="field-label" for="qrManualDriver">ชื่อพนักงานขับรถ (ถ้าทราบ)</label>
+            <select class="field-select" id="qrManualDriver"></select>
+          </div>
+        </div>
+
+        <div class="qr-sum" id="qrSum"></div>
+        <div class="qr-warn" id="qrWarn"></div>
+      </div>
+    </div>
+
 
     <!-- Star Rating Card -->
     <div class="form-card">
@@ -1144,6 +1221,7 @@ async function submitSatisfaction() {
 
   if (currentRating === 0) { showResult('err', 'กรุณาเลือกคะแนนดาวก่อนส่งการประเมิน'); return; }
   if (!purpose)             { showResult('err', 'กรุณาเลือกจุดประสงค์การใช้รถ'); return; }
+  if (typeof window.qrCheck === 'function' && !window.qrCheck()) return;   // QR รายคัน: ต้องเลือกเที่ยว/วัน-เวลา
 
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner"></div> กำลังบันทึก...';
@@ -1170,6 +1248,9 @@ async function submitSatisfaction() {
       comment:     comment,
       carType:     (document.getElementById('carTypeInput').value || '').trim(),
       driverName:  (document.getElementById('driverNameInput').value || '').trim(),
+      tripId:      (typeof window.qrPayload === 'function' ? (window.qrPayload().tripId || '') : ''),
+      usageAt:     (typeof window.qrPayload === 'function' ? (window.qrPayload().usageAt || '') : ''),
+      tripSource:  (typeof window.qrPayload === 'function' ? (window.qrPayload().tripSource || '') : ''),
       photoUrls:   photoUrls,
       videoUrls:   videoUrls,
       ts:          new Date().toISOString()
@@ -1249,5 +1330,214 @@ document.addEventListener('keydown', e => {
 });
 </script>
 
+<script>
+/* ═══════════════════════════════════════════════════════════
+   QR รายคัน: เปิดด้วย satisfaction.html?car=<ทะเบียน>
+   แสดงสถานะรถ + เลือกเที่ยวที่กำลังใช้งาน / ของวันนี้ / ระบุวัน-เวลาเอง (24 ชม.)
+   ไม่มี ?car= → หน้าทำงานเหมือนเดิมทุกประการ
+   ═══════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  var car = (new URLSearchParams(location.search).get('car') || '').trim();
+  if (!car) return;                                   // เข้าแบบปกติ: ไม่ทำอะไร
+
+  var $ = function (id) { return document.getElementById(id); };
+  var card = $('carTripCard');
+  var oldCarCard = $('carTypeInput').closest('.form-card');
+  var MONTHS = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  var sel = null;          // { tripId, usageAt, source, driverName }
+  var data = null;         // ผลจาก backend (วันนี้)
+  var tab = '';
+  var manualTrips = null;
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function ymdToDmy(s) { var p = String(s || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : ''; }
+  function mk(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+  // ── fallback: โหลดข้อมูลรถไม่ได้ → ใช้ช่องเลือกรถเดิม (เลือกรถให้จากทะเบียนใน QR) ──
+  function fallback(msg) {
+    card.style.display = 'none';
+    var s = $('carTypeInput'), key = car.replace(/\s+/g, '');
+    for (var i = 0; i < s.options.length; i++) {
+      if (s.options[i].value.split(' — ')[0].replace(/\s+/g, '') === key) { s.value = s.options[i].value; break; }
+    }
+    if (msg) { var n = mk('div', null, msg); n.style.cssText = 'font-size:12px;color:#c07a00;margin-top:6px;font-weight:600;'; s.insertAdjacentElement('afterend', n); }
+    window.qrCheck = null; window.qrPayload = null;
+  }
+
+  // ── เลือกเที่ยว ──
+  function setDriver(name) {
+    var d = $('driverNameInput');
+    if (!name) { d.value = ''; return; }
+    var has = false;
+    for (var i = 0; i < d.options.length; i++) if (d.options[i].value === name || d.options[i].text === name) { d.value = d.options[i].value; has = true; break; }
+    if (!has) { var o = document.createElement('option'); o.value = name; o.textContent = name; d.appendChild(o); d.value = name; }
+  }
+  function updateSummary() {
+    var s = $('qrSum');
+    if (!sel) { s.style.display = 'none'; return; }
+    s.textContent = '✓ ประเมินการใช้รถ ' + data.plate + ' · ' + sel.usageAt + ' น.' + (sel.driverName ? ' · ผู้ขับ ' + sel.driverName : '');
+    s.style.display = 'block';
+  }
+  function choose(t, source, usageAt) {
+    sel = { tripId: t ? t.tripId : '', usageAt: usageAt, source: source, driverName: t ? t.driverName : '' };
+    if (t) setDriver(t.driverName);
+    updateSummary();
+  }
+  function tripButton(t, source, extraBadge) {
+    var b = mk('button', 'qr-trip'); b.type = 'button'; b.setAttribute('aria-pressed', 'false');
+    var title = mk('b', null, (t.timeOut || '--:--') + ' – ' + (t.timeBack || (t.active ? 'ยังไม่กลับ' : '--:--')) + ' น.');
+    b.appendChild(title);
+    if (t.active) b.appendChild(mk('span', 'qr-badge', 'กำลังใช้งาน'));
+    else if (extraBadge) b.appendChild(mk('span', 'qr-badge ok', extraBadge));
+    b.appendChild(mk('small', null, (t.driverName ? 'ผู้ขับ ' + t.driverName : 'ไม่ระบุผู้ขับ') + (t.destination ? ' · ไป ' + t.destination : '')));
+    b.addEventListener('click', function () {
+      var group = b.parentNode.querySelectorAll('.qr-trip');
+      for (var i = 0; i < group.length; i++) group[i].setAttribute('aria-pressed', 'false');
+      b.setAttribute('aria-pressed', 'true');
+      if (source === 'manual') choose(t, 'manual', manualUsage());
+      else choose(t, source, ymdToDmy(t.date) + ' ' + (t.timeOut || '00:00'));
+    });
+    return b;
+  }
+
+  // ── แท็บ ──
+  function showTab(name) {
+    tab = name; sel = null; updateSummary();
+    ['active', 'today', 'manual'].forEach(function (k) {
+      $('qrPane' + k.charAt(0).toUpperCase() + k.slice(1)).style.display = (k === name ? 'block' : 'none');
+    });
+    var tabs = document.querySelectorAll('#qrTabs .qr-tab');
+    for (var i = 0; i < tabs.length; i++) tabs[i].setAttribute('aria-selected', tabs[i].dataset.tab === name ? 'true' : 'false');
+    if (name === 'active' && data.activeTrip) {
+      var pa = $('qrPaneActive'); pa.textContent = '';
+      var b = tripButton(data.activeTrip, 'active'); pa.appendChild(b); b.click();
+    }
+    if (name === 'manual') { fillNow(); searchManual(); }
+  }
+
+  function renderToday() {
+    var p = $('qrPaneToday'); p.textContent = '';
+    if (!data.trips.length) { p.appendChild(mk('div', 'qr-empty', 'วันนี้ยังไม่มีบันทึกการใช้รถคันนี้ — กรุณาเลือก "เลือกวันที่เอง"')); return; }
+    data.trips.forEach(function (t) { p.appendChild(tripButton(t, 'today')); });
+  }
+
+  // ── วัน-เวลาเอง (24 ชม.) ──
+  function fillSelect(id, from, to, labelFn) {
+    var s = $(id); s.textContent = '';
+    for (var i = from; i <= to; i++) { var o = document.createElement('option'); o.value = String(i); o.textContent = labelFn ? labelFn(i) : pad(i); s.appendChild(o); }
+  }
+  function initManual() {
+    var yr = new Date().getFullYear();
+    fillSelect('qrDay', 1, 31); fillSelect('qrMonth', 1, 12, function (m) { return pad(m) + ' · ' + MONTHS[m - 1]; });
+    var y = $('qrYear'); y.textContent = '';
+    [yr, yr - 1].forEach(function (v) { var o = document.createElement('option'); o.value = String(v); o.textContent = String(v); y.appendChild(o); });
+    fillSelect('qrHour', 0, 23); fillSelect('qrMin', 0, 59);
+    ['qrDay', 'qrMonth', 'qrYear', 'qrHour', 'qrMin'].forEach(function (id) { $(id).addEventListener('change', onManualChange); });
+    var md = $('qrManualDriver'), src = $('driverNameInput');
+    md.textContent = '';
+    for (var i = 0; i < src.options.length; i++) { var o = document.createElement('option'); o.value = src.options[i].value; o.textContent = src.options[i].text.replace('-- เลือกชื่อ --', '— ไม่ทราบ —'); md.appendChild(o); }
+    md.addEventListener('change', function () { setDriver(md.value); if (sel) { sel.driverName = md.value; updateSummary(); } });
+  }
+  function fillNow() {
+    var n = new Date();
+    $('qrDay').value = String(n.getDate()); $('qrMonth').value = String(n.getMonth() + 1);
+    $('qrYear').value = String(n.getFullYear()); $('qrHour').value = String(n.getHours()); $('qrMin').value = String(n.getMinutes());
+  }
+  function manualYmd() { return $('qrYear').value + '-' + pad(+$('qrMonth').value) + '-' + pad(+$('qrDay').value); }
+  function manualHm()  { return pad(+$('qrHour').value) + ':' + pad(+$('qrMin').value); }
+  function manualUsage() { return ymdToDmy(manualYmd()) + ' ' + manualHm(); }
+
+  function manualError() {
+    var y = +$('qrYear').value, m = +$('qrMonth').value, d = +$('qrDay').value;
+    var dt = new Date(y, m - 1, d, +$('qrHour').value, +$('qrMin').value);
+    if (dt.getMonth() !== m - 1 || dt.getDate() !== d) return 'วันที่ไม่ถูกต้อง (เดือนนี้ไม่มีวันที่ ' + d + ')';
+    var now = new Date();
+    if (dt.getTime() > now.getTime() + 5 * 60000) return 'ไม่สามารถเลือกวัน-เวลาในอนาคตได้';
+    if (now.getTime() - dt.getTime() > 31 * 86400000) return 'เลือกย้อนหลังได้ไม่เกิน 30 วัน';
+    return '';
+  }
+  var searchSeq = 0;
+  function onManualChange() { sel = null; updateSummary(); clearTimeout(onManualChange.t); onManualChange.t = setTimeout(searchManual, 250); }
+
+  function searchManual() {
+    var warn = $('qrWarn'), box = $('qrManualTrips'), dw = $('qrManualDriverWrap');
+    var err = manualError();
+    box.textContent = ''; dw.style.display = 'none';
+    if (err) { warn.textContent = err; warn.style.display = 'block'; return; }
+    warn.style.display = 'none';
+    box.appendChild(mk('div', 'qr-load', 'กำลังค้นหาเที่ยวของวันที่เลือก...'));
+    var seq = ++searchSeq;
+    fetch(GAS_URL + '?action=getCarTripsForSatisfaction&plate=' + encodeURIComponent(car) +
+          '&date=' + encodeURIComponent(manualYmd()) + '&time=' + encodeURIComponent(manualHm()))
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (seq !== searchSeq) return;
+        box.textContent = '';
+        if (res.status !== 'ok') { warn.textContent = res.message || 'ค้นหาเที่ยวไม่สำเร็จ'; warn.style.display = 'block'; choose(null, 'manual', manualUsage()); dw.style.display = 'block'; return; }
+        manualTrips = res.trips || [];
+        var matched = null;
+        manualTrips.forEach(function (t) {
+          var b = tripButton(t, 'manual', t.tripId && t.tripId === res.matchedTripId ? 'ตรงกับเวลาที่ระบุ' : '');
+          if (t.tripId && t.tripId === res.matchedTripId) matched = b;
+          box.appendChild(b);
+        });
+        var none = mk('button', 'qr-trip'); none.type = 'button'; none.setAttribute('aria-pressed', 'false');
+        none.appendChild(mk('b', null, manualTrips.length ? 'ไม่ใช่เที่ยวข้างต้น' : 'ไม่พบเที่ยวของวันที่เลือก'));
+        none.appendChild(mk('small', null, 'บันทึกตามวัน-เวลาที่ท่านระบุ ' + manualUsage() + ' น.'));
+        none.addEventListener('click', function () {
+          var g = box.querySelectorAll('.qr-trip'); for (var i = 0; i < g.length; i++) g[i].setAttribute('aria-pressed', 'false');
+          none.setAttribute('aria-pressed', 'true'); choose(null, 'manual', manualUsage()); setDriver($('qrManualDriver').value); dw.style.display = 'block';
+        });
+        box.appendChild(none);
+        (matched || (manualTrips.length ? null : none)) && (matched || none).click();
+      })
+      .catch(function () { if (seq !== searchSeq) return; box.textContent = ''; warn.textContent = 'เชื่อมต่อไม่ได้ ท่านยังส่งการประเมินตามวัน-เวลาที่ระบุได้'; warn.style.display = 'block'; choose(null, 'manual', manualUsage()); dw.style.display = 'block'; });
+  }
+
+  // ── โหลดข้อมูลรถ ──
+  function render(res) {
+    data = res;
+    $('qrPlate').textContent = res.vehicle.plate;
+    $('qrType').textContent = res.vehicle.type;
+    var st = $('qrStatus'); st.textContent = res.vehicle.status || '—';
+    st.className = 'qr-pill' + (res.vehicle.status === 'กำลังใช้งาน' ? ' busy' : (/พร้อม/.test(res.vehicle.status) ? ' free' : ''));
+    var meta = [];
+    if (res.vehicle.currentDriver) meta.push('ผู้ขับปัจจุบัน: ' + res.vehicle.currentDriver);
+    if (res.vehicle.destination) meta.push('ปลายทาง: ' + res.vehicle.destination);
+    $('qrMeta').textContent = meta.join(' · ');
+    // ล็อกช่องรถเดิมให้เป็นคันนี้ แล้วซ่อนการ์ดเดิม
+    var s = $('carTypeInput'), key = car.replace(/\s+/g, ''), hit = null;
+    for (var i = 0; i < s.options.length; i++) if (s.options[i].value.split(' — ')[0].replace(/\s+/g, '') === key) { hit = s.options[i]; break; }
+    if (!hit) { var o = document.createElement('option'); o.value = res.vehicle.plate + ' — ' + res.vehicle.type; o.textContent = res.vehicle.plate; s.appendChild(o); hit = o; }
+    s.value = hit.value;
+    oldCarCard.style.display = 'none';
+    var ta = $('qrTabActive'); ta.disabled = !res.activeTrip;
+    initManual(); renderToday();
+    $('qrLoad').style.display = 'none'; $('qrBody').style.display = 'block';
+    showTab(res.activeTrip ? 'active' : (res.trips.length ? 'today' : 'manual'));
+  }
+
+  document.querySelectorAll('#qrTabs .qr-tab').forEach(function (b) {
+    b.addEventListener('click', function () { if (!b.disabled) showTab(b.dataset.tab); });
+  });
+
+  // ── ผูกกับการส่งฟอร์มเดิม ──
+  window.qrCheck = function () {
+    if (!sel) { showResult('err', 'กรุณาเลือกเที่ยววิ่ง หรือระบุวัน-เวลาที่ใช้รถ'); return false; }
+    if (sel.source === 'manual') { var e = manualError(); if (e) { showResult('err', e); return false; } }
+    return true;
+  };
+  window.qrPayload = function () {
+    return sel ? { tripId: sel.tripId, usageAt: sel.usageAt, tripSource: sel.source } : {};
+  };
+
+  card.style.display = 'block';
+  fetch(GAS_URL + '?action=getCarTripsForSatisfaction&plate=' + encodeURIComponent(car))
+    .then(function (r) { return r.json(); })
+    .then(function (res) { if (res && res.status === 'ok') render(res); else fallback(res && res.message ? 'ไม่พบข้อมูลรถจาก QR — กรุณาเลือกรถเอง' : ''); })
+    .catch(function () { fallback('โหลดข้อมูลรถไม่สำเร็จ — กรุณาเลือกรถเอง'); });
+})();
+</script>
 </body>
 </html>
