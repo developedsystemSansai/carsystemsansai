@@ -88,3 +88,14 @@
 .mr-bv { font-weight: 700; font-variant-numeric: tabular-nums; color: #142d59; white-space: nowrap; }
 
 @media (max-width: 640px) { .mr-sel { width: 100%; } .mr-go { width: 100%; } }
+
+/* ───────── ส่วน GIS + เครดิต (หน้ารายงาน A4) ───────── */
+.mr-h2 { flex: none; margin: 0; font-size: 16px; font-weight: 700; color: #fff; background: #142d59; border-radius: 8px; padding: 8px 14px; line-height: 1.35; }
+.mr-map { display: block; width: 100%; height: auto; border: 1px solid #b8c4d4; border-radius: 8px; }
+.mr-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 6px; font-size: 10.5px; color: #3d5168; }
+.mr-lg-t { font-weight: 700; }
+.mr-lg { display: inline-flex; align-items: center; gap: 4px; }
+.mr-lg i { width: 18px; height: 6px; border-radius: 3px; display: inline-block; }
+.mr-credit { flex: none; margin-top: auto; border-top: 2px solid #142d59; padding-top: 8px; font-size: 11px; line-height: 1.55; color: #3d5168; text-align: center; }
+.mr-cr-k { font-size: 10px; letter-spacing: .04em; color: #7a8ea5; font-weight: 600; }
+.mr-cr-n { font-size: 13.5px; font-weight: 700; color: #142d59; }

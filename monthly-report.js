@@ -8,6 +8,7 @@
    - เปิด Dashboard ครั้งแรกหลังขึ้นเดือนใหม่ ถ้ายังไม่มีรายงานเดือนที่แล้ว จะสร้างและเก็บให้อัตโนมัติ 1 ครั้ง
      (ไม่มี trigger ฝั่งเซิร์ฟเวอร์ — ต้องมีคนเปิด Dashboard; ไม่เปิดเลยทั้งเดือนก็กดสร้างเองได้)
    - ข้อมูลจากชีทถูกใส่ผ่าน textContent เท่านั้น (ไม่แทรกเป็น HTML)
+   - ส่วนท้ายรายงาน: วิเคราะห์เชิงพื้นที่ (GIS) แผนที่เส้นทาง/รัศมีการเดินรถ จาก รพ. (monthly-gis.js — โหลดเมื่อสร้างรายงาน) + เครดิตผู้จัดทำ
    ต้องใช้ global ของ dashboard.html: GAS_URL, tripFuel(), normalizeInspDate(), extractPlate(), ALL_VEHICLES
    ============================================================ */
 (function () {
@@ -28,7 +29,7 @@
     chk_emergencyLight: 'ไฟฉุกเฉิน', chk_siren: 'ไซเรน', chk_stretcherLock: 'เปลและระบบล็อกเปล', chk_suction: 'เครื่อง Suction', chk_aed: 'AED'
   };
 
-  var st = { busy: false, list: [], listLoaded: false, libs: null };
+  var st = { busy: false, list: [], listLoaded: false, libs: null, gis: null };
 
   // ───────────── helpers ─────────────
   function $(id) { return document.getElementById(id); }
@@ -75,6 +76,19 @@
     st.libs = Promise.all([window.jspdf ? 1 : loadScript(JSPDF_URL), window.html2canvas ? 1 : loadScript(H2C_URL)])
       .catch(function (e) { st.libs = null; throw e; });
     return st.libs;
+  }
+  // โมดูล GIS โหลดเมื่อสร้างรายงานเท่านั้น (ไม่กระทบเวลาเปิด Dashboard) — โหลดไม่ได้ก็ออกรายงานได้ตามเดิมโดยไม่มีส่วน GIS
+  function loadGis() {
+    if (window.SandMonthlyGIS) return Promise.resolve(window.SandMonthlyGIS);
+    if (st.gis) return st.gis;
+    st.gis = loadScript('monthly-gis.js?v=1').then(function () { return window.SandMonthlyGIS; }).catch(function (e) { st.gis = null; throw e; });
+    return st.gis;
+  }
+  function computeGis(S, mileRows, pinsRes) {
+    var rows = mileRows.filter(function (r) { return ymOf(normalizeInspDate(r['วันที่'])) === S.ym; });
+    return loadGis().then(function (g) {
+      return g.compute({ rows: rows, plateOf: plateOf, n: n, pins: (pinsRes && pinsRes.data) || [], ym: S.ym });
+    }).catch(function (e) { if (window.console) console.warn('monthly-report: ข้ามส่วน GIS —', e); return null; });
   }
 
   // ───────────── สถิติประจำเดือน ─────────────
@@ -341,8 +355,105 @@
     pg.add(twoCol(insp, sat));
     if (M.gapKm > 0) pg.add(el('div', 'mr-note', 'หมายเหตุ: ระยะทางที่หายไประหว่างเลขไมล์ของทริปติดกัน (ตามที่ระบบตรวจพบ) รวม ' + fmt(M.gapKm) + ' กม. ในเดือนนี้'));
 
+    if (S.GIS) addGis(pg, S.GIS);
+    pg.add(creditBlock());
+    // กันเครดิตไปอยู่หน้าเดียวโดดๆ: ถ้าหน้าสุดท้ายมีแต่เครดิต ย้ายบล็อกสุดท้ายของหน้าก่อนหน้ามาอยู่กับเครดิต
+    var lastPg = pg.cur();
+    if (lastPg.body.children.length === 1 && pg.pages.length > 1) {
+      var mv = pg.pages[pg.pages.length - 2].body.lastElementChild; if (mv) lastPg.body.insertBefore(mv, lastPg.body.firstChild);
+    }
+
     pg.finish();
     return pg;
+  }
+
+
+  // ───────────── ส่วนวิเคราะห์เชิงพื้นที่ (GIS) + เครดิต ─────────────
+  function smallTable(title, cols, rows) {
+    var blk = el('div', 'mr-block'); blk.appendChild(el('h3', 'mr-h3', title));
+    var tbl = el('table', 'mr-table'), thead = el('thead'), htr = el('tr'), tb = el('tbody');
+    cols.forEach(function (c) { htr.appendChild(el('th', c.cls || '', c.label)); });
+    thead.appendChild(htr); tbl.appendChild(thead);
+    rows.forEach(function (r) { var tr = el('tr'); r.forEach(function (c, i) { tr.appendChild(el('td', c.cls || (cols[i] && cols[i].cls) || '', c.t)); }); tb.appendChild(tr); });
+    tbl.appendChild(tb); blk.appendChild(tbl); return blk;
+  }
+  function gisKpi(label, value, unit, sub) {
+    var c = el('div', 'mr-kpi'); c.appendChild(el('div', 'mr-kl', label));
+    var v = el('div', 'mr-kv'); v.appendChild(document.createTextNode(value)); if (unit) v.appendChild(el('small', null, ' ' + unit)); c.appendChild(v);
+    c.appendChild(el('div', 'mr-kd flat', sub || ' ')); return c;
+  }
+  function r1(x) { return Math.round((Number(x) || 0) * 10) / 10; }
+
+  function addGis(pg, G) {
+    var B = window.SandMonthlyGIS, M = G.map;
+    pg.newPage();
+    var h2 = el('h2', 'mr-h2', 'ส่วนที่ 2 · การวิเคราะห์เชิงพื้นที่ (GIS): แผนที่เส้นทางและรัศมีการเดินรถ'); pg.add(h2);
+
+    if (M && M.url) {
+      var mb = el('div', 'mr-block'); mb.appendChild(el('h3', 'mr-h3', 'แผนที่เส้นทางจาก รพ.สันทราย ไปยังปลายทาง (เดือนนี้)'));
+      var im = new Image(); im.src = M.url; im.alt = 'แผนที่เส้นทางและรัศมีการเดินรถ'; im.className = 'mr-map'; im.width = M.w; im.height = M.h;
+      mb.appendChild(im);
+      var lg = el('div', 'mr-legend'); lg.appendChild(el('span', 'mr-lg-t', 'สีเส้น/หมุด = ระยะทางถนนจาก รพ.:'));
+      B.BAND_LABELS.forEach(function (lb, i) { var s = el('span', 'mr-lg'); var d = el('i'); d.style.background = B.BAND_COL[i]; s.appendChild(d); s.appendChild(document.createTextNode(lb)); lg.appendChild(s); });
+      mb.appendChild(lg);
+      mb.appendChild(el('div', 'mr-note', 'เส้น = เส้นทางตามถนนจริงจาก รพ. · ความหนาเส้น = จำนวนครั้งที่ไป · หมายเลข = ลำดับในตารางปลายทาง' +
+        (M.tilesOk ? '' : ' · (โหลดภาพแผนที่พื้นหลังไม่สำเร็จ — แสดงเฉพาะรัศมีและเส้นทาง)') +
+        (G.dests.length > 12 ? ' · แสดงหมายเลข 12 อันดับแรก ปลายทางที่เหลือแสดงเป็นจุดเล็ก' : '')));
+      pg.add(mb);
+    }
+
+    if (G.dests.length) {
+      var k = el('div', 'mr-kpis');
+      k.appendChild(gisKpi('ปลายทางที่มีพิกัด', fmt(G.dests.length), 'จุด', 'ครอบคลุม ' + G.coverage + '% ของการไป'));
+      k.appendChild(gisKpi('ระยะทางเดียวเฉลี่ย*', fmt(G.wAvg, 1), 'กม.', 'ไป-กลับ ≈ ' + fmt(G.wAvg * 2, 1) + ' กม.'));
+      k.appendChild(gisKpi('ไกลที่สุด', G.farthest ? fmt(G.farthest.km, 1) : '—', 'กม.', G.farthest ? G.farthest.name : ''));
+      k.appendChild(gisKpi('รัศมีกระจายตัว*', fmt(G.stdDist, 1), 'กม.', 'Standard Distance'));
+      k.appendChild(gisKpi('ในรัศมี 20 กม.', G.within20 + '', '%', 'ในรัศมี 10 กม. ' + G.within10 + '%'));
+      k.appendChild(gisKpi('วงรอบจริง/เที่ยว', fmt(G.trip.mean, 1), 'กม.', 'มัธยฐาน ' + fmt(G.trip.med, 1) + ' กม.'));
+      k.appendChild(gisKpi('P90 ต่อเที่ยว', fmt(G.trip.p90, 1), 'กม.', 'เที่ยวไกลสุด ' + fmt(G.trip.max, 1) + ' กม.'));
+      k.appendChild(gisKpi('เที่ยวแวะ ≥ 2 จุด', G.multiStopPct + '', '%', G.durMed ? 'ออก-กลับ ~' + Math.round(G.durMed) + ' นาที' : ''));
+      pg.add(k);
+
+      pg.add(twoCol(
+        smallTable('ช่วงรัศมีทางถนน', [{ label: 'ช่วง' }, { label: 'จุด', cls: 'r' }, { label: 'ครั้ง', cls: 'r' }, { label: '%', cls: 'r' }, { label: 'กม. (ไป-กลับ)*', cls: 'r' }],
+          G.bands.map(function (b) { return [{ t: b.label, cls: 'b' }, { t: fmt(b.dests), cls: 'r' }, { t: fmt(b.visits), cls: 'r' }, { t: b.pct + '%', cls: 'r' }, { t: fmt(b.estKm), cls: 'r' }]; })),
+        miniList('ทิศของปลายทางจาก รพ. (จำนวนครั้ง)', G.sectors.filter(function (s) { return s.v > 0; }).sort(function (a, b) { return b.v - a.v; }).map(function (s) { return { name: s.name, v: s.v }; }), 'ครั้ง')
+      ));
+
+      var top = G.dests.slice(0, 12);
+      pg.addTable('ปลายทางที่ไปบ่อย — ระยะทางและเวลาเดินทาง' + (G.dests.length > 12 ? ' (12 อันดับแรก จาก ' + G.dests.length + ' จุด)' : ''), [
+        { label: '#', cls: 'r' }, { label: 'ปลายทาง' }, { label: 'ช่วง (กม.)' }, { label: 'ครั้ง', cls: 'r' }, { label: 'ทางเดียว (กม.)', cls: 'r' }, { label: 'ไป-กลับ (กม.)', cls: 'r' }, { label: 'เวลาทางเดียว (นาที)', cls: 'r' }, { label: 'รวม (กม.)*', cls: 'r' }
+      ], top.map(function (d) {
+        var ap = d.approx ? '≈' : '';
+        return [{ t: String(d.rank), cls: 'r' }, { t: d.name, cls: 'b' }, { t: B.BAND_LABELS[d.band].replace(' กม.', '') }, { t: fmt(d.count), cls: 'r' }, { t: ap + fmt(d.km, 1), cls: 'r' }, { t: ap + fmt(d.km * 2, 1), cls: 'r' }, { t: ap + fmt(d.min), cls: 'r' }, { t: fmt(d.count * 2 * d.km), cls: 'r' }];
+      }));
+    }
+
+    pg.add(twoCol(
+      miniList('วงรอบจริงต่อเที่ยว (จากเลขไมล์) — จำนวนเที่ยว', G.tripBins.filter(function (x) { return x.v > 0; }), 'เที่ยว'),
+      smallTable('วงรอบรายคัน (กม./เที่ยว)', [{ label: 'ทะเบียน' }, { label: 'เที่ยว', cls: 'r' }, { label: 'เฉลี่ย', cls: 'r' }, { label: 'มัธยฐาน', cls: 'r' }, { label: 'สูงสุด', cls: 'r' }],
+        G.plates.slice(0, 6).map(function (p) { return [{ t: p.plate, cls: 'b' }, { t: fmt(p.trips), cls: 'r' }, { t: fmt(p.avg, 1), cls: 'r' }, { t: fmt(p.med, 1), cls: 'r' }, { t: fmt(p.max, 1), cls: 'r' }]; }))
+    ));
+
+    var an = el('div', 'mr-block mr-sum'); an.appendChild(el('h3', 'mr-h3', 'ข้อวิเคราะห์เชิงพื้นที่'));
+    var ul = el('ul'); G.insights.forEach(function (t) { ul.appendChild(el('li', null, t)); }); an.appendChild(ul); pg.add(an);
+
+    var noteTxt = '* วิธีการ: ระยะทางเดียว = ระยะทางถนนจริงจาก รพ.สันทราย (OSRM/OpenStreetMap) ไปยังหมุดพิกัดในชีต Locations; ค่า ≈ = ประมาณจากเส้นตรง × 1.35 เมื่อเรียกบริการเส้นทางไม่ได้ · '
+      + '"กม. (ไป-กลับ)" และ "รวม" = ระยะทางเดียว × 2 × จำนวนครั้ง (สมมติเที่ยวละ 1 จุด จึงเป็นค่าเทียบเคียง ไม่ใช่ไมล์จริง — ไมล์จริงดูที่ "วงรอบจริง" ซึ่งมาจากเลขไมล์ที่บันทึก) · '
+      + 'เที่ยวที่แวะหลายจุดนับทุกจุดที่ไป · Standard Distance = รากที่สองของค่าเฉลี่ยกำลังสองของระยะทางเดียว ถ่วงน้ำหนักตามจำนวนครั้ง';
+    if (G.unmapped.length) noteTxt += ' · ปลายทางที่ยังไม่ปักหมุดจึงไม่ถูกนับ: ' + G.unmapped.slice(0, 8).map(function (u) { return u.name + ' (' + u.count + ')'; }).join(', ') + (G.unmapped.length > 8 ? ' ฯลฯ' : '');
+    if (G.outside && G.outside.length) noteTxt += ' · ปลายทางนอกกรอบแผนที่ (แสดงเป็นลูกศรที่ขอบ): ' + G.outside.map(function (o) { return o.name + ' ' + fmt(o.km) + ' กม.'; }).join(', ');
+    if (G.localVisits) noteTxt += ' · ไม่นับงานภายใน รพ.สันทราย ' + fmt(G.localVisits) + ' ครั้ง';
+    pg.add(el('div', 'mr-note', noteTxt));
+  }
+
+  function creditBlock() {
+    var c = el('div', 'mr-credit');
+    c.appendChild(el('div', 'mr-cr-k', 'ผู้จัดทำรายงาน'));
+    c.appendChild(el('div', 'mr-cr-n', 'นายจันทกรณ์ จีกัน (Chanthakon Chikan)'));
+    c.appendChild(el('div', null, 'นักวิชาการสาธารณสุขชำนาญการ · กลุ่มงานพัฒนาคุณภาพบริการและมาตรฐาน · โรงพยาบาลสันทราย จังหวัดเชียงใหม่'));
+    c.appendChild(el('div', null, 'โทรศัพท์: 053-921-199 ต่อ 168'));
+    return c;
   }
 
   // ───────────── สร้าง PDF + บันทึก ─────────────
@@ -367,14 +478,18 @@
     return Promise.all([
       getJson(GAS_URL + '?action=getData'),
       getJson(GAS_URL + '?action=getMileData'),
-      getJson(GAS_URL + '?action=getSatisfactionData&limit=2000&startDate=' + sd + '&endDate=' + ed).catch(function () { return { data: [] }; })
+      getJson(GAS_URL + '?action=getSatisfactionData&limit=2000&startDate=' + sd + '&endDate=' + ed).catch(function () { return { data: [] }; }),
+      getJson(GAS_URL + '?action=getLocationPins').catch(function () { return { data: [] }; })
     ]).then(function (res) {
       if (!res[0] || res[0].status === 'error') throw new Error((res[0] && res[0].message) || 'ดึงข้อมูลการตรวจสภาพไม่สำเร็จ');
       if (!res[1] || res[1].status === 'error') throw new Error((res[1] && res[1].message) || 'ดึงข้อมูลไมล์ไม่สำเร็จ');
       var S = buildStats(ym, res[0].data || [], res[1].data || [], res[2]);
       if (!S.hasData) { var e = new Error('ไม่มีข้อมูลการใช้งานในเดือน ' + S.label); e.noData = true; throw e; }
-      setStatus('กำลังจัดทำรายงาน PDF…', 'info');
-      return ensureLibs().then(function () {
+      setStatus('กำลังวิเคราะห์เส้นทางและรัศมีการเดินรถ (GIS)…', 'info');
+      return computeGis(S, res[1].data || [], res[3]).then(function (gis) {
+        S.GIS = gis; setStatus('กำลังจัดทำรายงาน PDF…', 'info');
+        return ensureLibs();
+      }).then(function () {
         pager = buildReport(S);
         var fonts = document.fonts && document.fonts.load ? Promise.all([
           document.fonts.load('400 14px "Noto Sans Thai"'), document.fonts.load('700 14px "Noto Sans Thai"'), document.fonts.ready
@@ -404,7 +519,9 @@
     var JsPDF = window.jspdf.jsPDF;
     var pdf = new JsPDF({ unit: 'pt', format: 'a4', compress: true, orientation: 'portrait' });
     pdf.setProperties({ title: 'รายงานสรุปการใช้งานระบบ SAND ประจำเดือน ' + S.label, subject: 'SAND Monthly Report ' + S.ym, author: 'SAND — โรงพยาบาลสันทราย', creator: 'SAND' });
-    var W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight(), chain = Promise.resolve();
+    var W = pdf.internal.pageSize.getWidth(), H = pdf.internal.pageSize.getHeight();
+    var imgs = [].slice.call(pager.root.querySelectorAll('img')).map(function (im) { return im.decode ? im.decode().catch(function () {}) : Promise.resolve(); });
+    var chain = Promise.all(imgs);                           // รอแผนที่/โลโก้ถอดรหัสเสร็จก่อนจับภาพ
     pager.pages.forEach(function (p, i) {
       chain = chain.then(function () {
         setStatus('กำลังจัดทำรายงาน PDF… (หน้า ' + (i + 1) + ' / ' + pager.pages.length + ')', 'info');
@@ -507,5 +624,5 @@
     loadList().then(function () { setTimeout(function () { if (!st.busy) autoPrevious(); }, 4000); });
   }
 
-  window.SandMonthlyReport = { init: init, generate: generate, _stats: buildStats };
+  window.SandMonthlyReport = { init: init, generate: generate, _stats: buildStats, _build: buildReport };
 })();
