@@ -2030,12 +2030,20 @@ function logoutDash() {
           </tbody>
         </table>
       </div>
+      <div class="rec-pager" id="recentPager" style="display:none;"></div>
     </div>
   </div>
 
 </div><!-- end #overviewPanel -->
 
 <style>
+/* ═══ บันทึกการตรวจ: ย้อนหลัง 5 วัน + แบ่งหน้า ═══ */
+.rec-pager { display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:6px; padding:12px 10px; border-top:1px solid #e2e8f0; }
+.rec-pager button { min-width:34px; height:32px; padding:0 10px; border:1px solid #cbd5e1; background:#fff; color:#475569; border-radius:6px; font:inherit; font-size:.8rem; font-weight:600; cursor:pointer; }
+.rec-pager button:hover:not(:disabled) { border-color:#2563eb; color:#2563eb; }
+.rec-pager button.on { background:#2563eb; border-color:#2563eb; color:#fff; }
+.rec-pager button:disabled { opacity:.4; cursor:default; }
+.rec-pager .rp-info { width:100%; text-align:center; font-size:.74rem; color:#64748b; }
 /* ═══ ผลประเมินความพึงพอใจ (รายผู้ขับ/รายเที่ยว/รายคัน) + ชุด QR ═══ */
 .sr-filter { display:flex; flex-wrap:wrap; gap:10px 14px; align-items:flex-end; margin-bottom:14px; }
 .sr-filter .fg { display:flex; flex-direction:column; gap:3px; }
@@ -3570,9 +3578,13 @@ function renderEquipChart(data, tab) {
 }
 
 let showOnlyIssues = false;
+const RECENT_DAYS = 5;        // แสดงบันทึกการตรวจย้อนหลังกี่วัน (นับวันนี้เป็นวันที่ 1)
+const RECENT_PAGE_SIZE = 10;  // แถวต่อหน้า
+let recentPage = 1;
 
 function toggleIssueFilter() {
   showOnlyIssues = !showOnlyIssues;
+  recentPage = 1;
   renderRecentRecords(window._recentRecordsSource || []);
 }
 
@@ -3584,6 +3596,9 @@ function renderRecentRecords(data) {
   // เก็บ data ต้นฉบับ (ก่อนกรองปัญหา) ไว้ใช้ตอนสลับปุ่มกรอง
   window._recentRecordsSource = data;
 
+  // เฉพาะ RECENT_DAYS วันล่าสุด (นับตั้งแต่ 00:00 ของวันแรก)
+  const cutoff = new Date(); cutoff.setHours(0, 0, 0, 0); cutoff.setDate(cutoff.getDate() - (RECENT_DAYS - 1));
+  data = data.filter(r => parseDate(r.timestamp || (r.inspDate||'') + ' ' + (r.inspTime||'')) >= cutoff);
   const baseData = showOnlyIssues ? data.filter(r => issueCount(r) > 0) : data;
 
   // อัปเดตปุ่มกรองให้แสดงสถานะ active/inactive
@@ -3601,12 +3616,13 @@ function renderRecentRecords(data) {
     const da = parseDate(a.timestamp || (a.inspDate||'') + ' ' + (a.inspTime||''));
     const db = parseDate(b.timestamp || (b.inspDate||'') + ' ' + (b.inspTime||''));
     return db - da;
-  }).slice(0, 100);
+  });
 
-  document.getElementById('recordCount').textContent = baseData.length + ' รายการ';
+  document.getElementById('recordCount').textContent = baseData.length + ' รายการ · ' + RECENT_DAYS + ' วันล่าสุด';
 
   if (!sorted.length) {
-    document.getElementById('recentRecords').innerHTML = `<tr><td colspan="8" class="empty-state"><div class="em">—</div>${showOnlyIssues ? 'ไม่พบรายการที่มีปัญหา' : 'ยังไม่มีข้อมูล'}</td></tr>`;
+    document.getElementById('recentRecords').innerHTML = `<tr><td colspan="8" class="empty-state"><div class="em">—</div>${showOnlyIssues ? 'ไม่พบรายการที่มีปัญหา' : 'ไม่มีบันทึกการตรวจใน ' + RECENT_DAYS + ' วันล่าสุด'}</td></tr>`;
+    renderRecentPager(0, 0);
     return;
   }
 
@@ -3618,7 +3634,13 @@ function renderRecentRecords(data) {
     window._recordMap[key] = r;
   });
 
-  document.getElementById('recentRecords').innerHTML = sorted.map((r, i) => {
+  const totalPages = Math.max(1, Math.ceil(sorted.length / RECENT_PAGE_SIZE));
+  if (recentPage > totalPages) recentPage = totalPages;
+  if (recentPage < 1) recentPage = 1;
+  const pageStart = (recentPage - 1) * RECENT_PAGE_SIZE;
+
+  document.getElementById('recentRecords').innerHTML = sorted.slice(pageStart, pageStart + RECENT_PAGE_SIZE).map((r, j) => {
+    const i = pageStart + j;   // index ในรายการทั้งหมด — ให้ตรงกับ _recordMap
     const key = `rec_${i}`;
     const issues = issueCount(r);
     const statusTag = issues === 0
@@ -3659,6 +3681,29 @@ function renderRecentRecords(data) {
       </td>
     </tr>`;
   }).join('');
+  renderRecentPager(sorted.length, totalPages);
+}
+
+// ปุ่มแบ่งหน้าของ "บันทึกการตรวจ"
+function renderRecentPager(total, totalPages) {
+  const box = document.getElementById('recentPager'); if (!box) return;
+  if (totalPages <= 1) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  const from = (recentPage - 1) * RECENT_PAGE_SIZE + 1, to = Math.min(total, recentPage * RECENT_PAGE_SIZE);
+  const nums = [];
+  for (let n = 1; n <= totalPages; n++) if (n === 1 || n === totalPages || Math.abs(n - recentPage) <= 1) nums.push(n);
+  let html = `<div class="rp-info">แสดง ${from}–${to} จาก ${total} รายการ</div>`;
+  html += `<button type="button" ${recentPage === 1 ? 'disabled' : ''} onclick="gotoRecentPage(${recentPage - 1})">‹ ก่อนหน้า</button>`;
+  nums.forEach((n, k) => {
+    if (k > 0 && n - nums[k - 1] > 1) html += '<span style="color:#94a3b8">…</span>';
+    html += `<button type="button" class="${n === recentPage ? 'on' : ''}" onclick="gotoRecentPage(${n})">${n}</button>`;
+  });
+  html += `<button type="button" ${recentPage === totalPages ? 'disabled' : ''} onclick="gotoRecentPage(${recentPage + 1})">ถัดไป ›</button>`;
+  box.innerHTML = html; box.style.display = 'flex';
+}
+function gotoRecentPage(n) {
+  recentPage = n;
+  renderRecentRecords(window._recentRecordsSource || []);
+  const t = document.getElementById('recentRecords'); if (t && t.closest('.card')) t.closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── DETAIL MODAL — by key (ใหม่ แก้ปัญหา index mismatch) ──
