@@ -2035,6 +2035,114 @@ function logoutDash() {
 
 </div><!-- end #overviewPanel -->
 
+<style>
+/* ═══ ผลประเมินความพึงพอใจ (รายผู้ขับ/รายเที่ยว/รายคัน) + ชุด QR ═══ */
+.sr-filter { display:flex; flex-wrap:wrap; gap:10px 14px; align-items:flex-end; margin-bottom:14px; }
+.sr-filter .fg { display:flex; flex-direction:column; gap:3px; }
+.sr-filter label { font-size:11px; font-weight:600; color:var(--text-light); }
+.sr-filter input, .sr-filter select { height:34px; border:1px solid var(--border-strong); border-radius:8px; padding:0 9px; font:inherit; font-size:13px; background:#fff; color:var(--text); min-width:130px; }
+.sr-btn { height:34px; padding:0 14px; border-radius:8px; border:1px solid var(--navy); background:var(--navy); color:#fff; font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; gap:6px; }
+.sr-btn.ghost { background:#fff; color:var(--navy); }
+.sr-btn.sm { height:28px; padding:0 10px; font-size:12px; }
+.sr-quick { display:flex; gap:6px; }
+.sr-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:14px; }
+.sr-kpi { border:1px solid var(--border); border-radius:10px; padding:10px 14px; background:#fff; }
+.sr-kpi b { display:block; font-size:22px; color:var(--navy); line-height:1.2; }
+.sr-kpi span { font-size:12px; color:var(--text-light); }
+.sr-tabs { display:flex; gap:6px; border-bottom:2px solid var(--border); margin-bottom:10px; flex-wrap:wrap; }
+.sr-tab { padding:9px 16px; border:none; background:none; font:inherit; font-size:13px; font-weight:600; color:var(--text-light); cursor:pointer; border-bottom:3px solid transparent; margin-bottom:-2px; }
+.sr-tab[aria-selected="true"] { color:var(--navy); border-bottom-color:var(--blue); }
+.sr-tools { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; font-size:12px; color:var(--text-light); flex-wrap:wrap; }
+.sr-table-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:10px; }
+.sr-table { width:100%; border-collapse:collapse; font-size:13px; min-width:640px; }
+.sr-table th { background:#f3f6fa; text-align:left; padding:9px 12px; font-size:12px; color:var(--text-mid); white-space:nowrap; cursor:pointer; user-select:none; border-bottom:1px solid var(--border); }
+.sr-table th.num { text-align:right; }
+.sr-table th[aria-sort="ascending"]::after { content:" ▲"; font-size:9px; } .sr-table th[aria-sort="descending"]::after { content:" ▼"; font-size:9px; }
+.sr-table td { padding:9px 12px; border-bottom:1px solid #edf1f6; vertical-align:top; }
+.sr-table tr.sr-row { cursor:pointer; } .sr-table tr.sr-row:hover td { background:#f8fbff; }
+.sr-table td.num { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.sr-chip { display:inline-block; min-width:44px; text-align:center; padding:2px 9px; border-radius:999px; font-weight:700; font-size:12.5px; background:var(--blue-soft); color:var(--blue); }
+.sr-chip.good { background:var(--success-soft); color:var(--success); } .sr-chip.warn { background:var(--amber-soft); color:var(--amber); } .sr-chip.bad { background:var(--red-soft); color:var(--red); }
+.sr-few { font-size:10.5px; color:var(--text-light); margin-left:5px; }
+.sr-detail td { background:#fafcfe; padding:12px 16px 14px; }
+.sr-dist { display:grid; grid-template-columns:auto 1fr auto; gap:3px 8px; align-items:center; max-width:340px; margin-bottom:10px; font-size:12px; }
+.sr-dist .bar { height:8px; background:#e8edf4; border-radius:4px; overflow:hidden; } .sr-dist .bar i { display:block; height:100%; background:var(--blue); }
+.sr-item { padding:7px 0; border-top:1px dashed var(--border); font-size:12.5px; } .sr-item:first-of-type { border-top:none; }
+.sr-item .meta { color:var(--text-light); font-size:11.5px; } .sr-item .cm { color:var(--text); margin-top:2px; white-space:pre-wrap; word-break:break-word; }
+.sr-state { padding:26px 10px; text-align:center; color:var(--text-mid); font-size:13px; }
+.sr-spin { display:inline-block; width:18px; height:18px; border:2.5px solid #cfdcec; border-top-color:var(--blue); border-radius:50%; animation:srspin .8s linear infinite; vertical-align:-4px; margin-right:8px; }
+@keyframes srspin { to { transform:rotate(360deg); } }
+.sr-note { font-size:12px; color:var(--text-light); margin-top:8px; }
+.sr-warnbox { background:var(--amber-soft); color:#7a4f00; border-radius:8px; padding:8px 12px; font-size:12.5px; margin-bottom:10px; }
+.qrs-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:12px; margin-top:14px; }
+.qrs-item { border:1px solid var(--border); border-radius:10px; padding:10px; text-align:center; background:#fff; }
+.qrs-item img { width:100%; max-width:130px; aspect-ratio:1; image-rendering:pixelated; }
+.qrs-item b { display:block; font-size:13px; color:var(--navy); margin-top:4px; } .qrs-item small { display:block; color:var(--text-light); font-size:11.5px; margin-bottom:6px; }
+.qrs-item a { font-size:12px; color:var(--blue); text-decoration:none; margin:0 5px; } .qrs-item a:hover { text-decoration:underline; }
+@media (prefers-reduced-motion: reduce) { .sr-spin { animation:none; } }
+</style>
+  <!-- ══════ ผลประเมินความพึงพอใจ: รายผู้ขับ / รายเที่ยว / รายคัน ══════ -->
+  <div class="card" id="satReportCard" style="margin-top:16px;margin-bottom:16px;">
+    <div class="card-header">
+      <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>
+      <h2>ผลประเมินความพึงพอใจ · รายผู้ขับ / รายเที่ยว / รายคัน</h2>
+      <span class="badge" id="srBadge">กำลังโหลด...</span>
+    </div>
+    <div class="card-body">
+      <div class="sr-filter">
+        <div class="fg"><label for="srFrom">ตั้งแต่วันที่</label><input type="date" id="srFrom"></div>
+        <div class="fg"><label for="srTo">ถึงวันที่</label><input type="date" id="srTo"></div>
+        <div class="fg"><label for="srCar">รถ</label><select id="srCar"><option value="">ทั้งหมด</option></select></div>
+        <div class="fg"><label for="srQ">ค้นหา (ชื่อ / ปลายทาง / ความเห็น)</label><input type="search" id="srQ" placeholder="พิมพ์เพื่อค้นหา" style="min-width:190px"></div>
+        <div class="sr-quick">
+          <button type="button" class="sr-btn ghost" data-days="30">30 วัน</button>
+          <button type="button" class="sr-btn ghost" data-days="90">90 วัน</button>
+          <button type="button" class="sr-btn ghost" data-days="365">1 ปี</button>
+          <button type="button" class="sr-btn ghost" data-days="0">ทั้งหมด</button>
+        </div>
+        <button type="button" class="sr-btn" id="srReload">โหลดใหม่</button>
+      </div>
+      <div id="srLoading" class="sr-state" role="status"><span class="sr-spin"></span>กำลังโหลดผลประเมิน กรุณารอสักครู่...</div>
+      <div id="srError" class="sr-state" role="alert" style="display:none">
+        <div id="srErrMsg">โหลดข้อมูลไม่สำเร็จ</div>
+        <button type="button" class="sr-btn" id="srRetry" style="margin-top:10px">ลองใหม่อีกครั้ง</button>
+      </div>
+      <div id="srMain" style="display:none">
+        <div class="sr-kpis" id="srKpis"></div>
+        <div id="srWarn" class="sr-warnbox" style="display:none"></div>
+        <div class="sr-tabs" role="tablist">
+          <button type="button" class="sr-tab" role="tab" data-tab="driver" aria-selected="true">รายผู้ขับ</button>
+          <button type="button" class="sr-tab" role="tab" data-tab="trip" aria-selected="false">รายเที่ยววิ่ง</button>
+          <button type="button" class="sr-tab" role="tab" data-tab="car" aria-selected="false">รายคัน</button>
+        </div>
+        <div class="sr-tools"><span id="srCount"></span><button type="button" class="sr-btn ghost sm" id="srCsv">ดาวน์โหลด CSV</button></div>
+        <div class="sr-table-wrap"><table class="sr-table" id="srTable"></table></div>
+        <div class="sr-note" id="srNote"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ ชุด QR ประเมินความพึงพอใจรายคัน (เก็บไว้เรียกใช้) ══════ -->
+  <div class="card" id="qrSetCard" style="margin-bottom:16px;">
+    <div class="card-header">
+      <span class="icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM20 14v3M14 20h3M20 20h1"/></svg></span>
+      <h2>ชุด QR ประเมินความพึงพอใจรายคัน</h2>
+      <span class="badge" id="qrsBadge">—</span>
+    </div>
+    <div class="card-body">
+      <p style="font-size:13px;color:var(--text-mid);line-height:1.7;margin-bottom:12px;">
+        สแกนแล้วผู้โดยสารเห็นสถานะรถคันนั้นและเลือกเที่ยวที่ต้องการประเมินได้ทันที ไม่ต้องเลือกรถเอง
+        ชุดนี้เก็บไว้สำหรับปริ้นเพิ่มหรือเปลี่ยนป้ายที่ชำรุด
+      </p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <a class="sr-btn" href="assets/qr/QR-satisfaction-all-cars.pdf" target="_blank" rel="noopener" download>ดาวน์โหลดทั้งชุด (PDF · พร้อมปริ้น A4)</a>
+        <a class="sr-btn ghost" href="qr-satisfaction.html" target="_blank" rel="noopener">เปิดหน้าสร้าง/พิมพ์ QR ใหม่</a>
+      </div>
+      <div class="qrs-grid" id="qrsGrid"></div>
+      <div class="sr-note">ชุดนี้สร้างจากรายการรถ 10 คัน หากมีรถเพิ่มหรือเปลี่ยนทะเบียน ให้ใช้ "หน้าสร้าง/พิมพ์ QR ใหม่" ซึ่งดึงรายการรถจากชีท Vehicles โดยตรง · ปริ้นเลเซอร์แล้วเคลือบจะทนกว่า</div>
+    </div>
+  </div>
+
 </div><!-- end .dash-wrapper -->
 
 <!-- ── MISSING CHECK DATES MODAL ── -->
@@ -8450,6 +8558,251 @@ document.addEventListener('keydown', function(e) {
 })();
 </script>
 
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   ผลประเมินความพึงพอใจรายผู้ขับ / รายเที่ยว / รายคัน + ชุด QR (dashboard.html)
+   ข้อมูลจาก action=getSatisfactionReport (Code.gs) · แสดงเฉพาะหลังผ่านรหัสผ่านผู้บริหาร
+   ═══════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+  var GAS = typeof GAS_URL !== 'undefined' ? GAS_URL : '';
+  var $ = function (id) { return document.getElementById(id); };
+  var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  var rows = [], noTrip = 0, truncated = false;
+  var tab = 'driver', sort = { driver: ['n', -1], trip: ['date', -1], car: ['n', -1] }, open = {};
+  var loadSeq = 0, started = false;
+
+  /* ── QR set (ไฟล์อยู่ที่ assets/qr/) ── */
+  var QR = [
+    ['01', 'จย.1379 ชม.', 'รถ Refer'], ['02', 'งบ.5466 ชม.', 'รถ Refer'], ['03', 'ขษ.4361 ชม.', 'รถ Refer'],
+    ['04', 'ขร.501 ชม.', 'รถ Refer'], ['05', 'ขฉ.8407 ชม.', 'รถ Refer'], ['06', 'ขธ.9302 ชม.', 'รถปิ๊กอัพ 4 ประตู'],
+    ['07', 'ขค.9662 ชม.', 'รถปิ๊กอัพ 4 ประตู'], ['08', 'กล.9438 ชม.', 'รถปิ๊กอัพ 4 ประตู'], ['09', 'นง.8781 ชม.', 'รถตู้ฮุนได'], ['10', 'นง.86 ชม.', 'รถตู้']
+  ];
+  (function renderQr() {
+    var g = $('qrsGrid'); if (!g) return;
+    QR.forEach(function (q) {
+      var d = document.createElement('div'); d.className = 'qrs-item';
+      var img = document.createElement('img'); img.src = 'assets/qr/qr-' + q[0] + '.svg'; img.alt = 'QR ' + q[1]; img.loading = 'lazy';
+      var b = document.createElement('b'); b.textContent = q[1];
+      var s = document.createElement('small'); s.textContent = q[2];
+      var a1 = document.createElement('a'); a1.href = 'assets/qr/qr-' + q[0] + '.svg'; a1.download = 'QR_' + q[1].replace(/\s+/g, '_') + '.svg'; a1.textContent = 'ดาวน์โหลด SVG';
+      var a2 = document.createElement('a'); a2.href = 'satisfaction.html?car=' + encodeURIComponent(q[1]); a2.target = '_blank'; a2.rel = 'noopener'; a2.textContent = 'ทดสอบ';
+      d.appendChild(img); d.appendChild(b); d.appendChild(s); d.appendChild(a1); d.appendChild(a2); g.appendChild(d);
+    });
+    $('qrsBadge').textContent = QR.length + ' คัน';
+  })();
+
+  /* ── helpers ── */
+  function fmt2(n) { return (Math.round(n * 100) / 100).toFixed(2); }
+  function chipClass(avg) { return avg >= 4.5 ? 'good' : avg >= 3.5 ? '' : avg >= 2.5 ? 'warn' : 'bad'; }
+  function ymdToDmy(s) { var p = String(s || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : ''; }
+  function toDmyFromInput(v) { return v ? ymdToDmy(v) : ''; }
+  function ymdOffset(days) { var d = new Date(Date.now() - days * 86400000); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); }
+  function plural(n) { return n.toLocaleString('th-TH'); }
+
+  function filtered() {
+    var car = $('srCar').value, q = $('srQ').value.trim().toLowerCase();
+    return rows.filter(function (r) {
+      if (car && r.plate !== car) return false;
+      if (q) {
+        var hay = [r.driver, r.plate, r.comment, r.purpose, r.trip ? r.trip.destination : ''].join(' ').toLowerCase();
+        if (hay.indexOf(q) < 0) return false;
+      }
+      return true;
+    });
+  }
+
+  function aggregate(list, keyFn) {
+    var m = {};
+    list.forEach(function (r) {
+      var k = keyFn(r); if (!k) return;
+      var a = m[k] || (m[k] = { key: k, n: 0, sum: 0, dist: [0, 0, 0, 0, 0, 0], low: 0, high: 0, cm: 0, last: '', items: [], r0: r });
+      a.n++; a.sum += r.rating; a.dist[r.rating]++;
+      if (r.rating <= 2) a.low++; if (r.rating >= 4) a.high++;
+      if (r.comment) a.cm++;
+      if (r.ymd > a.last) a.last = r.ymd;
+      a.items.push(r);
+    });
+    return Object.keys(m).map(function (k) { var a = m[k]; a.avg = a.sum / a.n; a.pct = Math.round(a.high * 100 / a.n); return a; });
+  }
+
+  /* ── KPI ── */
+  function renderKpis(list) {
+    var n = list.length, sum = 0, hi = 0, lo = 0, withTrip = 0;
+    list.forEach(function (r) { sum += r.rating; if (r.rating >= 4) hi++; if (r.rating <= 2) lo++; if (r.tripId) withTrip++; });
+    var avg = n ? sum / n : 0;
+    $('srKpis').innerHTML =
+      '<div class="sr-kpi"><b>' + plural(n) + '</b><span>จำนวนการประเมิน</span></div>' +
+      '<div class="sr-kpi"><b>' + (n ? fmt2(avg) : '—') + '</b><span>คะแนนเฉลี่ย (เต็ม 5)</span></div>' +
+      '<div class="sr-kpi"><b>' + (n ? Math.round(hi * 100 / n) + '%' : '—') + '</b><span>พอใจมาก–มากที่สุด (4–5 ดาว)</span></div>' +
+      '<div class="sr-kpi"><b' + (lo ? ' style="color:var(--red)"' : '') + '>' + plural(lo) + '</b><span>คะแนนต่ำ (1–2 ดาว)</span></div>' +
+      '<div class="sr-kpi"><b>' + (n ? Math.round(withTrip * 100 / n) + '%' : '—') + '</b><span>ผูกกับเที่ยววิ่งได้</span></div>';
+    $('srBadge').textContent = plural(n) + ' รายการ' + (n ? ' · เฉลี่ย ' + fmt2(avg) : '');
+  }
+
+  /* ── ตาราง ── */
+  function columns() {
+    if (tab === 'trip') return [
+      ['date', 'วัน-เวลาเที่ยว', function (a) { return a.sortDate; }, function (a) { return esc(a.dateLabel); }],
+      ['plate', 'รถ', function (a) { return a.plate; }, function (a) { return esc(a.plate); }],
+      ['driver', 'ผู้ขับ', function (a) { return a.driver; }, function (a) { return esc(a.driver || '—'); }],
+      ['dest', 'ปลายทาง', function (a) { return a.dest; }, function (a) { return esc(a.dest || '—'); }],
+      ['n', 'จำนวน', function (a) { return a.n; }, function (a) { return a.n; }, 'num'],
+      ['avg', 'เฉลี่ย', function (a) { return a.avg; }, avgCell, 'num'],
+      ['cm', 'ความเห็น', function (a) { return a.cm; }, function (a) { return a.cm; }, 'num']
+    ];
+    var first = tab === 'driver' ? 'ผู้ขับ' : 'ทะเบียนรถ';
+    return [
+      ['name', first, function (a) { return a.key; }, function (a) { return esc(a.key); }],
+      ['n', 'จำนวนประเมิน', function (a) { return a.n; }, function (a) { return a.n; }, 'num'],
+      ['avg', 'เฉลี่ย', function (a) { return a.avg; }, avgCell, 'num'],
+      ['pct', 'พอใจ 4–5 ดาว', function (a) { return a.pct; }, function (a) { return a.pct + '%'; }, 'num'],
+      ['low', 'ต่ำ 1–2 ดาว', function (a) { return a.low; }, function (a) { return a.low ? '<b style="color:var(--red)">' + a.low + '</b>' : '0'; }, 'num'],
+      ['last', 'ล่าสุด', function (a) { return a.last; }, function (a) { return esc(ymdToDmy(a.last)); }, 'num']
+    ];
+  }
+  function avgCell(a) { return '<span class="sr-chip ' + chipClass(a.avg) + '">' + fmt2(a.avg) + '</span>' + (a.n < 5 ? '<span class="sr-few">ตัวอย่างน้อย</span>' : ''); }
+
+  function buildGroups(list) {
+    if (tab === 'driver') return aggregate(list, function (r) { return r.driver || '(ไม่ระบุผู้ขับ)'; });
+    if (tab === 'car') return aggregate(list, function (r) { return r.plate || '(ไม่ระบุรถ)'; });
+    var g = aggregate(list.filter(function (r) { return r.tripId; }), function (r) { return r.tripId; });
+    g.forEach(function (a) {
+      var t = a.r0.trip, u = a.r0.usageAt || '';
+      a.plate = (t && t.plate) || a.r0.plate || '';
+      a.driver = (t && t.driver) || a.r0.driver || '';
+      a.dest = t ? t.destination : '';
+      a.sortDate = t && t.date ? t.date + ' ' + (t.timeOut || '') : '';
+      a.dateLabel = t && t.date ? ymdToDmy(t.date) + ' ' + (t.timeOut || '--:--') + (t.timeBack ? '–' + t.timeBack : '') + ' น.' : (u ? u + ' น.' : a.key);
+      if (!a.sortDate) a.sortDate = a.last;
+    });
+    return g;
+  }
+
+  function renderTable() {
+    var list = filtered();
+    renderKpis(list);
+    var groups = buildGroups(list), cols = columns(), s = sort[tab];
+    var col = cols.filter(function (c) { return c[0] === s[0]; })[0] || cols[0];
+    groups.sort(function (a, b) { var x = col[2](a), y = col[2](b); return (x < y ? -1 : x > y ? 1 : 0) * s[1]; });
+    var h = '<thead><tr>' + cols.map(function (c) {
+      var as = c[0] === col[0] ? (s[1] > 0 ? 'ascending' : 'descending') : 'none';
+      return '<th data-sort="' + c[0] + '" aria-sort="' + as + '" class="' + (c[4] || '') + '">' + c[1] + '</th>';
+    }).join('') + '</tr></thead><tbody>';
+    if (!groups.length) h += '<tr><td colspan="' + cols.length + '" class="sr-state">ไม่พบข้อมูลในช่วงที่เลือก</td></tr>';
+    groups.forEach(function (a) {
+      var id = tab + '|' + a.key;
+      h += '<tr class="sr-row" data-k="' + esc(id) + '" tabindex="0" aria-expanded="' + (open[id] ? 'true' : 'false') + '">' +
+        cols.map(function (c) { return '<td class="' + (c[4] || '') + '">' + c[3](a) + '</td>'; }).join('') + '</tr>';
+      if (open[id]) h += '<tr class="sr-detail"><td colspan="' + cols.length + '">' + detail(a) + '</td></tr>';
+    });
+    $('srTable').innerHTML = h + '</tbody>';
+    $('srCount').textContent = tab === 'driver' ? groups.length + ' ผู้ขับ' : tab === 'trip' ? groups.length + ' เที่ยว' : groups.length + ' คัน';
+    var nt = list.filter(function (r) { return !r.tripId; }).length;
+    $('srNote').textContent = (tab === 'trip' && nt ? 'มี ' + nt + ' รายการที่ไม่ได้ผูกกับเที่ยว (ประเมินก่อนเปิดระบบ QR หรือเข้าหน้าประเมินโดยตรง) จึงไม่แสดงในแท็บนี้ · ' : '') +
+      'คลิกแถวเพื่อดูการกระจายคะแนนและความเห็น · คะแนนเฉลี่ยจากตัวอย่างน้อยกว่า 5 รายการยังไม่น่าเชื่อถือพอสำหรับตัดสิน';
+  }
+
+  function detail(a) {
+    var max = Math.max.apply(null, a.dist.slice(1).concat([1]));
+    var h = '<div class="sr-dist">';
+    for (var s = 5; s >= 1; s--) h += '<span>' + s + ' ★</span><div class="bar"><i style="width:' + Math.round(a.dist[s] * 100 / max) + '%"></i></div><span>' + a.dist[s] + '</span>';
+    h += '</div>';
+    var items = a.items.slice().sort(function (x, y) { return (y.ymd + y.time) < (x.ymd + x.time) ? -1 : 1; }).slice(0, 15);
+    items.forEach(function (r) {
+      h += '<div class="sr-item"><div class="meta">' + esc(r.date) + ' ' + esc(r.time) + ' · ' + r.rating + ' ★ · ' + esc(r.purpose || 'ไม่ระบุจุดประสงค์') +
+        (tab !== 'driver' && r.driver ? ' · ผู้ขับ ' + esc(r.driver) : '') + (tab !== 'car' && r.plate ? ' · ' + esc(r.plate) : '') + '</div>' +
+        (r.comment ? '<div class="cm">' + esc(r.comment) + '</div>' : '') + '</div>';
+    });
+    if (a.items.length > 15) h += '<div class="sr-note">แสดง 15 รายการล่าสุดจาก ' + a.items.length + ' รายการ</div>';
+    return h;
+  }
+
+  /* ── events ── */
+  $('srTable').addEventListener('click', function (e) {
+    var th = e.target.closest('th[data-sort]');
+    if (th) { var k = th.getAttribute('data-sort'); sort[tab] = [k, sort[tab][0] === k ? -sort[tab][1] : (k === 'name' || k === 'driver' || k === 'plate' || k === 'dest' ? 1 : -1)]; renderTable(); return; }
+    var tr = e.target.closest('tr.sr-row'); if (tr) { var id = tr.getAttribute('data-k'); open[id] = !open[id]; renderTable(); }
+  });
+  $('srTable').addEventListener('keydown', function (e) {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList.contains('sr-row')) { e.preventDefault(); e.target.click(); }
+  });
+  document.querySelectorAll('#satReportCard .sr-tab').forEach(function (b) {
+    b.addEventListener('click', function () {
+      tab = b.getAttribute('data-tab');
+      document.querySelectorAll('#satReportCard .sr-tab').forEach(function (x) { x.setAttribute('aria-selected', x === b ? 'true' : 'false'); });
+      renderTable();
+    });
+  });
+  var qT; $('srQ').addEventListener('input', function () { clearTimeout(qT); qT = setTimeout(renderTable, 200); });
+  $('srCar').addEventListener('change', renderTable);
+  document.querySelectorAll('#satReportCard [data-days]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var d = parseInt(b.getAttribute('data-days'), 10);
+      $('srFrom').value = d ? ymdOffset(d) : ''; $('srTo').value = '';
+      load();
+    });
+  });
+  $('srFrom').addEventListener('change', load); $('srTo').addEventListener('change', load);
+  $('srReload').addEventListener('click', load); $('srRetry').addEventListener('click', load);
+
+  $('srCsv').addEventListener('click', function () {
+    var cols = columns(), groups = buildGroups(filtered());
+    var plain = function (html) { var d = document.createElement('div'); d.innerHTML = html; return d.textContent.replace(/ตัวอย่างน้อย/, '').trim(); };
+    var lines = [cols.map(function (c) { return c[1]; }).join(',')];
+    groups.forEach(function (a) { lines.push(cols.map(function (c) { return '"' + plain(String(c[3](a))).replace(/"/g, '""') + '"'; }).join(',')); });
+    var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'satisfaction_' + tab + '_' + ymdOffset(0) + '.csv'; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  });
+
+  /* ── โหลดข้อมูล ── */
+  function show(which) {
+    $('srLoading').style.display = which === 'loading' ? 'block' : 'none';
+    $('srError').style.display = which === 'error' ? 'block' : 'none';
+    $('srMain').style.display = which === 'main' ? 'block' : 'none';
+  }
+  function fillCars() {
+    var sel = $('srCar'), cur = sel.value, set = {};
+    rows.forEach(function (r) { if (r.plate) set[r.plate] = 1; });
+    sel.innerHTML = '<option value="">ทั้งหมด</option>' + Object.keys(set).sort().map(function (p) { return '<option value="' + esc(p) + '">' + esc(p) + '</option>'; }).join('');
+    sel.value = set[cur] ? cur : '';
+  }
+  function load() {
+    var seq = ++loadSeq;
+    show('loading'); $('srBadge').textContent = 'กำลังโหลด...';
+    var url = GAS + '?action=getSatisfactionReport' +
+      ($('srFrom').value ? '&startDate=' + encodeURIComponent(toDmyFromInput($('srFrom').value)) : '') +
+      ($('srTo').value ? '&endDate=' + encodeURIComponent(toDmyFromInput($('srTo').value)) : '');
+    var ctl = ('AbortController' in window) ? new AbortController() : null;
+    var to = ctl ? setTimeout(function () { ctl.abort(); }, 40000) : null;
+    fetch(url, ctl ? { signal: ctl.signal } : undefined).then(function (r) { return r.json(); }).then(function (res) {
+      if (seq !== loadSeq) return; clearTimeout(to);
+      if (!res || res.status !== 'ok') throw new Error((res && res.message) || 'error');
+      rows = res.rows || []; noTrip = res.noTripCount || 0; truncated = !!res.truncated;
+      fillCars(); show('main');
+      var w = $('srWarn');
+      if (truncated) { w.textContent = 'ข้อมูลมีมากกว่าที่แสดงได้ ระบบแสดงเฉพาะรายการล่าสุด ' + plural(rows.length) + ' รายการ กรุณาจำกัดช่วงวันที่ให้แคบลง'; w.style.display = 'block'; } else w.style.display = 'none';
+      renderTable();
+    }).catch(function () {
+      if (seq !== loadSeq) return; clearTimeout(to);
+      $('srBadge').textContent = 'โหลดไม่สำเร็จ';
+      $('srErrMsg').textContent = 'โหลดผลประเมินไม่สำเร็จ (อินเทอร์เน็ตช้า/หลุด หรือยังไม่ได้ Deploy Code.gs เวอร์ชันล่าสุด) กรุณาลองใหม่';
+      show('error');
+    });
+  }
+
+  /* โหลดเมื่อผ่านรหัสผ่านผู้บริหารแล้วเท่านั้น */
+  function whenUnlocked() {
+    var ov = $('pwOverlay');
+    if (!ov || ov.style.display === 'none') { if (!started) { started = true; $('srFrom').value = ymdOffset(90); load(); } return; }
+    setTimeout(whenUnlocked, 600);
+  }
+  whenUnlocked();
+})();
+</script>
 
 <footer class="site-footer">
   <div class="footer-inner">
