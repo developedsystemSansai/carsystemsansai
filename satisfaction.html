@@ -498,6 +498,21 @@
   .qr-sum   { margin-top:12px; padding:10px 14px; border-radius:var(--radius-sm); background:var(--success-soft); color:#136a39; font-size:13px; font-weight:600; display:none; }
   .qr-warn  { margin-top:10px; padding:8px 12px; border-radius:var(--radius-sm); background:var(--amber-soft); color:#7a4f00; font-size:13px; display:none; }
   .qr-load  { font-size:13px; color:var(--text-mid); padding:10px 2px; }
+  /* loading / skeleton / error */
+  .qr-spin { display:inline-block; width:18px; height:18px; border:2.5px solid #d9cff2; border-top-color:var(--violet);
+             border-radius:50%; animation:qrspin .8s linear infinite; vertical-align:-4px; margin-right:8px; flex:none; }
+  @keyframes qrspin { to { transform:rotate(360deg); } }
+  .qr-loadrow { display:flex; align-items:center; font-size:14px; font-weight:600; color:var(--violet-dark); padding:2px 0 12px; }
+  .qr-skel { height:14px; border-radius:7px; margin-bottom:10px; background:linear-gradient(90deg,#edf0f5 25%,#f7f9fc 50%,#edf0f5 75%);
+             background-size:200% 100%; animation:qrshimmer 1.3s ease-in-out infinite; }
+  .qr-skel.big { height:26px; width:55%; } .qr-skel.w70 { width:70%; } .qr-skel.w40 { width:40%; } .qr-skel.btn { height:44px; border-radius:10px; }
+  @keyframes qrshimmer { to { background-position:-200% 0; } }
+  .qr-slow  { display:none; font-size:12.5px; color:var(--amber); background:var(--amber-soft); border-radius:var(--radius-sm); padding:8px 12px; margin-top:6px; }
+  .qr-err   { display:none; font-size:13.5px; color:#8a2a1f; background:var(--danger-soft); border-radius:var(--radius-sm); padding:12px 14px; }
+  .qr-err .acts { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
+  .qr-err button { min-height:44px; padding:0 16px; border-radius:var(--radius-sm); border:1.5px solid var(--violet); background:var(--violet); color:#fff; font:600 13px 'Noto Sans Thai',sans-serif; cursor:pointer; }
+  .qr-err button.ghost { background:#fff; color:var(--violet-dark); }
+  @media (prefers-reduced-motion: reduce) { .qr-spin, .qr-skel { animation:none; } }
 </style>
 <script src="secure-fetch.js"></script>
 <link rel="stylesheet" href="sand-brand.css">
@@ -577,7 +592,16 @@
     <!-- QR รายคัน: การ์ดสถานะรถ + เลือกเที่ยววิ่ง (แสดงเฉพาะเมื่อเปิดด้วย ?car=ทะเบียน) -->
     <div class="form-card" id="carTripCard" aria-live="polite">
       <div class="section-label">รถที่ท่านใช้บริการ</div>
-      <div class="qr-load" id="qrLoad">กำลังโหลดข้อมูลรถ...</div>
+      <div id="qrLoad" role="status" aria-live="polite">
+        <div class="qr-loadrow"><span class="qr-spin" aria-hidden="true"></span>กำลังโหลดข้อมูลรถ กรุณารอสักครู่...</div>
+        <div class="qr-skel big"></div><div class="qr-skel w70"></div><div class="qr-skel w40"></div>
+        <div class="qr-skel btn"></div>
+        <div class="qr-slow" id="qrSlow">ระบบกำลังเชื่อมต่อ อาจใช้เวลาสักครู่ ท่านยังไม่ต้องกรอกอะไร โปรดรอจนข้อมูลรถแสดงขึ้น</div>
+      </div>
+      <div class="qr-err" id="qrErr" role="alert">
+        <div id="qrErrMsg">โหลดข้อมูลรถไม่สำเร็จ</div>
+        <div class="acts"><button type="button" id="qrRetry">ลองใหม่อีกครั้ง</button><button type="button" class="ghost" id="qrManualPick">เลือกรถเอง</button></div>
+      </div>
       <div id="qrBody" style="display:none">
         <div class="qr-head">
           <div><div class="qr-plate" id="qrPlate"></div><div class="qr-type" id="qrType"></div></div>
@@ -1466,7 +1490,9 @@ document.addEventListener('keydown', e => {
     box.textContent = ''; dw.style.display = 'none';
     if (err) { warn.textContent = err; warn.style.display = 'block'; return; }
     warn.style.display = 'none';
-    box.appendChild(mk('div', 'qr-load', 'กำลังค้นหาเที่ยวของวันที่เลือก...'));
+    var lr = mk('div', 'qr-loadrow'); lr.setAttribute('role', 'status');
+    lr.appendChild(mk('span', 'qr-spin')); lr.appendChild(document.createTextNode('กำลังค้นหาเที่ยวของวันที่เลือก...'));
+    box.appendChild(lr);
     var seq = ++searchSeq;
     fetch(GAS_URL + '?action=getCarTripsForSatisfaction&plate=' + encodeURIComponent(car) +
           '&date=' + encodeURIComponent(manualYmd()) + '&time=' + encodeURIComponent(manualHm()))
@@ -1532,11 +1558,38 @@ document.addEventListener('keydown', e => {
     return sel ? { tripId: sel.tripId, usageAt: sel.usageAt, tripSource: sel.source } : {};
   };
 
+  // ── โหลดข้อมูลรถครั้งแรก: แสดง spinner + skeleton, เตือนถ้าช้า, error มีปุ่มลองใหม่ ──
+  var slowTimer = null, loadSeq = 0;
+  function loadCar() {
+    var seq = ++loadSeq;
+    $('qrErr').style.display = 'none'; $('qrSlow').style.display = 'none';
+    $('qrLoad').style.display = 'block'; $('qrBody').style.display = 'none';
+    card.setAttribute('aria-busy', 'true');
+    clearTimeout(slowTimer);
+    slowTimer = setTimeout(function () { if (seq === loadSeq) $('qrSlow').style.display = 'block'; }, 3500);
+    var ctl = ('AbortController' in window) ? new AbortController() : null;
+    var abortTimer = ctl ? setTimeout(function () { ctl.abort(); }, 25000) : null;   // ไม่ค้างตลอดไป
+    fetch(GAS_URL + '?action=getCarTripsForSatisfaction&plate=' + encodeURIComponent(car), ctl ? { signal: ctl.signal } : undefined)
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (seq !== loadSeq) return;
+        clearTimeout(slowTimer); clearTimeout(abortTimer); card.removeAttribute('aria-busy');
+        if (res && res.status === 'ok') render(res);
+        else fallback('ไม่พบข้อมูลรถจาก QR — กรุณาเลือกรถเอง');
+      })
+      .catch(function () {
+        if (seq !== loadSeq) return;
+        clearTimeout(slowTimer); clearTimeout(abortTimer); card.removeAttribute('aria-busy');
+        $('qrLoad').style.display = 'none';
+        $('qrErrMsg').textContent = 'โหลดข้อมูลรถไม่สำเร็จ (สัญญาณอินเทอร์เน็ตอาจช้าหรือหลุด) กรุณาลองใหม่ หรือเลือกรถเอง';
+        $('qrErr').style.display = 'block';
+      });
+  }
+  $('qrRetry').addEventListener('click', loadCar);
+  $('qrManualPick').addEventListener('click', function () { fallback(''); });
+
   card.style.display = 'block';
-  fetch(GAS_URL + '?action=getCarTripsForSatisfaction&plate=' + encodeURIComponent(car))
-    .then(function (r) { return r.json(); })
-    .then(function (res) { if (res && res.status === 'ok') render(res); else fallback(res && res.message ? 'ไม่พบข้อมูลรถจาก QR — กรุณาเลือกรถเอง' : ''); })
-    .catch(function () { fallback('โหลดข้อมูลรถไม่สำเร็จ — กรุณาเลือกรถเอง'); });
+  loadCar();
 })();
 </script>
 </body>

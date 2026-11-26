@@ -2469,7 +2469,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbys-T_mHV06HJkOrkqJVIdb
       card.appendChild(qr);
       card.appendChild(el('div', 't-plate', v.plate));
       card.appendChild(el('div', 't-type', v.type));
-      card.appendChild(el('div', 't-help', 'สแกนด้วยกล้องมือถือ ดูสถานะรถและประเมินความพึงพอใจ'));
+      card.appendChild(el('div', 't-help', 'สแกนด้วยกล้องมือถือเพื่อประเมิน'));
       sheet.appendChild(card);
     });
     sample.textContent = VEHICLES.length ? carUrl(VEHICLES[0].plate) : '—';
