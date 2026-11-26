@@ -94,7 +94,7 @@
   // ───────────── สถิติประจำเดือน ─────────────
   function plateOf(s) { return typeof extractPlate === 'function' ? extractPlate(String(s || '')) : String(s || '').split(' ')[0]; }
   function vehMeta(plate) {
-    var v = (typeof ALL_VEHICLES !== 'undefined' ? ALL_VEHICLES : []).filter(function (x) { return x.plate === plate; })[0];
+    var v = (typeof ALL_VEHICLES !== 'undefined' ? ALL_VEHICLES : []).filter(function (x) { return plateOf(x.plate) === plate; })[0];   // ชีต Vehicles อาจมีคำต่อท้าย (เช่น "นง.86 ชม.") — เทียบแบบเดียวกับเลขไมล์
     return v ? { type: v.type || '', sys: v.sys || '' } : { type: '', sys: '' };
   }
   function pct(a, b) { return b ? Math.round((a / b) * 1000) / 10 : null; }
@@ -158,7 +158,7 @@
       var v = M.byPlate[k], meta = vehMeta(k);
       v.type = meta.type; v.sys = meta.sys; v.kmpl = (v.liters > 0 && v.km > 0) ? v.km / v.liters : null; return v;
     }).sort(function (a, b) { return b.trips - a.trips || b.km - a.km; });
-    var master = (typeof ALL_VEHICLES !== 'undefined' ? ALL_VEHICLES : []).map(function (v) { return v.plate; });
+    var master = (typeof ALL_VEHICLES !== 'undefined' ? ALL_VEHICLES : []).map(function (v) { return plateOf(v.plate); });
     var idle = master.filter(function (p) { return !M.byPlate[p] || (!M.byPlate[p].trips && !M.byPlate[p].checks); });
     var drivers = Object.keys(M.byDriver).map(function (k) { return M.byDriver[k]; }).sort(function (a, b) { return b.trips - a.trips || b.km - a.km; });
     var dests = Object.keys(M.byDest).map(function (k) { return { name: k, count: M.byDest[k] }; }).sort(function (a, b) { return b.count - a.count; });
@@ -464,7 +464,7 @@
   }
   function setBusy(on) {
     st.busy = on;
-    ['mrCreate', 'mrMonth'].forEach(function (id) { var e = $(id); if (e) e.disabled = on; });
+    ['mrCreate', 'mrMonth', 'mrHtml'].forEach(function (id) { var e = $(id); if (e) e.disabled = on; });
     var c = $('mrCreate'); if (c) c.textContent = on ? 'กำลังสร้างรายงาน…' : 'สร้างรายงาน & บันทึกลง Google Drive';
   }
 
@@ -513,6 +513,38 @@
       setStatus(e.noData ? e.message : 'สร้างรายงานไม่สำเร็จ: ' + (e && e.message ? e.message : e), e.noData ? 'info' : 'err');
       return { status: 'error', message: String(e && e.message || e), noData: !!e.noData };
     }).then(function (r) { setBusy(false); return r; });
+  }
+
+  // ───────────── รายงานแบบ HTML โต้ตอบ (เปิดในแท็บใหม่ / บันทึกเป็นไฟล์จากในหน้ารายงาน) ─────────────
+  function openHtml(ym) {
+    if (st.busy) return Promise.resolve({ status: 'busy' });
+    var w = null; try { w = window.open('', '_blank'); } catch (e) { w = null; }          // เปิดแท็บทันทีตอนคลิก กัน popup blocker
+    if (w) try { w.document.write('<p style="font:16px sans-serif;padding:24px">กำลังสร้างรายงาน…</p>'); } catch (e) {}
+    setBusy(true); setStatus('กำลังดึงข้อมูลเดือน ' + monthLabel(ym) + ' เพื่อสร้างรายงาน HTML…', 'info');
+    var p0 = ym.split('-'), sd = '01/' + p0[1] + '/' + p0[0], ed = pad2(daysIn(ym)) + '/' + p0[1] + '/' + p0[0];
+    return Promise.all([
+      getJson(GAS_URL + '?action=getData'), getJson(GAS_URL + '?action=getMileData'),
+      getJson(GAS_URL + '?action=getSatisfactionData&limit=2000&startDate=' + sd + '&endDate=' + ed).catch(function () { return { data: [] }; }),
+      getJson(GAS_URL + '?action=getLocationPins').catch(function () { return { data: [] }; }),
+      loadScript('js/monthly-html.js?v=1')
+    ]).then(function (res) {
+      if (!res[0] || res[0].status === 'error') throw new Error((res[0] && res[0].message) || 'ดึงข้อมูลการตรวจสภาพไม่สำเร็จ');
+      if (!res[1] || res[1].status === 'error') throw new Error((res[1] && res[1].message) || 'ดึงข้อมูลไมล์ไม่สำเร็จ');
+      var S = buildStats(ym, res[0].data || [], res[1].data || [], res[2]);
+      if (!S.hasData) { var e = new Error('ไม่มีข้อมูลการใช้งานในเดือน ' + S.label); e.noData = true; throw e; }
+      setStatus('กำลังวิเคราะห์เส้นทาง (GIS)…', 'info');
+      return computeGis(S, res[1].data || [], res[3]).then(function (gis) {
+        S.GIS = gis;
+        var html = window.SandMonthlyHtml.build(S, insights(S));
+        var url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }));
+        if (w) w.location.href = url; else window.open(url, '_blank');
+        setTimeout(function () { URL.revokeObjectURL(url); }, 600000);
+        setStatus('เปิดรายงาน HTML เดือน ' + S.label + ' แล้ว — กด "💾 บันทึกไฟล์" ในหน้ารายงานเพื่อเก็บไว้ ✓', 'ok');
+      });
+    }).catch(function (e) {
+      if (w) try { w.close(); } catch (_) {}
+      setStatus(e.noData ? e.message : 'สร้างรายงาน HTML ไม่สำเร็จ: ' + (e && e.message ? e.message : e), e.noData ? 'info' : 'err');
+    }).then(function () { setBusy(false); });
   }
 
   function renderPdf(S, pager) {
@@ -601,7 +633,9 @@
       if (ex && !confirm('มีรายงานเดือน ' + monthLabel(ym) + ' เก็บไว้แล้ว ต้องการสร้างใหม่และบันทึกทับหรือไม่?')) return;
       generate(ym, { overwrite: !!ex });
     });
-    bar.appendChild(lab); bar.appendChild(sel); bar.appendChild(go); host.appendChild(bar);
+    var hb = el('button', 'mr-go', 'ดูรายงานแบบ HTML (โต้ตอบได้)'); hb.id = 'mrHtml'; hb.type = 'button'; hb.title = 'เปิดรายงานแบบมีแท็บ ค้นหา เรียงตาราง และกราฟ — ไม่บันทึกลง Drive';
+    hb.addEventListener('click', function () { openHtml(sel.value); });
+    bar.appendChild(lab); bar.appendChild(sel); bar.appendChild(go); bar.appendChild(hb); host.appendChild(bar);
     var s = el('div', 'mr-status'); s.id = 'mrStatus'; s.setAttribute('role', 'status'); s.setAttribute('aria-live', 'polite'); s.style.display = 'none'; host.appendChild(s);
     var l = el('div', 'mr-list'); l.id = 'mrList'; host.appendChild(l);
     host.appendChild(el('div', 'mr-hint', 'ไฟล์ถูกเก็บในโฟลเดอร์ "SAND รายงานประจำเดือน" บน Google Drive ของเจ้าของระบบ · เปิดดู/ดาวน์โหลดจากหน้านี้ได้โดยไม่ต้องแชร์ไฟล์ · '

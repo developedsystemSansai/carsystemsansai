@@ -90,7 +90,7 @@ flowchart LR
 ```
 
 **หลักการออกแบบ**
-- Backend (โฟลเดอร์ `gas/`) ทำหน้าที่เป็น API: `doGet` สำหรับอ่านข้อมูล, `doPost` สำหรับบันทึก
+- Backend (`gas/Code.gs`) ทำหน้าที่เป็น API: `doGet` สำหรับอ่านข้อมูล, `doPost` สำหรับบันทึก
 - ทุก request ผ่านการตรวจ API key แบบ **fail-closed** (หากไม่ได้ตั้งค่าคีย์ จะปฏิเสธทุกคำขอ)
 - ใช้ `LockService` ป้องกันการเขียนข้อมูลชนกัน
 - อ้างอิงคอลัมน์ด้วย **ชื่อหัวตาราง** แทนตำแหน่งตายตัว เพื่อให้ปรับโครงสร้างชีทได้โดยไม่พัง
@@ -114,8 +114,9 @@ carsystemsansai/
 │   ├── sand-brand.js         # วิดเจ็ตรถยังไม่ตรวจสภาพ + ไอคอนประจำหน้า
 │   ├── route-card.js         # แผนที่เส้นทางในหน้ารายละเอียดรถ
 │   ├── monthly-report.js     # รายงานประจำเดือน (PDF)
-│   └── monthly-gis.js        # วิเคราะห์เชิงพื้นที่ (GIS) ในรายงานประจำเดือน
-├── gas/                  # Google Apps Script (backend) แยกเป็น 23 ไฟล์ตามหมวด — ดู gas/README.md
+│   ├── monthly-gis.js        # วิเคราะห์เชิงพื้นที่ (GIS) ในรายงานประจำเดือน
+│   └── monthly-html.js       # รายงานประจำเดือนแบบ HTML โต้ตอบ (แท็บ/ค้นหา/เรียงตาราง/กราฟ/โหมดมืด)
+├── gas/Code.gs           # Google Apps Script (backend) ไฟล์เดียว — ดู gas/README.md
 ├── assets/               # รูป · มาสคอต · ไอคอน · QR
 ├── docs/                 # เอกสารประกอบ (UPLOAD*.md, CREDITS.md)
 ├── tools/                # สคริปต์ช่วยสร้างสินทรัพย์ (Python)
@@ -124,13 +125,13 @@ carsystemsansai/
 └── README.md
 ```
 
-> Backend อยู่ในโฟลเดอร์ `gas/` (ไฟล์ `.gs` เรียงเลข `00`–`22` ต้องคงลำดับนี้เมื่อวางใน Apps Script) — รายละเอียดและวิธี deploy ดู [`gas/README.md`](gas/README.md)
+> Backend คือไฟล์เดียว `gas/Code.gs` — วิธี deploy ดู [`gas/README.md`](gas/README.md)
 
 ## 🚀 การติดตั้ง
 
 ### 1) เตรียม Backend (Google Apps Script)
 1. สร้าง Google Sheet และเปิด **Extensions → Apps Script**
-2. วางโค้ดทุกไฟล์ในโฟลเดอร์ `gas/` (หรือใช้ `clasp push` ตาม `gas/README.md`) แล้วรันฟังก์ชัน setup เพื่อสร้างชีทที่จำเป็น (เช่น `setupAllSheets`, `setupSwapRequestsSheet`, `setupJobAssignmentsSheet`)
+2. วางโค้ด `gas/Code.gs` แล้วรันฟังก์ชัน setup เพื่อสร้างชีทที่จำเป็น (เช่น `setupAllSheets`, `setupSwapRequestsSheet`, `setupJobAssignmentsSheet`)
 3. ตั้งค่า **Project Settings → Script Properties**
 
    | Key | คำอธิบาย |
@@ -186,7 +187,7 @@ carsystemsansai/
 - สร้าง PDF (A4) ในเบราว์เซอร์จากข้อมูลล่าสุด แล้วส่งไปเก็บในโฟลเดอร์ Google Drive **"SAND รายงานประจำเดือน"** (ชื่อไฟล์ `SAND_Monthly_YYYY-MM.pdf`)
 - เมื่อขึ้นเดือนใหม่ และมีคนเปิด Dashboard ระบบจะสร้างรายงานเดือนที่แล้วให้อัตโนมัติ 1 ครั้ง (ไม่มี trigger ฝั่งเซิร์ฟเวอร์) หรือกดสร้างเองเลือกเดือนย้อนหลังได้ 12 เดือน
 - เปิดดู/ดาวน์โหลดผ่านหน้า Dashboard ได้เลย ไฟล์ไม่ถูกแชร์สาธารณะ
-- Apps Script: `getMonthlyReports`, `getMonthlyReportFile`, `saveMonthlyReport` (อยู่ใน `gas/22_Monthly_Report_Pdf.gs` · ต้อง deploy เวอร์ชันใหม่) · โค้ดหน้าเว็บ: `js/monthly-report.js`, `js/monthly-gis.js`, `css/monthly-report.css`
+- Apps Script: `getMonthlyReports`, `getMonthlyReportFile`, `saveMonthlyReport` (อยู่ใน `gas/Code.gs` · ต้อง deploy เวอร์ชันใหม่) · โค้ดหน้าเว็บ: `js/monthly-report.js`, `js/monthly-gis.js`, `css/monthly-report.css`
 
 ## 📈 สถิติการใช้งาน
 
