@@ -29,9 +29,9 @@
 | ภาพเคลื่อนไหว WebP | `wave` hero · `loading` ทุกหน้า · `alert` วิดเจ็ต (มี `-still` สำหรับผู้ลดการเคลื่อนไหว) |
 | ดูทั้งหมด | เปิด `brand.html` |
 
-ไฟล์ที่เพิ่ม: `sand-brand.css`, `sand-brand.js`, `brand.html`, `assets/sand/`, `tools/slice_sheet.py`, `skills/sand-brand-kit/`
+ไฟล์ที่เพิ่ม: `css/sand-brand.css`, `js/sand-brand.js`, `brand.html`, `assets/sand/`, `tools/slice_sheet.py`, `skills/sand-brand-kit/`
 
-**ปรับค่า** — เวลาตัด/หน้าที่แสดงวิดเจ็ต อยู่ที่ `CFG` ต้นไฟล์ `sand-brand.js` (`cutoffMinutes`, `reminderPages`)
+**ปรับค่า** — เวลาตัด/หน้าที่แสดงวิดเจ็ต อยู่ที่ `CFG` ต้นไฟล์ `js/sand-brand.js` (`cutoffMinutes`, `reminderPages`)
 **สร้างสินทรัพย์ใหม่จากชีต** — `pip install pillow numpy opencv-python && python3 tools/slice_sheet.py`
 
 > หน้าเดิมอ้างไฟล์ `assets/sand-logo-icon.png`, `assets/favicon-*.png`, `assets/apple-touch-icon.png` ซึ่งอยู่ในโฟลเดอร์ `assets/` ของ repo จริงอยู่แล้ว — ชุดนี้เพิ่มเฉพาะ `assets/sand/` และ `assets/source/` จึงไม่ชนกัน
@@ -90,7 +90,7 @@ flowchart LR
 ```
 
 **หลักการออกแบบ**
-- Backend เป็นสคริปต์เดียว (`Code.gs`) ทำหน้าที่เป็น API: `doGet` สำหรับอ่านข้อมูล, `doPost` สำหรับบันทึก
+- Backend (โฟลเดอร์ `gas/`) ทำหน้าที่เป็น API: `doGet` สำหรับอ่านข้อมูล, `doPost` สำหรับบันทึก
 - ทุก request ผ่านการตรวจ API key แบบ **fail-closed** (หากไม่ได้ตั้งค่าคีย์ จะปฏิเสธทุกคำขอ)
 - ใช้ `LockService` ป้องกันการเขียนข้อมูลชนกัน
 - อ้างอิงคอลัมน์ด้วย **ชื่อหัวตาราง** แทนตำแหน่งตายตัว เพื่อให้ปรับโครงสร้างชีทได้โดยไม่พัง
@@ -100,33 +100,37 @@ flowchart LR
 
 ```
 carsystemsansai/
-├── index.html            # หน้าหลัก SAND (เมนูรวมระบบ)
-├── dashboard.html        # แผงควบคุมภาพรวม
-├── startmile.html        # บันทึกการใช้รถ
-├── check.html            # ตรวจสภาพรถประจำวัน
-├── editmile.html         # แก้ไข/อนุมัติเลขไมล์
-├── fixedcar.html         # แจ้งซ่อม
-├── EMScheck.html         # ตรวจอุปกรณ์ EMS
-├── emsDashboard.html     # แดชบอร์ด EMS
-├── routemap.html         # แผนที่เส้นทาง
-├── worktable.html        # ตารางเวร / ตารางงาน
-├── swap.html             # ระบบแลกเวร พขร.
-├── satisfaction.html     # ประเมินความพึงพอใจ
-├── linecontrol.html      # ควบคุมการส่ง LINE
-├── secure-fetch.js       # แนบ API key + client IP ให้ทุก request
-├── send_core.js          # ตรรกะส่ง LINE และประวัติการส่ง
-├── duty.js               # อ่านตารางเวรและเวรประจำวัน
-├── admin.js              # ฟังก์ชันสำหรับแอดมิน / LINE catalog
+├── index.html · dashboard.html · startmile.html · check.html · editmile.html
+├── fixedcar.html · EMScheck.html · emsDashboard.html · routemap.html
+├── worktable.html · swap.html · satisfaction.html · qr-satisfaction.html
+├── linecontrol.html · brand.html · credits.html     # หน้าเว็บ (อยู่ที่ราก เพื่อให้ลิงก์/QR/Rich Menu เดิมใช้ได้)
+├── manifest.webmanifest  # PWA (ต้องอยู่ที่ราก)
+├── css/                  # สไตล์ที่ใช้ร่วม
+│   ├── sand-brand.css        # ชุดแบรนด์ + วิดเจ็ตแจ้งเตือน
+│   ├── route-card.css        # การ์ดแผนที่เส้นทาง (index)
+│   └── monthly-report.css    # รายงานประจำเดือน (dashboard)
+├── js/                   # สคริปต์ฝั่งเว็บ
+│   ├── secure-fetch.js       # แนบ API key + client IP ให้ทุก request
+│   ├── sand-brand.js         # วิดเจ็ตรถยังไม่ตรวจสภาพ + ไอคอนประจำหน้า
+│   ├── route-card.js         # แผนที่เส้นทางในหน้ารายละเอียดรถ
+│   ├── monthly-report.js     # รายงานประจำเดือน (PDF)
+│   └── monthly-gis.js        # วิเคราะห์เชิงพื้นที่ (GIS) ในรายงานประจำเดือน
+├── gas/                  # Google Apps Script (backend) แยกเป็น 23 ไฟล์ตามหมวด — ดู gas/README.md
+├── assets/               # รูป · มาสคอต · ไอคอน · QR
+├── docs/                 # เอกสารประกอบ (UPLOAD*.md, CREDITS.md)
+├── tools/                # สคริปต์ช่วยสร้างสินทรัพย์ (Python)
+├── skills/               # sand-brand-kit
+├── archive/legacy-gas/   # ไฟล์ GAS รุ่นเก่า (admin/duty/send_core) — ห้าม deploy
 └── README.md
 ```
 
-> `Code.gs` (Apps Script backend) ดูแลแยกใน Google Apps Script project
+> Backend อยู่ในโฟลเดอร์ `gas/` (ไฟล์ `.gs` เรียงเลข `00`–`22` ต้องคงลำดับนี้เมื่อวางใน Apps Script) — รายละเอียดและวิธี deploy ดู [`gas/README.md`](gas/README.md)
 
 ## 🚀 การติดตั้ง
 
 ### 1) เตรียม Backend (Google Apps Script)
 1. สร้าง Google Sheet และเปิด **Extensions → Apps Script**
-2. วางโค้ด `Code.gs` แล้วรันฟังก์ชัน setup เพื่อสร้างชีทที่จำเป็น (เช่น `setupAllSheets`, `setupSwapRequestsSheet`, `setupJobAssignmentsSheet`)
+2. วางโค้ดทุกไฟล์ในโฟลเดอร์ `gas/` (หรือใช้ `clasp push` ตาม `gas/README.md`) แล้วรันฟังก์ชัน setup เพื่อสร้างชีทที่จำเป็น (เช่น `setupAllSheets`, `setupSwapRequestsSheet`, `setupJobAssignmentsSheet`)
 3. ตั้งค่า **Project Settings → Script Properties**
 
    | Key | คำอธิบาย |
@@ -139,7 +143,7 @@ carsystemsansai/
 
 ### 2) เตรียม Frontend
 1. กำหนด `GAS_URL` ในแต่ละหน้าให้ชี้ไปยัง Web App URL ข้างต้น
-2. ตั้งค่า `API_KEY` ใน `secure-fetch.js` ให้ตรงกับ Script Properties
+2. ตั้งค่า `API_KEY` ใน `js/secure-fetch.js` ให้ตรงกับ Script Properties
 3. Push ขึ้น GitHub แล้วเปิด **Settings → Pages** เลือก branch `main`
 
 ### 3) เชื่อม LINE (ถ้าใช้งาน)
@@ -173,7 +177,7 @@ carsystemsansai/
 - พิกัดปลายทางมาจากชีท `Locations` (ปักหมุดที่หน้า `routemap.html`) — ปลายทางที่ยังไม่ปักหมุดจะไม่วาดเส้นทาง แต่มีปุ่มเปิดใน Google Maps
 - เส้นทางถนนจริงจาก OSRM · ภาพแผนที่จากไทล์ OpenStreetMap (ตัวเดียวกับ `routemap.html`) (ไม่ต้องใช้ API key)
 - เวลาเดินทางเป็นค่าประมาณ ไม่ใช่ตำแหน่งจริงของรถ (ระบบไม่มี GPS)
-- โค้ด: `route-card.js`, `route-card.css`
+- โค้ด: `js/route-card.js`, `css/route-card.css`
 
 ## 📄 รายงานประจำเดือน (PDF) บน Google Drive (dashboard.html)
 
@@ -182,7 +186,7 @@ carsystemsansai/
 - สร้าง PDF (A4) ในเบราว์เซอร์จากข้อมูลล่าสุด แล้วส่งไปเก็บในโฟลเดอร์ Google Drive **"SAND รายงานประจำเดือน"** (ชื่อไฟล์ `SAND_Monthly_YYYY-MM.pdf`)
 - เมื่อขึ้นเดือนใหม่ และมีคนเปิด Dashboard ระบบจะสร้างรายงานเดือนที่แล้วให้อัตโนมัติ 1 ครั้ง (ไม่มี trigger ฝั่งเซิร์ฟเวอร์) หรือกดสร้างเองเลือกเดือนย้อนหลังได้ 12 เดือน
 - เปิดดู/ดาวน์โหลดผ่านหน้า Dashboard ได้เลย ไฟล์ไม่ถูกแชร์สาธารณะ
-- Apps Script: `getMonthlyReports`, `getMonthlyReportFile`, `saveMonthlyReport` (ต้อง deploy `Code.gs` เวอร์ชันใหม่) · โค้ดหน้าเว็บ: `monthly-report.js`, `monthly-report.css`
+- Apps Script: `getMonthlyReports`, `getMonthlyReportFile`, `saveMonthlyReport` (อยู่ใน `gas/22_Monthly_Report_Pdf.gs` · ต้อง deploy เวอร์ชันใหม่) · โค้ดหน้าเว็บ: `js/monthly-report.js`, `js/monthly-gis.js`, `css/monthly-report.css`
 
 ## 📈 สถิติการใช้งาน
 
