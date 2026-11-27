@@ -488,13 +488,13 @@ function getDefaultVehicles() {
 //  เพิ่ม พขร. ใหม่ — นายธนวัฒน์ มอญแสง (ผู้รับผิดชอบรถ ขร.501 ชม. / ตรวจสภาพรถ)
 //  ข้อมูลจริงอยู่ในชีท (Vehicles / Config / ตารางเวร) ไม่ใช่ใน code
 //  → แก้ค่าเริ่มต้นใน code อย่างเดียวไม่พอ ต้อง "รันครั้งเดียว": addDriverThanawat() จาก Apps Script editor
-//  รันซ้ำได้ปลอดภัย (ตรวจชื่อซ้ำก่อนเขียนทุกจุด) — ไม่ใส่ชื่อเล่น/เบอร์โทร (ยังไม่ทราบ) ให้กรอกเองในชีท "ตารางเวร"
+//  รันซ้ำได้ปลอดภัย (ตรวจชื่อซ้ำก่อนเขียนทุกจุด; ถ้ามีชื่ออยู่แล้วจะเติมเฉพาะชื่อเล่น/เบอร์ที่ว่าง) — ชื่อเล่น บาส / เบอร์ 0834800121
 // ════════════════════════════════════════════════════════════
 function addDriverThanawat() {
-  return addDriverToAllSheets_('นายธนวัฒน์ มอญแสง', 'ขร.501');
+  return addDriverToAllSheets_('นายธนวัฒน์ มอญแสง', 'ขร.501', 'บาส', '0834800121');
 }
 
-function addDriverToAllSheets_(fullName, plateKey) {
+function addDriverToAllSheets_(fullName, plateKey, nick, phone) {
   var norm = function (s) { return String(s == null ? '' : s).replace(/\s+/g, '').toLowerCase(); };
   var target = norm(fullName);
   var ss = getSpreadsheet();
@@ -548,24 +548,40 @@ function addDriverToAllSheets_(fullName, plateKey) {
       var sh = ss.getSheetByName(shName);
       if (!sh) { report.push(shName + ': ไม่พบชีท — ข้าม'); return; }
       var data = sh.getDataRange().getValues();
-      var hdr = -1, colName = 0;
+      var hdr = -1, colName = 0, colNick = 1, colPhone = 2;
       for (var h = 0; h < Math.min(12, data.length) && hdr < 0; h++) {
         for (var c = 0; c < Math.min(4, data[h].length); c++) {
           if (norm(data[h][c]).indexOf('ชื่อ-สกุล') === 0 || norm(data[h][c]) === 'ชื่อสกุล') { hdr = h; colName = c; break; }
         }
       }
       if (hdr < 0) { hdr = 2; colName = 0; }
-      var lastStaff = -1, placeholder = -1, totalIdx = -1, exists = false;
+      data[hdr].forEach(function (cell, ci) {
+        var tx = norm(cell);
+        if (tx === 'ชื่อเล่น') colNick = ci;
+        else if (tx.indexOf('เบอร์') === 0 || tx.indexOf('โทร') === 0) colPhone = ci;
+      });
+      // เติมชื่อเล่น/เบอร์ (เฉพาะช่องที่ว่าง) — เบอร์เก็บเป็นข้อความเพื่อคงเลข 0 นำหน้า
+      var fillInfo = function (rowNum, curNick, curPhone) {
+        var did = false;
+        if (nick && !String(curNick == null ? '' : curNick).trim()) { sh.getRange(rowNum, colNick + 1).setValue(nick); did = true; }
+        if (phone && !String(curPhone == null ? '' : curPhone).trim()) { sh.getRange(rowNum, colPhone + 1).setNumberFormat('@').setValue(phone); did = true; }
+        return did;
+      };
+      var lastStaff = -1, placeholder = -1, totalIdx = -1, exists = false, existIdx = -1;
       for (var rr = hdr + 1; rr < data.length; rr++) {
         var nm = String(data[rr][colName] == null ? '' : data[rr][colName]).trim();
         if (!nm) continue;
         if (nm.indexOf('รวม') === 0) { totalIdx = rr; break; }
         if (nm.indexOf('หมายเหตุ') === 0) continue;
-        if (norm(nm) === target) exists = true;
+        if (norm(nm) === target) { exists = true; existIdx = rr; }
         if (norm(nm) === norm('พขร.ใหม่')) placeholder = rr;
         lastStaff = rr;
       }
-      if (exists) { report.push(shName + ': มีชื่อนี้อยู่แล้ว'); return; }
+      if (exists) {
+        var er = data[existIdx], filled = fillInfo(existIdx + 1, er[colNick], er[colPhone]);
+        report.push(shName + ': มีชื่อนี้อยู่แล้ว' + (filled ? ' (เติมชื่อเล่น/เบอร์ที่ว่างให้)' : ''));
+        return;
+      }
       var newRow; // 1-based
       if (placeholder >= 0) {
         newRow = placeholder + 1;
