@@ -4343,7 +4343,7 @@ function getDrivers() {
     drivers: [
       'นาย ชัยพร มอญแสง','นาย กิตติพงศ์ เขื่อนแก้ว','นาย กานต์นิธิ ทองอร',
       'นาย นพดล คำปินคำ','นาย เก้า พิจิตร',
-      'นาย ภาณุพงศ์ กางสำโรง','นาย เฉลิมพล เลาแก้ว','นายชัยพร ชัยศร'
+      'นาย ภาณุพงศ์ กางสำโรง','นาย เฉลิมพล เลาแก้ว','นายชัยพร ชัยศร','นาย ธนวัฒน์ มอญแสง'
     ]
   };
 }
@@ -4460,7 +4460,7 @@ function getInitDataCompute_() {
   if (!drivers.length) drivers = [
     'นาย ชัยพร มอญแสง','นาย กิตติพงศ์ เขื่อนแก้ว','นาย กานต์นิธิ ทองอร',
     'นาย นพดล คำปินคำ','นาย เก้า พิจิตร',
-    'นาย ภาณุพงศ์ กางสำโรง','นาย เฉลิมพล เลาแก้ว','นายชัยพร ชัยศร'
+    'นาย ภาณุพงศ์ กางสำโรง','นาย เฉลิมพล เลาแก้ว','นายชัยพร ชัยศร','นาย ธนวัฒน์ มอญแสง'
   ];
 
   return { status: 'ok', vehicles: vehicles, drivers: drivers, config: config };
@@ -4782,12 +4782,134 @@ function getDefaultVehicles() {
     { ทะเบียน:'จย.1379 ชม.', ประเภท:'รถ Refer',           ผู้รับผิดชอบ:'นายชัยพร มอญแสง',        สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
     { ทะเบียน:'งบ.5466 ชม.', ประเภท:'รถ Refer',           ผู้รับผิดชอบ:'นายนพดล คำปินคำ',        สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
     { ทะเบียน:'ขษ.4361 ชม.', ประเภท:'รถ Refer',           ผู้รับผิดชอบ:'นายกิติพงศ์ เขื่อนแก้ว', สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
-    { ทะเบียน:'ขร.501 ชม.',  ประเภท:'รถ Refer',           ผู้รับผิดชอบ:'', สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
+    { ทะเบียน:'ขร.501 ชม.',  ประเภท:'รถ Refer',           ผู้รับผิดชอบ:'นายธนวัฒน์ มอญแสง', สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
     { ทะเบียน:'ขธ.9302 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ผู้รับผิดชอบ:'นายชัยพร ชัยศร',         สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' },
     { ทะเบียน:'ขฉ.8407 ชม.', ประเภท:'รถ Refer',           ผู้รับผิดชอบ:'นายกานต์นิธิ ทองอร',     สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'EMS' },
     { ทะเบียน:'ขค.9662 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ผู้รับผิดชอบ:'นายเก้า พิจิตร',          สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' },
     { ทะเบียน:'กล.9438 ชม.', ประเภท:'รถปิ๊กอัพ 4 ประตู', ผู้รับผิดชอบ:'นายเฉิมพล เลาแก้ว',     สถานะ:'พร้อมใช้งาน', ประเภทระบบ:'ทั่วไป' }
   ];
+}
+
+// ════════════════════════════════════════════════════════════
+//  เพิ่ม พขร. ใหม่ — นายธนวัฒน์ มอญแสง (ผู้รับผิดชอบรถ ขร.501 ชม. / ตรวจสภาพรถ)
+//  ข้อมูลจริงอยู่ในชีท (Vehicles / Config / ตารางเวร) ไม่ใช่ใน code
+//  → แก้ค่าเริ่มต้นใน code อย่างเดียวไม่พอ ต้อง "รันครั้งเดียว": addDriverThanawat() จาก Apps Script editor
+//  รันซ้ำได้ปลอดภัย (ตรวจชื่อซ้ำก่อนเขียนทุกจุด) — ไม่ใส่ชื่อเล่น/เบอร์โทร (ยังไม่ทราบ) ให้กรอกเองในชีท "ตารางเวร"
+// ════════════════════════════════════════════════════════════
+function addDriverThanawat() {
+  return addDriverToAllSheets_('นายธนวัฒน์ มอญแสง', 'ขร.501');
+}
+
+function addDriverToAllSheets_(fullName, plateKey) {
+  var norm = function (s) { return String(s == null ? '' : s).replace(/\s+/g, '').toLowerCase(); };
+  var target = norm(fullName);
+  var ss = getSpreadsheet();
+  var report = [];
+  var lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    // 1) Vehicles — ตั้ง "ผู้รับผิดชอบ" ของรถทะเบียน plateKey
+    var vs = ss.getSheetByName(SHEET_VEHICLE);
+    if (vs && vs.getLastRow() > 1) {
+      var vd = vs.getDataRange().getValues();
+      var hd = vd[0].map(function (h) { return String(h).trim(); });
+      var cPlate = hd.indexOf('ทะเบียน'), cOwner = hd.indexOf('ผู้รับผิดชอบ');
+      if (cPlate < 0 || cOwner < 0) {
+        report.push('Vehicles: ไม่พบหัวคอลัมน์ ทะเบียน/ผู้รับผิดชอบ — ข้าม');
+      } else {
+        var found = false;
+        for (var r = 1; r < vd.length; r++) {
+          if (norm(vd[r][cPlate]).indexOf(norm(plateKey)) !== 0) continue;
+          found = true;
+          if (norm(vd[r][cOwner]) === target) { report.push('Vehicles: ' + vd[r][cPlate] + ' มีชื่อนี้อยู่แล้ว'); }
+          else {
+            vs.getRange(r + 1, cOwner + 1).setValue(fullName);
+            report.push('Vehicles: ตั้งผู้รับผิดชอบ ' + vd[r][cPlate] + ' = ' + fullName + (vd[r][cOwner] ? ' (เดิม: ' + vd[r][cOwner] + ')' : ''));
+          }
+        }
+        if (!found) report.push('Vehicles: ไม่พบรถทะเบียน ' + plateKey + ' — ข้าม');
+      }
+    } else {
+      report.push('Vehicles: ไม่มีชีท/ข้อมูล — ข้าม (ระบบจะใช้ getDefaultVehicles ซึ่งแก้แล้ว)');
+    }
+
+    // 2) Config → Drivers (รายชื่อ dropdown ทุกหน้า)
+    var cs = ss.getSheetByName(SHEET_CONFIG);
+    if (cs) {
+      var cd = cs.getDataRange().getValues(), drvRow = -1;
+      for (var i = 1; i < cd.length; i++) { if (String(cd[i][0]).trim() === 'Drivers') { drvRow = i; break; } }
+      if (drvRow < 0) {
+        report.push('Config: ไม่มีแถว Drivers — ข้าม (ระบบใช้รายชื่อเริ่มต้นซึ่งแก้แล้ว)');
+      } else {
+        var names = String(cd[drvRow][1]).split('\n').map(function (n) { return n.trim(); }).filter(Boolean);
+        if (names.some(function (n) { return norm(n) === target; })) report.push('Config Drivers: มีชื่อนี้อยู่แล้ว');
+        else { names.push(fullName); cs.getRange(drvRow + 1, 2).setValue(names.join('\n')); report.push('Config Drivers: เพิ่มชื่อแล้ว'); }
+      }
+    } else {
+      report.push('Config: ไม่พบชีท — ข้าม');
+    }
+
+    // 3) ตารางเวร (เดือนนี้ + เดือนถัดไป) — เพิ่มแถวพนักงาน (ช่องเวรเว้นว่าง) และขยายสูตร "รวมเวร"
+    [SHEET_WORKTABLE, SHEET_WORKTABLE_NEXT].forEach(function (shName) {
+      var sh = ss.getSheetByName(shName);
+      if (!sh) { report.push(shName + ': ไม่พบชีท — ข้าม'); return; }
+      var data = sh.getDataRange().getValues();
+      var hdr = -1, colName = 0;
+      for (var h = 0; h < Math.min(12, data.length) && hdr < 0; h++) {
+        for (var c = 0; c < Math.min(4, data[h].length); c++) {
+          if (norm(data[h][c]).indexOf('ชื่อ-สกุล') === 0 || norm(data[h][c]) === 'ชื่อสกุล') { hdr = h; colName = c; break; }
+        }
+      }
+      if (hdr < 0) { hdr = 2; colName = 0; }
+      var lastStaff = -1, placeholder = -1, totalIdx = -1, exists = false;
+      for (var rr = hdr + 1; rr < data.length; rr++) {
+        var nm = String(data[rr][colName] == null ? '' : data[rr][colName]).trim();
+        if (!nm) continue;
+        if (nm.indexOf('รวม') === 0) { totalIdx = rr; break; }
+        if (nm.indexOf('หมายเหตุ') === 0) continue;
+        if (norm(nm) === target) exists = true;
+        if (norm(nm) === norm('พขร.ใหม่')) placeholder = rr;
+        lastStaff = rr;
+      }
+      if (exists) { report.push(shName + ': มีชื่อนี้อยู่แล้ว'); return; }
+      var newRow; // 1-based
+      if (placeholder >= 0) {
+        newRow = placeholder + 1;
+        sh.getRange(newRow, colName + 1).setValue(fullName);
+        report.push(shName + ': ใส่ชื่อแทนแถว "พขร.ใหม่" (แถว ' + newRow + ')');
+      } else {
+        var after = (lastStaff >= 0 ? lastStaff : hdr) + 1; // แถว 1-based ของพนักงานคนสุดท้าย
+        sh.insertRowAfter(after);
+        newRow = after + 1;
+        sh.getRange(newRow, colName + 1).setValue(fullName);
+        report.push(shName + ': เพิ่มแถวใหม่ (แถว ' + newRow + ')');
+      }
+      // ขยายสูตร "รวมเวร" ให้ครอบคลุมแถวใหม่ (เช่น COUNTA(E4:E12) → COUNTA(E4:E13))
+      var tRow = -1, lastRow = sh.getLastRow();
+      for (var q = newRow + 1; q <= lastRow; q++) {
+        if (String(sh.getRange(q, colName + 1).getValue()).trim().indexOf('รวม') === 0) { tRow = q; break; }
+      }
+      if (tRow > 0) {
+        var rng = sh.getRange(tRow, 1, 1, sh.getLastColumn());
+        var fs = rng.getFormulas()[0], first = hdr + 2, changed = 0;
+        for (var k = 0; k < fs.length; k++) {
+          if (!fs[k]) continue;
+          var nf = fs[k].replace(/([A-Z]+)(\d+):([A-Z]+)(\d+)/g, function (m, a, r1, b, r2) {
+            return (Number(r1) === first && Number(r2) >= newRow - 1 && Number(r2) < newRow) ? a + r1 + ':' + b + newRow : m;
+          });
+          if (nf !== fs[k]) { sh.getRange(tRow, k + 1).setFormula(nf); changed++; }
+        }
+        if (changed) report.push(shName + ': ขยายสูตรรวมเวร ' + changed + ' ช่อง');
+      }
+    });
+
+    SpreadsheetApp.flush();
+    try { invalidateDataCache_(); } catch (e1) {}
+  } finally {
+    lock.releaseLock();
+  }
+  report.forEach(function (l) { console.log(l); });
+  return { status: 'ok', fullName: fullName, report: report };
 }
 
 // ════════════════════════════════════════════════════════════
@@ -5092,7 +5214,7 @@ function setupSheet() {
     [
       ['HospitalName','โรงพยาบาลสันทราย','ชื่อโรงพยาบาล'],
       ['Drivers',
-       'นาย ชัยพร มอญแสง\nนาย กิตติพงศ์ เขื่อนแก้ว\nนาย กานต์นิธิ ทองอร\nนาย นพดล คำปินคำ\nนาย เก้า พิจิตร\nนาย ภาณุพงศ์ กางสำโรง\nนาย เฉลิมพล เลาแก้ว\nนายชัยพร ชัยศร\n',
+       'นาย ชัยพร มอญแสง\nนาย กิตติพงศ์ เขื่อนแก้ว\nนาย กานต์นิธิ ทองอร\nนาย นพดล คำปินคำ\nนาย เก้า พิจิตร\nนาย ภาณุพงศ์ กางสำโรง\nนาย เฉลิมพล เลาแก้ว\nนายชัยพร ชัยศร\nนาย ธนวัฒน์ มอญแสง\n',
        'รายชื่อพนักงาน'],
       ['LineToken','','LINE Notify Token'],
       ['NotifyEmail','','Email แจ้งเตือน']
@@ -6579,6 +6701,8 @@ function getWorktableDefaultStaff() {
     { name:'นายคมสันต์ ภายไธสงค์',     nick:'ก๊อต', phone:'0966952256', role:'',
       schedule:{1:'ช2บ1',4:'ช3(Ems)',5:'ด/บ2',6:'ช1บ2',9:'ช2บ1',12:'ช3(Ems)',13:'ด',
                 17:'ช1บ2',19:'ช2บ1',24:'ช1บ2',26:'ช2บ1',28:'ช1บ2'} },
+    { name:'นายธนวัฒน์ มอญแสง',     nick:'',     phone:'',           role:'',
+      schedule:{} },
   ];
 }
 
