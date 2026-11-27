@@ -665,6 +665,7 @@ html{-webkit-text-size-adjust:100%;} button,select,input,textarea,label{touch-ac
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SAND">
 <script src="js/sand-date.js"></script>
+<script src="js/sand-staff.js"></script>
 </head>
 <body>
 <!-- HEADER -->
@@ -1124,7 +1125,8 @@ function populateDriverSelect(drivers) {
   sel.innerHTML = '<option value="">-- เลือกชื่อ --</option>';
   drivers.forEach(name => {
     const opt = document.createElement('option');
-    opt.value = opt.textContent = name;
+    opt.value = name;
+    opt.textContent = SandStaff.label(name);
     sel.appendChild(opt);
   });
 }

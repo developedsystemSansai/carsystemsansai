@@ -255,6 +255,7 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SAND">
 <script src="js/sand-date.js"></script>
+<script src="js/sand-staff.js"></script>
 </head>
 
 <body>
@@ -601,13 +602,13 @@ async function loadDriverList() {
     const json = await res.json();
     const sel = document.getElementById('gateDriverSelect');
     const names = (json && json.drivers) || [];
-    sel.innerHTML = '<option value="">— เลือกชื่อ —</option>' + names.map(n => '<option value="' + escHtml(n) + '">' + escHtml(n) + '</option>').join('');
+    sel.innerHTML = '<option value="">— เลือกชื่อ —</option>' + names.map(n => '<option value="' + escHtml(n) + '">' + escHtml(SandStaff.label(n)) + '</option>').join('');
 
     // ── เตรียม datalist ชื่อ พขร. สำหรับช่อง "พนักงานขับรถ" ในโมดัลแก้ไข ──
     // (เป็นแค่คำแนะนำ ไม่บังคับเลือก เพราะบางทริปอาจมีคนขับที่ไม่อยู่ในรายชื่อปัจจุบันแล้ว
     //  แต่ช่วยกันพิมพ์ชื่อผิด/สะกดไม่ตรงกับที่ใช้ในรายงานอื่นๆ ซึ่งทำให้ข้อมูลไม่สอดคล้องกัน)
     const dList = document.getElementById('edDriverList');
-    if (dList) dList.innerHTML = names.map(n => '<option value="' + escHtml(n) + '">').join('');
+    if (dList) dList.innerHTML = names.map(n => '<option value="' + escHtml(n) + '" label="' + escHtml(SandStaff.label(n)) + '">').join('');
   } catch (err) {
     document.getElementById('gateDriverSelect').innerHTML = '<option value="">โหลดรายชื่อไม่สำเร็จ</option>';
   }

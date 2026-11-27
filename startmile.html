@@ -1054,6 +1054,8 @@ button, select, input, textarea, .tab-btn { touch-action:manipulation; -webkit-t
 @media (min-width:701px){ .ff-overlay { align-items:center; } .ff-box { border-radius:20px; } }
 </style>
 <script src="js/secure-fetch.js"></script>
+<script src="js/sand-date.js"></script>
+<script src="js/sand-staff.js"></script>
 <link rel="stylesheet" href="css/sand-brand.css">
 <script defer src="js/sand-brand.js"></script>
   <script defer src="https://sandtools.vercel.app/t.js" data-site="prnskn2arc"></script>
@@ -2355,9 +2357,13 @@ function populateDriverSelect(drivers) {
   if (!sel) return;
   const cur = sel.value;
   sel.innerHTML = '<option value="">— เลือกชื่อพขร. —</option>';
+  // รายชื่อจากชีท Config อาจยังไม่มีคนใหม่ → เติม ธนวัฒน์ มอญแสง (บาส) ให้เสมอ
+  drivers = Array.isArray(drivers) ? drivers.slice() : [];
+  if (!SandStaff.has(drivers, 'ธนวัฒน์ มอญแสง')) drivers.push('นาย ธนวัฒน์ มอญแสง');
   drivers.forEach(name => {
     const opt = document.createElement('option');
-    opt.value = opt.textContent = name;
+    opt.value = name;                          // ค่าที่บันทึกลงชีท = ชื่อเดิม
+    opt.textContent = SandStaff.label(name);   // ข้อความที่แสดง = ชื่อ (ชื่อเล่น)
     if (name === cur) opt.selected = true;
     sel.appendChild(opt);
   });
@@ -3131,7 +3137,7 @@ async function submitStart() {
   const rpLabel = requestPoints.length > 1
     ? requestPoints.join(' + ')
     : (requestPoints[0] || '—');
-  const modalDetails = { 'ทะเบียน': plate, 'พขร.': driverName, 'วันที่/เวลา': displayDT,
+  const modalDetails = { 'ทะเบียน': plate, 'พขร.': SandStaff.label(driverName), 'วันที่/เวลา': displayDT,
     'จุดขอใช้รถ': rpLabel,
     'ปลายทาง': dest, 'เลขไมล์': odoStart.toLocaleString() + ' กม.' };
   if (hasFuel) {
@@ -3548,7 +3554,7 @@ function renderHistory() {
     const _gap = mileGapMap.get(r);
     return `<tr class="${[fuelMissing(r,isActive)?'row-fuel-missing':'', _gap?'row-mile-gap':''].join(' ').trim()}">
       <td data-label="ทะเบียน"><span class="plate-chip">${plate}</span></td>
-      <td data-label="พขร." style="font-size:12px;">${(r['พนักงานขับรถ']||'—').substring(0,12)}</td>
+      <td data-label="พขร." style="font-size:12px;">${SandStaff.label(r['พนักงานขับรถ']||'—')}</td>
       <td data-label="วันที่" style="font-size:12px;white-space:nowrap;font-weight:500;">${dateStr}</td>
       <td data-label="เวลาออก" style="font-size:13px;font-weight:600;color:#0369a1;white-space:nowrap;">${timeOut} น.</td>
       <td data-label="เวลากลับ" style="font-size:13px;font-weight:600;color:#15803d;white-space:nowrap;">${timeBack}${!isActive && timeBack !== '—' ? ' น.' : ''}</td>
@@ -3741,7 +3747,7 @@ function filterHistory() { renderHistory(); }
 // ════════════════════════════════════════════════════════
 function openTripDetail(r) {
   const plate     = String(r['ทะเบียน/รถ'] || '').split(' ')[0];
-  const driver    = String(r['พนักงานขับรถ'] || '—');
+  const driver    = SandStaff.label(String(r['พนักงานขับรถ'] || '—'));
   const dest      = String(r['ปลายทาง'] || '—');
   const reqPt     = String(r['จุดขอใช้รถ'] || r['requestPoints'] || '—');
   const dateStr   = (() => {
