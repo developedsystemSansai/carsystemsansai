@@ -44,7 +44,7 @@
     catch (e) { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
   }
   function nowBkkText() {
-    try { return new Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'long', timeStyle: 'short' }).format(new Date()) + ' น.'; }
+    try { if (window.SandDate) return SandDate.dateTime(new Date()) + ' น.'; return new Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'long', timeStyle: 'short' }).format(new Date()) + ' น.'; }
     catch (e) { return new Date().toLocaleString('th-TH'); }
   }
   function ymOf(iso) { return String(iso || '').slice(0, 7); }
@@ -60,7 +60,7 @@
   function fmtBytes(b) { b = +b || 0; return b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
   function fmtDT(iso) {
     if (!iso) return '—';
-    try { return new Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso)); } catch (e) { return String(iso); }
+    try { if (window.SandDate) return SandDate.dateTime(new Date(iso)) || String(iso); return new Intl.DateTimeFormat('th-TH', { timeZone: 'Asia/Bangkok', dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso)); } catch (e) { return String(iso); }
   }
   function getJson(url) { return fetch(url, { cache: 'no-store' }).then(function (r) { return r.json(); }); }
   function loadScript(url) {

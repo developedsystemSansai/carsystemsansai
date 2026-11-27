@@ -1013,6 +1013,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SAND">
+<script src="js/sand-date.js"></script>
 </head>
 <body>
 
@@ -1619,7 +1620,7 @@ function extractTimeOnly(val) {
 
 function fmtNow() {
   const d=new Date(), p=n=>String(n).padStart(2,'0');
-  return `อัปเดต ${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  return `อัปเดต ${SandDate.date(d)} ${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
 async function initIndex() {
@@ -1662,7 +1663,7 @@ async function loadTodayJobs(){
   const now = new Date();
   const THAI_DAYS = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
   const THAI_MONTHS = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
-  if(dateLabelEl) dateLabelEl.textContent = `วัน${THAI_DAYS[now.getDay()]}ที่ ${now.getDate()} ${THAI_MONTHS[now.getMonth()+1]} ${now.getFullYear()+543}`;
+  if(dateLabelEl) dateLabelEl.textContent = `วัน${THAI_DAYS[now.getDay()]}ที่ ${SandDate.date(now)}`;
   try{
     const res  = await fetch(GAS_URL + '?action=getJobAssignments');
     const json = await res.json();

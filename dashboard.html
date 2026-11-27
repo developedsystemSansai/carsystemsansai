@@ -1481,6 +1481,7 @@ body {
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SAND">
+<script src="js/sand-date.js"></script>
 </head>
 <body>
 <!-- ══════ PASSWORD OVERLAY ══════ -->
@@ -2488,15 +2489,9 @@ function applyFilters() {
 // ── DATE/TIME HELPERS ──
 function fmtDateTime(val) {
   if (!val) return '—';
-  const str = String(val).trim();
-  // รูปแบบ "dd/MM/yyyy HH:mm:ss" หรือ "dd/MM/yyyy HH:mm" — แสดงครบ
-  if (/^\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}/.test(str)) return str.slice(0, 19);
-  // รูปแบบ "dd/MM/yyyy" ล้วนๆ — แสดงวันที่เท่านั้น
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) return str;
-  const d = val instanceof Date ? val : new Date(str);
-  if (isNaN(d.getTime())) return str;
-  const p = n => String(n).padStart(2,'0');
-  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+  // แสดงเป็น วัน/เดือน/ปี HH:mm:ss (SandDate — js/sand-date.js) ; ถ้าอ่านไม่ออกให้แสดงค่าเดิม
+  const out = SandDate.dateTime(val, true);
+  return out || String(val).trim();
 }
 function parseDate(str) {
   if (!str) return new Date(0);
@@ -3160,8 +3155,8 @@ async function renderSummaryTables() {
   const labelEl = document.getElementById('summaryDateLabel');
   if (labelEl) {
     const d = new Date(selDate);
-    const opts = { weekday:'long', year:'numeric', month:'long', day:'numeric', timeZone:'Asia/Bangkok' };
-    labelEl.textContent = d.toLocaleDateString('th-TH', opts);
+    const dowName = d.toLocaleDateString('th-TH', { weekday:'long', timeZone:'Asia/Bangkok' });
+    labelEl.textContent = dowName + ' ' + SandDate.date(selDate);
   }
 
   renderDistSummary(selDate);
@@ -3424,7 +3419,7 @@ function renderUsageFrequencyTable() {
   const monthLabel = (() => {
     try {
       const [y, m] = selMonth.split('-').map(Number);
-      return new Date(y, m - 1, 1).toLocaleDateString('th-TH', { year: 'numeric', month: 'long' });
+      return SandDate.month(y + '-' + String(m).padStart(2, '0'));
     } catch (_) { return selMonth; }
   })();
 
@@ -4075,7 +4070,7 @@ function fmt24(dateObj) {
   const d = dateObj instanceof Date ? dateObj : new Date(dateObj);
   if (isNaN(d)) return '—';
   const p = n => String(n).padStart(2,'0');
-  return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} เวลา ${p(d.getHours())}.${p(d.getMinutes())} น.`;
+  return `${SandDate.date(d)} เวลา ${p(d.getHours())}.${p(d.getMinutes())} น.`;
 }
 
 
@@ -4094,7 +4089,7 @@ const TH_DAYS = [
 /**
  * formatThaiDateTime — แปลง Date/string เป็นภาษาไทยสากล
  * รองรับ: Date obj | "dd/MM/yyyy HH:mm:ss" | "yyyy-MM-dd" | ISO string
- * ตัวอย่าง: "วันเสาร์ 30 ธันวาคม 2569 เวลา 10:47 น."
+ * ตัวอย่าง: "วันเสาร์ 30/12/2569 เวลา 10:47 น."
  */
 function formatThaiDateTime(val, showDay = true, showTime = true) {
   if (!val) return '—';
@@ -4112,15 +4107,13 @@ function formatThaiDateTime(val, showDay = true, showTime = true) {
     }
   }
   if (!d || isNaN(d.getTime())) return String(val);
-  const year    = d.getFullYear() + 543;
-  const month   = TH_MONTHS[d.getMonth()];
-  const day     = String(d.getDate()).padStart(2, '0');
+  // รูปแบบ วัน/เดือน/ปี (dd/mm/yyyy) — ปีตาม SandDate.YEAR_OFFSET
   const dayName = TH_DAYS[d.getDay()];
   const hh      = String(d.getHours()).padStart(2, '0');
   const mm2     = String(d.getMinutes()).padStart(2, '0');
   let result = '';
   if (showDay)  result += dayName + ' ';
-  result += `${day} ${month} ${year}`;
+  result += SandDate.date(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'));
   if (showTime) result += ` เวลา ${hh}:${mm2} น.`;
   return result;
 }
@@ -6739,6 +6732,15 @@ function expFuelCell(r, key) {
   return { n: null, text: '' };
 }
 
+// คอลัมน์วันที่ในไฟล์ส่งออก → แสดงเป็น วัน/เดือน/ปี (ค่าภายในหน้าเว็บไม่เปลี่ยน)
+const EXP_DATE_KEYS     = ['inspDate', 'วันที่', 'reportDate', 'appointDate', 'repairInDate', 'pickupDate', 'repairDoneDate'];
+const EXP_DATETIME_KEYS = ['timestamp', 'Timestamp'];
+function expFmtDateCell(key, v) {
+  if (v === '' || v === null || v === undefined) return v;
+  if (EXP_DATE_KEYS.indexOf(key) !== -1)     return SandDate.date(v) || v;
+  if (EXP_DATETIME_KEYS.indexOf(key) !== -1) return SandDate.dateTime(v, true) || v;
+  return v;
+}
 function expCellValue(r, col) {
   if (col.key === '__fuelLiters' || col.key === '__fuelPrice') return expFuelCell(r, col.key).text;
   // ── ฟิลด์คำนวณ (derived) ──
@@ -6760,6 +6762,7 @@ function expCellValue(r, col) {
   let v = r[col.key];
   if (v === undefined || v === null) v = '';
   if (Array.isArray(v)) v = v.join(', ');
+  v = expFmtDateCell(col.key, v);   // วันที่/Timestamp → วัน/เดือน/ปี
 
   // ── ลิงก์ Google Drive: ถ้ามีหลายลิงก์ (driveUrls) ให้รวมทุกลิงก์ ไม่ใช่แค่ลิงก์แรก ──
   if (col.isDriveLink && col.key === 'driveLinks' && Array.isArray(r.driveUrls) && r.driveUrls.length) {
@@ -7479,6 +7482,7 @@ function expCellForSheet(r, col) {
   let v = r[col.key];
   if (v === undefined || v === null) return '';
   if (Array.isArray(v)) return v.join(', ');
+  if (EXP_DATE_KEYS.indexOf(col.key) !== -1 || EXP_DATETIME_KEYS.indexOf(col.key) !== -1) return String(expFmtDateCell(col.key, v));
 
   // คอลัมน์ที่ควรเป็นข้อความเสมอ แม้ค่าจะดูเหมือนตัวเลข (เลขทะเบียน, รหัส, เวลา, เบอร์โทร ฯลฯ)
   // ✅ FIX: เพิ่ม senderPhone/receiverPhone — เบอร์โทรไทยขึ้นต้นด้วย 0 เสมอ (เช่น 0891234567)
@@ -8564,7 +8568,7 @@ document.addEventListener('keydown', function(e) {
   function fmtSatDate(date, time) {
     if (!date && !time) return '';
     let out = '';
-    if (date) out += date;
+    if (date) out += (SandDate.date(date) || date);
     if (time) {
       // time มาจาก GAS เป็น "HH:mm:ss" — ตัดเอาแค่ HH:MM
       const hhmm = String(time).substring(0, 5);
@@ -8756,7 +8760,7 @@ document.addEventListener('keydown', function(e) {
     h += '</div>';
     var items = a.items.slice().sort(function (x, y) { return (y.ymd + y.time) < (x.ymd + x.time) ? -1 : 1; }).slice(0, 15);
     items.forEach(function (r) {
-      h += '<div class="sr-item"><div class="meta">' + esc(r.date) + ' ' + esc(r.time) + ' · ' + r.rating + ' ★ · ' + esc(r.purpose || 'ไม่ระบุจุดประสงค์') +
+      h += '<div class="sr-item"><div class="meta">' + esc(SandDate.date(r.date) || r.date) + ' ' + esc(r.time) + ' · ' + r.rating + ' ★ · ' + esc(r.purpose || 'ไม่ระบุจุดประสงค์') +
         (tab !== 'driver' && r.driver ? ' · ผู้ขับ ' + esc(r.driver) : '') + (tab !== 'car' && r.plate ? ' · ' + esc(r.plate) : '') + '</div>' +
         (r.comment ? '<div class="cm">' + esc(r.comment) + '</div>' : '') + '</div>';
     });

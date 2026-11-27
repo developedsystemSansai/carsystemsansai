@@ -538,6 +538,7 @@ td.td-edit.just-saved{animation:cellSaved 1.4s ease-out;}
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SAND">
+<script src="js/sand-date.js"></script>
 </head>
 <body>
 
@@ -769,7 +770,7 @@ function fmtThaiFullDateTimeRange(ymd,timeOut,timeBack){
     const parts=ymd.split('-').map(Number);
     if(parts.length===3&&!parts.some(isNaN)){
       const dow=DOW_SHORT[new Date(parts[0],parts[1]-1,parts[2]).getDay()];
-      dateStr=`วัน${dow} ${String(parts[2]).padStart(2,'0')}/${String(parts[1]).padStart(2,'0')}/${parts[0]+543}`;
+      dateStr=`วัน${dow} ${SandDate.date(parts[0]+'-'+String(parts[1]).padStart(2,'0')+'-'+String(parts[2]).padStart(2,'0'))}`;
     }
   }
   if(!tOut&&!tBack) return dateStr?`${dateStr} · ไม่ระบุเวลา`:'ไม่ระบุเวลา';
@@ -782,7 +783,7 @@ function fmtJobDate(ymd){
   const parts=ymd.split('-'); if(parts.length!==3) return ymd;
   const d=new Date(Number(parts[0]),Number(parts[1])-1,Number(parts[2]));
   const dow=DOW_SHORT[d.getDay()];
-  return `${d.getDate()} ${MONTH_TH[d.getMonth()+1]} ${d.getFullYear()+543} (${dow})`;
+  return `${SandDate.date(ymd)} (${dow})`;
 }
 function todayYmd(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function addDaysYmd(ymd,n){ const [y,m,d]=ymd.split('-').map(Number); const dt=new Date(y,m-1,d+n); return dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0'); }
@@ -1153,12 +1154,11 @@ function renderJobsCalendar(opts){
 
   // label ช่วงวันที่ที่แสดง
   let label='';
-  if(jobsViewMode==='day'){ label=`${days[0].getDate()}/${days[0].getMonth()+1}/${days[0].getFullYear()+543}`; }
+  const _ymdOf=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  if(jobsViewMode==='day'){ label=SandDate.date(_ymdOf(days[0])); }
   else{
     const a=days[0],b=days[days.length-1];
-    label=(a.getMonth()===b.getMonth())
-      ? `${MONTH_TH[a.getMonth()+1]} ${a.getFullYear()+543}`
-      : `${MONTH_TH[a.getMonth()+1]}–${MONTH_TH[b.getMonth()+1]} ${b.getFullYear()+543}`;
+    label=`${SandDate.date(_ymdOf(a))} – ${SandDate.date(_ymdOf(b))}`;   // ช่วงสัปดาห์ แสดงเป็น วัน/เดือน/ปี ทั้งต้นและปลาย
   }
 
   // จัดกลุ่มงาน (ที่ผ่านการค้นหา/กรองแล้ว) ตามวันที่
@@ -1587,7 +1587,7 @@ function jfDup_(c){
 function jfDateLabel_(ymd){
   if(!ymd) return {text:'',warn:false};
   const [y,m,d]=ymd.split('-').map(Number); const dt=new Date(y,m-1,d);
-  let t='วัน'+DOW_FULL[dt.getDay()]+'ที่ '+d+' '+MONTH_TH[m]+' '+(y+543);
+  let t='วัน'+DOW_FULL[dt.getDay()]+'ที่ '+SandDate.date(ymd);
   const td=todayYmd(); let warn=false;
   if(ymd===td) t+=' · วันนี้'; else if(ymd===addDaysYmd(td,1)) t+=' · พรุ่งนี้'; else if(ymd<td){ t+=' · เป็นวันที่ผ่านมาแล้ว'; warn=true; }
   return {text:t,warn};
@@ -1730,7 +1730,7 @@ function jfRenderMeta_(){
   }
 }
 // วันที่แสดงเป็น วว/ดด/ปปปป (พ.ศ.) เสมอ ไม่ขึ้นกับภาษาของเบราว์เซอร์ · พิมพ์ปี ค.ศ. ก็ได้ ระบบแปลงให้
-function ymdToDmy_(ymd){ if(!ymd) return ''; const [y,m,d]=ymd.split('-'); return d+'/'+m+'/'+(+y+543); }
+function ymdToDmy_(ymd){ if(!ymd) return ''; const [y,m,d]=ymd.split('-'); return d+'/'+m+'/'+(+y+SandDate.YEAR_OFFSET); }
 function dmyToYmd_(s){
   const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(s||''); if(!m) return '';
   const d=+m[1],mo=+m[2]; let y=+m[3]; if(y>2400) y-=543;

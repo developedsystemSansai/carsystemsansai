@@ -284,6 +284,7 @@ select.wd{padding:7px 6px;border:1px solid var(--border-strong);border-radius:va
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SAND">
+<script src="js/sand-date.js"></script>
 </head>
 <body>
 
@@ -841,7 +842,7 @@ const THAI_MONTHS = ['', 'มกราคม', 'กุมภาพันธ์',
 function thaiMonthYear_(mmyyyy){
   const p = String(mmyyyy || '').split('/');
   const m = Number(p[0]), y = Number(p[1]);
-  return (m >= 1 && m <= 12 && y) ? (THAI_MONTHS[m] + ' ' + (y + 543)) : String(mmyyyy || '');
+  return (m >= 1 && m <= 12 && y) ? (String(m).padStart(2, '0') + '/' + (y + SandDate.YEAR_OFFSET)) : String(mmyyyy || '');
 }
 function histVal_(id){ const el = document.getElementById(id); return el ? el.value : 'all'; }
 
@@ -913,7 +914,7 @@ function histItemHtml_(it){
   const showHttp = it.http !== '' && it.http != null;
   return `<div class="hist-item" data-id="${escHtml_(it.logId)}">
     <div class="hist-top">
-      <span class="hist-time">${escHtml_(it.time)}</span>
+      <span class="hist-time">${escHtml_(SandDate.dateTime(it.time) || it.time)}</span>
       <span class="pill ${stCls}">${escHtml_(it.status || '-')}</span>
       <span class="pill ${chCls} mono" title="token ที่ใช้ส่ง (เก็บเฉพาะ 4 ตัวท้าย)">🔑 ${channelLabel_(it.channel)} ${token}</span>
       <span class="pill mute">${escHtml_(TRIGGER_LABELS[it.trigger] || it.trigger || '-')}</span>
@@ -1018,7 +1019,7 @@ async function resendFromHistory(btn){
              <dt>ข้อความ</dt><dd>${escHtml_(it.label || it.key || '-')}</dd>
              <dt>ส่งไปยัง</dt><dd>${escHtml_(rolesText_(d.targetRoles))} · ${n} คน</dd>
              <dt>บัญชี LINE</dt><dd>${escHtml_(activeChannelText_())} (ปัจจุบัน)</dd>
-             <dt>ส่งครั้งเดิมเมื่อ</dt><dd>${escHtml_(it.time || '-')}</dd>
+             <dt>ส่งครั้งเดิมเมื่อ</dt><dd>${escHtml_(SandDate.dateTime(it.time) || it.time || '-')}</dd>
            </dl>
            <p class="note">ส่ง "ข้อความตัวเดิมเป๊ะ" โดยไม่ดึงข้อมูลใหม่ — ข้อมูลในข้อความจึงเป็นของเวลาข้างต้น หากต้องการข้อมูลล่าสุดให้ใช้ "ส่งจริงอีกครั้ง" ในแท็บ "ทดสอบ / ส่งซ้ำ" แทน</p>`,
     okLabel: 'ยืนยันส่ง ' + n + ' คน'

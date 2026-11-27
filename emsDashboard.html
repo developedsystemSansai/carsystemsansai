@@ -847,7 +847,7 @@ function renderExpiryWatch() {
     return '<tr><td>' + badge + '</td><td>' + escHtml(r.name) + '</td>'
       + '<td>' + catIcon(r.cat) + ' ' + escHtml(catShort(r.cat)) + '</td>'
       + '<td>' + escHtml(r.car) + '</td>'
-      + '<td class="mono">' + r.expDate.toLocaleDateString('th-TH') + '</td>'
+      + '<td class="mono">' + SandDate.date(r.expDate) + '</td>'
       + '<td>' + (r.days < 0 ? ('เกิน ' + Math.abs(r.days) + ' วัน') : (r.days + ' วัน')) + '</td></tr>';
   }).join('');
 }
@@ -945,14 +945,14 @@ function exportExcel() {
   if (!filteredSessions.length) { alert('ไม่มีข้อมูลให้ export ตามตัวกรองปัจจุบัน'); return; }
 
   const summarySheet = filteredSessions.map(s => ({
-    'วันที่': s.date, 'เวลา': s.time, 'รถ EMS': s.car, 'ผู้ตรวจ': s.checker,
+    'วันที่': SandDate.date(s.date), 'เวลา': s.time, 'รถ EMS': s.car, 'ผู้ตรวจ': s.checker,
     'รวม': s.total, 'ผ่าน': s.pass, 'ไม่ผ่าน': s.fail, 'อัตราผ่าน (%)': s.passRate
   }));
 
   const detailRows = [];
   filteredSessions.forEach(s => s.items.forEach(i => {
     detailRows.push({
-      'วันที่': s.date, 'เวลา': s.time, 'รถ EMS': s.car, 'ผู้ตรวจ': s.checker,
+      'วันที่': SandDate.date(s.date), 'เวลา': s.time, 'รถ EMS': s.car, 'ผู้ตรวจ': s.checker,
       'หมวด': catShort(i['หมวด']), 'ชื่ออุปกรณ์': i['ชื่ออุปกรณ์'], 'สถานะ': i['สถานะ'],
       'วันหมดอายุ': i['วันหมดอายุ'] || '', 'หมายเหตุ': i['หมายเหตุ'] || ''
     });
@@ -971,11 +971,7 @@ function exportExcel() {
 // ════════════════════════════════════════════════════════════
 function fmtDateShort(ymd) {
   if (!ymd) return '—';
-  const m = ymd.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!m) return ymd;
-  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
-  const beYear = +m[1] + 543; // ปี พ.ศ. — สอดคล้องกับรูปแบบวันที่ที่ใช้ทั่วทั้งระบบ
-  return +m[3] + ' ' + months[+m[2] - 1] + ' ' + beYear;
+  return SandDate.date(ymd) || ymd;   // วัน/เดือน/ปี (js/sand-date.js)
 }
 
 // ════════════════════════════════════════════════════════════

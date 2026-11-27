@@ -517,6 +517,7 @@ input:focus, select:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SAND">
+<script src="js/sand-date.js"></script>
 </head>
 <body>
 
@@ -1216,7 +1217,7 @@ async function onCarChange() {
     const latestRows = rows.filter(r => r['Timestamp'] === latestTs);
     if (!latestRows.length) return;
     pendingPreviousCheck = latestRows;
-    const checkDate = latestRows[0]['วันที่'] || '';
+    const checkDate = SandDate.date(latestRows[0]['วันที่']) || latestRows[0]['วันที่'] || '';
     const checker   = latestRows[0]['ผู้ตรวจ'] || '';
     document.getElementById('carryBannerText').innerHTML =
       `<b>พบการตรวจครั้งก่อนของรถคันนี้</b>วันที่ ${checkDate} โดย ${checker} — นำสถานะเดิมมาเติมให้ แล้วตรวจซ้ำเฉพาะจุดที่เปลี่ยนไปได้เลย`;

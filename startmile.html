@@ -2896,7 +2896,7 @@ function renderMileHint(enteredVal) {
   const hint = document.getElementById('s_lastMileHint');
   const inp  = document.getElementById('s_odometerStart');
   if (!lastKnownOdo) return;
-  const dateStr = lastKnownDate || 'ไม่ทราบวันที่';
+  const dateStr = (lastKnownDate && (SandDate.date(lastKnownDate) || lastKnownDate)) || 'ไม่ทราบวันที่';
 
   if (!enteredVal) {
     inp.classList.remove('odo-mismatch');
@@ -3512,15 +3512,9 @@ function renderHistory() {
   function extractDate(val) {
     if (!val) return '—';
     const s = String(val).trim();
-    // รูปแบบ dd/MM/yyyy ... → ตัดเฉพาะวันที่
-    const m = s.match(/^(\d{1,2}\/\d{1,2}\/\d{4})/);
-    if (m) return m[1];
-    // yyyy-MM-dd
-    const m2 = s.match(/^(\d{4}-\d{2}-\d{2})/);
-    if (m2) {
-      const [y, mo, d] = m2[1].split('-');
-      return `${d}/${mo}/${y}`;
-    }
+    // วัน/เดือน/ปี ผ่านตัวช่วยกลาง (js/sand-date.js) — รองรับ dd/MM/yyyy, yyyy-MM-dd, ISO
+    const f = SandDate.date(s);
+    if (f) return f;
     return s.split(' ')[0] || '—';
   }
 
@@ -3701,7 +3695,7 @@ function openFuelFix(tripId){
   _ensureFuelFixModal();
   const r=mileHistory.find(x=>String(x['TripID']||x['รหัสทริป']||'')===String(tripId)); if(!r) return;
   _ffTripId=String(tripId);
-  document.getElementById('ffSub').textContent=String(r['ทะเบียน/รถ']||'').split(' ')[0]+' · '+(r['ปลายทาง']||'')+' · '+String(r['วันที่']||'').slice(0,10);
+  document.getElementById('ffSub').textContent=String(r['ทะเบียน/รถ']||'').split(' ')[0]+' · '+(r['ปลายทาง']||'')+' · '+(SandDate.date(r['วันที่'])||String(r['วันที่']||'').slice(0,10));
   const l=_numF(r['น้ำมันที่เติม(ลิตร)']), p=_numF(r['ราคาน้ำมัน(บาท)']||r['ราคาน้ำมัน']);
   document.getElementById('ffLiters').value=l||''; document.getElementById('ffPrice').value=p||'';
   document.getElementById('ffNone').checked=false; ffToggleNone();
@@ -3752,8 +3746,7 @@ function openTripDetail(r) {
   const reqPt     = String(r['จุดขอใช้รถ'] || r['requestPoints'] || '—');
   const dateStr   = (() => {
     const v = String(r['วันที่'] || r['Timestamp'] || '');
-    const m = v.match(/^(\d{1,2}\/\d{1,2}\/\d{4})/);
-    return m ? m[1] : v.slice(0,10) || '—';
+    return SandDate.date(v) || v.slice(0,10) || '—';
   })();
   const timeOut  = (() => { const v = String(r['เวลาออก']  || ''); const m = v.match(/(\d{1,2}:\d{2})/); return m ? m[1] : '—'; })();
   const timeBack = (() => { const v = String(r['เวลากลับ'] || ''); const m = v.match(/(\d{1,2}:\d{2})/); return m ? m[1] : '—'; })();

@@ -325,6 +325,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SAND">
+<script src="js/sand-date.js"></script>
 </head>
 <body>
 
@@ -1608,7 +1609,7 @@ function formatTripDateTime(tripDateYMD, timeRaw) {
   let dateText = '';
   if (tripDateYMD) {
     const dm = String(tripDateYMD).match(/(\d{4})-(\d{2})-(\d{2})/);
-    if (dm) dateText = dm[3] + '/' + dm[2] + '/' + dm[1];
+    if (dm) dateText = SandDate.date(dm[1] + '-' + dm[2] + '-' + dm[3]);
     else dateText = String(tripDateYMD);
   }
 
@@ -1899,7 +1900,7 @@ async function renderSequenceRoute() {
   });
 
   infoBar.innerHTML = '<svg class="ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 16v-4l2-5h12l2 5v4z"/><path d="M4 12h16M6.5 19v-3M17.5 19v-3"/></svg> <b>' + escHtml(car) + '</b> — เส้นทางตามลำดับ ' + stops.length + ' จุดแวะ'
-    + (from || to ? ' (' + (from || '…') + ' ถึง ' + (to || '…') + ')' : ' (ทุกวันที่มีข้อมูล)')
+    + (from || to ? ' (' + (from ? SandDate.date(from) : '…') + ' ถึง ' + (to ? SandDate.date(to) : '…') + ')' : ' (ทุกวันที่มีข้อมูล)')
     + (skipped ? ' · ข้าม ' + skipped + ' จุดที่ยังไม่ได้ปักหมุด' : '')
     + (legCount > TOO_MANY_LEGS ? ' · จุดแวะเยอะมาก แสดงเป็นเส้นตรงแทนเส้นตามถนนจริงเพื่อความเร็ว (แนะนำกรองวันที่ให้แคบลง)' : '');
 
@@ -2260,7 +2261,7 @@ function renderDurationTable() {
         : '';
     return '<tr>'
       + '<td>' + (startIdx + i + 1) + '</td>'
-      + '<td>' + escHtml(d.date || '—') + '</td>'
+      + '<td>' + escHtml(SandDate.date(d.date) || '—') + '</td>'
       + '<td class="dname" title="' + escAttr(d.dest) + '">' + escHtml(d.dest) + '</td>'
       + '<td>' + escHtml(d.plate) + '</td>'
       + '<td>' + formatTimeOfDay(d.outRaw) + '</td>'

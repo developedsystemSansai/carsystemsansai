@@ -254,6 +254,7 @@ body { font-family: 'Noto Sans Thai', sans-serif; background: var(--bg); color: 
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="SAND">
+<script src="js/sand-date.js"></script>
 </head>
 
 <body>
@@ -779,7 +780,7 @@ function renderTrips() {
       ? '<span style="color:var(--success); font-weight:600; font-size:12.5px;">' + escHtml(liters) + ' ล.' + (price ? ' · ' + escHtml(price) + ' บ.' : '') + '</span>'
       : '<span style="color:var(--danger); font-weight:600; font-size:12px; background:var(--danger-soft); padding:2px 7px; border-radius:20px;">ยังไม่เติม</span>';
     return '<tr>'
-      + '<td>' + escHtml(toYMD(t['วันที่'])) + '</td>'
+      + '<td>' + escHtml(SandDate.date(toYMD(t['วันที่'])) || toYMD(t['วันที่'])) + '</td>'
       + '<td><span class="plate-chip">' + escHtml(t['ทะเบียน/รถ']) + '</span></td>'
       + '<td>' + escHtml(t['พนักงานขับรถ']) + '</td>'
       + '<td>' + escHtml(t['ปลายทาง']) + '</td>'
@@ -908,7 +909,7 @@ function renderFuelBacklogFiltered() {
     const rowsHtml = capped.map(function (r) {
       return '<div class="pending-row" style="margin:0 0 8px;">'
         + '<div class="pending-top">'
-        +   '<div>' + escHtml(r.date) + ' · ' + escHtml(r.driver || '—') + ' → ' + escHtml(r.dest || '—') + '</div>'
+        +   '<div>' + escHtml(SandDate.date(r.date) || r.date) + ' · ' + escHtml(r.driver || '—') + ' → ' + escHtml(r.dest || '—') + '</div>'
         + '</div>'
         + '<div class="pending-actions">'
         +   '<button class="btn btn-primary" onclick="openEditModal(\'' + escHtml(r.tripId) + '\', true)">🛢️ เติมน้ำมันย้อนหลัง</button>'
@@ -1540,7 +1541,7 @@ function startDeleteFlow(tripId) {
   if (!t) { showToast('ไม่พบข้อมูลทริปนี้', 'err'); return; }
   deletingTrip = t;
   document.getElementById('deleteTripSummary').innerHTML =
-    '<b>' + escHtml(toYMD(t['วันที่'])) + '</b> · <b>' + escHtml(t['ทะเบียน/รถ']) + '</b> · '
+    '<b>' + escHtml(SandDate.date(toYMD(t['วันที่'])) || toYMD(t['วันที่'])) + '</b> · <b>' + escHtml(t['ทะเบียน/รถ']) + '</b> · '
     + escHtml(t['พนักงานขับรถ']) + ' → ' + escHtml(t['ปลายทาง']) + '<br>'
     + 'ไมล์ ' + escHtml(t['เลขไมล์ต้น']) + ' - ' + escHtml(t['เลขไมล์ปลาย']) + ' (' + escHtml(t['ระยะทาง(กม.)']) + ' กม.)';
   document.getElementById('deleteRoleHint').textContent = role === 'admin'
@@ -1624,12 +1625,12 @@ function renderPendingEdits(list) {
     if (isDelete) {
       const snap = r.oldValues || {};
       diffRows = '<div style="color:var(--danger); font-weight:700; margin-bottom:6px;">🗑️ ต้องการลบทริปนี้ทั้งหมด</div>'
-        + '<div>วันที่: ' + escHtml(snap['วันที่']) + ' · ' + escHtml(snap['พนักงานขับรถ']) + ' → ' + escHtml(snap['ปลายทาง']) + '</div>'
+        + '<div>วันที่: ' + escHtml(SandDate.date(snap['วันที่']) || snap['วันที่']) + ' · ' + escHtml(snap['พนักงานขับรถ']) + ' → ' + escHtml(snap['ปลายทาง']) + '</div>'
         + '<div>ไมล์ ' + escHtml(snap['เลขไมล์ต้น']) + ' - ' + escHtml(snap['เลขไมล์ปลาย']) + ' (' + escHtml(snap['ระยะทาง(กม.)']) + ' กม.)</div>';
     } else if (isAddFuel) {
       const f = r.newValues || {};
       diffRows = '<div style="color:var(--teal); font-weight:700; margin-bottom:6px;">🛢️ เพิ่มรายการน้ำมันย้อนหลังใหม่ (ไม่มีทริปเดิม)</div>'
-        + '<div>วันที่: ' + escHtml(f.date) + ' · ทะเบียน: ' + escHtml(f.plate) + (f.driver ? ' · พขร.: ' + escHtml(f.driver) : '') + '</div>'
+        + '<div>วันที่: ' + escHtml(SandDate.date(f.date) || f.date) + ' · ทะเบียน: ' + escHtml(f.plate) + (f.driver ? ' · พขร.: ' + escHtml(f.driver) : '') + '</div>'
         + '<div>เติม ' + escHtml(f.fuelLiters) + ' ลิตร' + (f.fuelPrice ? ' · ' + escHtml(f.fuelPrice) + ' บาท' : '') + (f.odoAt ? ' · เลขไมล์ ' + escHtml(f.odoAt) : '') + '</div>'
         + (f.note ? '<div>หมายเหตุ: ' + escHtml(f.note) + '</div>' : '');
     } else {
@@ -1648,7 +1649,7 @@ function renderPendingEdits(list) {
     return '<div class="pending-row">'
       + '<div class="pending-top">'
       +   '<div><span class="pending-plate">' + escHtml(r.plate) + '</span>' + typeBadge + (isAddFuel ? '' : ' · TripID: ' + escHtml(r.tripId)) + '</div>'
-      +   '<div class="pending-meta">' + escHtml(r.timestamp) + ' · ขอโดย ' + escHtml(r.requestedBy) + '</div>'
+      +   '<div class="pending-meta">' + escHtml(SandDate.dateTime(r.timestamp) || r.timestamp) + ' · ขอโดย ' + escHtml(r.requestedBy) + '</div>'
       + '</div>'
       + '<div class="pending-diff">' + diffRows + '</div>'
       + '<div class="pending-reason">เหตุผล: ' + escHtml(r.reason) + '</div>'
